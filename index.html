@@ -43,6 +43,7 @@
             min-height: 100vh;
         }
 
+        /* هيدر الزبون العصري */
         .header {
             background: #ffffff;
             padding: 12px 16px;
@@ -55,18 +56,30 @@
             box-shadow: var(--shadow-sm);
         }
 
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-logo-img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+
         .brand-title {
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             font-weight: 900;
             color: var(--text-dark);
         }
 
         .brand-subtitle {
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             color: var(--text-muted);
         }
 
-        .header-actions {
+        .header-left {
             display: flex;
             align-items: center;
             gap: 8px;
@@ -75,24 +88,113 @@
         .cart-badge {
             background-color: var(--primary-green);
             color: white;
-            padding: 6px 14px;
+            padding: 6px 12px;
             border-radius: var(--radius-pill);
             font-weight: bold;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .btn-admin-toggle {
-            background-color: #2196f3 !important;
-            color: white !important;
-            border: none !important;
-            padding: 8px 14px !important;
-            border-radius: var(--radius-pill) !important;
-            font-size: 0.85rem !important;
-            font-weight: 700 !important;
-            cursor: pointer !important;
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: var(--radius-pill);
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
         }
 
+        /* شريط البحث */
+        .search-container {
+            padding: 12px 16px;
+            background: #fff;
+            border-bottom: 1px solid #eee;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: var(--bg-color);
+            border-radius: var(--radius-pill);
+            padding: 8px 16px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .search-box input {
+            border: none;
+            background: transparent;
+            width: 100%;
+            outline: none;
+            font-size: 0.9rem;
+            padding-right: 8px;
+            text-align: right;
+        }
+
+        /* لافتة العروض البارزة */
+        .promo-banner {
+            margin: 12px 16px;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%);
+            border: 1px solid #ffc9c9;
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .promo-text h4 {
+            color: #c92a2a;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .promo-text p {
+            color: #611515;
+            font-size: 0.78rem;
+        }
+
+        .promo-icon {
+            font-size: 2.2rem;
+        }
+
+        /* الأقسام الأفقية */
+        .categories-scroll {
+            display: flex;
+            gap: 8px;
+            padding: 0 16px 12px 16px;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .categories-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .cat-chip {
+            background: white;
+            border: 1px solid #e5e7eb;
+            padding: 8px 16px;
+            border-radius: var(--radius-pill);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            white-space: nowrap;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .cat-chip.active {
+            background: var(--primary-green);
+            color: white;
+            border-color: var(--primary-green);
+        }
+
+        /* لوحة الإدارة */
         .admin-panel {
             background: white;
             margin: 15px 16px;
@@ -139,12 +241,8 @@
             display: flex;
             gap: 8px;
         }
-        .price-row .main-price {
-            flex: 2;
-        }
-        .price-row .unit-select {
-            flex: 1;
-        }
+        .price-row .main-price { flex: 2; }
+        .price-row .unit-select { flex: 1; }
 
         .barcode-row {
             display: flex;
@@ -163,7 +261,6 @@
             white-space: nowrap;
         }
 
-        /* صندوق رفع الصورة بتصميم أنيق ومميز */
         .image-upload-box {
             border: 2px dashed #cbd5e1;
             border-radius: var(--radius-md);
@@ -237,11 +334,12 @@
             cursor: pointer;
         }
 
+        /* شبكة المنتجات */
         .products-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
-            padding: 16px;
+            padding: 0 16px 16px 16px;
         }
 
         .card {
@@ -357,6 +455,7 @@
         .btn-card-edit { background: #ff9800; }
         .btn-card-delete { background: #f44336; }
 
+        /* سلة التسوق */
         .cart-modal {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -444,18 +543,47 @@
 <body>
 
     <div class="app-container">
+        <!-- هيدر التطبيق -->
         <header class="header">
-            <div class="cart-badge" onclick="toggleCartModal()">
-                🛒 <span id="cart-count">0</span>
-            </div>
-            <div class="header-actions">
+            <div class="header-left">
+                <div class="cart-badge" onclick="toggleCartModal()">
+                    🛒 <span id="cart-count">0</span>
+                </div>
                 <button class="btn-admin-toggle" id="admin-toggle-btn" type="button">⚙️ الإدارة</button>
             </div>
-            <div class="brand">
-                <span class="brand-title">العروبة أون لاين</span>
-                <span class="brand-subtitle">توصيل سريع • رهط</span>
+            <div class="brand-section">
+                <div style="text-align: right;">
+                    <span class="brand-title">العروبة أون لاين</span>
+                    <span class="brand-subtitle" style="display: block;">توصيل سريع • رهط</span>
+                </div>
             </div>
         </header>
+
+        <!-- شريط البحث -->
+        <div class="search-container">
+            <div class="search-box">
+                <span style="color: #9ca3af;">🔍</span>
+                <input type="text" id="search-input" placeholder="ابحث عن حليب، سكر، خبز..." oninput="filterProducts()">
+            </div>
+        </div>
+
+        <!-- لافتة العروض البارزة -->
+        <div class="promo-banner">
+            <div class="promo-icon">🥩</div>
+            <div class="promo-text" style="text-align: right;">
+                <h4>أسبوع اللحوم برشت</h4>
+                <p>15% خصم على جميع منتجات اللحوم والتعليق</p>
+            </div>
+        </div>
+
+        <!-- الأقسام الأفقية -->
+        <div class="categories-scroll">
+            <div class="cat-chip active" onclick="filterByCategory('الكل', this)">🔥 الكل وعروض الأسبوع</div>
+            <div class="cat-chip" onclick="filterByCategory('خضار وفواكه', this)">🥦 خضار وفواكه</div>
+            <div class="cat-chip" onclick="filterByCategory('ألبان وأجبان', this)">🧀 ألبان وأجبان</div>
+            <div class="cat-chip" onclick="filterByCategory('مشروبات', this)">🧃 مشروبات</div>
+            <div class="cat-chip" onclick="filterByCategory('مخبوزات', this)">🍞 مخبوزات</div>
+        </div>
 
         <!-- لوحة الإدارة -->
         <div class="admin-panel" id="admin-panel">
@@ -519,10 +647,12 @@
             <button class="btn-close-scanner" type="button" onclick="stopBarcodeScanner()">إغلاق الكاميرا</button>
         </div>
 
+        <!-- شبكة المنتجات -->
         <div class="products-grid" id="products-grid">
             <p style="grid-column: span 2; text-align: center; color: #888; padding: 20px;">جاري تحميل المنتجات...</p>
         </div>
 
+        <!-- نافذة السلة -->
         <div class="cart-modal" id="cart-modal">
             <div class="cart-content">
                 <div class="cart-header">
@@ -561,6 +691,8 @@
         let isAdminMode = false;
         let codeReader = null;
         let temporaryImageBase64 = null;
+        let currentCategory = 'الكل';
+        let searchQuery = '';
 
         document.addEventListener('DOMContentLoaded', () => {
             const adminBtn = document.getElementById('admin-toggle-btn');
@@ -627,6 +759,7 @@
                     cost: data.cost || 0,
                     stock: (data.stock !== undefined) ? data.stock : 50,
                     barcode: data.barcode || '',
+                    category: data.category || 'الكل',
                     img: (data.img && data.img.length > 50) ? data.img : 'https://via.placeholder.com/150'
                 });
             });
@@ -655,15 +788,34 @@
             render();
         }
 
+        function filterProducts() {
+            searchQuery = document.getElementById('search-input').value.trim().toLowerCase();
+            render();
+        }
+
+        function filterByCategory(category, element) {
+            currentCategory = category;
+            document.querySelectorAll('.cat-chip').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            render();
+        }
+
         function render() {
             const grid = document.getElementById('products-grid');
-            if (products.length === 0) {
-                grid.innerHTML = '<p style="grid-column: span 2; text-align: center; color: #888; padding: 20px;">لا توجد منتجات حالياً.</p>';
+            
+            let filtered = products.filter(item => {
+                const matchesCategory = (currentCategory === 'الكل' || item.category === currentCategory);
+                const matchesSearch = item.title.toLowerCase().includes(searchQuery);
+                return matchesCategory && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<p style="grid-column: span 2; text-align: center; color: #888; padding: 20px;">لا توجد منتجات مطابقة للبحث.</p>';
                 updateCartBadge();
                 return;
             }
 
-            grid.innerHTML = products.map(item => {
+            grid.innerHTML = filtered.map(item => {
                 const countInCart = cart[item.id] || 0;
                 let actionArea = '';
                 
@@ -835,7 +987,7 @@
                 return;
             }
 
-            const productData = { title, price, cost, unit, stock, barcode };
+            const productData = { title, price, cost, unit, stock, barcode, category: currentCategory };
             if (temporaryImageBase64) {
                 productData.img = temporaryImageBase64;
             } else if (!id) {
