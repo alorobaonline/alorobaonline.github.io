@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>العروبة أون لاين</title>
+    <!-- استيراد مكتبة Firebase الأساسية وقاعدة البيانات -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    
     <style>
         :root {
             --primary-green: #68a633;
@@ -40,7 +44,6 @@
             min-height: 100vh;
         }
 
-        /* 1. الهيدر */
         .header {
             background: #ffffff;
             padding: 12px 16px;
@@ -100,7 +103,6 @@
             cursor: pointer;
         }
 
-        /* 2. لوحة الإدارة */
         .admin-panel {
             background: white;
             margin: 15px 16px;
@@ -154,7 +156,6 @@
             margin-top: 5px;
         }
 
-        /* 3. شبكة المنتجات */
         .products-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -211,7 +212,6 @@
             margin-bottom: 8px;
         }
 
-        /* أزرار البطاقة */
         .btn-add {
             background-color: var(--primary-green);
             color: white;
@@ -292,7 +292,6 @@
             cursor: pointer;
         }
 
-        /* 4. نافذة السلة */
         .cart-modal {
             position: fixed;
             top: 0;
@@ -393,8 +392,6 @@
 <body>
 
     <div class="app-container">
-
-        <!-- الهيدر -->
         <header class="header">
             <div class="cart-badge" onclick="toggleCartModal()">
                 🛒 <span id="cart-count">0</span>
@@ -410,7 +407,6 @@
             </div>
         </header>
 
-        <!-- لوحة الإدارة -->
         <div class="admin-panel" id="admin-panel">
             <h3 id="panel-title">➕ إضافة غرض جديد</h3>
             <input type="hidden" id="p-id">
@@ -431,17 +427,15 @@
             </div>
 
             <div class="form-group">
-                <label>تحميل صورة من جهازك</label>
+                <label>تحميل صورة المنتج من الهاتف</label>
                 <input type="file" id="p-file" accept="image/*">
             </div>
 
-            <button class="btn-submit" onclick="saveProduct()">حفظ ونشر</button>
+            <button class="btn-submit" onclick="saveProduct()">حفظ ونشر على السحابة</button>
         </div>
 
-        <!-- شبكة العرض -->
         <div class="products-grid" id="products-grid"></div>
 
-        <!-- نافذة السلة -->
         <div class="cart-modal" id="cart-modal">
             <div class="cart-content">
                 <div class="cart-header">
@@ -456,23 +450,35 @@
                 <button class="btn-whatsapp" onclick="sendWhatsAppOrder()">📱 إرسال الطلب عبر الواتساب</button>
             </div>
         </div>
-
     </div>
 
     <script>
-        const defaultItems = [
-            { id: 101, title: "منظف سانو 00", price: 11.90, stock: 8, img: "https://via.placeholder.com/150" },
-            { id: 102, title: "ليف سانو سلك", price: 5.50, stock: 5, img: "https://via.placeholder.com/150" }
-        ];
+        // إعدادات Firebase الخاصة بك
+        const firebaseConfig = {
+            apiKey: "AIzaSyAFk8EX7--EMt--ZU395",
+            authDomain: "alorobaonline.firebaseapp.com",
+            projectId: "alorobaonline",
+            storageBucket: "alorobaonline.appspot.com",
+            messagingSenderId: "880642361344",
+            appId: "1:880642361344:web:9071b76",
+            measurementId: "G-F80VQ7YH77"
+        };
 
-        let products = JSON.parse(localStorage.getItem('aloroba_items_v2')) || defaultItems;
-        let cart = JSON.parse(localStorage.getItem('aloroba_cart_v2')) || {}; 
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let products = [];
+        let cart = JSON.parse(localStorage.getItem('aloroba_cart_cloud')) || {}; 
         let isAdminMode = false;
 
-        function saveToStorage() {
-            localStorage.setItem('aloroba_items_v2', JSON.stringify(products));
-            localStorage.setItem('aloroba_cart_v2', JSON.stringify(cart));
-        }
+        // جلب المنتجات من قاعدة البيانات مباشرة بشكل حي
+        db.collection("products").onSnapshot((snapshot) => {
+            products = [];
+            snapshot.forEach((doc) => {
+                products.push({ id: doc.id, ...doc.data() });
+            });
+            render();
+        });
 
         function toggleAdminPanel() {
             isAdminMode = !isAdminMode;
@@ -490,13 +496,13 @@
                 if (item.stock <= 0) {
                     actionArea = `<button class="btn-add" disabled>نفد المخزون</button>`;
                 } else if (countInCart === 0) {
-                    actionArea = `<button class="btn-add" onclick="updateQty(${item.id}, 1)">+ أضف للسلة</button>`;
+                    actionArea = `<button class="btn-add" onclick="updateQty('${item.id}', 1)">+ أضف للسلة</button>`;
                 } else {
                     actionArea = `
                         <div class="card-counter">
-                            <button class="counter-btn" onclick="updateQty(${item.id}, -1)">-</button>
+                            <button class="counter-btn" onclick="updateQty('${item.id}', -1)">-</button>
                             <span class="counter-value">${countInCart}</span>
-                            <button class="counter-btn" onclick="updateQty(${item.id}, 1)">+</button>
+                            <button class="counter-btn" onclick="updateQty('${item.id}', 1)">+</button>
                         </div>
                     `;
                 }
@@ -504,7 +510,7 @@
                 return `
                     <div class="card">
                         <div class="card-img-container">
-                            <img src="${item.img}" alt="${item.title}">
+                            <img src="${item.img || 'https://via.placeholder.com/150'}" alt="${item.title}">
                         </div>
                         <div>
                             <div class="card-title">${item.title}</div>
@@ -515,8 +521,8 @@
                         ${actionArea}
 
                         <div class="admin-actions" style="display: ${isAdminMode ? 'flex' : 'none'}">
-                            <button class="btn-card-edit" onclick="editProduct(${item.id})">تعديل</button>
-                            <button class="btn-card-delete" onclick="deleteProduct(${item.id})">حذف</button>
+                            <button class="btn-card-edit" onclick="editProduct('${item.id}')">تعديل</button>
+                            <button class="btn-card-delete" onclick="deleteProduct('${item.id}')">حذف</button>
                         </div>
                     </div>
                 `;
@@ -538,7 +544,7 @@
                 alert("وصلت إلى الحد الأقصى للمخزون المتوفر!");
             }
 
-            saveToStorage();
+            localStorage.setItem('aloroba_cart_cloud', JSON.stringify(cart));
             render();
             if (document.getElementById('cart-modal').style.display === 'flex') {
                 renderCartItems();
@@ -582,9 +588,9 @@
                                 <div style="font-size:0.8rem; color:#666;">₪${item.price.toFixed(2)} × ${count}</div>
                             </div>
                             <div class="cart-controls">
-                                <button onclick="updateQty(${id}, -1)">-</button>
+                                <button onclick="updateQty('${id}', -1)">-</button>
                                 <span>${count}</span>
-                                <button onclick="updateQty(${id}, 1)">+</button>
+                                <button onclick="updateQty('${id}', 1)">+</button>
                             </div>
                         </div>
                     `;
@@ -616,12 +622,11 @@
             });
 
             message += `\nالمجموع الكلي: ₪${total.toFixed(2)}`;
-            
-            // رقم الواتساب الخاص بالعروبة أون لاين
             const phone = "972546288791"; 
             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
         }
 
+        // حفظ المنتجات وتحويل الصور مباشرة لقاعدة البيانات
         function saveProduct() {
             const id = document.getElementById('p-id').value;
             const title = document.getElementById('p-title').value;
@@ -634,36 +639,32 @@
                 return;
             }
 
-            const processSave = (imgUrl) => {
+            const processAndSave = (imgBase64) => {
+                const productData = { title, price, stock };
+                if (imgBase64) productData.img = imgBase64;
+
                 if (id) {
-                    const index = products.findIndex(p => p.id == id);
-                    if (index !== -1) {
-                        products[index].title = title;
-                        products[index].price = price;
-                        products[index].stock = stock;
-                        if (imgUrl) products[index].img = imgUrl;
-                    }
+                    db.collection("products").doc(id).update(productData).then(() => {
+                        resetForm();
+                        alert("تم التعديل بنجاح!");
+                    });
                 } else {
-                    products.push({
-                        id: Date.now(),
-                        title: title,
-                        price: price,
-                        stock: stock,
-                        img: imgUrl || 'https://via.placeholder.com/150'
+                    productData.img = imgBase64 || 'https://via.placeholder.com/150';
+                    db.collection("products").add(productData).then(() => {
+                        resetForm();
+                        alert("تمت الإضافة بنجاح!");
                     });
                 }
-                saveToStorage();
-                resetForm();
-                render();
             };
 
             if (fileInput.files && fileInput.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function (e) { processSave(e.target.result); };
+                reader.onload = function(e) {
+                    processAndSave(e.target.result);
+                };
                 reader.readAsDataURL(fileInput.files[0]);
             } else {
-                const existing = products.find(p => p.id == id);
-                processSave(existing ? existing.img : null);
+                processAndSave(null);
             }
         }
 
@@ -680,11 +681,11 @@
         }
 
         function deleteProduct(id) {
-            if (confirm("هل أنت تأكد من حذف هذا الغرض؟")) {
-                products = products.filter(p => p.id !== id);
-                delete cart[id];
-                saveToStorage();
-                render();
+            if (confirm("هل أنت متأكد من حذف هذا الغرض؟")) {
+                db.collection("products").doc(id).delete().then(() => {
+                    delete cart[id];
+                    localStorage.setItem('aloroba_cart_cloud', JSON.stringify(cart));
+                });
             }
         }
 
@@ -696,8 +697,6 @@
             document.getElementById('p-file').value = '';
             document.getElementById('panel-title').innerText = "➕ إضافة غرض جديد";
         }
-
-        render();
     </script>
 </body>
 </html>
