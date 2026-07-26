@@ -211,7 +211,7 @@
             margin-bottom: 8px;
         }
 
-        /* زر الإضافة العادي */
+        /* أزرار البطاقة */
         .btn-add {
             background-color: var(--primary-green);
             color: white;
@@ -229,7 +229,6 @@
             cursor: not-allowed;
         }
 
-        /* المربع الأخضر المتحول لعداد زائد وناقص */
         .card-counter {
             display: flex;
             align-items: center;
@@ -618,7 +617,8 @@
 
             message += `\nالمجموع الكلي: ₪${total.toFixed(2)}`;
             
-            const phone = "972500000000"; 
+            // رقم الواتساب الخاص بالعروبة أون لاين
+            const phone = "972546288791"; 
             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
         }
 
