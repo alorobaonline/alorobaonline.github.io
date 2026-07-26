@@ -32,6 +32,9 @@
         
         .btn-edit-sm { background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
         .btn-del-sm { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
+        
+        .img-preview-box { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+        .img-preview { width: 50px; height: 50px; object-fit: contain; border: 1px solid #ddd; border-radius: 6px; background: #fff; display: none; }
     </style>
 </head>
 <body>
@@ -62,6 +65,8 @@
             <div class="card-box" id="product-form-container">
                 <h3 id="prod-panel-title" style="margin-bottom: 12px; font-size: 1rem;">🛒 إضافة منتج جديد</h3>
                 <input type="hidden" id="prod-id">
+                <input type="hidden" id="prod-img-url"> <!-- يحفظ رابط الصورة المعالج -->
+
                 <div class="form-group">
                     <label>اسم المنتج</label>
                     <input type="text" id="prod-title" placeholder="مثال: حليب، سكر...">
@@ -84,10 +89,17 @@
                         <option value="الكل">الكل وعروض الأسبوع</option>
                     </select>
                 </div>
+
+                <!-- زر اختيار وتعديل صورة المنتج من الجهاز -->
                 <div class="form-group">
-                    <label>رابط الصورة (URL)</label>
-                    <input type="text" id="prod-img" placeholder="https://...">
+                    <label>صورة المنتج</label>
+                    <input type="file" id="prod-img-file" accept="image/*" onchange="previewAndConvertImage(event)" style="padding: 7px;">
+                    <div class="img-preview-box">
+                        <img id="img-preview-tag" class="img-preview" alt="معاينة الصورة">
+                        <span id="img-status-text" style="font-size: 0.8rem; color: #666;">لم يتم اختيار صورة جديدة</span>
+                    </div>
                 </div>
+
                 <button class="btn-main" id="prod-submit-btn" type="button" onclick="saveProduct()">حفظ المنتج في المتجر</button>
                 <button class="btn-cancel" id="prod-cancel-btn" type="button" onclick="resetProductForm()" style="display:none;">إلغاء التعديل</button>
             </div>
@@ -156,12 +168,30 @@
                                 <button class="btn-del-sm" onclick="deleteProduct('${doc.id}')">حذف</button>
                             </div>
                         </div>
-                        <!-- مكان انتقال نموذج التعديل ديناميكياً تحت المنتج مباشرة -->
                         <div id="edit-slot-${doc.id}"></div>
                     </div>`;
             });
             document.getElementById('products-list-box').innerHTML = prodHtml || '<p style="color:#888; font-size:0.85rem;">لا توجد منتجات مضافة</p>';
         });
+
+        // تحويل الصورة المختارة من الجهاز إلى كود يعرض ويحفظ تلقائياً
+        function previewAndConvertImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64String = e.target.result;
+                    document.getElementById('prod-img-url').value = base64String;
+                    
+                    // عرض معاينة الصورة مباشرة
+                    const previewTag = document.getElementById('img-preview-tag');
+                    previewTag.src = base64String;
+                    previewTag.style.display = 'block';
+                    document.getElementById('img-status-text').innerText = "تم اختيار الصورة بنجاح ✅";
+                }
+                reader.readAsDataURL(file);
+            }
+        }
 
         function saveCategory() {
             const id = document.getElementById('cat-id').value;
@@ -198,7 +228,7 @@
             const stock = parseInt(document.getElementById('prod-stock').value) || 0;
             const unit = document.getElementById('prod-unit').value.trim() || 'حبة';
             const category = document.getElementById('prod-category').value;
-            const img = document.getElementById('prod-img').value.trim();
+            const img = document.getElementById('prod-img-url').value.trim();
 
             if (!title) { alert("الرجاء إدخال اسم المنتج!"); return; }
 
@@ -223,7 +253,19 @@
             document.getElementById('prod-stock').value = stock;
             document.getElementById('prod-unit').value = unit;
             document.getElementById('prod-category').value = category;
-            document.getElementById('prod-img').value = img;
+            
+            // تعبئة الصورة الحالية للمنتج
+            document.getElementById('prod-img-url').value = img;
+            const previewTag = document.getElementById('img-preview-tag');
+            if (img && img.length > 10) {
+                previewTag.src = img;
+                previewTag.style.display = 'block';
+                document.getElementById('img-status-text').innerText = "صورة المنتج الحالية";
+            } else {
+                previewTag.style.display = 'none';
+                document.getElementById('img-status-text').innerText = "لا توجد صورة للمنتج";
+            }
+            document.getElementById('prod-img-file').value = ""; // تصفير خانة الملفات الجديدة
 
             document.getElementById('prod-panel-title').innerText = `✏️ تعديل المنتج: ${title}`;
             document.getElementById('prod-submit-btn').innerText = "تحديث المنتج";
@@ -241,7 +283,11 @@
             document.getElementById('prod-price').value = '';
             document.getElementById('prod-stock').value = '';
             document.getElementById('prod-unit').value = 'حبة';
-            document.getElementById('prod-img').value = '';
+            document.getElementById('prod-img-url').value = '';
+            document.getElementById('prod-img-file').value = '';
+            document.getElementById('img-preview-tag').style.display = 'none';
+            document.getElementById('img-status-text').innerText = "لم يتم اختيار صورة جديدة";
+
             document.getElementById('prod-panel-title').innerText = "🛒 إضافة منتج جديد";
             document.getElementById('prod-submit-btn').innerText = "حفظ المنتج في المتجر";
             document.getElementById('prod-cancel-btn').style.display = "none";
