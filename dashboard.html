@@ -6,6 +6,8 @@
     <title>العروبة - لوحة التحكم الشاملة</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <!-- مكتبة قراءة الباركود السريعة -->
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
     <style>
         :root {
             --primary-green: #68a633;
@@ -34,7 +36,13 @@
         .btn-del-sm { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
         
         .img-preview-box { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
-        .img-preview { width: 50px; height: 50px; object-fit: contain; border: 1px solid #ddd; border-radius: 6px; background: #fff; display: none; }
+        .img-preview { width: 45px; height: 45px; object-fit: contain; border: 1px solid #ddd; border-radius: 6px; background: #fff; display: none; }
+        
+        /* تنسيق زر ونافذة الماسح الضوئي */
+        .barcode-section { display: flex; gap: 8px; align-items: center; }
+        .btn-scanner { background: #1976d2; color: white; border: none; padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.85rem; font-weight: bold; cursor: pointer; white-space: nowrap; }
+        #scanner-container { display: none; margin-top: 10px; width: 100%; border-radius: 8px; overflow: hidden; border: 2px solid #1976d2; background: #000; }
+        #video { width: 100%; max-height: 250px; object-fit: cover; display: block; }
     </style>
 </head>
 <body>
@@ -65,12 +73,22 @@
             <div class="card-box" id="product-form-container">
                 <h3 id="prod-panel-title" style="margin-bottom: 12px; font-size: 1rem;">🛒 إضافة منتج جديد</h3>
                 <input type="hidden" id="prod-id">
-                <input type="hidden" id="prod-img-url"> <!-- يحفظ رابط الصورة المعالج -->
-
+                <input type="hidden" id="prod-img-base64">
+                
+                <!-- حقل اسم المنتج مع ماسح الباركود بجانبه -->
                 <div class="form-group">
-                    <label>اسم المنتج</label>
-                    <input type="text" id="prod-title" placeholder="مثال: حليب، سكر...">
+                    <label>اسم المنتج أو الباركود</label>
+                    <div class="barcode-section">
+                        <input type="text" id="prod-title" placeholder="مثال: حليب، سكر أو رقم الباركود...">
+                        <button type="button" class="btn-scanner" onclick="toggleScanner()">📷 مسح الباركود</button>
+                    </div>
+                    <!-- نافذة الكاميرا لقراءة الباركود -->
+                    <div id="scanner-container">
+                        <video id="video"></video>
+                        <button type="button" onclick="stopScanner()" style="background:#ef4444; color:white; border:none; width:100%; padding:6px; font-weight:bold; cursor:pointer;">إغلاق الكاميرا</button>
+                    </div>
                 </div>
+
                 <div class="form-group">
                     <label>السعر (₪)</label>
                     <input type="number" step="0.01" id="prod-price" placeholder="0.00">
@@ -89,14 +107,14 @@
                         <option value="الكل">الكل وعروض الأسبوع</option>
                     </select>
                 </div>
-
-                <!-- زر اختيار وتعديل صورة المنتج من الجهاز -->
+                
+                <!-- اختيار صورة المنتج من الجهاز -->
                 <div class="form-group">
                     <label>صورة المنتج</label>
-                    <input type="file" id="prod-img-file" accept="image/*" onchange="previewAndConvertImage(event)" style="padding: 7px;">
+                    <input type="file" id="prod-file-input" accept="image/*" onchange="handleImagePick(event)" style="padding: 6px;">
                     <div class="img-preview-box">
-                        <img id="img-preview-tag" class="img-preview" alt="معاينة الصورة">
-                        <span id="img-status-text" style="font-size: 0.8rem; color: #666;">لم يتم اختيار صورة جديدة</span>
+                        <img id="img-preview" class="img-preview" alt="معاينة">
+                        <span id="img-status" style="font-size: 0.8rem; color: #666;">لم يتم اختيار صورة</span>
                     </div>
                 </div>
 
@@ -125,6 +143,40 @@
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.firestore();
 
+        let codeReader = null;
+        let isScanning = false;
+
+        // تشغيل وإيقاف ماسح الباركود
+        function toggleScanner() {
+            const container = document.getElementById('scanner-container');
+            if (isScanning) {
+                stopScanner();
+            } else {
+                container.style.display = 'block';
+                isScanning = true;
+                codeReader = new ZXing.BrowserBarcodeReader();
+                codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
+                    if (result) {
+                        document.getElementById('prod-title').value = result.text;
+                        stopScanner();
+                        alert("تم التعرف على الباركود بنجاح: " + result.text);
+                    }
+                }).catch(err => {
+                    console.error(err);
+                    alert("تعذر تشغيل كاميرا الماسح الضوئي.");
+                });
+            }
+        }
+
+        function stopScanner() {
+            if (codeReader) {
+                codeReader.reset();
+                codeReader = null;
+            }
+            isScanning = false;
+            document.getElementById('scanner-container').style.display = 'none';
+        }
+
         // مزامنة الفئات
         db.collection("categories").onSnapshot((snapshot) => {
             let catHtml = '';
@@ -147,12 +199,12 @@
             document.getElementById('prod-category').innerHTML = selectHtml;
         });
 
-        // مزامنة المنتجات وعرض الصورة المصغرة بجانب كل منتج
+        // مزامنة المنتجات
         db.collection("products").onSnapshot((snapshot) => {
             let prodHtml = '';
             snapshot.forEach((doc) => {
                 let p = doc.data();
-                let imgSrc = (p.img && p.img.length > 10) ? p.img : 'https://via.placeholder.com/50';
+                let imgSrc = (p.img && p.img.length > 5) ? p.img : 'https://via.placeholder.com/50';
                 prodHtml += `
                     <div class="product-card-box" id="prod-box-${doc.id}">
                         <div class="product-row-info">
@@ -174,20 +226,17 @@
             document.getElementById('products-list-box').innerHTML = prodHtml || '<p style="color:#888; font-size:0.85rem;">لا توجد منتجات مضافة</p>';
         });
 
-        // تحويل الصورة المختارة من الجهاز إلى كود يعرض ويحفظ تلقائياً
-        function previewAndConvertImage(event) {
+        function handleImagePick(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const base64String = e.target.result;
-                    document.getElementById('prod-img-url').value = base64String;
-                    
-                    // عرض معاينة الصورة مباشرة
-                    const previewTag = document.getElementById('img-preview-tag');
-                    previewTag.src = base64String;
-                    previewTag.style.display = 'block';
-                    document.getElementById('img-status-text').innerText = "تم اختيار الصورة بنجاح ✅";
+                    const base64 = e.target.result;
+                    document.getElementById('prod-img-base64').value = base64;
+                    const preview = document.getElementById('img-preview');
+                    preview.src = base64;
+                    preview.style.display = 'block';
+                    document.getElementById('img-status').innerText = "تم اختيار الصورة بنجاح ✅";
                 }
                 reader.readAsDataURL(file);
             }
@@ -228,9 +277,9 @@
             const stock = parseInt(document.getElementById('prod-stock').value) || 0;
             const unit = document.getElementById('prod-unit').value.trim() || 'حبة';
             const category = document.getElementById('prod-category').value;
-            const img = document.getElementById('prod-img-url').value.trim();
+            const img = document.getElementById('prod-img-base64').value.trim();
 
-            if (!title) { alert("الرجاء إدخال اسم المنتج!"); return; }
+            if (!title) { alert("الرجاء إدخال اسم المنتج أو الباركود!"); return; }
 
             const prodData = { title, price, stock, unit, category, img };
 
@@ -243,6 +292,7 @@
         }
 
         function editProduct(id, title, price, stock, unit, category, img) {
+            stopScanner();
             const formBox = document.getElementById('product-form-container');
             const slot = document.getElementById(`edit-slot-${id}`);
             slot.appendChild(formBox);
@@ -254,18 +304,17 @@
             document.getElementById('prod-unit').value = unit;
             document.getElementById('prod-category').value = category;
             
-            // تعبئة الصورة الحالية للمنتج
-            document.getElementById('prod-img-url').value = img;
-            const previewTag = document.getElementById('img-preview-tag');
-            if (img && img.length > 10) {
-                previewTag.src = img;
-                previewTag.style.display = 'block';
-                document.getElementById('img-status-text').innerText = "صورة المنتج الحالية";
+            document.getElementById('prod-img-base64').value = img;
+            const preview = document.getElementById('img-preview');
+            if (img && img.length > 5) {
+                preview.src = img;
+                preview.style.display = 'block';
+                document.getElementById('img-status').innerText = "صورة المنتج الحالية";
             } else {
-                previewTag.style.display = 'none';
-                document.getElementById('img-status-text').innerText = "لا توجد صورة للمنتج";
+                preview.style.display = 'none';
+                document.getElementById('img-status').innerText = "لا توجد صورة";
             }
-            document.getElementById('prod-img-file').value = ""; // تصفير خانة الملفات الجديدة
+            document.getElementById('prod-file-input').value = "";
 
             document.getElementById('prod-panel-title').innerText = `✏️ تعديل المنتج: ${title}`;
             document.getElementById('prod-submit-btn').innerText = "تحديث المنتج";
@@ -274,6 +323,7 @@
         }
 
         function resetProductForm() {
+            stopScanner();
             const formBox = document.getElementById('product-form-container');
             const originalParent = document.getElementById('form-original-parent');
             originalParent.appendChild(formBox);
@@ -283,10 +333,10 @@
             document.getElementById('prod-price').value = '';
             document.getElementById('prod-stock').value = '';
             document.getElementById('prod-unit').value = 'حبة';
-            document.getElementById('prod-img-url').value = '';
-            document.getElementById('prod-img-file').value = '';
-            document.getElementById('img-preview-tag').style.display = 'none';
-            document.getElementById('img-status-text').innerText = "لم يتم اختيار صورة جديدة";
+            document.getElementById('prod-img-base64').value = '';
+            document.getElementById('prod-file-input').value = '';
+            document.getElementById('img-preview').style.display = 'none';
+            document.getElementById('img-status').innerText = "لم يتم اختيار صورة";
 
             document.getElementById('prod-panel-title').innerText = "🛒 إضافة منتج جديد";
             document.getElementById('prod-submit-btn').innerText = "حفظ المنتج في المتجر";
