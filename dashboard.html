@@ -38,14 +38,12 @@
         .btn-edit-sm { background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
         .btn-del-sm { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
         
-        /* حقل الباركود وزر الماسح */
         .barcode-wrapper { display: flex; gap: 8px; align-items: center; }
         .btn-scan-barcode { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.85rem; font-weight: bold; cursor: pointer; white-space: nowrap; }
         
         #barcode-scanner-container { display: none; margin-top: 10px; width: 100%; border-radius: 8px; overflow: hidden; border: 2px solid var(--primary-green); background: #000; position: relative; }
         #barcode-video { width: 100%; max-height: 220px; object-fit: cover; display: block; }
         
-        /* تصميم جذاب لرفع ومعاينة صورة المنتج */
         .image-upload-box { border: 2px dashed #cbd5e1; border-radius: var(--radius-md); padding: 16px; text-align: center; background: #f8fafc; cursor: pointer; position: relative; transition: all 0.2s ease; }
         .image-upload-box:hover { border-color: var(--primary-green); background: #f0fdf4; }
         .image-upload-box input[type="file"] { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer; z-index: 2; }
@@ -59,7 +57,6 @@
             <a href="index.html" style="background:#e3f2fd; color:#1976d2; padding:6px 12px; border-radius:20px; text-decoration:none; font-size:0.85rem; font-weight:bold;">عرض المتجر ↗</a>
         </div>
 
-        <!-- قسم إدارة الفئات -->
         <div class="card-box">
             <h3 id="cat-panel-title" style="margin-bottom: 12px; font-size: 1rem;">📁 إدارة فئات المتجر</h3>
             <input type="hidden" id="cat-id">
@@ -75,7 +72,6 @@
             </div>
         </div>
 
-        <!-- الحاوية الأساسية لفورم المنتج -->
         <div id="form-original-parent">
             <div class="card-box" id="product-form-container">
                 <h3 id="prod-panel-title" style="margin-bottom: 12px; font-size: 1rem;">🛒 إضافة منتج جديد</h3>
@@ -109,7 +105,6 @@
                     <input type="number" id="prod-stock" placeholder="50" value="50">
                 </div>
 
-                <!-- حقل الباركود مع زر الماسح الفعلي -->
                 <div class="form-group">
                     <label>باركود (رقم أو مسح)</label>
                     <div class="barcode-wrapper">
@@ -122,9 +117,8 @@
                     </div>
                 </div>
 
-                <!-- تصميم جذاب ومحدث لصورة المنتج -->
                 <div class="form-group">
-                    <label>صورة المنتج</label>
+                    <label>صورة المنتج (يتم ضغطها تلقائياً لتناسب التخزين)</label>
                     <div class="image-upload-box">
                         <input type="file" id="prod-file-input" accept="image/*" onchange="handleImagePick(event)">
                         <div style="font-size: 1.6rem; margin-bottom: 2px;">📸</div>
@@ -155,7 +149,6 @@
             </div>
         </div>
 
-        <!-- قسم قائمة المنتجات الحالية -->
         <div class="card-box">
             <h3 style="margin-bottom: 12px; font-size: 1rem;">📦 المنتجات الحالية في المتجر</h3>
             <div id="products-list-box">جاري التحميل...</div>
@@ -250,19 +243,49 @@
             document.getElementById('products-list-box').innerHTML = prodHtml || '<p style="color:#888; font-size:0.85rem;">لا توجد منتجات مضافة</p>';
         });
 
+        // دالة ضغط وتصغير الصورة تلقائياً لتجنب تجاوز الحد الأقصى لقاعدة البيانات
         function handleImagePick(event) {
             const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const base64 = e.target.result;
-                    document.getElementById('prod-img-base64').value = base64;
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 400;
+                    const MAX_HEIGHT = 400;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // ضغط الجودة لـ 70% لضمان بقاء الحجم صغيراً جداً ومقبولاً بالكامل
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    document.getElementById('prod-img-base64').value = compressedBase64;
                     const preview = document.getElementById('img-preview');
-                    preview.src = base64;
+                    preview.src = compressedBase64;
                     preview.style.display = 'inline-block';
                 }
-                reader.readAsDataURL(file);
+                img.src = e.target.result;
             }
+            reader.readAsDataURL(file);
         }
 
         function saveCategory() {
