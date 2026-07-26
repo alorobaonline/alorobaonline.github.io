@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>العروبة أونلاين - المتجر الذكي</title>
+    <title>العروبة أون لاين</title>
     <style>
         :root {
             --primary-green: #68a633;
@@ -79,13 +79,14 @@
         .cart-badge {
             background-color: var(--primary-green);
             color: white;
-            padding: 6px 12px;
+            padding: 6px 14px;
             border-radius: var(--radius-pill);
             font-weight: bold;
             font-size: 0.9rem;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
+            cursor: pointer;
         }
 
         .btn-admin-toggle {
@@ -153,7 +154,7 @@
             margin-top: 5px;
         }
 
-        /* 3. شبكة المنتجات العصريّة */
+        /* 3. شبكة المنتجات */
         .products-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -228,7 +229,6 @@
             cursor: not-allowed;
         }
 
-        /* أزرار الإدارة داخل البطاقة */
         .admin-actions {
             display: none;
             gap: 5px;
@@ -258,6 +258,103 @@
             flex: 1;
             cursor: pointer;
         }
+
+        /* 4. نافذة السلة (Modal) */
+        .cart-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .cart-content {
+            background: white;
+            width: 100%;
+            max-width: 480px;
+            border-top-left-radius: var(--radius-lg);
+            border-top-right-radius: var(--radius-lg);
+            padding: 20px;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .cart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .close-cart {
+            background: #f0f0f0;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f9f9f9;
+        }
+
+        .cart-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cart-controls button {
+            background: #e5e7eb;
+            border: none;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .cart-total {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 2px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .btn-whatsapp {
+            background-color: #25d366;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            font-weight: bold;
+            font-size: 1rem;
+            margin-top: 15px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -266,7 +363,7 @@
 
         <!-- الهيدر -->
         <header class="header">
-            <div class="cart-badge">
+            <div class="cart-badge" onclick="toggleCartModal()">
                 🛒 <span id="cart-count">0</span>
             </div>
 
@@ -280,7 +377,7 @@
             </div>
         </header>
 
-        <!-- لوحة الإدارة لإضافة وتعديل غرض -->
+        <!-- لوحة الإدارة -->
         <div class="admin-panel" id="admin-panel">
             <h3 id="panel-title">➕ إضافة غرض جديد</h3>
             <input type="hidden" id="p-id">
@@ -311,17 +408,32 @@
         <!-- شبكة العرض -->
         <div class="products-grid" id="products-grid"></div>
 
+        <!-- نافذة السلة المنبثقة -->
+        <div class="cart-modal" id="cart-modal">
+            <div class="cart-content">
+                <div class="cart-header">
+                    <h3>🛒 سلة التسوق</h3>
+                    <button class="close-cart" onclick="toggleCartModal()">✕</button>
+                </div>
+                <div id="cart-items-list"></div>
+                <div class="cart-total">
+                    <span>المجموع الكلي:</span>
+                    <span id="cart-total-price">₪0.00</span>
+                </div>
+                <button class="btn-whatsapp" onclick="sendWhatsAppOrder()">📱 إرسال الطلب عبر الواتساب</button>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        // البيانات الافتراضية
         const defaultItems = [
             { id: 101, title: "منظف سانو 00", price: 11.90, stock: 8, img: "https://via.placeholder.com/150" },
-            { id: 102, title: "ليف سانو سلك", price: 5.50, stock: 2, img: "https://via.placeholder.com/150" }
+            { id: 102, title: "ليف سانو سلك", price: 5.50, stock: 5, img: "https://via.placeholder.com/150" }
         ];
 
         let products = JSON.parse(localStorage.getItem('aloroba_items')) || defaultItems;
-        let cartCount = 0;
+        let cart = {}; // { id: count }
         let isAdminMode = false;
 
         function saveToStorage() {
@@ -360,6 +472,114 @@
                     </div>
                 </div>
             `).join('');
+
+            updateCartBadge();
+        }
+
+        function addToCart(id) {
+            const item = products.find(p => p.id === id);
+            const currentInCart = cart[id] || 0;
+
+            if (item && item.stock > currentInCart) {
+                cart[id] = currentInCart + 1;
+                render();
+            } else {
+                alert("عذراً، وصلت للحد الأقصى للكمية المتوفرة!");
+            }
+        }
+
+        function updateCartBadge() {
+            const totalCount = Object.values(cart).reduce((a, b) => a + b, 0);
+            document.getElementById('cart-count').innerText = totalCount;
+        }
+
+        function toggleCartModal() {
+            const modal = document.getElementById('cart-modal');
+            const isOpen = modal.style.display === 'flex';
+            modal.style.display = isOpen ? 'none' : 'flex';
+            if (!isOpen) renderCartItems();
+        }
+
+        function renderCartItems() {
+            const list = document.getElementById('cart-items-list');
+            let total = 0;
+            let itemsHtml = '';
+
+            const keys = Object.keys(cart);
+            if (keys.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">السلة فارغة حالياً</p>';
+                document.getElementById('cart-total-price').innerText = '₪0.00';
+                return;
+            }
+
+            keys.forEach(id => {
+                const count = cart[id];
+                const item = products.find(p => p.id == id);
+                if (item && count > 0) {
+                    const itemTotal = item.price * count;
+                    total += itemTotal;
+                    itemsHtml += `
+                        <div class="cart-item">
+                            <div>
+                                <strong>${item.title}</strong>
+                                <div style="font-size:0.8rem; color:#666;">₪${item.price.toFixed(2)} × ${count}</div>
+                            </div>
+                            <div class="cart-controls">
+                                <button onclick="changeQty(${id}, -1)">-</button>
+                                <span>${count}</span>
+                                <button onclick="changeQty(${id}, 1)">+</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            list.innerHTML = itemsHtml;
+            document.getElementById('cart-total-price').innerText = `₪${total.toFixed(2)}`;
+        }
+
+        function changeQty(id, delta) {
+            const item = products.find(p => p.id == id);
+            const current = cart[id] || 0;
+            const newQty = current + delta;
+
+            if (newQty <= 0) {
+                delete cart[id];
+            } else if (item && newQty <= item.stock) {
+                cart[id] = newQty;
+            } else {
+                alert("عذراً، هذه هي الكمية المتوفرة فقط بالمخزن!");
+            }
+
+            renderCartItems();
+            render();
+        }
+
+        function sendWhatsAppOrder() {
+            const keys = Object.keys(cart);
+            if (keys.length === 0) {
+                alert("السلة فارغة!");
+                return;
+            }
+
+            let message = "طلب جديد من العروبة أون لاين:\n\n";
+            let total = 0;
+
+            keys.forEach(id => {
+                const count = cart[id];
+                const item = products.find(p => p.id == id);
+                if (item && count > 0) {
+                    const sum = item.price * count;
+                    total += sum;
+                    message += `• ${item.title} (${count} حبة) = ₪${sum.toFixed(2)}\n`;
+                }
+            });
+
+            message += `\nالمجموع الكلي: ₪${total.toFixed(2)}`;
+            
+            // يمكنك تغيير الرقم أدناه لرقم الواتساب الخاص بالمحل
+            const phone = "972500000000"; 
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
         }
 
         function saveProduct() {
@@ -370,13 +590,12 @@
             const fileInput = document.getElementById('p-file');
 
             if (!title || isNaN(price) || isNaN(stock)) {
-                alert("يرجى إدخال اسم الغرض، السعر، والكمية بشكل صحيح!");
+                alert("يرجى إدخال البيانات كاملة!");
                 return;
             }
 
             const processSave = (imgUrl) => {
                 if (id) {
-                    // تعديل
                     const index = products.findIndex(p => p.id == id);
                     if (index !== -1) {
                         products[index].title = title;
@@ -385,7 +604,6 @@
                         if (imgUrl) products[index].img = imgUrl;
                     }
                 } else {
-                    // إضافة جديد
                     products.push({
                         id: Date.now(),
                         title: title,
@@ -401,9 +619,7 @@
 
             if (fileInput.files && fileInput.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function (e) {
-                    processSave(e.target.result);
-                };
+                reader.onload = function (e) { processSave(e.target.result); };
                 reader.readAsDataURL(fileInput.files[0]);
             } else {
                 const existing = products.find(p => p.id == id);
@@ -424,8 +640,9 @@
         }
 
         function deleteProduct(id) {
-            if (confirm("هل انت محدد بحذف هذا الغرض؟")) {
+            if (confirm("هل أنت تأكد من حذف هذا الغرض؟")) {
                 products = products.filter(p => p.id !== id);
+                delete cart[id];
                 saveToStorage();
                 render();
             }
@@ -438,17 +655,6 @@
             document.getElementById('p-stock').value = '';
             document.getElementById('p-file').value = '';
             document.getElementById('panel-title').innerText = "➕ إضافة غرض جديد";
-        }
-
-        function addToCart(id) {
-            const item = products.find(p => p.id === id);
-            if (item && item.stock > 0) {
-                item.stock--;
-                cartCount++;
-                document.getElementById('cart-count').innerText = cartCount;
-                saveToStorage();
-                render();
-            }
         }
 
         render();
