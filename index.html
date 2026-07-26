@@ -113,12 +113,9 @@
             </div>
         </div>
 
-        <div class="categories-scroll">
+        <!-- شريط الفئات المرتبط سحابياً بلوحة التحكم -->
+        <div class="categories-scroll" id="categories-scroll">
             <div class="cat-chip active" onclick="filterByCategory('الكل', this)">🔥 الكل وعروض الأسبوع</div>
-            <div class="cat-chip" onclick="filterByCategory('خضار وفواكه', this)">🥦 خضار وفواكه</div>
-            <div class="cat-chip" onclick="filterByCategory('ألبان وأجبان', this)">🧀 ألبان وأجبان</div>
-            <div class="cat-chip" onclick="filterByCategory('مشروبات', this)">🧃 مشروبات</div>
-            <div class="cat-chip" onclick="filterByCategory('مخبوزات', this)">🍞 مخبوزات</div>
         </div>
 
         <div class="products-grid" id="products-grid">
@@ -160,6 +157,18 @@
         let currentCategory = 'الكل';
         let searchQuery = '';
 
+        // استماع فوري لتحديثات الفئات من لوحة التحكم
+        db.collection("categories").onSnapshot((snapshot) => {
+            let catHtml = `<div class="cat-chip ${currentCategory === 'الكل' ? 'active' : ''}" onclick="filterByCategory('الكل', this)">🔥 الكل وعروض الأسبوع</div>`;
+            snapshot.forEach((doc) => {
+                let catData = doc.data();
+                let catName = catData.name;
+                let isActive = (currentCategory === catName) ? 'active' : '';
+                catHtml += `<div class="cat-chip ${isActive}" onclick="filterByCategory('${catName}', this)">📁 ${catName}</div>`;
+            });
+            document.getElementById('categories-scroll').innerHTML = catHtml;
+        });
+
         db.collection("products").onSnapshot((snapshot) => {
             products = [];
             snapshot.forEach((doc) => {
@@ -183,7 +192,7 @@
         function filterByCategory(category, element) {
             currentCategory = category;
             document.querySelectorAll('.cat-chip').forEach(el => el.classList.remove('active'));
-            element.classList.add('active');
+            if(element) element.classList.add('active');
             render();
         }
 
@@ -196,7 +205,7 @@
             });
 
             if (filtered.length === 0) {
-                grid.innerHTML = '<p style="grid-column: span 2; text-align: center; color: #888; padding: 20px;">لا توجد منتجات مطابقة.</p>';
+                grid.innerHTML = '<p style="grid-column: span 2; text-align: center; color: #888; padding: 20px;">لا توجد منتجات مطابقة في هذه الفئة.</p>';
                 updateCartBadge();
                 return;
             }
