@@ -3,165 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>العروبة - الإدارة</title>
+    <title>العروبة - لوحة التحكم الشاملة</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
     <style>
         :root {
             --primary-green: #68a633;
-            --primary-hover: #558928;
             --bg-color: #f4f6f8;
-            --card-bg: #ffffff;
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
             --radius-lg: 16px;
             --radius-md: 10px;
             --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-dark); padding: 15px; }
+        body { background-color: var(--bg-color); color: #1f2937; padding: 15px; }
         .admin-container { max-width: 600px; margin: 0 auto; }
-        
         .admin-header { background: white; padding: 16px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-top: 4px solid var(--primary-green); }
-        .admin-header h2 { font-size: 1.3rem; color: var(--text-dark); }
-        .admin-header span { font-size: 0.85rem; color: var(--text-muted); display: block; }
-        
-        .btn-lang { background: #f0f2f5; border: 1px solid #d1d5db; padding: 6px 14px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
-        .btn-logout { background: #fee2e2; color: #dc2626; border: none; padding: 6px 14px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.85rem; text-decoration: none; display: flex; align-items: center; gap: 5px; }
-
-        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
-        .stat-card { background: white; padding: 16px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); text-align: center; border: 1px solid #e5e7eb; }
-        .stat-card .num { font-size: 1.8rem; font-weight: bold; margin-bottom: 4px; }
-        .stat-card .num.green { color: var(--primary-green); }
-        .stat-card .num.red { color: #dc2626; }
-        .stat-card .label { font-size: 0.85rem; color: var(--text-muted); }
-
-        .nav-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
-        .tab-btn { background: white; border: 1px solid #e5e7eb; padding: 10px 16px; border-radius: 25px; font-weight: bold; font-size: 0.9rem; cursor: pointer; white-space: nowrap; color: var(--text-dark); display: flex; align-items: center; gap: 6px; }
-        .tab-btn.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
-
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
         .card-box { background: white; padding: 18px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 15px; border: 1px solid #e5e7eb; }
-        .card-box h3 { font-size: 1rem; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; color: var(--text-dark); }
-
         .form-group { margin-bottom: 12px; }
         .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
-        .form-group input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: var(--radius-md); font-size: 0.9rem; outline: none; background: #fff; }
-
-        .btn-main { background: var(--primary-green); color: white; border: none; width: 100%; padding: 12px; border-radius: var(--radius-md); font-weight: bold; font-size: 1rem; cursor: pointer; text-align: center; display: block; text-decoration: none; margin-top: 10px; }
-        
-        .category-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; }
-        .category-actions { display: flex; gap: 6px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: var(--radius-md); font-size: 0.9rem; outline: none; background: #fff; }
+        .btn-main { background: var(--primary-green); color: white; border: none; width: 100%; padding: 12px; border-radius: var(--radius-md); font-weight: bold; font-size: 1rem; cursor: pointer; text-align: center; }
+        .category-item, .product-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; }
         .btn-edit-sm { background: #ff9800; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
         .btn-del-sm { background: #ef4444; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
-
-        .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
-        .setting-row span { font-weight: 600; font-size: 0.9rem; }
-
-        /* Switch Toggle */
-        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .3s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--primary-green); }
-        input:checked + .slider:before { transform: translateX(24px); }
     </style>
 </head>
 <body>
     <div class="admin-container">
-        <!-- الهيدر العلوي -->
         <div class="admin-header">
-            <div>
-                <h2>العروبة - الإدارة</h2>
-                <span>أهلاً، صاحب السوبر 👋</span>
+            <h2>العروبة - لوحة التحكم</h2>
+            <a href="index.html" style="background:#e3f2fd; color:#1976d2; padding:6px 12px; border-radius:20px; text-decoration:none; font-size:0.85rem; font-weight:bold;">عرض المتجر ↗</a>
+        </div>
+
+        <!-- قسم إدارة الفئات -->
+        <div class="card-box">
+            <h3 id="cat-panel-title" style="margin-bottom: 12px; font-size: 1rem;">📁 إدارة فئات المتجر</h3>
+            <input type="hidden" id="cat-id">
+            <div class="form-group">
+                <label>اسم الفئة (مثل: خضار وفواكه، ألبان وأجبان...)</label>
+                <input type="text" id="cat-name" placeholder="اكتب اسم الفئة هنا">
             </div>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <button class="btn-lang" onclick="toggleLang()">עברית</button>
-                <a href="index.html" class="btn-logout">إخلاء 🚪</a>
+            <button class="btn-main" type="button" onclick="saveCategory()">حفظ الفئة وتحديث المتجر فوراً</button>
+            
+            <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px;">
+                <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; display:block;">الفئات النشطة حالياً:</label>
+                <div id="categories-list-box">جاري التحميل...</div>
             </div>
         </div>
 
-        <!-- الإحصائيات السريعة الأربعة -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="num green">₪0.00</div>
-                <div class="label">مبيعات اليوم</div>
+        <!-- قسم إدارة المنتجات -->
+        <div class="card-box">
+            <h3 id="prod-panel-title" style="margin-bottom: 12px; font-size: 1rem;">🛒 إضافة أو تعديل منتج</h3>
+            <input type="hidden" id="prod-id">
+            <div class="form-group">
+                <label>اسم المنتج</label>
+                <input type="text" id="prod-title" placeholder="مثال: حليب، سكر...">
             </div>
-            <div class="stat-card">
-                <div class="num">0</div>
-                <div class="label">طلبات اليوم</div>
+            <div class="form-group">
+                <label>السعر (₪)</label>
+                <input type="number" step="0.01" id="prod-price" placeholder="0.00">
             </div>
-            <div class="stat-card">
-                <div class="num red">21</div>
-                <div class="label">طلبات بالانتظار</div>
+            <div class="form-group">
+                <label>الكمية المتوفرة (المخزون)</label>
+                <input type="number" id="prod-stock" placeholder="50">
             </div>
-            <div class="stat-card">
-                <div class="num">0</div>
-                <div class="label">منتجات بمخزون منخفض</div>
+            <div class="form-group">
+                <label>الوحدة</label>
+                <input type="text" id="prod-unit" placeholder="حبة، كغ، لتر..." value="حبة">
             </div>
-        </div>
+            <div class="form-group">
+                <label>اختر الفئة</label>
+                <select id="prod-category">
+                    <option value="الكل">الكل وعروض الأسبوع</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>رابط الصورة (URL)</label>
+                <input type="text" id="prod-img" placeholder="https://...">
+            </div>
+            <button class="btn-main" type="button" onclick="saveProduct()">حفظ المنتج في المتجر</button>
 
-        <!-- التبويبات الرئيسية -->
-        <div class="nav-tabs">
-            <button class="tab-btn active" onclick="switchTab('orders', this)">📦 الطلبات</button>
-            <button class="tab-btn" onclick="switchTab('products', this)">🏷️ المنتجات والمخزون</button>
-            <button class="tab-btn" onclick="switchTab('reports', this)">📊 الزبائن والتقارير</button>
-            <button class="tab-btn" onclick="switchTab('settings', this)">⚙️ الإعدادات</button>
-        </div>
-
-        <!-- محتوى تبويب الطلبات -->
-        <div id="tab-orders" class="tab-content active">
-            <div class="card-box">
-                <div class="order-header" style="border-bottom:none; margin-bottom:0;">
-                    <span style="font-weight:bold; color:var(--primary-green);">#1024</span>
-                    <span style="background:#fee2e2; color:#dc2626; padding:4px 10px; border-radius:12px; font-size:0.75rem; font-weight:bold;">ملغي</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- محتوى تبويب المنتجات والمخزون -->
-        <div id="tab-products" class="tab-content">
-            <!-- إدارة الفئات -->
-            <div class="card-box">
-                <h3 id="cat-panel-title">📁 إدارة الفئات (أقسام المتجر)</h3>
-                <input type="hidden" id="cat-id">
-                <div class="form-group">
-                    <label>اسم الفئة (مثال: أدوات تنظيف، معلبات، خضار...)</label>
-                    <input type="text" id="cat-name" placeholder="أدخل اسم الفئة">
-                </div>
-                <button class="btn-main" type="button" onclick="saveCategory()" style="margin-top:0;">حفظ الفئة في السحابة</button>
-                
-                <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px;">
-                    <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; display:block;">الفئات الحالية:</label>
-                    <div id="categories-list-box">جاري التحميل...</div>
-                </div>
-            </div>
-
-            <a href="index.html" class="btn-main">+ إضافة منتج جديد</a>
-        </div>
-
-        <!-- محتوى تبويب الزبائن والتقارير -->
-        <div id="tab-reports" class="tab-content">
-            <div class="card-box">
-                <h3>📈 حركة الموقع (آخر 7 أيام)</h3>
-                <div class="stats-grid" style="margin-bottom:0;">
-                    <div class="stat-card" style="padding:10px;"><div class="num green" style="font-size:1.4rem;">2</div><div class="label">مجموع الزيارات</div></div>
-                    <div class="stat-card" style="padding:10px;"><div class="num" style="font-size:1.4rem;">0</div><div class="label">مشاهدات المنتجات</div></div>
-                    <div class="stat-card" style="padding:10px;"><div class="num" style="font-size:1.4rem;">0%</div><div class="label">نسبة التحويل</div></div>
-                    <div class="stat-card" style="padding:10px;"><div class="num" style="font-size:1.4rem;">0</div><div class="label">الطلبات</div></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- محتوى تبويب الإعدادات -->
-        <div id="tab-settings" class="tab-content">
-            <div class="card-box">
-                <h3 style="margin-bottom: 5px;">وسائل الدفع في المتجر</h3>
-                <div class="setting-row"><span>💳 بطاقة ائتمان</span><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
-                <div class="setting-row"><span>📱 بيت (bit)</span><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
-                <div class="setting-row" style="border-bottom:none;"><span>💵 نقداً عند الاستلام</span><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+            <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px;">
+                <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; display:block;">المنتجات الحالية:</label>
+                <div id="products-list-box">جاري التحميل...</div>
             </div>
         </div>
     </div>
@@ -179,40 +103,46 @@
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.firestore();
 
-        function switchTab(tabId, btn) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-' + tabId).classList.add('active');
-            btn.classList.add('active');
-        }
-
-        function toggleLang() {
-            let title = document.querySelector('.admin-header h2');
-            let btn = document.querySelector('.btn-lang');
-            if(btn.innerText === 'עברית') {
-                title.innerText = 'العروبة - ניהול';
-                btn.innerText = 'العربية';
-            } else {
-                title.innerText = 'العروبة - الإدارة';
-                btn.innerText = 'עברית';
-            }
-        }
-
-        // جلب وعرض الفئات وتحديثها مباشرة من سحابة فايربيس
+        // مزامنة وعرض الفئات في لوحة التحكم وتعبئة القائمة المنسدلة للمنتجات
         db.collection("categories").onSnapshot((snapshot) => {
-            let html = '';
+            let catHtml = '';
+            let selectHtml = `<option value="الكل">الكل وعروض الأسبوع</option>`;
+            
             snapshot.forEach((doc) => {
                 let d = doc.data();
-                html += `
+                catHtml += `
                     <div class="category-item">
                         <span style="font-weight:600; font-size:0.9rem;">${d.name}</span>
-                        <div class="category-actions">
+                        <div style="display:flex; gap:6px;">
                             <button class="btn-edit-sm" onclick="editCategory('${doc.id}', '${d.name}')">تعديل</button>
                             <button class="btn-del-sm" onclick="deleteCategory('${doc.id}')">حذف</button>
                         </div>
                     </div>`;
+                selectHtml += `<option value="${d.name}">${d.name}</option>`;
             });
-            document.getElementById('categories-list-box').innerHTML = html || '<p style="color:#888; font-size:0.85rem;">لا توجد فئات مضافة</p>';
+            
+            document.getElementById('categories-list-box').innerHTML = catHtml || '<p style="color:#888; font-size:0.85rem;">لا توجد فئات مضافة</p>';
+            document.getElementById('prod-category').innerHTML = selectHtml;
+        });
+
+        // مزامنة وعرض المنتجات في لوحة التحكم
+        db.collection("products").onSnapshot((snapshot) => {
+            let prodHtml = '';
+            snapshot.forEach((doc) => {
+                let p = doc.data();
+                prodHtml += `
+                    <div class="product-item">
+                        <div>
+                            <strong style="font-size:0.9rem;">${p.title}</strong>
+                            <div style="font-size:0.75rem; color:#666;">₪${p.price} | مخزون: ${p.stock} | فئة: ${p.category}</div>
+                        </div>
+                        <div style="display:flex; gap:6px;">
+                            <button class="btn-edit-sm" onclick="editProduct('${doc.id}', '${p.title}', ${p.price}, ${p.stock}, '${p.unit}', '${p.category}', '${p.img || ''}')">تعديل</button>
+                            <button class="btn-del-sm" onclick="deleteProduct('${doc.id}')">حذف</button>
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('products-list-box').innerHTML = prodHtml || '<p style="color:#888; font-size:0.85rem;">لا توجد منتجات مضافة</p>';
         });
 
         function saveCategory() {
@@ -225,8 +155,8 @@
             request.then(() => {
                 document.getElementById('cat-id').value = '';
                 document.getElementById('cat-name').value = '';
-                document.getElementById('cat-panel-title').innerText = "📁 إدارة الفئات (أقسام المتجر)";
-                alert("تم حفظ الفئة بنجاح!");
+                document.getElementById('cat-panel-title').innerText = "📁 إدارة فئات المتجر";
+                alert("تم حفظ الفئة بنجاح وتحديث المتجر!");
             }).catch(err => alert("خطأ: " + err.message));
         }
 
@@ -238,10 +168,52 @@
         }
 
         function deleteCategory(id) {
-            if (confirm("هل أنت متأكد من حذف هذه الفئة نهائياً؟")) {
-                db.collection("categories").doc(id).delete().then(() => {
-                    alert("تم الحذف بنجاح!");
-                }).catch(err => alert("خطأ في الحذف: " + err.message));
+            if (confirm("هل أنت متأكد من حذف هذه الفئة؟")) {
+                db.collection("categories").doc(id).delete();
+            }
+        }
+
+        function saveProduct() {
+            const id = document.getElementById('prod-id').value;
+            const title = document.getElementById('prod-title').value.trim();
+            const price = parseFloat(document.getElementById('prod-price').value) || 0;
+            const stock = parseInt(document.getElementById('prod-stock').value) || 0;
+            const unit = document.getElementById('prod-unit').value.trim() || 'حبة';
+            const category = document.getElementById('prod-category').value;
+            const img = document.getElementById('prod-img').value.trim();
+
+            if (!title) { alert("الرجاء إدخال اسم المنتج!"); return; }
+
+            const prodData = { title, price, stock, unit, category, img };
+
+            let request = id ? db.collection("products").doc(id).update(prodData) : db.collection("products").add(prodData);
+
+            request.then(() => {
+                document.getElementById('prod-id').value = '';
+                document.getElementById('prod-title').value = '';
+                document.getElementById('prod-price').value = '';
+                document.getElementById('prod-stock').value = '';
+                document.getElementById('prod-img').value = '';
+                document.getElementById('prod-panel-title').innerText = "🛒 إضافة أو تعديل منتج";
+                alert("تم حفظ المنتج بنجاح!");
+            }).catch(err => alert("خطأ: " + err.message));
+        }
+
+        function editProduct(id, title, price, stock, unit, category, img) {
+            document.getElementById('prod-id').value = id;
+            document.getElementById('prod-title').value = title;
+            document.getElementById('prod-price').value = price;
+            document.getElementById('prod-stock').value = stock;
+            document.getElementById('prod-unit').value = unit;
+            document.getElementById('prod-category').value = category;
+            document.getElementById('prod-img').value = img;
+            document.getElementById('prod-panel-title').innerText = "✏️ تعديل بيانات المنتج";
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        function deleteProduct(id) {
+            if (confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
+                db.collection("products").doc(id).delete();
             }
         }
     </script>
