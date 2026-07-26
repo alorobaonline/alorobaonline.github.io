@@ -27,7 +27,7 @@
         .admin-header span { font-size: 0.85rem; color: var(--text-muted); display: block; }
         
         .btn-lang { background: #f0f2f5; border: 1px solid #d1d5db; padding: 6px 14px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
-        .btn-logout { background: #fee2e2; color: #dc2626; border: none; padding: 6px 14px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 5px; text-decoration: none; }
+        .btn-logout { background: #fee2e2; color: #dc2626; border: none; padding: 6px 14px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.85rem; text-decoration: none; display: flex; align-items: center; gap: 5px; }
 
         .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
         .stat-card { background: white; padding: 16px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); text-align: center; border: 1px solid #e5e7eb; }
@@ -44,20 +44,22 @@
         .tab-content.active { display: block; }
 
         .card-box { background: white; padding: 18px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 15px; border: 1px solid #e5e7eb; }
-        .card-box h3 { font-size: 1rem; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .card-box h3 { font-size: 1rem; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; color: var(--text-dark); }
 
-        .order-card { background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 16px; margin-bottom: 12px; border: 1px solid #e5e7eb; position: relative; }
-        .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px; }
-        .order-id { font-weight: bold; color: var(--primary-green); font-size: 1.1rem; }
-        .order-status { background: #fee2e2; color: #dc2626; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: var(--radius-md); font-size: 0.9rem; outline: none; background: #fff; }
+
+        .btn-main { background: var(--primary-green); color: white; border: none; width: 100%; padding: 12px; border-radius: var(--radius-md); font-weight: bold; font-size: 1rem; cursor: pointer; text-align: center; display: block; text-decoration: none; margin-top: 10px; }
         
-        .order-info { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; line-height: 1.6; }
-        .order-items-box { background: #f9fafb; padding: 10px; border-radius: 8px; font-size: 0.85rem; }
-        .order-item-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e5e7eb; }
+        .category-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; }
+        .category-actions { display: flex; gap: 6px; }
+        .btn-edit-sm { background: #ff9800; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
+        .btn-del-sm { background: #ef4444; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
 
         .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
         .setting-row span { font-weight: 600; font-size: 0.9rem; }
-        
+
         /* Switch Toggle */
         .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
         .switch input { opacity: 0; width: 0; height: 0; }
@@ -65,13 +67,6 @@
         .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--primary-green); }
         input:checked + .slider:before { transform: translateX(24px); }
-
-        .btn-main { background: var(--primary-green); color: white; border: none; width: 100%; padding: 12px; border-radius: var(--radius-md); font-weight: bold; font-size: 1rem; cursor: pointer; text-align: center; display: block; text-decoration: none; margin-top: 10px; }
-        
-        .chart-bars { display: flex; align-items: flex-end; justify-content: space-between; height: 120px; padding-top: 20px; border-bottom: 2px solid #e5e7eb; margin-top: 15px; }
-        .bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; }
-        .bar { width: 16px; background: var(--primary-green); border-radius: 4px 4px 0 0; height: 5px; transition: height 0.5s; }
-        .bar-label { font-size: 0.7rem; color: var(--text-muted); margin-top: 6px; }
     </style>
 </head>
 <body>
@@ -118,40 +113,32 @@
 
         <!-- محتوى تبويب الطلبات -->
         <div id="tab-orders" class="tab-content active">
-            <div class="order-card">
-                <div class="order-header">
-                    <span class="order-id">#1024</span>
-                    <span class="order-status">ملغي</span>
-                </div>
-                <div class="order-info">
-                    👤 دني • <a href="tel:0507777832" style="color:var(--primary-green); font-weight:bold;">0507777832</a><br>
-                    🚚 توصيل: بئر السبع<br>
-                    🕒 موعد التوصيل: يوم شيسي 24.7 • 12:00-10:00<br>
-                    💳 نقداً عند الاستلام • للتحصيل عند التسليم • 23.7.2026 11:00 م
-                </div>
-                <div class="order-items-box">
-                    <div class="order-item-row"><span>🍅 طماطم × 0.5 كجم</span><span>3.45₪</span></div>
-                    <div class="order-item-row"><span>🥒 خيار × 0.5 كجم</span><span>2.95₪</span></div>
-                    <div class="order-item-row"><span>🍌 موز × 0.5 كجم</span><span>4.45₪</span></div>
-                    <div class="order-item-row"><span>🥔 بطاطا × 0.5 كجم</span><span>2.45₪</span></div>
-                    <div class="order-item-row"><span>🍎 تفاح جالا × 0.5 كجم</span><span>4.95₪</span></div>
-                    <div class="order-item-row"><span>🥑 أفوكادو هاس × 1</span><span>4.50₪</span></div>
-                    <div class="order-item-row"><span>🧅 بصل ناشف × 0.5 كجم</span><span>1.95₪</span></div>
-                    <div class="order-item-row"><span>🍋 ليمون × 0.5 كجم</span><span>3.95₪</span></div>
-                    <div class="order-item-row"><span>🥛 حليب 3% كيس × 1</span><span>6.20₪</span></div>
-                    <div class="order-item-row"><span>🧀 جبنة كوتج 5% × 1</span><span>5.90₪</span></div>
+            <div class="card-box">
+                <div class="order-header" style="border-bottom:none; margin-bottom:0;">
+                    <span style="font-weight:bold; color:var(--primary-green);">#1024</span>
+                    <span style="background:#fee2e2; color:#dc2626; padding:4px 10px; border-radius:12px; font-size:0.75rem; font-weight:bold;">ملغي</span>
                 </div>
             </div>
         </div>
 
         <!-- محتوى تبويب المنتجات والمخزون -->
         <div id="tab-products" class="tab-content">
+            <!-- إدارة الفئات -->
             <div class="card-box">
-                <div class="setting-row"><span>🎬 البانرات</span> <span style="color:var(--text-muted); background:#f0f2f5; padding:2px 8px; border-radius:10px; font-size:0.8rem;">4 نشطة</span></div>
-                <div class="setting-row"><span>📁 الفئات</span> <span style="color:var(--text-muted); background:#f0f2f5; padding:2px 8px; border-radius:10px; font-size:0.8rem;">17</span></div>
-                <div class="setting-row"><span>🎉 عروض الحزمة</span> <span style="color:var(--text-muted); background:#f0f2f5; padding:2px 8px; border-radius:10px; font-size:0.8rem;">2 نشطة</span></div>
-                <div class="setting-row" style="border-bottom:none;"><span>🎟️ أكواد الخصم</span> <span style="color:var(--text-muted); background:#f0f2f5; padding:2px 8px; border-radius:10px; font-size:0.8rem;">2 نشطة</span></div>
+                <h3 id="cat-panel-title">📁 إدارة الفئات (أقسام المتجر)</h3>
+                <input type="hidden" id="cat-id">
+                <div class="form-group">
+                    <label>اسم الفئة (مثال: أدوات تنظيف، معلبات، خضار...)</label>
+                    <input type="text" id="cat-name" placeholder="أدخل اسم الفئة">
+                </div>
+                <button class="btn-main" type="button" onclick="saveCategory()" style="margin-top:0;">حفظ الفئة في السحابة</button>
+                
+                <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px;">
+                    <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; display:block;">الفئات الحالية:</label>
+                    <div id="categories-list-box">جاري التحميل...</div>
+                </div>
             </div>
+
             <a href="index.html" class="btn-main">+ إضافة منتج جديد</a>
         </div>
 
@@ -165,16 +152,6 @@
                     <div class="stat-card" style="padding:10px;"><div class="num" style="font-size:1.4rem;">0%</div><div class="label">نسبة التحويل</div></div>
                     <div class="stat-card" style="padding:10px;"><div class="num" style="font-size:1.4rem;">0</div><div class="label">الطلبات</div></div>
                 </div>
-                <!-- رسم بياني مبسط -->
-                <div class="chart-bars">
-                    <div class="bar-col"><div class="bar" style="height: 60px;"></div><span class="bar-label">الأحد</span></div>
-                    <div class="bar-col"><div class="bar" style="height: 5px;"></div><span class="bar-label">السبت</span></div>
-                    <div class="bar-col"><div class="bar" style="height: 5px;"></div><span class="bar-label">الجمعة</span></div>
-                    <div class="bar-col"><div class="bar" style="height: 5px;"></div><span class="bar-label">الخميس</span></div>
-                    <div class="bar-col"><div class="bar" style="height: 5px;"></div><span class="bar-label">الأربعاء</span></div>
-                    <div class="bar-col"><div class="bar" style="height: 5px;"></div><span class="bar-label">الثلاثاء</span></div>
-                    <div class="bar-col"><div class="bar" style="height: 5px;"></div><span class="bar-label">الاثنين</span></div>
-                </div>
             </div>
         </div>
 
@@ -182,25 +159,26 @@
         <div id="tab-settings" class="tab-content">
             <div class="card-box">
                 <h3 style="margin-bottom: 5px;">وسائل الدفع في المتجر</h3>
-                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">اختر وسائل الدفع التي ستظهر للزبائن عند الدفع.</p>
-                
-                <div class="setting-row">
-                    <span>💳 بطاقة ائتمان</span>
-                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
-                </div>
-                <div class="setting-row">
-                    <span>📱 بيت (bit)</span>
-                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
-                </div>
-                <div class="setting-row" style="border-bottom:none;">
-                    <span>💵 نقداً عند الاستلام</span>
-                    <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
-                </div>
+                <div class="setting-row"><span>💳 بطاقة ائتمان</span><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+                <div class="setting-row"><span>📱 بيت (bit)</span><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+                <div class="setting-row" style="border-bottom:none;"><span>💵 نقداً عند الاستلام</span><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
             </div>
         </div>
     </div>
 
     <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAFk8EX7--EMt--ZU395",
+            authDomain: "alorobaonline.firebaseapp.com",
+            projectId: "alorobaonline",
+            storageBucket: "alorobaonline.appspot.com",
+            messagingSenderId: "880642361344",
+            appId: "1:880642361344:web:9071b76",
+            measurementId: "G-F80VQ7YH77"
+        };
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        const db = firebase.firestore();
+
         function switchTab(tabId, btn) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -217,6 +195,53 @@
             } else {
                 title.innerText = 'العروبة - الإدارة';
                 btn.innerText = 'עברית';
+            }
+        }
+
+        // جلب وعرض الفئات وتحديثها مباشرة من سحابة فايربيس
+        db.collection("categories").onSnapshot((snapshot) => {
+            let html = '';
+            snapshot.forEach((doc) => {
+                let d = doc.data();
+                html += `
+                    <div class="category-item">
+                        <span style="font-weight:600; font-size:0.9rem;">${d.name}</span>
+                        <div class="category-actions">
+                            <button class="btn-edit-sm" onclick="editCategory('${doc.id}', '${d.name}')">تعديل</button>
+                            <button class="btn-del-sm" onclick="deleteCategory('${doc.id}')">حذف</button>
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('categories-list-box').innerHTML = html || '<p style="color:#888; font-size:0.85rem;">لا توجد فئات مضافة</p>';
+        });
+
+        function saveCategory() {
+            const id = document.getElementById('cat-id').value;
+            const name = document.getElementById('cat-name').value.trim();
+            if (!name) { alert("الرجاء إدخال اسم الفئة!"); return; }
+
+            let request = id ? db.collection("categories").doc(id).update({ name }) : db.collection("categories").add({ name });
+
+            request.then(() => {
+                document.getElementById('cat-id').value = '';
+                document.getElementById('cat-name').value = '';
+                document.getElementById('cat-panel-title').innerText = "📁 إدارة الفئات (أقسام المتجر)";
+                alert("تم حفظ الفئة بنجاح!");
+            }).catch(err => alert("خطأ: " + err.message));
+        }
+
+        function editCategory(id, name) {
+            document.getElementById('cat-id').value = id;
+            document.getElementById('cat-name').value = name;
+            document.getElementById('cat-panel-title').innerText = "✏️ تعديل اسم الفئة";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function deleteCategory(id) {
+            if (confirm("هل أنت متأكد من حذف هذه الفئة نهائياً؟")) {
+                db.collection("categories").doc(id).delete().then(() => {
+                    alert("تم الحذف بنجاح!");
+                }).catch(err => alert("خطأ في الحذف: " + err.message));
             }
         }
     </script>
