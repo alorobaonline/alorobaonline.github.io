@@ -57,38 +57,40 @@
             </div>
         </div>
 
-        <!-- صندوق نموذج إضافة/تعديل المنتج (يتم نقله ديناميكياً تحت المنتج عند التعديل) -->
-        <div class="card-box" id="product-form-container">
-            <h3 id="prod-panel-title" style="margin-bottom: 12px; font-size: 1rem;">🛒 إضافة منتج جديد</h3>
-            <input type="hidden" id="prod-id">
-            <div class="form-group">
-                <label>اسم المنتج</label>
-                <input type="text" id="prod-title" placeholder="مثال: حليب، سكر...">
+        <!-- الحاوية الأساسية للفورم في الأعلى -->
+        <div id="form-original-parent">
+            <div class="card-box" id="product-form-container">
+                <h3 id="prod-panel-title" style="margin-bottom: 12px; font-size: 1rem;">🛒 إضافة منتج جديد</h3>
+                <input type="hidden" id="prod-id">
+                <div class="form-group">
+                    <label>اسم المنتج</label>
+                    <input type="text" id="prod-title" placeholder="مثال: حليب، سكر...">
+                </div>
+                <div class="form-group">
+                    <label>السعر (₪)</label>
+                    <input type="number" step="0.01" id="prod-price" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label>الكمية المتوفرة (المخزون)</label>
+                    <input type="number" id="prod-stock" placeholder="50">
+                </div>
+                <div class="form-group">
+                    <label>الوحدة</label>
+                    <input type="text" id="prod-unit" placeholder="حبة، كغ، لتر..." value="حبة">
+                </div>
+                <div class="form-group">
+                    <label>اختر الفئة</label>
+                    <select id="prod-category">
+                        <option value="الكل">الكل وعروض الأسبوع</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>رابط الصورة (URL)</label>
+                    <input type="text" id="prod-img" placeholder="https://...">
+                </div>
+                <button class="btn-main" id="prod-submit-btn" type="button" onclick="saveProduct()">حفظ المنتج في المتجر</button>
+                <button class="btn-cancel" id="prod-cancel-btn" type="button" onclick="resetProductForm()" style="display:none;">إلغاء التعديل</button>
             </div>
-            <div class="form-group">
-                <label>السعر (₪)</label>
-                <input type="number" step="0.01" id="prod-price" placeholder="0.00">
-            </div>
-            <div class="form-group">
-                <label>الكمية المتوفرة (المخزون)</label>
-                <input type="number" id="prod-stock" placeholder="50">
-            </div>
-            <div class="form-group">
-                <label>الوحدة</label>
-                <input type="text" id="prod-unit" placeholder="حبة، كغ، لتر..." value="حبة">
-            </div>
-            <div class="form-group">
-                <label>اختر الفئة</label>
-                <select id="prod-category">
-                    <option value="الكل">الكل وعروض الأسبوع</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>رابط الصورة (URL)</label>
-                <input type="text" id="prod-img" placeholder="https://...">
-            </div>
-            <button class="btn-main" id="prod-submit-btn" type="button" onclick="saveProduct()">حفظ المنتج في المتجر</button>
-            <button class="btn-cancel" id="prod-cancel-btn" type="button" onclick="resetProductForm()" style="display:none;">إلغاء التعديل</button>
         </div>
 
         <!-- قسم قائمة المنتجات الحالية -->
@@ -211,7 +213,6 @@
         }
 
         function editProduct(id, title, price, stock, unit, category, img) {
-            // نقل صندوق الفورم ليظهر تماماً تحت المنتج المحدد
             const formBox = document.getElementById('product-form-container');
             const slot = document.getElementById(`edit-slot-${id}`);
             slot.appendChild(formBox);
@@ -232,8 +233,8 @@
 
         function resetProductForm() {
             const formBox = document.getElementById('product-form-container');
-            // إرجاع الفورم لمكانه الطبيعي في الأعلى
-            document.body.insertBefore(formBox, document.getElementById('products-list-box').parentNode);
+            const originalParent = document.getElementById('form-original-parent');
+            originalParent.appendChild(formBox);
 
             document.getElementById('prod-id').value = '';
             document.getElementById('prod-title').value = '';
