@@ -6,7 +6,7 @@
     <title>العروبة - لوحة التحكم الشاملة</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-    <!-- مكتبة قراءة الباركود السريعة -->
+    <!-- مكتبة قراءة الباركود الحقيقية (ZXing) -->
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <style>
         :root {
@@ -24,8 +24,11 @@
         .form-group { margin-bottom: 12px; }
         .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: var(--radius-md); font-size: 0.9rem; outline: none; background: #fff; }
+        .row-2 { display: flex; gap: 10px; }
+        .row-2 .form-group { flex: 1; }
+        
         .btn-main { background: var(--primary-green); color: white; border: none; width: 100%; padding: 12px; border-radius: var(--radius-md); font-weight: bold; font-size: 1rem; cursor: pointer; text-align: center; }
-        .btn-cancel { background: #6b7280; color: white; border: none; width: 100%; padding: 8px; border-radius: var(--radius-md); font-weight: bold; font-size: 0.9rem; cursor: pointer; text-align: center; margin-top: 6px; }
+        .btn-cancel { background: #ffebee; color: #d32f2f; border: none; width: 100%; padding: 10px; border-radius: var(--radius-md); font-weight: bold; font-size: 0.9rem; cursor: pointer; text-align: center; margin-top: 6px; }
         
         .category-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; }
         .product-card-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: var(--radius-md); padding: 10px; margin-bottom: 10px; }
@@ -35,14 +38,18 @@
         .btn-edit-sm { background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
         .btn-del-sm { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
         
-        .img-preview-box { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
-        .img-preview { width: 45px; height: 45px; object-fit: contain; border: 1px solid #ddd; border-radius: 6px; background: #fff; display: none; }
+        /* حقل الباركود وزر الماسح */
+        .barcode-wrapper { display: flex; gap: 8px; align-items: center; }
+        .btn-scan-barcode { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.85rem; font-weight: bold; cursor: pointer; white-space: nowrap; }
         
-        /* تنسيق زر ونافذة الماسح الضوئي */
-        .barcode-section { display: flex; gap: 8px; align-items: center; }
-        .btn-scanner { background: #1976d2; color: white; border: none; padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.85rem; font-weight: bold; cursor: pointer; white-space: nowrap; }
-        #scanner-container { display: none; margin-top: 10px; width: 100%; border-radius: 8px; overflow: hidden; border: 2px solid #1976d2; background: #000; }
-        #video { width: 100%; max-height: 250px; object-fit: cover; display: block; }
+        #barcode-scanner-container { display: none; margin-top: 10px; width: 100%; border-radius: 8px; overflow: hidden; border: 2px solid var(--primary-green); background: #000; position: relative; }
+        #barcode-video { width: 100%; max-height: 220px; object-fit: cover; display: block; }
+        
+        /* تصميم جذاب لرفع ومعاينة صورة المنتج */
+        .image-upload-box { border: 2px dashed #cbd5e1; border-radius: var(--radius-md); padding: 16px; text-align: center; background: #f8fafc; cursor: pointer; position: relative; transition: all 0.2s ease; }
+        .image-upload-box:hover { border-color: var(--primary-green); background: #f0fdf4; }
+        .image-upload-box input[type="file"] { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer; z-index: 2; }
+        .preview-img-disp { width: 70px; height: 70px; object-fit: contain; margin-top: 8px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; display: none; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     </style>
 </head>
 <body>
@@ -68,58 +75,83 @@
             </div>
         </div>
 
-        <!-- الحاوية الأساسية للفورم في الأعلى -->
+        <!-- الحاوية الأساسية لفورم المنتج -->
         <div id="form-original-parent">
             <div class="card-box" id="product-form-container">
                 <h3 id="prod-panel-title" style="margin-bottom: 12px; font-size: 1rem;">🛒 إضافة منتج جديد</h3>
                 <input type="hidden" id="prod-id">
                 <input type="hidden" id="prod-img-base64">
                 
-                <!-- حقل اسم المنتج مع ماسح الباركود بجانبه -->
                 <div class="form-group">
-                    <label>اسم المنتج أو الباركود</label>
-                    <div class="barcode-section">
-                        <input type="text" id="prod-title" placeholder="مثال: حليب، سكر أو رقم الباركود...">
-                        <button type="button" class="btn-scanner" onclick="toggleScanner()">📷 مسح الباركود</button>
+                    <label>الاسم بالعربية (يظهر للزبائن بالعربية)</label>
+                    <input type="text" id="prod-title" placeholder="مثال: حليب، سكر...">
+                </div>
+
+                <div class="row-2">
+                    <div class="form-group">
+                        <label>السعر (₪) *</label>
+                        <input type="number" step="0.01" id="prod-price" placeholder="0.00">
                     </div>
-                    <!-- نافذة الكاميرا لقراءة الباركود -->
-                    <div id="scanner-container">
-                        <video id="video"></video>
-                        <button type="button" onclick="stopScanner()" style="background:#ef4444; color:white; border:none; width:100%; padding:6px; font-weight:bold; cursor:pointer;">إغلاق الكاميرا</button>
+                    <div class="form-group">
+                        <label>الوحدة</label>
+                        <input type="text" id="prod-unit" placeholder="حبة، كغ..." value="حبة">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>السعر (₪)</label>
-                    <input type="number" step="0.01" id="prod-price" placeholder="0.00">
+                    <label>سعر التكلفة (₪) — كم كلفك</label>
+                    <input type="number" step="0.01" id="prod-cost" placeholder="0.00">
+                    <span style="font-size: 0.75rem; color: #6b7280; display: block; margin-top: 2px;">للستخدام الداخلي فقط — لحساب الربح. لا يظهر للزبائن.</span>
                 </div>
+
                 <div class="form-group">
-                    <label>الكمية المتوفرة (المخزون)</label>
-                    <input type="number" id="prod-stock" placeholder="50">
+                    <label>المخزون</label>
+                    <input type="number" id="prod-stock" placeholder="50" value="50">
                 </div>
+
+                <!-- حقل الباركود مع زر الماسح الفعلي -->
                 <div class="form-group">
-                    <label>الوحدة</label>
-                    <input type="text" id="prod-unit" placeholder="حبة، كغ، لتر..." value="حبة">
+                    <label>باركود (رقم أو مسح)</label>
+                    <div class="barcode-wrapper">
+                        <button type="button" class="btn-scan-barcode" onclick="startBarcodeScanner()">📷 امسح باركود</button>
+                        <input type="text" id="prod-barcode" placeholder="أدخل رقم الباركود أو امسحه...">
+                    </div>
+                    <div id="barcode-scanner-container">
+                        <video id="barcode-video"></video>
+                        <button type="button" onclick="stopBarcodeScanner()" style="background:#ef4444; color:white; border:none; width:100%; padding:8px; font-weight:bold; cursor:pointer;">إغلاق الكاميرا</button>
+                    </div>
                 </div>
+
+                <!-- تصميم جذاب ومحدث لصورة المنتج -->
                 <div class="form-group">
-                    <label>اختر الفئة</label>
+                    <label>صورة المنتج</label>
+                    <div class="image-upload-box">
+                        <input type="file" id="prod-file-input" accept="image/*" onchange="handleImagePick(event)">
+                        <div style="font-size: 1.6rem; margin-bottom: 2px;">📸</div>
+                        <span style="font-size: 0.85rem; font-weight: bold; color: #334155;">تصوير / اختيار من المعرض</span>
+                        <div><img id="img-preview" class="preview-img-disp" alt="معاينة"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>إيموجي (يظهر عند عدم وجود صورة)</label>
+                    <input type="text" id="prod-emoji" placeholder="🛒" value="🛒">
+                </div>
+
+                <div class="form-group">
+                    <label>الفئة</label>
                     <select id="prod-category">
                         <option value="الكل">الكل وعروض الأسبوع</option>
                     </select>
                 </div>
-                
-                <!-- اختيار صورة المنتج من الجهاز -->
-                <div class="form-group">
-                    <label>صورة المنتج</label>
-                    <input type="file" id="prod-file-input" accept="image/*" onchange="handleImagePick(event)" style="padding: 6px;">
-                    <div class="img-preview-box">
-                        <img id="img-preview" class="img-preview" alt="معاينة">
-                        <span id="img-status" style="font-size: 0.8rem; color: #666;">لم يتم اختيار صورة</span>
-                    </div>
+
+                <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="prod-is-offer" style="width: 18px; height: 18px;">
+                    <label for="prod-is-offer" style="margin: 0; cursor: pointer;">🔴 منتج بالعرض</label>
                 </div>
 
-                <button class="btn-main" id="prod-submit-btn" type="button" onclick="saveProduct()">حفظ المنتج في المتجر</button>
-                <button class="btn-cancel" id="prod-cancel-btn" type="button" onclick="resetProductForm()" style="display:none;">إلغاء التعديل</button>
+                <button class="btn-main" id="prod-submit-btn" type="button" onclick="saveProduct()">💾 حفظ</button>
+                <button class="btn-cancel" id="prod-cancel-btn" type="button" onclick="resetProductForm()" style="display:none;">إلغاء</button>
             </div>
         </div>
 
@@ -144,40 +176,31 @@
         const db = firebase.firestore();
 
         let codeReader = null;
-        let isScanning = false;
 
-        // تشغيل وإيقاف ماسح الباركود
-        function toggleScanner() {
-            const container = document.getElementById('scanner-container');
-            if (isScanning) {
-                stopScanner();
-            } else {
-                container.style.display = 'block';
-                isScanning = true;
-                codeReader = new ZXing.BrowserBarcodeReader();
-                codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
-                    if (result) {
-                        document.getElementById('prod-title').value = result.text;
-                        stopScanner();
-                        alert("تم التعرف على الباركود بنجاح: " + result.text);
-                    }
-                }).catch(err => {
-                    console.error(err);
-                    alert("تعذر تشغيل كاميرا الماسح الضوئي.");
-                });
-            }
+        function startBarcodeScanner() {
+            const container = document.getElementById('barcode-scanner-container');
+            container.style.display = 'block';
+            codeReader = new ZXing.BrowserBarcodeReader();
+            codeReader.decodeFromVideoDevice(null, 'barcode-video', (result, err) => {
+                if (result) {
+                    document.getElementById('prod-barcode').value = result.text;
+                    stopBarcodeScanner();
+                    alert("تم قراءة الباركود بنجاح: " + result.text);
+                }
+            }).catch(err => {
+                console.error(err);
+                alert("تعذر فتح الكاميرا للماسح الضوئي.");
+            });
         }
 
-        function stopScanner() {
+        function stopBarcodeScanner() {
             if (codeReader) {
                 codeReader.reset();
                 codeReader = null;
             }
-            isScanning = false;
-            document.getElementById('scanner-container').style.display = 'none';
+            document.getElementById('barcode-scanner-container').style.display = 'none';
         }
 
-        // مزامنة الفئات
         db.collection("categories").onSnapshot((snapshot) => {
             let catHtml = '';
             let selectHtml = `<option value="الكل">الكل وعروض الأسبوع</option>`;
@@ -199,24 +222,25 @@
             document.getElementById('prod-category').innerHTML = selectHtml;
         });
 
-        // مزامنة المنتجات
         db.collection("products").onSnapshot((snapshot) => {
             let prodHtml = '';
             snapshot.forEach((doc) => {
                 let p = doc.data();
-                let imgSrc = (p.img && p.img.length > 5) ? p.img : 'https://via.placeholder.com/50';
+                let imgSrc = (p.img && p.img.length > 5) ? p.img : '';
+                let thumbHtml = imgSrc ? `<img src="${imgSrc}" class="product-thumb" alt="صورة">` : `<span style="font-size:24px; margin-left:10px;">${p.emoji || '🛒'}</span>`;
+                
                 prodHtml += `
                     <div class="product-card-box" id="prod-box-${doc.id}">
                         <div class="product-row-info">
                             <div style="display:flex; align-items:center;">
-                                <img src="${imgSrc}" class="product-thumb" alt="صورة">
+                                ${thumbHtml}
                                 <div>
                                     <strong style="font-size:0.9rem; display:block;">${p.title}</strong>
-                                    <div style="font-size:0.75rem; color:#666;">₪${p.price} | مخزون: ${p.stock} | فئة: ${p.category}</div>
+                                    <div style="font-size:0.75rem; color:#666;">₪${p.price} | مخزون: ${p.stock} | باركود: ${p.barcode || 'لا يوجد'}</div>
                                 </div>
                             </div>
                             <div style="display:flex; gap:6px;">
-                                <button class="btn-edit-sm" onclick="editProduct('${doc.id}', '${p.title}', ${p.price}, ${p.stock}, '${p.unit || 'حبة'}', '${p.category || 'الكل'}', '${p.img || ''}')">تعديل</button>
+                                <button class="btn-edit-sm" onclick="editProduct('${doc.id}', '${p.title}', ${p.price}, ${p.stock}, '${p.unit || 'حبة'}', '${p.category || 'الكل'}', '${p.img || ''}', '${p.barcode || ''}', '${p.emoji || '🛒'}', ${p.cost || 0}, ${p.isOffer || false})">تعديل</button>
                                 <button class="btn-del-sm" onclick="deleteProduct('${doc.id}')">حذف</button>
                             </div>
                         </div>
@@ -235,8 +259,7 @@
                     document.getElementById('prod-img-base64').value = base64;
                     const preview = document.getElementById('img-preview');
                     preview.src = base64;
-                    preview.style.display = 'block';
-                    document.getElementById('img-status').innerText = "تم اختيار الصورة بنجاح ✅";
+                    preview.style.display = 'inline-block';
                 }
                 reader.readAsDataURL(file);
             }
@@ -274,14 +297,18 @@
             const id = document.getElementById('prod-id').value;
             const title = document.getElementById('prod-title').value.trim();
             const price = parseFloat(document.getElementById('prod-price').value) || 0;
+            const cost = parseFloat(document.getElementById('prod-cost').value) || 0;
             const stock = parseInt(document.getElementById('prod-stock').value) || 0;
             const unit = document.getElementById('prod-unit').value.trim() || 'حبة';
+            const barcode = document.getElementById('prod-barcode').value.trim();
             const category = document.getElementById('prod-category').value;
             const img = document.getElementById('prod-img-base64').value.trim();
+            const emoji = document.getElementById('prod-emoji').value.trim() || '🛒';
+            const isOffer = document.getElementById('prod-is-offer').checked;
 
-            if (!title) { alert("الرجاء إدخال اسم المنتج أو الباركود!"); return; }
+            if (!title) { alert("الرجاء إدخال اسم المنتج بالعربية!"); return; }
 
-            const prodData = { title, price, stock, unit, category, img };
+            const prodData = { title, price, cost, stock, unit, barcode, category, img, emoji, isOffer };
 
             let request = id ? db.collection("products").doc(id).update(prodData) : db.collection("products").add(prodData);
 
@@ -291,8 +318,8 @@
             }).catch(err => alert("خطأ: " + err.message));
         }
 
-        function editProduct(id, title, price, stock, unit, category, img) {
-            stopScanner();
+        function editProduct(id, title, price, stock, unit, category, img, barcode, emoji, cost, isOffer) {
+            stopBarcodeScanner();
             const formBox = document.getElementById('product-form-container');
             const slot = document.getElementById(`edit-slot-${id}`);
             slot.appendChild(formBox);
@@ -300,30 +327,32 @@
             document.getElementById('prod-id').value = id;
             document.getElementById('prod-title').value = title;
             document.getElementById('prod-price').value = price;
+            document.getElementById('prod-cost').value = cost || '';
             document.getElementById('prod-stock').value = stock;
             document.getElementById('prod-unit').value = unit;
+            document.getElementById('prod-barcode').value = barcode;
             document.getElementById('prod-category').value = category;
+            document.getElementById('prod-emoji').value = emoji;
+            document.getElementById('prod-is-offer').checked = isOffer;
             
             document.getElementById('prod-img-base64').value = img;
             const preview = document.getElementById('img-preview');
             if (img && img.length > 5) {
                 preview.src = img;
-                preview.style.display = 'block';
-                document.getElementById('img-status').innerText = "صورة المنتج الحالية";
+                preview.style.display = 'inline-block';
             } else {
                 preview.style.display = 'none';
-                document.getElementById('img-status').innerText = "لا توجد صورة";
             }
             document.getElementById('prod-file-input').value = "";
 
             document.getElementById('prod-panel-title').innerText = `✏️ تعديل المنتج: ${title}`;
-            document.getElementById('prod-submit-btn').innerText = "تحديث المنتج";
+            document.getElementById('prod-submit-btn').innerText = "💾 تحديث المنتج";
             document.getElementById('prod-cancel-btn').style.display = "block";
             formBox.scrollIntoView({ behavior: 'smooth' });
         }
 
         function resetProductForm() {
-            stopScanner();
+            stopBarcodeScanner();
             const formBox = document.getElementById('product-form-container');
             const originalParent = document.getElementById('form-original-parent');
             originalParent.appendChild(formBox);
@@ -331,15 +360,18 @@
             document.getElementById('prod-id').value = '';
             document.getElementById('prod-title').value = '';
             document.getElementById('prod-price').value = '';
-            document.getElementById('prod-stock').value = '';
+            document.getElementById('prod-cost').value = '';
+            document.getElementById('prod-stock').value = '50';
             document.getElementById('prod-unit').value = 'حبة';
+            document.getElementById('prod-barcode').value = '';
+            document.getElementById('prod-emoji').value = '🛒';
+            document.getElementById('prod-is-offer').checked = false;
             document.getElementById('prod-img-base64').value = '';
             document.getElementById('prod-file-input').value = '';
             document.getElementById('img-preview').style.display = 'none';
-            document.getElementById('img-status').innerText = "لم يتم اختيار صورة";
 
             document.getElementById('prod-panel-title').innerText = "🛒 إضافة منتج جديد";
-            document.getElementById('prod-submit-btn').innerText = "حفظ المنتج في المتجر";
+            document.getElementById('prod-submit-btn').innerText = "💾 حفظ";
             document.getElementById('prod-cancel-btn').style.display = "none";
         }
 
