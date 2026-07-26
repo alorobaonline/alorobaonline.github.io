@@ -403,16 +403,21 @@
         let cart = JSON.parse(localStorage.getItem('aloroba_cart_cloud')) || {}; 
         let isAdminMode = false;
 
-        // جلب المنتجات مع معالجة الأخطاء بوضوح
         db.collection("products").onSnapshot((snapshot) => {
             products = [];
             snapshot.forEach((doc) => {
-                products.push({ id: doc.id, ...doc.data() });
+                let data = doc.data();
+                products.push({ 
+                    id: doc.id, 
+                    title: data.title || 'بدون اسم',
+                    price: data.price || 0,
+                    stock: data.stock || 0,
+                    img: (data.img && data.img.length > 50) ? data.img : 'https://via.placeholder.com/150'
+                });
             });
             render();
         }, (error) => {
-            console.error("خطأ في جلب البيانات: ", error);
-            document.getElementById('products-grid').innerHTML = '<p style="grid-column:span 2; text-align:center; color:red;">خطأ في الاتصال بقاعدة البيانات. تأكد من ضبط الـ Rules.</p>';
+            console.error("خطأ: ", error);
         });
 
         function toggleAdminPanel() {
@@ -424,7 +429,7 @@
         function render() {
             const grid = document.getElementById('products-grid');
             if (products.length === 0) {
-                grid.innerHTML = '<p style="grid-column: span 2; text-align: center; color: #888; padding: 20px;">لا توجد منتجات حالياً. اضغط على زر الإدارة لإضافة منتج.</p>';
+                grid.innerHTML = '<p style="grid-column: span 2; text-align: center; color: #888; padding: 20px;">لا توجد منتجات حالياً.</p>';
                 updateCartBadge();
                 return;
             }
@@ -450,12 +455,12 @@
                 return `
                     <div class="card">
                         <div class="card-img-container">
-                            <img src="${item.img || 'https://via.placeholder.com/150'}" alt="${item.title}">
+                            <img src="${item.img}" alt="${item.title}">
                         </div>
                         <div>
                             <div class="card-title">${item.title}</div>
                             <div class="card-meta">المتوفر: <strong>${item.stock}</strong></div>
-                            <div class="card-price">₪${parseFloat(item.price || 0).toFixed(2)}</div>
+                            <div class="card-price">₪${parseFloat(item.price).toFixed(2)}</div>
                         </div>
                         ${actionArea}
                         <div class="admin-actions" style="display: ${isAdminMode ? 'flex' : 'none'}">
@@ -479,7 +484,7 @@
             } else if (item && target <= item.stock) {
                 cart[id] = target;
             } else {
-                alert("وصلت إلى الحد الأقصى للمخزون المتوفر!");
+                alert("وصلت للحد الأقصى للمخزون!");
             }
 
             localStorage.setItem('aloroba_cart_cloud', JSON.stringify(cart));
@@ -508,7 +513,7 @@
             const keys = Object.keys(cart);
 
             if (keys.length === 0) {
-                list.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">السلة فارغة حالياً</p>';
+                list.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">السلة فارغة</p>';
                 document.getElementById('cart-total-price').innerText = '₪0.00';
                 return;
             }
@@ -560,8 +565,7 @@
             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
         }
 
-        // ضغط الصورة تلقائياً لتجنب مشاكل الحجم ورفعها بسرعة
-        function compressImage(file, callback) {
+        function compressAndResizeImage(file, callback) {
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = function(event) {
@@ -569,8 +573,8 @@
                 img.src = event.target.result;
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 300;
-                    const MAX_HEIGHT = 300;
+                    const MAX_WIDTH = 250;
+                    const MAX_HEIGHT = 250;
                     let width = img.width;
                     let height = img.height;
 
@@ -590,7 +594,7 @@
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    callback(canvas.toDataURL('image/jpeg', 0.7));
+                    callback(canvas.toDataURL('image/jpeg', 0.6));
                 }
             }
         }
@@ -603,7 +607,7 @@
             const fileInput = document.getElementById('p-file');
 
             if (!title || isNaN(price) || isNaN(stock)) {
-                alert("يرجى إدخال كافة بيانات المنتج بشكل صحيح!");
+                alert("يرجى إدخال اسم المنتج، السعر، والكمية بشكل صحيح!");
                 return;
             }
 
@@ -615,14 +619,14 @@
 
                 action.then(() => {
                     resetForm();
-                    alert("تم الحفظ بنجاح!");
+                    alert("تم حفظ المنتج بنجاح!");
                 }).catch((error) => {
-                    alert("حدث خطأ أثناء الحفظ: " + error.message);
+                    alert("خطأ أثناء الحفظ: " + error.message);
                 });
             };
 
             if (fileInput.files && fileInput.files[0]) {
-                compressImage(fileInput.files[0], (compressedBase64) => {
+                compressAndResizeImage(fileInput.files[0], (compressedBase64) => {
                     proceedSave(compressedBase64);
                 });
             } else {
@@ -643,7 +647,7 @@
         }
 
         function deleteProduct(id) {
-            if (confirm("هل أنت متأكد من حذف هذا الغرض؟")) {
+            if (confirm("هل أنت متأكد من الحذف؟")) {
                 db.collection("products").doc(id).delete().then(() => {
                     delete cart[id];
                     localStorage.setItem('aloroba_cart_cloud', JSON.stringify(cart));
