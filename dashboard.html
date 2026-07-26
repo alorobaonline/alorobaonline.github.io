@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة إدارة العروبة أون لاين</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <style>
+        :root {
+            --primary-blue: #2196f3;
+            --bg-color: #f4f6f8;
+            --card-bg: #ffffff;
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-dark); padding: 20px; }
+        .admin-container { max-width: 600px; margin: 0 auto; }
+        
+        .admin-header { background: white; padding: 16px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .admin-header h2 { font-size: 1.2rem; color: var(--primary-blue); }
+
+        .panel-card { background: white; padding: 20px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 20px; border: 1px solid #e5e7eb; }
+        .panel-card h3 { font-size: 1rem; color: var(--text-dark); margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px; }
+
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: var(--radius-md); font-size: 0.9rem; outline: none; background: #fff; }
+
+        .price-row { display: flex; gap: 8px; }
+        .price-row .main-price { flex: 2; }
+        .price-row .unit-select { flex: 1; }
+
+        .barcode-row { display: flex; gap: 6px; }
+        .btn-barcode { background: #e8f5e9; color: #2e7d32; border: none; padding: 0 12px; border-radius: var(--radius-md); font-size: 0.8rem; cursor: pointer; font-weight: bold; white-space: nowrap; }
+
+        .image-upload-box { border: 2px dashed #cbd5e1; border-radius: var(--radius-md); padding: 15px; text-align: center; background: #fafafa; position: relative; cursor: pointer; }
+        .image-upload-box input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .preview-thumb { width: 60px; height: 60px; object-fit: contain; border-radius: 8px; margin-bottom: 5px; background: white; border: 1px solid #ddd; }
+
+        .btn-submit { background: var(--primary-blue); color: white; border: none; width: 100%; padding: 12px; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; font-size: 1rem; margin-top: 10px; }
+        
+        .product-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #f0f0f0; background: #fff; border-radius: 8px; margin-bottom: 8px; }
+        .btn-edit { background: #ff9800; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
+        .btn-delete { background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
+
+        #scanner-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; flex-direction: column; align-items: center; justify-content: center; }
+        #scanner-container video { width: 100%; max-width: 400px; border-radius: 12px; }
+        .btn-close-scanner { background: #f44336; color: white; border: none; padding: 10px 20px; border-radius: 8px; margin-top: 15px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-header">
+            <h2>⚙️ لوحة إدارة ومراقبة المتجر</h2>
+            <a href="index.html" target="_blank" style="background:#e3f2fd; color:#1976d2; padding:6px 12px; border-radius:20px; text-decoration:none; font-size:0.85rem; font-weight:bold;">عرض المتجر ↗</a>
+        </div>
+
+        <div class="panel-card">
+            <h3 id="panel-title">➕ إضافة منتج جديد للمخزون</h3>
+            <input type="hidden" id="p-id">
+            
+            <div class="form-group">
+                <label>اسم المنتج</label>
+                <input type="text" id="p-title" placeholder="مثال: حليب طازج">
+            </div>
+
+            <div class="form-group">
+                <label>القسم</label>
+                <select id="p-category">
+                    <option value="خضار وفواكه">🥦 خضار وفواكه</option>
+                    <option value="ألبان وأجبان">🧀 ألبان وأجبان</option>
+                    <option value="مشروبات">🧃 مشروبات</option>
+                    <option value="مخبوزات">🍞 مخبوزات</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>سعر البيع للزبون (₪)</label>
+                <div class="price-row">
+                    <input type="number" id="p-price" class="main-price" step="0.10" placeholder="0.00">
+                    <select id="p-unit" class="unit-select">
+                        <option value="حبة">حبة</option>
+                        <option value="كيلو">كيلو</option>
+                        <option value="باكيت">باكيت</option>
+                        <option value="كرتونة">كرتونة</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>سعر التكلفة (₪) — لمراقبة المشتريات والأرباح</label>
+                <input type="number" id="p-cost" step="0.10" placeholder="0.00">
+            </div>
+
+            <div class="form-group">
+                <label>المخزون الحالي</label>
+                <input type="number" id="p-stock" value="50">
+            </div>
+
+            <div class="form-group">
+                <label>الباركود</label>
+                <div class="barcode-row">
+                    <input type="text" id="p-barcode" placeholder="أدخل أو امسح الباركود">
+                    <button class="btn-barcode" type="button" onclick="startBarcodeScanner()">📷 مسح</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>صورة المنتج</label>
+                <div class="image-upload-box">
+                    <input type="file" id="p-file" accept="image/*">
+                    <div id="upload-content-view">
+                        <div style="font-size: 1.5rem;">📸</div>
+                        <div style="font-size: 0.8rem; color: #2196f3; font-weight: bold;">اختيار صورة</div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-submit" type="button" onclick="saveProduct()">حفظ وتحديث السحابة</button>
+        </div>
+
+        <div class="panel-card">
+            <h3>📦 مراقبة المنتجات والمخزون الحالي</h3>
+            <div id="admin-products-list">جاري التحميل...</div>
+        </div>
+    </div>
+
+    <div id="scanner-container">
+        <video id="interactive" class="viewport"></video>
+        <button class="btn-close-scanner" type="button" onclick="stopBarcodeScanner()">إغلاق الكاميرا</button>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAFk8EX7--EMt--ZU395",
+            authDomain: "alorobaonline.firebaseapp.com",
+            projectId: "alorobaonline",
+            storageBucket: "alorobaonline.appspot.com",
+            messagingSenderId: "880642361344",
+            appId: "1:880642361344:web:9071b76",
+            measurementId: "G-F80VQ7YH77"
+        };
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        const db = firebase.firestore();
+
+        let temporaryImageBase64 = null;
+        let codeReader = null;
+
+        document.getElementById('p-file').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width, height = img.height, MAX_SIZE = 250;
+                        if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } }
+                        else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+                        canvas.width = width; canvas.height = height;
+                        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                        temporaryImageBase64 = canvas.toDataURL('image/jpeg', 0.6);
+                        document.getElementById('upload-content-view').innerHTML = `<img src="${temporaryImageBase64}" class="preview-thumb"><div style="color:#059669; font-size:0.75rem;">✓ تم الحفظ</div>`;
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        db.collection("products").onSnapshot((snapshot) => {
+            let html = '';
+            snapshot.forEach((doc) => {
+                let d = doc.data();
+                html += `
+                    <div class="product-list-item">
+                        <div>
+                            <strong>${d.title}</strong>
+                            <div style="font-size:0.75rem; color:#666;">السعر: ₪${d.price} | التكلفة: ₪${d.cost || 0} | المخزون: ${d.stock}</div>
+                        </div>
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn-edit" onclick="editProduct('${doc.id}', '${encodeURIComponent(JSON.stringify(d))}')">تعديل</button>
+                            <button class="btn-delete" onclick="deleteProduct('${doc.id}')">حذف</button>
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('admin-products-list').innerHTML = html || '<p style="text-align:center; color:#888;">لا توجد منتجات</p>';
+        });
+
+        function saveProduct() {
+            const id = document.getElementById('p-id').value;
+            const title = document.getElementById('p-title').value;
+            const price = parseFloat(document.getElementById('p-price').value);
+            const cost = parseFloat(document.getElementById('p-cost').value) || 0;
+            const stock = parseInt(document.getElementById('p-stock').value) || 50;
+            const category = document.getElementById('p-category').value;
+            const unit = document.getElementById('p-unit').value;
+            const barcode = document.getElementById('p-barcode').value;
+
+            if (!title || isNaN(price)) { alert("أدخل اسم المنتج والسعر بشكل صحيح!"); return; }
+
+            const data = { title, price, cost, stock, category, unit, barcode };
+            if (temporaryImageBase64) data.img = temporaryImageBase64;
+
+            let request = id ? db.collection("products").doc(id).update(data) : db.collection("products").add({ ...data, img: temporaryImageBase64 || 'https://via.placeholder.com/150' });
+
+            request.then(() => {
+                resetForm();
+                alert("تم الحفظ بنجاح!");
+            }).catch(err => alert("خطأ: " + err.message));
+        }
+
+        function editProduct(id, encodedData) {
+            const d = JSON.parse(decodeURIComponent(encodedData));
+            document.getElementById('p-id').value = id;
+            document.getElementById('p-title').value = d.title;
+            document.getElementById('p-price').value = d.price;
+            document.getElementById('p-cost').value = d.cost || '';
+            document.getElementById('p-stock').value = d.stock;
+            document.getElementById('p-category').value = d.category || 'خضار وفواكه';
+            document.getElementById('p-unit').value = d.unit || 'حبة';
+            document.getElementById('p-barcode').value = d.barcode || '';
+            document.getElementById('panel-title').innerText = "✏️ تعديل بيانات المنتج والمخزون";
+            if (d.img && d.img.length > 50) {
+                temporaryImageBase64 = d.img;
+                document.getElementById('upload-content-view').innerHTML = `<img src="${d.img}" class="preview-thumb"><div style="color:#059669; font-size:0.75rem;">✓ متاح</div>`;
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function deleteProduct(id) {
+            if (confirm("هل أنت متأكد من الحذف؟")) { db.collection("products").doc(id).delete(); }
+        }
+
+        function resetForm() {
+            document.getElementById('p-id').value = '';
+            document.getElementById('p-title').value = '';
+            document.getElementById('p-price').value = '';
+            document.getElementById('p-cost').value = '';
+            document.getElementById('p-stock').value = '50';
+            document.getElementById('p-barcode').value = '';
+            document.getElementById('p-file').value = '';
+            document.getElementById('upload-content-view').innerHTML = `<div style="font-size: 1.5rem;">📸</div><div style="font-size: 0.8rem; color: #2196f3; font-weight: bold;">اختيار صورة</div>`;
+            temporaryImageBase64 = null;
+            document.getElementById('panel-title').innerText = "➕ إضافة منتج جديد للمخزون";
+        }
+
+        function startBarcodeScanner() {
+            document.getElementById('scanner-container').style.display = 'flex';
+            codeReader = new ZXing.BrowserBarcodeReader();
+            codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
+                if (result) { document.getElementById('p-barcode').value = result.text; stopBarcodeScanner(); }
+            }).catch(err => console.error(err));
+        }
+
+        function stopBarcodeScanner() {
+            if (codeReader) codeReader.reset();
+            document.getElementById('scanner-container').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
