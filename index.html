@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>العروبة أونلاين - المتجر الذكي</title>
+    <style>
+        :root {
+            --primary-green: #68a633;
+            --primary-green-hover: #548828;
+            --accent-orange: #f35b04;
+            --bg-color: #f4f6f8;
+            --card-bg: #ffffff;
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --radius-lg: 20px;
+            --radius-md: 12px;
+            --radius-pill: 50px;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 14px rgba(0,0,0,0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            padding-bottom: 50px;
+        }
+
+        .app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: var(--bg-color);
+            min-height: 100vh;
+        }
+
+        /* 1. الشريط العلوي */
+        .header {
+            background: #ffffff;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .brand {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-title {
+            font-size: 1.25rem;
+            font-weight: 900;
+            color: var(--text-dark);
+            line-height: 1.1;
+        }
+
+        .brand-subtitle {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cart-badge {
+            background-color: var(--primary-green);
+            color: white;
+            padding: 6px 12px;
+            border-radius: var(--radius-pill);
+            font-weight: bold;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-admin-toggle {
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: var(--radius-pill);
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* 2. لوحة إضافة وتعديل الأغراض */
+        .admin-panel {
+            background: white;
+            margin: 15px 16px;
+            padding: 16px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 2px dashed #2196f3;
+            display: none;
+        }
+
+        .admin-panel h3 {
+            font-size: 1rem;
+            color: #1976d2;
+            margin-bottom: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .form-group input[type="file"] {
+            background: #f9fafb;
+            padding: 6px;
+        }
+
+        .btn-submit {
+            background: #2196f3;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 11px;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        /* 3. شبكة المنتجات العصريّة */
+        .products-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(0,0,0,0.03);
+            position: relative;
+        }
+
+        .card-img-container {
+            width: 100%;
+            height: 110px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            overflow: hidden;
+            border-radius: var(--radius-md);
+        }
+
+        .card-img-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .card-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #111;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+
+        .card-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .card-price {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: var(--accent-orange);
+            margin-bottom: 8px;
+        }
+
+        .btn-add {
+            background-color: var(--primary-green);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 9px;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .btn-add:disabled {
+            background-color: #d1d5db;
+            cursor: not-allowed;
+        }
+
+        /* أزرار الإدارة داخل البطاقة */
+        .admin-actions {
+            display: none;
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .btn-card-edit {
+            background: #ff9800;
+            color: white;
+            border: none;
+            padding: 5px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .btn-card-delete {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 5px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            flex: 1;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <!-- الهيدر -->
+        <header class="header">
+            <div class="cart-badge">
+                🛒 <span id="cart-count">0</span>
+            </div>
+
+            <div class="header-actions">
+                <button class="btn-admin-toggle" onclick="toggleAdminPanel()">⚙️ الإدارة</button>
+            </div>
+
+            <div class="brand">
+                <span class="brand-title">العروبة أون لاين</span>
+                <span class="brand-subtitle">توصيل سريع • رهط</span>
+            </div>
+        </header>
+
+        <!-- لوحة الإدارة لإضافة وتعديل غرض -->
+        <div class="admin-panel" id="admin-panel">
+            <h3 id="panel-title">➕ إضافة غرض جديد</h3>
+            <input type="hidden" id="p-id">
+            
+            <div class="form-group">
+                <label>اسم الغرض</label>
+                <input type="text" id="p-title" placeholder="مثال: حليب طازج">
+            </div>
+            
+            <div class="form-group">
+                <label>السعر (₪)</label>
+                <input type="number" id="p-price" step="0.10" placeholder="0.00">
+            </div>
+
+            <div class="form-group">
+                <label>الكمية المتوفرة</label>
+                <input type="number" id="p-stock" placeholder="مثال: 10">
+            </div>
+
+            <div class="form-group">
+                <label>تحميل صورة من جهازك</label>
+                <input type="file" id="p-file" accept="image/*">
+            </div>
+
+            <button class="btn-submit" onclick="saveProduct()">حفظ ونشر</button>
+        </div>
+
+        <!-- شبكة العرض -->
+        <div class="products-grid" id="products-grid"></div>
+
+    </div>
+
+    <script>
+        // البيانات الافتراضية
+        const defaultItems = [
+            { id: 101, title: "منظف سانو 00", price: 11.90, stock: 8, img: "https://via.placeholder.com/150" },
+            { id: 102, title: "ليف سانو سلك", price: 5.50, stock: 2, img: "https://via.placeholder.com/150" }
+        ];
+
+        let products = JSON.parse(localStorage.getItem('aloroba_items')) || defaultItems;
+        let cartCount = 0;
+        let isAdminMode = false;
+
+        function saveToStorage() {
+            localStorage.setItem('aloroba_items', JSON.stringify(products));
+        }
+
+        function toggleAdminPanel() {
+            isAdminMode = !isAdminMode;
+            document.getElementById('admin-panel').style.display = isAdminMode ? 'block' : 'none';
+            resetForm();
+            render();
+        }
+
+        function render() {
+            const grid = document.getElementById('products-grid');
+            grid.innerHTML = products.map(item => `
+                <div class="card">
+                    <div class="card-img-container">
+                        <img src="${item.img}" alt="${item.title}">
+                    </div>
+                    <div>
+                        <div class="card-title">${item.title}</div>
+                        <div class="card-meta">الكمية: <strong>${item.stock}</strong></div>
+                        <div class="card-price">₪${parseFloat(item.price).toFixed(2)}</div>
+                    </div>
+
+                    <button class="btn-add" 
+                            onclick="addToCart(${item.id})" 
+                            ${item.stock <= 0 ? 'disabled' : ''}>
+                        ${item.stock > 0 ? '+ أضف للسلة' : 'نفد المخزون'}
+                    </button>
+
+                    <div class="admin-actions" style="display: ${isAdminMode ? 'flex' : 'none'}">
+                        <button class="btn-card-edit" onclick="editProduct(${item.id})">تعديل</button>
+                        <button class="btn-card-delete" onclick="deleteProduct(${item.id})">حذف</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function saveProduct() {
+            const id = document.getElementById('p-id').value;
+            const title = document.getElementById('p-title').value;
+            const price = parseFloat(document.getElementById('p-price').value);
+            const stock = parseInt(document.getElementById('p-stock').value);
+            const fileInput = document.getElementById('p-file');
+
+            if (!title || isNaN(price) || isNaN(stock)) {
+                alert("يرجى إدخال اسم الغرض، السعر، والكمية بشكل صحيح!");
+                return;
+            }
+
+            const processSave = (imgUrl) => {
+                if (id) {
+                    // تعديل
+                    const index = products.findIndex(p => p.id == id);
+                    if (index !== -1) {
+                        products[index].title = title;
+                        products[index].price = price;
+                        products[index].stock = stock;
+                        if (imgUrl) products[index].img = imgUrl;
+                    }
+                } else {
+                    // إضافة جديد
+                    products.push({
+                        id: Date.now(),
+                        title: title,
+                        price: price,
+                        stock: stock,
+                        img: imgUrl || 'https://via.placeholder.com/150'
+                    });
+                }
+                saveToStorage();
+                resetForm();
+                render();
+            };
+
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    processSave(e.target.result);
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                const existing = products.find(p => p.id == id);
+                processSave(existing ? existing.img : null);
+            }
+        }
+
+        function editProduct(id) {
+            const item = products.find(p => p.id === id);
+            if (!item) return;
+
+            document.getElementById('p-id').value = item.id;
+            document.getElementById('p-title').value = item.title;
+            document.getElementById('p-price').value = item.price;
+            document.getElementById('p-stock').value = item.stock;
+            document.getElementById('panel-title').innerText = "✏️ تعديل غرض";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function deleteProduct(id) {
+            if (confirm("هل انت محدد بحذف هذا الغرض؟")) {
+                products = products.filter(p => p.id !== id);
+                saveToStorage();
+                render();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('p-id').value = '';
+            document.getElementById('p-title').value = '';
+            document.getElementById('p-price').value = '';
+            document.getElementById('p-stock').value = '';
+            document.getElementById('p-file').value = '';
+            document.getElementById('panel-title').innerText = "➕ إضافة غرض جديد";
+        }
+
+        function addToCart(id) {
+            const item = products.find(p => p.id === id);
+            if (item && item.stock > 0) {
+                item.stock--;
+                cartCount++;
+                document.getElementById('cart-count').innerText = cartCount;
+                saveToStorage();
+                render();
+            }
+        }
+
+        render();
+    </script>
+</body>
+</html>
