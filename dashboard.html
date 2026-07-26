@@ -23,9 +23,15 @@
         .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: var(--radius-md); font-size: 0.9rem; outline: none; background: #fff; }
         .btn-main { background: var(--primary-green); color: white; border: none; width: 100%; padding: 12px; border-radius: var(--radius-md); font-weight: bold; font-size: 1rem; cursor: pointer; text-align: center; }
-        .category-item, .product-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; }
-        .btn-edit-sm { background: #ff9800; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
-        .btn-del-sm { background: #ef4444; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
+        .btn-cancel { background: #6b7280; color: white; border: none; width: 100%; padding: 8px; border-radius: var(--radius-md); font-weight: bold; font-size: 0.9rem; cursor: pointer; text-align: center; margin-top: 6px; }
+        
+        .category-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; }
+        .product-card-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: var(--radius-md); padding: 10px; margin-bottom: 10px; }
+        .product-row-info { display: flex; align-items: center; justify-content: space-between; }
+        .product-thumb { width: 45px; height: 45px; object-fit: contain; background: #fff; border-radius: 6px; border: 1px solid #eee; margin-left: 10px; }
+        
+        .btn-edit-sm { background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
+        .btn-del-sm { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -40,8 +46,8 @@
             <h3 id="cat-panel-title" style="margin-bottom: 12px; font-size: 1rem;">📁 إدارة فئات المتجر</h3>
             <input type="hidden" id="cat-id">
             <div class="form-group">
-                <label>اسم الفئة (مثل: خضار وفواكه، ألبان وأجبان...)</label>
-                <input type="text" id="cat-name" placeholder="اكتب اسم الفئة هنا">
+                <label>اسم الفئة</label>
+                <input type="text" id="cat-name" placeholder="مثال: خضار وفواكه، ألبان...">
             </div>
             <button class="btn-main" type="button" onclick="saveCategory()">حفظ الفئة وتحديث المتجر فوراً</button>
             
@@ -51,9 +57,9 @@
             </div>
         </div>
 
-        <!-- قسم إدارة المنتجات -->
-        <div class="card-box">
-            <h3 id="prod-panel-title" style="margin-bottom: 12px; font-size: 1rem;">🛒 إضافة أو تعديل منتج</h3>
+        <!-- صندوق نموذج إضافة/تعديل المنتج (يتم نقله ديناميكياً تحت المنتج عند التعديل) -->
+        <div class="card-box" id="product-form-container">
+            <h3 id="prod-panel-title" style="margin-bottom: 12px; font-size: 1rem;">🛒 إضافة منتج جديد</h3>
             <input type="hidden" id="prod-id">
             <div class="form-group">
                 <label>اسم المنتج</label>
@@ -81,12 +87,14 @@
                 <label>رابط الصورة (URL)</label>
                 <input type="text" id="prod-img" placeholder="https://...">
             </div>
-            <button class="btn-main" type="button" onclick="saveProduct()">حفظ المنتج في المتجر</button>
+            <button class="btn-main" id="prod-submit-btn" type="button" onclick="saveProduct()">حفظ المنتج في المتجر</button>
+            <button class="btn-cancel" id="prod-cancel-btn" type="button" onclick="resetProductForm()" style="display:none;">إلغاء التعديل</button>
+        </div>
 
-            <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px;">
-                <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; display:block;">المنتجات الحالية:</label>
-                <div id="products-list-box">جاري التحميل...</div>
-            </div>
+        <!-- قسم قائمة المنتجات الحالية -->
+        <div class="card-box">
+            <h3 style="margin-bottom: 12px; font-size: 1rem;">📦 المنتجات الحالية في المتجر</h3>
+            <div id="products-list-box">جاري التحميل...</div>
         </div>
     </div>
 
@@ -103,7 +111,7 @@
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.firestore();
 
-        // مزامنة وعرض الفئات في لوحة التحكم وتعبئة القائمة المنسدلة للمنتجات
+        // مزامنة الفئات
         db.collection("categories").onSnapshot((snapshot) => {
             let catHtml = '';
             let selectHtml = `<option value="الكل">الكل وعروض الأسبوع</option>`;
@@ -125,21 +133,29 @@
             document.getElementById('prod-category').innerHTML = selectHtml;
         });
 
-        // مزامنة وعرض المنتجات في لوحة التحكم
+        // مزامنة المنتجات وعرض الصورة المصغرة بجانب كل منتج
         db.collection("products").onSnapshot((snapshot) => {
             let prodHtml = '';
             snapshot.forEach((doc) => {
                 let p = doc.data();
+                let imgSrc = (p.img && p.img.length > 10) ? p.img : 'https://via.placeholder.com/50';
                 prodHtml += `
-                    <div class="product-item">
-                        <div>
-                            <strong style="font-size:0.9rem;">${p.title}</strong>
-                            <div style="font-size:0.75rem; color:#666;">₪${p.price} | مخزون: ${p.stock} | فئة: ${p.category}</div>
+                    <div class="product-card-box" id="prod-box-${doc.id}">
+                        <div class="product-row-info">
+                            <div style="display:flex; align-items:center;">
+                                <img src="${imgSrc}" class="product-thumb" alt="صورة">
+                                <div>
+                                    <strong style="font-size:0.9rem; display:block;">${p.title}</strong>
+                                    <div style="font-size:0.75rem; color:#666;">₪${p.price} | مخزون: ${p.stock} | فئة: ${p.category}</div>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:6px;">
+                                <button class="btn-edit-sm" onclick="editProduct('${doc.id}', '${p.title}', ${p.price}, ${p.stock}, '${p.unit || 'حبة'}', '${p.category || 'الكل'}', '${p.img || ''}')">تعديل</button>
+                                <button class="btn-del-sm" onclick="deleteProduct('${doc.id}')">حذف</button>
+                            </div>
                         </div>
-                        <div style="display:flex; gap:6px;">
-                            <button class="btn-edit-sm" onclick="editProduct('${doc.id}', '${p.title}', ${p.price}, ${p.stock}, '${p.unit}', '${p.category}', '${p.img || ''}')">تعديل</button>
-                            <button class="btn-del-sm" onclick="deleteProduct('${doc.id}')">حذف</button>
-                        </div>
+                        <!-- مكان انتقال نموذج التعديل ديناميكياً تحت المنتج مباشرة -->
+                        <div id="edit-slot-${doc.id}"></div>
                     </div>`;
             });
             document.getElementById('products-list-box').innerHTML = prodHtml || '<p style="color:#888; font-size:0.85rem;">لا توجد منتجات مضافة</p>';
@@ -156,7 +172,7 @@
                 document.getElementById('cat-id').value = '';
                 document.getElementById('cat-name').value = '';
                 document.getElementById('cat-panel-title').innerText = "📁 إدارة فئات المتجر";
-                alert("تم حفظ الفئة بنجاح وتحديث المتجر!");
+                alert("تم حفظ الفئة بنجاح!");
             }).catch(err => alert("خطأ: " + err.message));
         }
 
@@ -189,17 +205,17 @@
             let request = id ? db.collection("products").doc(id).update(prodData) : db.collection("products").add(prodData);
 
             request.then(() => {
-                document.getElementById('prod-id').value = '';
-                document.getElementById('prod-title').value = '';
-                document.getElementById('prod-price').value = '';
-                document.getElementById('prod-stock').value = '';
-                document.getElementById('prod-img').value = '';
-                document.getElementById('prod-panel-title').innerText = "🛒 إضافة أو تعديل منتج";
+                resetProductForm();
                 alert("تم حفظ المنتج بنجاح!");
             }).catch(err => alert("خطأ: " + err.message));
         }
 
         function editProduct(id, title, price, stock, unit, category, img) {
+            // نقل صندوق الفورم ليظهر تماماً تحت المنتج المحدد
+            const formBox = document.getElementById('product-form-container');
+            const slot = document.getElementById(`edit-slot-${id}`);
+            slot.appendChild(formBox);
+
             document.getElementById('prod-id').value = id;
             document.getElementById('prod-title').value = title;
             document.getElementById('prod-price').value = price;
@@ -207,8 +223,27 @@
             document.getElementById('prod-unit').value = unit;
             document.getElementById('prod-category').value = category;
             document.getElementById('prod-img').value = img;
-            document.getElementById('prod-panel-title').innerText = "✏️ تعديل بيانات المنتج";
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+
+            document.getElementById('prod-panel-title').innerText = `✏️ تعديل المنتج: ${title}`;
+            document.getElementById('prod-submit-btn').innerText = "تحديث المنتج";
+            document.getElementById('prod-cancel-btn').style.display = "block";
+            formBox.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function resetProductForm() {
+            const formBox = document.getElementById('product-form-container');
+            // إرجاع الفورم لمكانه الطبيعي في الأعلى
+            document.body.insertBefore(formBox, document.getElementById('products-list-box').parentNode);
+
+            document.getElementById('prod-id').value = '';
+            document.getElementById('prod-title').value = '';
+            document.getElementById('prod-price').value = '';
+            document.getElementById('prod-stock').value = '';
+            document.getElementById('prod-unit').value = 'حبة';
+            document.getElementById('prod-img').value = '';
+            document.getElementById('prod-panel-title').innerText = "🛒 إضافة منتج جديد";
+            document.getElementById('prod-submit-btn').innerText = "حفظ المنتج في المتجر";
+            document.getElementById('prod-cancel-btn').style.display = "none";
         }
 
         function deleteProduct(id) {
