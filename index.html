@@ -84,15 +84,14 @@
         }
 
         .btn-admin-toggle {
-            background-color: #2196f3;
-            color: white;
-            border: none;
-            padding: 8px 14px;
-            border-radius: var(--radius-pill);
-            font-size: 0.85rem;
-            font-weight: 700;
-            cursor: pointer;
-            z-index: 101;
+            background-color: #2196f3 !important;
+            color: white !important;
+            border: none !important;
+            padding: 8px 14px !important;
+            border-radius: var(--radius-pill) !important;
+            font-size: 0.85rem !important;
+            font-weight: 700 !important;
+            cursor: pointer !important;
         }
 
         .admin-panel {
@@ -164,7 +163,6 @@
             margin-top: 5px;
         }
 
-        /* نافذة كاميرا الباركود */
         #scanner-container {
             display: none;
             position: fixed;
@@ -380,6 +378,19 @@
             margin-top: 15px;
             cursor: pointer;
         }
+        
+        .btn-clear-cart {
+            background-color: #ff5252;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 8px;
+            border-radius: var(--radius-md);
+            font-weight: bold;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -390,7 +401,7 @@
                 🛒 <span id="cart-count">0</span>
             </div>
             <div class="header-actions">
-                <button class="btn-admin-toggle" id="admin-toggle-btn" onclick="toggleAdminPanel()">⚙️ الإدارة</button>
+                <button class="btn-admin-toggle" id="admin-toggle-btn" type="button">⚙️ الإدارة</button>
             </div>
             <div class="brand">
                 <span class="brand-title">العروبة أون لاين</span>
@@ -407,7 +418,7 @@
                 <label>رقم / كود الباركود (اختياري)</label>
                 <div class="barcode-row">
                     <input type="text" id="p-barcode" placeholder="أدخل الكود أو امسحه">
-                    <button class="btn-barcode" onclick="startBarcodeScanner()">📷 مسح الباركود</button>
+                    <button class="btn-barcode" type="button" onclick="startBarcodeScanner()">📷 مسح الباركود</button>
                 </div>
             </div>
 
@@ -431,13 +442,13 @@
                 <input type="file" id="p-file" accept="image/*">
             </div>
 
-            <button class="btn-submit" onclick="saveProduct()">حفظ ونشر على السحابة</button>
+            <button class="btn-submit" type="button" onclick="saveProduct()">حفظ ونشر على السحابة</button>
         </div>
 
         <!-- نافذة الكاميرا للباركود -->
         <div id="scanner-container">
             <video id="interactive" class="viewport"></video>
-            <button class="btn-close-scanner" onclick="stopBarcodeScanner()">إغلاق الكاميرا</button>
+            <button class="btn-close-scanner" type="button" onclick="stopBarcodeScanner()">إغلاق الكاميرا</button>
         </div>
 
         <div class="products-grid" id="products-grid">
@@ -448,14 +459,15 @@
             <div class="cart-content">
                 <div class="cart-header">
                     <h3>🛒 سلة التسوق</h3>
-                    <button class="close-cart" onclick="toggleCartModal()">✕</button>
+                    <button class="close-cart" type="button" onclick="toggleCartModal()">✕</button>
                 </div>
                 <div id="cart-items-list"></div>
                 <div class="cart-total">
                     <span>المجموع الكلي:</span>
                     <span id="cart-total-price">₪0.00</span>
                 </div>
-                <button class="btn-whatsapp" onclick="sendWhatsAppOrder()">📱 إرسال الطلب عبر الواتساب</button>
+                <button class="btn-whatsapp" type="button" onclick="sendWhatsAppOrder()">📱 إرسال الطلب عبر الواتساب</button>
+                <button class="btn-clear-cart" type="button" onclick="clearCart()">🗑️ تفريغ السلة بالكامل</button>
             </div>
         </div>
     </div>
@@ -481,6 +493,14 @@
         let isAdminMode = false;
         let codeReader = null;
 
+        // ربط زر الإدارة بشكل مباشر ومضمون عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', () => {
+            const adminBtn = document.getElementById('admin-toggle-btn');
+            if (adminBtn) {
+                adminBtn.addEventListener('click', toggleAdminPanel);
+            }
+        });
+
         db.collection("products").onSnapshot((snapshot) => {
             products = [];
             snapshot.forEach((doc) => {
@@ -494,6 +514,17 @@
                     img: (data.img && data.img.length > 50) ? data.img : 'https://via.placeholder.com/150'
                 });
             });
+            
+            // تنظيف السلة من أي منتجات لم تعد موجودة في قاعدة البيانات لتصحيح العداد الوهمي
+            let validCart = {};
+            Object.keys(cart).forEach(id => {
+                if (products.some(p => p.id === id)) {
+                    validCart[id] = cart[id];
+                }
+            });
+            cart = validCart;
+            localStorage.setItem('aloroba_cart_cloud', JSON.stringify(cart));
+
             render();
         });
 
@@ -528,9 +559,9 @@
                 } else {
                     actionArea = `
                         <div class="card-counter">
-                            <button class="counter-btn" onclick="updateQty('${item.id}', -1)">-</button>
+                            <button class="counter-btn" type="button" onclick="updateQty('${item.id}', -1)">-</button>
                             <span class="counter-value">${countInCart}</span>
-                            <button class="counter-btn" onclick="updateQty('${item.id}', 1)">+</button>
+                            <button class="counter-btn" type="button" onclick="updateQty('${item.id}', 1)">+</button>
                         </div>
                     `;
                 }
@@ -547,8 +578,8 @@
                         </div>
                         ${actionArea}
                         <div class="admin-actions ${isAdminMode ? 'active' : ''}">
-                            <button class="btn-card-edit" onclick="editProduct('${item.id}')">تعديل</button>
-                            <button class="btn-card-delete" onclick="deleteProduct('${item.id}')">حذف</button>
+                            <button class="btn-card-edit" type="button" onclick="editProduct('${item.id}')">تعديل</button>
+                            <button class="btn-card-delete" type="button" onclick="deleteProduct('${item.id}')">حذف</button>
                         </div>
                     </div>
                 `;
@@ -575,6 +606,14 @@
             if (document.getElementById('cart-modal').style.display === 'flex') {
                 renderCartItems();
             }
+        }
+
+        function clearCart() {
+            cart = {};
+            localStorage.removeItem('aloroba_cart_cloud');
+            render();
+            renderCartItems();
+            toggleCartModal();
         }
 
         function updateCartBadge() {
@@ -648,7 +687,6 @@
             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
         }
 
-        // تشغيل كاميرا مسح الباركود
         function startBarcodeScanner() {
             const container = document.getElementById('scanner-container');
             container.style.display = 'flex';
