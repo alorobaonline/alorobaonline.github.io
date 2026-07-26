@@ -40,7 +40,7 @@
             min-height: 100vh;
         }
 
-        /* 1. الشريط العلوي */
+        /* 1. الهيدر */
         .header {
             background: #ffffff;
             padding: 12px 16px;
@@ -100,7 +100,7 @@
             cursor: pointer;
         }
 
-        /* 2. لوحة إضافة وتعديل الأغراض */
+        /* 2. لوحة الإدارة */
         .admin-panel {
             background: white;
             margin: 15px 16px;
@@ -171,7 +171,6 @@
             justify-content: space-between;
             box-shadow: var(--shadow-sm);
             border: 1px solid rgba(0,0,0,0.03);
-            position: relative;
         }
 
         .card-img-container {
@@ -212,21 +211,56 @@
             margin-bottom: 8px;
         }
 
+        /* زر الإضافة العادي */
         .btn-add {
             background-color: var(--primary-green);
             color: white;
             border: none;
             width: 100%;
-            padding: 9px;
+            padding: 10px;
             border-radius: var(--radius-md);
             font-weight: 700;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             cursor: pointer;
         }
 
         .btn-add:disabled {
             background-color: #d1d5db;
             cursor: not-allowed;
+        }
+
+        /* المربع الأخضر المتحول لعداد زائد وناقص */
+        .card-counter {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--primary-green);
+            color: white;
+            border-radius: var(--radius-md);
+            padding: 3px;
+            width: 100%;
+        }
+
+        .counter-btn {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            border: none;
+            width: 36px;
+            height: 34px;
+            border-radius: 8px;
+            font-size: 1.3rem;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .counter-value {
+            font-weight: 900;
+            font-size: 1.1rem;
+            color: #ffffff;
+            padding: 0 8px;
         }
 
         .admin-actions {
@@ -259,7 +293,7 @@
             cursor: pointer;
         }
 
-        /* 4. نافذة السلة (Modal) */
+        /* 4. نافذة السلة */
         .cart-modal {
             position: fixed;
             top: 0;
@@ -326,8 +360,8 @@
         .cart-controls button {
             background: #e5e7eb;
             border: none;
-            width: 26px;
-            height: 26px;
+            width: 28px;
+            height: 28px;
             border-radius: 6px;
             font-weight: bold;
             cursor: pointer;
@@ -408,7 +442,7 @@
         <!-- شبكة العرض -->
         <div class="products-grid" id="products-grid"></div>
 
-        <!-- نافذة السلة المنبثقة -->
+        <!-- نافذة السلة -->
         <div class="cart-modal" id="cart-modal">
             <div class="cart-content">
                 <div class="cart-header">
@@ -432,12 +466,13 @@
             { id: 102, title: "ليف سانو سلك", price: 5.50, stock: 5, img: "https://via.placeholder.com/150" }
         ];
 
-        let products = JSON.parse(localStorage.getItem('aloroba_items')) || defaultItems;
-        let cart = {}; // { id: count }
+        let products = JSON.parse(localStorage.getItem('aloroba_items_v2')) || defaultItems;
+        let cart = JSON.parse(localStorage.getItem('aloroba_cart_v2')) || {}; 
         let isAdminMode = false;
 
         function saveToStorage() {
-            localStorage.setItem('aloroba_items', JSON.stringify(products));
+            localStorage.setItem('aloroba_items_v2', JSON.stringify(products));
+            localStorage.setItem('aloroba_cart_v2', JSON.stringify(cart));
         }
 
         function toggleAdminPanel() {
@@ -449,42 +484,65 @@
 
         function render() {
             const grid = document.getElementById('products-grid');
-            grid.innerHTML = products.map(item => `
-                <div class="card">
-                    <div class="card-img-container">
-                        <img src="${item.img}" alt="${item.title}">
-                    </div>
-                    <div>
-                        <div class="card-title">${item.title}</div>
-                        <div class="card-meta">الكمية: <strong>${item.stock}</strong></div>
-                        <div class="card-price">₪${parseFloat(item.price).toFixed(2)}</div>
-                    </div>
+            grid.innerHTML = products.map(item => {
+                const countInCart = cart[item.id] || 0;
 
-                    <button class="btn-add" 
-                            onclick="addToCart(${item.id})" 
-                            ${item.stock <= 0 ? 'disabled' : ''}>
-                        ${item.stock > 0 ? '+ أضف للسلة' : 'نفد المخزون'}
-                    </button>
+                let actionArea = '';
+                if (item.stock <= 0) {
+                    actionArea = `<button class="btn-add" disabled>نفد المخزون</button>`;
+                } else if (countInCart === 0) {
+                    actionArea = `<button class="btn-add" onclick="updateQty(${item.id}, 1)">+ أضف للسلة</button>`;
+                } else {
+                    actionArea = `
+                        <div class="card-counter">
+                            <button class="counter-btn" onclick="updateQty(${item.id}, -1)">-</button>
+                            <span class="counter-value">${countInCart}</span>
+                            <button class="counter-btn" onclick="updateQty(${item.id}, 1)">+</button>
+                        </div>
+                    `;
+                }
 
-                    <div class="admin-actions" style="display: ${isAdminMode ? 'flex' : 'none'}">
-                        <button class="btn-card-edit" onclick="editProduct(${item.id})">تعديل</button>
-                        <button class="btn-card-delete" onclick="deleteProduct(${item.id})">حذف</button>
+                return `
+                    <div class="card">
+                        <div class="card-img-container">
+                            <img src="${item.img}" alt="${item.title}">
+                        </div>
+                        <div>
+                            <div class="card-title">${item.title}</div>
+                            <div class="card-meta">المتوفر: <strong>${item.stock}</strong></div>
+                            <div class="card-price">₪${parseFloat(item.price).toFixed(2)}</div>
+                        </div>
+
+                        ${actionArea}
+
+                        <div class="admin-actions" style="display: ${isAdminMode ? 'flex' : 'none'}">
+                            <button class="btn-card-edit" onclick="editProduct(${item.id})">تعديل</button>
+                            <button class="btn-card-delete" onclick="deleteProduct(${item.id})">حذف</button>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             updateCartBadge();
         }
 
-        function addToCart(id) {
-            const item = products.find(p => p.id === id);
-            const currentInCart = cart[id] || 0;
+        function updateQty(id, change) {
+            const item = products.find(p => p.id == id);
+            const current = cart[id] || 0;
+            const target = current + change;
 
-            if (item && item.stock > currentInCart) {
-                cart[id] = currentInCart + 1;
-                render();
+            if (target <= 0) {
+                delete cart[id];
+            } else if (item && target <= item.stock) {
+                cart[id] = target;
             } else {
-                alert("عذراً، وصلت للحد الأقصى للكمية المتوفرة!");
+                alert("وصلت إلى الحد الأقصى للمخزون المتوفر!");
+            }
+
+            saveToStorage();
+            render();
+            if (document.getElementById('cart-modal').style.display === 'flex') {
+                renderCartItems();
             }
         }
 
@@ -525,9 +583,9 @@
                                 <div style="font-size:0.8rem; color:#666;">₪${item.price.toFixed(2)} × ${count}</div>
                             </div>
                             <div class="cart-controls">
-                                <button onclick="changeQty(${id}, -1)">-</button>
+                                <button onclick="updateQty(${id}, -1)">-</button>
                                 <span>${count}</span>
-                                <button onclick="changeQty(${id}, 1)">+</button>
+                                <button onclick="updateQty(${id}, 1)">+</button>
                             </div>
                         </div>
                     `;
@@ -536,23 +594,6 @@
 
             list.innerHTML = itemsHtml;
             document.getElementById('cart-total-price').innerText = `₪${total.toFixed(2)}`;
-        }
-
-        function changeQty(id, delta) {
-            const item = products.find(p => p.id == id);
-            const current = cart[id] || 0;
-            const newQty = current + delta;
-
-            if (newQty <= 0) {
-                delete cart[id];
-            } else if (item && newQty <= item.stock) {
-                cart[id] = newQty;
-            } else {
-                alert("عذراً، هذه هي الكمية المتوفرة فقط بالمخزن!");
-            }
-
-            renderCartItems();
-            render();
         }
 
         function sendWhatsAppOrder() {
@@ -577,7 +618,6 @@
 
             message += `\nالمجموع الكلي: ₪${total.toFixed(2)}`;
             
-            // يمكنك تغيير الرقم أدناه لرقم الواتساب الخاص بالمحل
             const phone = "972500000000"; 
             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
         }
