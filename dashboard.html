@@ -22,7 +22,7 @@
         .back-btn { background: #e5e7eb; color: #374151; padding: 5px 12px; border-radius: 8px; text-decoration: none; font-size: 0.7rem; font-weight: 700; }
 
         .section-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 15px; }
-        .section-box h2 { font-size: 0.85rem; margin-bottom: 10px; color: #1b4d2e; font-weight: 800; display: flex; align-items: center; gap: 5px; }
+        .section-box h2 { font-size: 0.85rem; margin-bottom: 10px; color: var(--primary-green); font-weight: 800; display: flex; align-items: center; gap: 5px; }
 
         .form-group { margin-bottom: 8px; }
         .form-group label { display: block; font-size: 0.7rem; font-weight: 700; margin-bottom: 3px; color: #4b5563; }
@@ -100,12 +100,8 @@
             <input type="text" id="bannerTagInput" class="form-control">
         </div>
         <div class="form-group">
-            <label>صورة البانر من الجهاز</label>
-            <div class="file-upload-box">
-                <label class="camera-btn" for="bannerFile">📷 اختر صورة البانر</label>
-                <input type="file" id="bannerFile" accept="image/*" onchange="previewBannerImage(event)">
-                <input type="text" id="bannerImgInput" class="form-control" placeholder="مسار الصورة أو رابطها">
-            </div>
+            <label>رابط صورة البانر (أو مسارها)</label>
+            <input type="text" id="bannerImgInput" class="form-control" placeholder="أدخل رابط الصورة مباشرة لتوفير المساحة">
         </div>
         <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث البانر 💾</button>
     </div>
@@ -147,7 +143,7 @@
             <input type="text" id="prodWeight" class="form-control" placeholder="مثال: 5 كجم">
         </div>
         <div class="form-group">
-            <label>اختر الأقسام والفئات المطلوبة (يجب اختيار فئة واحدة على الأقل) *</label>
+            <label>اختر الأقسام والفئات المطلوبة *</label>
             <div id="prodCategoriesCheckboxes" class="categories-checkbox-container"></div>
         </div>
         <div style="display: flex; gap: 8px;">
@@ -165,12 +161,8 @@
             <input type="text" id="prodOffer" class="form-control" placeholder="مثال: 3 بـ22 أو عرض خاص">
         </div>
         <div class="form-group">
-            <label>صورة المنتج من الهاتف</label>
-            <div class="file-upload-box">
-                <label class="camera-btn" for="prodFile">📷 التقاط / اختيار صورة</label>
-                <input type="file" id="prodFile" accept="image/*" onchange="previewProductImage(event)">
-                <input type="text" id="prodImg" class="form-control" placeholder="مسار الصورة أو رابطها">
-            </div>
+            <label>رابط صورة المنتج (أو اتركه فارغاً للصورة الافتراضية)</label>
+            <input type="text" id="prodImg" class="form-control" placeholder="ضع رابط صورة مباشر (مثل رابط إلكتروني)">
         </div>
         <button class="btn-main" onclick="saveProduct()">إضافة ونشر المنتج فوراً 🚀</button>
     </div>
@@ -224,7 +216,9 @@
             { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
             { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
             { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
-            { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" }
+            { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" },
+            { name: "عصير", icon: "🧃", bg: "#fdf2f8", color: "#db2777" },
+            { name: "نساء", icon: "👩", bg: "#fce7f3", color: "#be185d" }
         ];
     } catch(e) {
         categories = [{ name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" }];
@@ -336,7 +330,7 @@
                                     <input type="text" id="edit-offer-${originalIndex}" class="form-control" value="${p.offer || ''}">
                                 </div>
                                 <div class="form-group">
-                                    <label>رابط أو مسار الصورة</label>
+                                    <label>رابط الصورة</label>
                                     <input type="text" id="edit-img-${originalIndex}" class="form-control" value="${p.img || ''}">
                                 </div>
                                 <div style="display: flex; gap: 5px; margin-top: 5px;">
@@ -417,7 +411,7 @@
             alert("تم تحديث المنتج بنجاح!");
             renderAdmin();
         } catch (err) {
-            alert("خطأ أثناء حفظ التعديلات في الذاكرة المحلية: " + err.message);
+            alert("مساحة التخزين ممتلئة! يرجى استخدام روابط صور قصيرة بدلاً من رفع صور ضخمة.");
         }
     }
 
@@ -434,28 +428,6 @@
         }
     }
 
-    function previewBannerImage(event) {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('bannerImgInput').value = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-
-    function previewProductImage(event) {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('prodImg').value = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-
     function saveBannerSettings() {
         bannerData.title = document.getElementById('bannerTitleInput').value;
         bannerData.tag = document.getElementById('bannerTagInput').value;
@@ -464,7 +436,7 @@
             localStorage.setItem('aloroba_banner', JSON.stringify(bannerData));
             alert("تم تحديث البانر الرئيسي بنجاح!");
         } catch(e) {
-            alert("خطأ في حفظ البانر: " + e.message);
+            alert("خطأ: مساحة التخزين ممتلئة.");
         }
     }
 
@@ -487,7 +459,7 @@
             renderAdmin();
             alert("تمت إضافة الفئة بنجاح!");
         } catch(e) {
-            alert("خطأ في حفظ الفئة: " + e.message);
+            alert("خطأ: مساحة التخزين ممتلئة.");
         }
     }
 
@@ -498,7 +470,7 @@
                 localStorage.setItem('aloroba_categories', JSON.stringify(categories));
                 renderAdmin();
             } catch(e) {
-                alert("خطأ في الحذف: " + e.message);
+                alert("خطأ في الحذف.");
             }
         }
     }
@@ -511,10 +483,9 @@
             const oldPriceInput = document.getElementById('prodOldPrice');
             const offerInput = document.getElementById('prodOffer');
             const imgInput = document.getElementById('prodImg');
-            const fileInput = document.getElementById('prodFile');
 
             if (!nameInput || !priceInput) {
-                alert("عذراً، حقول المدخلات غير موجودة في الصفحة.");
+                alert("حقول المدخلات غير موجودة.");
                 return;
             }
 
@@ -555,24 +526,23 @@
 
             products.unshift(newProd);
 
+            // محاولة الحفظ في الذاكرة المحلية مع التقاط الخطأ في حال امتلاء المساحة
             localStorage.setItem('aloroba_products', JSON.stringify(products));
             
-            // تفريغ الحقول بعد الإضافة بنجاح
             nameInput.value = '';
             weightInput.value = '';
             priceInput.value = '';
             oldPriceInput.value = '';
             offerInput.value = '';
             imgInput.value = '';
-            if(fileInput) fileInput.value = '';
             document.querySelectorAll('input[name="productCategoryCheck"]').forEach(chk => chk.checked = false);
 
             alert("تمت إضافة ونشر المنتج بنجاح وظهر في لوحة التحكم! 🚀");
             renderAdmin();
 
         } catch (error) {
-            console.error("خطأ غير متوقع أثناء حفظ المنتج:", error);
-            alert("حدث خطأ أثناء حفظ المنتج: " + error.message);
+            console.error("خطأ في التخزين:", error);
+            alert("خطأ: امتلاء مساحة التخزين المحلية (QuotaExceeded). يرجى استخدام روابط صور مختصرة بدلاً من صور مرفوعة كبيرة الحجم.");
         }
     }
 
@@ -584,7 +554,7 @@
                 localStorage.setItem('aloroba_products', JSON.stringify(products));
                 renderAdmin();
             } catch(e) {
-                alert("خطأ أثناء الحذف: " + e.message);
+                alert("خطأ أثناء الحذف.");
             }
         }
     }
