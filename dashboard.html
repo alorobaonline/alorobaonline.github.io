@@ -1,1 +1,125 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم الشاملة - العروبة</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+        body { background-color: #f3f4f6; color: #1f2937; padding: 15px; }
+        .admin-container { max-width: 550px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        h1 { font-size: 1.15rem; color: #1b4d2e; margin-bottom: 20px; text-align: center; font-weight: 900; }
+        
+        .box-section { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 14px; margin-bottom: 15px; }
+        .box-section h3 { font-size: 0.85rem; margin-bottom: 10px; color: #2e6930; font-weight: 800; }
+        
+        input { width: 100%; padding: 10px; margin-bottom: 8px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.8rem; outline: none; }
+        .btn-primary { background: #68a633; color: white; border: none; padding: 10px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
+        .btn-danger { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.7rem; }
+        
+        .product-list-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; border: 1px solid #e2e8f0; font-size: 0.75rem; }
+        .back-link { display: block; text-align: center; margin-top: 15px; color: #1b4d2e; text-decoration: none; font-size: 0.8rem; font-weight: bold; }
+    </style>
+</head>
+<body>
 
+<div class="admin-container">
+    <h1>⚙️ لوحة تحكم سوبر ماركت العروبة</h1>
+
+    <!-- قسم إضافة منتج جديد -->
+    <div class="box-section">
+        <h3>➕ إضافة منتج جديد للواجهة</h3>
+        <input type="text" id="newName" placeholder="اسم المنتج (مثال: أرز بسمتي)">
+        <input type="text" id="newWeight" placeholder="الوزن أو الحجم (مثال: 5 كجم)">
+        <input type="number" id="newPrice" placeholder="السعر الحالي بال₪">
+        <input type="number" id="newOldPrice" placeholder="السعر القديم (قبل الخصم - اختياري)">
+        <input type="text" id="newOffer" placeholder="شارة العرض (مثال: 3 بـ 22₪)">
+        <input type="text" id="newImg" placeholder="رابط صورة المنتج (انسخ رابط الصورة)">
+        <button class="btn-primary" onclick="addNewProduct()">إضافة المنتج ونشره فوراً</button>
+    </div>
+
+    <!-- قسم إدارة المنتجات الحالية -->
+    <div class="box-section">
+        <h3>📦 المنتجات المعروضة حالياً (<span id="countProducts">0</span>)</h3>
+        <div id="adminProductsList"></div>
+    </div>
+
+    <a href="index.html" class="back-link">⬅ العودة إلى عرض المتجر الرئيسي</a>
+</div>
+
+<script>
+    let products = JSON.parse(localStorage.getItem('aloroba_products')) || [
+        { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ 22₪", img: "https://i.ibb.co/6y40H69/tat-rice.png" },
+        { id: 2, name: "ماجي مرقة دجاج", weight: "مرقة قطعة", price: 10, oldPrice: 14, offer: "3 بـ 22₪", img: "https://i.ibb.co/1q20K0v/maggi.png" },
+        { id: 3, name: "حليب نيدو", weight: "2500 جم", price: 59, oldPrice: 75, offer: "3 بـ 22₪", img: "https://i.ibb.co/7Xv8L9p/nido.png" }
+    ];
+
+    function loadAdminProducts() {
+        const listDiv = document.getElementById('adminProductsList');
+        document.getElementById('countProducts').innerText = products.length;
+        listDiv.innerHTML = '';
+        if(products.length === 0) {
+            listDiv.innerHTML = '<p style="color:#888; font-size:0.75rem;">لا توجد منتجات مسجلة.</p>';
+            return;
+        }
+        products.forEach(p => {
+            listDiv.innerHTML += `
+                <div class="product-list-item">
+                    <span><b>${p.name}</b> (${p.price}₪)</span>
+                    <button class="btn-danger" onclick="deleteProduct(${p.id})">حذف</button>
+                </div>
+            `;
+        });
+    }
+
+    function addNewProduct() {
+        const name = document.getElementById('newName').value;
+        const weight = document.getElementById('newWeight').value;
+        const price = document.getElementById('newPrice').value;
+        const oldPrice = document.getElementById('newOldPrice').value;
+        const offer = document.getElementById('newOffer').value;
+        const img = document.getElementById('newImg').value;
+
+        if(!name || !price) {
+            alert("الرجاء إدخال اسم المنتج والسعر على الأقل");
+            return;
+        }
+
+        const newP = {
+            id: Date.now(),
+            name: name,
+            weight: weight || 'حبة',
+            price: Number(price),
+            oldPrice: oldPrice ? Number(oldPrice) : null,
+            offer: offer || '',
+            img: img || 'https://cdn-icons-png.flaticon.com/512/3081/3081986.png'
+        };
+
+        products.unshift(newP);
+        localStorage.setItem('aloroba_products', JSON.stringify(products));
+        alert("تم إضافة المنتج ونشره بنجاح في المتجر!");
+        
+        // تفريغ الحقول
+        document.getElementById('newName').value = '';
+        document.getElementById('newWeight').value = '';
+        document.getElementById('newPrice').value = '';
+        document.getElementById('newOldPrice').value = '';
+        document.getElementById('newOffer').value = '';
+        document.getElementById('newImg').value = '';
+
+        loadAdminProducts();
+    }
+
+    function deleteProduct(id) {
+        if(confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
+            products = products.filter(p => p.id !== id);
+            localStorage.setItem('aloroba_products', JSON.stringify(products));
+            loadAdminProducts();
+        }
+    }
+
+    window.onload = () => loadAdminProducts();
+</script>
+</body>
+</html>
