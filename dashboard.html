@@ -60,7 +60,7 @@
 
         .file-upload-box { display: flex; align-items: center; gap: 8px; }
         .file-upload-box input[type="file"] { display: none; }
-        .camera-btn { background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; flex: 1; justify-content: center; }
+        .camera-btn { background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; flex: 1; justify-content: center; }
         .camera-btn:hover { background: #cbd5e1; }
 
         .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 9px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; margin-top: 5px; }
@@ -161,7 +161,7 @@
             <div class="form-group">
                 <label>صورة البانر من الهاتف</label>
                 <div class="file-upload-box">
-                    <label class="camera-btn" for="bannerFile">📷 اختيار صورة البانر</label>
+                    <label class="camera-btn" for="bannerFile">🛒 اختيار صورة البانر</label>
                     <input type="file" id="bannerFile" accept="image/*" onchange="compressAndSetImage(event, 'bannerImgData', 'bannerPreview')">
                     <img id="bannerPreview" class="preview-thumb" src="https://cdn-icons-png.flaticon.com/512/3081/3081986.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                 </div>
@@ -201,7 +201,7 @@
         </div>
     </div>
 
-    <!-- القسم الأول: إضافة منتج جديد -->
+    <!-- القسم الأول: إضافة منتج جديد (المُحسّن) -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleMainSection('addProductSection', 'prodArrow')">
             <span>📦 إضافة منتج جديد</span>
@@ -231,9 +231,13 @@
                 </div>
             </div>
             <div class="form-group">
+                <label>رزمة العرض أو الشارة (اختياري)</label>
+                <input type="text" id="prodOffer" class="form-control" placeholder="مثال: 3 بـ 22 أو خصم 20%">
+            </div>
+            <div class="form-group">
                 <label>صورة المنتج *</label>
                 <div class="file-upload-box">
-                    <label class="camera-btn" for="prodFile">📸 التقاط أو اختيار صورة</label>
+                    <label class="camera-btn" for="prodFile">🛒 التقاط أو اختيار صورة</label>
                     <input type="file" id="prodFile" accept="image/*" onchange="compressAndSetImage(event, 'prodImgData', 'prodPreview')">
                     <img id="prodPreview" class="preview-thumb" src="https://cdn-icons-png.flaticon.com/512/3081/3081986.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                 </div>
@@ -265,7 +269,7 @@
             <div class="form-group">
                 <label>صورة الحملة أو العرض *</label>
                 <div class="file-upload-box">
-                    <label class="camera-btn" for="campFile">📸 التقاط أو اختيار صورة الحملة</label>
+                    <label class="camera-btn" for="campFile">🛒 التقاط أو اختيار صورة الحملة</label>
                     <input type="file" id="campFile" accept="image/*" onchange="compressAndSetImage(event, 'campImgData', 'campPreview')">
                     <img id="campPreview" class="preview-thumb" src="https://cdn-icons-png.flaticon.com/512/3081/3081986.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                 </div>
@@ -365,7 +369,7 @@
                             p.categories = [];
                         }
                         if (p.inStock === undefined) {
-                            p.inStock = true; // الافتراضي متوفر
+                            p.inStock = true;
                         }
                         return p;
                     });
@@ -554,7 +558,7 @@
                                 <div class="form-group">
                                     <label>تغيير صورة المنتج</label>
                                     <div class="file-upload-box">
-                                        <label class="camera-btn" for="editFile-${originalIndex}">📸 اختر صورة جديدة</label>
+                                        <label class="camera-btn" for="editFile-${originalIndex}">🛒 اختر صورة جديدة</label>
                                         <input type="file" id="editFile-${originalIndex}" accept="image/*" onchange="compressAndSetImage(event, 'edit-imgData-${originalIndex}', 'editPreview-${originalIndex}')">
                                         <img id="editPreview-${originalIndex}" class="preview-thumb" src="${p.img}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                                     </div>
@@ -843,6 +847,7 @@
         const weight = document.getElementById('prodWeight').value.trim();
         const price = parseFloat(document.getElementById('prodPrice').value);
         const oldPrice = document.getElementById('prodOldPrice').value;
+        const offer = document.getElementById('prodOffer').value.trim();
         const img = document.getElementById('prodImgData').value;
 
         let selectedCategories = [];
@@ -862,6 +867,7 @@
             weight,
             price,
             oldPrice: oldPrice ? parseFloat(oldPrice) : '',
+            offer,
             img,
             categories: selectedCategories.length > 0 ? selectedCategories : ['عروض'],
             inStock: true
@@ -875,6 +881,7 @@
         document.getElementById('prodWeight').value = '';
         document.getElementById('prodPrice').value = '';
         document.getElementById('prodOldPrice').value = '';
+        document.getElementById('prodOffer').value = '';
         document.getElementById('prodImgData').value = '';
         document.getElementById('prodPreview').src = 'https://cdn-icons-png.flaticon.com/512/3081/3081986.png';
         document.querySelectorAll('input[name="productCategoryCheck"]').forEach(chk => chk.checked = false);
