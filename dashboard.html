@@ -29,7 +29,6 @@
         .form-control { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; outline: none; background: white; }
         .form-control:focus { border-color: var(--accent-green); }
 
-        /* تنسيق مربعات اختيار الفئات المتعددة */
         .categories-checkbox-container {
             max-height: 130px;
             overflow-y: auto;
@@ -61,23 +60,24 @@
         .camera-btn:hover { background: #cbd5e1; }
 
         .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 9px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; margin-top: 5px; }
-        .btn-delete { background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.6rem; cursor: pointer; font-weight: bold; }
-        .btn-edit { background: #3b82f6; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.6rem; cursor: pointer; font-weight: bold; margin-left: 4px; }
+        
+        /* تنسيق الأزرار داخل صف المنتج ليتم وضعها بجانب بعضها بشكل مرتب */
+        .product-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+        .btn-delete { background: #ef4444; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; white-space: nowrap; }
+        .btn-edit { background: #3b82f6; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; white-space: nowrap; }
 
         .list-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 0.7rem; }
         
-        /* تنسيق قسم عرض المنتجات مقسمة حسب الفئات */
         .category-group-box { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
         .category-group-title { font-size: 0.8rem; font-weight: 900; color: #1b4d2e; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
         .category-toggle-badge { margin-right: auto; font-size: 0.7rem; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; color: #334155; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; user-select: none; }
         .category-toggle-badge:hover { background: #cbd5e1; }
         
         .product-card-container { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
-        .product-mini-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; font-size: 0.7rem; }
-        .product-mini-info { display: flex; align-items: center; gap: 6px; overflow: hidden; }
-        .product-mini-thumb { width: 30px; height: 30px; object-fit: contain; background: white; border-radius: 4px; border: 1px solid #ddd; padding: 2px; }
+        .product-mini-row { display: flex; justify-content: space-between; align-items: center; padding: 8px; font-size: 0.7rem; gap: 8px; }
+        .product-mini-info { display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; }
+        .product-mini-thumb { width: 32px; height: 32px; object-fit: contain; background: white; border-radius: 4px; border: 1px solid #ddd; padding: 2px; flex-shrink: 0; }
         
-        /* تنسيق قائمة التعديل الفورية الداخلية */
         .inline-edit-form { background: #eff6ff; border-top: 1px dashed #bfdbfe; padding: 10px; display: none; }
     </style>
 </head>
@@ -149,9 +149,7 @@
         </div>
         <div class="form-group">
             <label>اختر الأقسام والفئات المطلوبة (يمكنك اختيار أكثر من فئة)</label>
-            <div id="prodCategoriesCheckboxes" class="categories-checkbox-container">
-                <!-- سيتم تعبئة خيارات الفئات هنا ديناميكياً كمربعات اختيار متعددة -->
-            </div>
+            <div id="prodCategoriesCheckboxes" class="categories-checkbox-container"></div>
         </div>
         <div style="display: flex; gap: 8px;">
             <div class="form-group" style="flex: 1;">
@@ -178,12 +176,10 @@
         <button class="btn-main" onclick="saveProduct()">إضافة ونشر المنتج فوراً 🚀</button>
     </div>
 
-    <!-- 4. خانة المنتجات المقسمة حسب الفئات مع التعديل الداخلي -->
+    <!-- 4. خانة المنتجات المقسمة حسب الفئات -->
     <div class="section-box" style="background: #edf2f7; border-color: #cbd5e1;">
         <h2>🛒 إدارة وعرض المنتجات (مقسمة حسب الأقسام)</h2>
-        <div id="categorizedProductsAdminList">
-            <!-- سيتم تعبئة الأقسام والمنتجات هنا تلقائياً -->
-        </div>
+        <div id="categorizedProductsAdminList"></div>
     </div>
 </div>
 
@@ -193,7 +189,6 @@
         if (saved) {
             try { 
                 let parsed = JSON.parse(saved);
-                // توافقية عكسية: إذا كان المنتج مخزناً بخاصية category القديمة (النص المفرد)، نحوله تلقائياً لمصفوفة categories
                 return parsed.map(p => {
                     if (!p.categories && p.category) {
                         p.categories = [p.category];
@@ -235,11 +230,10 @@
         document.getElementById('bannerTagInput').value = bannerData.tag || "";
         document.getElementById('bannerImgInput').value = bannerData.img || "";
 
-        // تعبئة مربعات الاختيار المتعددة للفئات عند إضافة منتج
         const checkboxesContainer = document.getElementById('prodCategoriesCheckboxes');
         checkboxesContainer.innerHTML = '';
         categories.forEach(cat => {
-            if(cat.name !== "الكل") { // نسمح باختيار أي قسم بما فيها العروض أو الأقسام الأخرى
+            if(cat.name !== "الكل") {
                 checkboxesContainer.innerHTML += `
                     <label class="checkbox-item">
                         <input type="checkbox" name="productCategoryCheck" value="${cat.name.trim()}">
@@ -263,11 +257,9 @@
         const categorizedContainer = document.getElementById('categorizedProductsAdminList');
         categorizedContainer.innerHTML = '';
 
-        // عرض الأقسام (باستثناء "الكل")
         let activeCategories = categories.filter(cat => cat.name !== "الكل");
 
         activeCategories.forEach((cat, catIdx) => {
-            // البحث عن المنتجات التي تحتوي هذه الفئة ضمن مصفوفة فئاتها
             let catProducts = products.filter(p => p.categories && p.categories.some(c => c.trim() === cat.name.trim()));
             
             let productsHtml = '';
@@ -281,17 +273,16 @@
                             <div class="product-mini-row">
                                 <div class="product-mini-info">
                                     <img src="${p.img}" class="product-mini-thumb" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
-                                    <div>
-                                        <div style="font-weight: 800; color: #1f2937;">${p.name}</div>
-                                        <div style="font-size: 0.6rem; color: #6b7280;">السعر: ${p.price} ₪ | ${p.weight || 'حبة'} | الفئات: ${(p.categories || []).join(', ')}</div>
+                                    <div style="overflow: hidden;">
+                                        <div style="font-weight: 800; color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name}</div>
+                                        <div style="font-size: 0.6rem; color: #6b7280;">السعر: ${p.price} ₪ | ${p.weight || 'حبة'}</div>
                                     </div>
                                 </div>
-                                <div>
+                                <div class="product-actions">
                                     <button class="btn-edit" onclick="toggleInlineEdit(${originalIndex})">تعديل ✏️</button>
                                     <button class="btn-delete" onclick="deleteProduct(${originalIndex})">حذف</button>
                                 </div>
                             </div>
-                            <!-- نموذج التعديل الفوري تحت المنتج -->
                             <div id="inline-edit-${originalIndex}" class="inline-edit-form">
                                 <div class="form-group">
                                     <label>اسم المنتج</label>
@@ -378,7 +369,6 @@
         const offer = document.getElementById(`edit-offer-${index}`).value;
         const img = document.getElementById(`edit-img-${index}`).value;
 
-        // جمع الفئات المحددة من مربعات الاختيار في نموذج التعديل
         let selectedCategories = [];
         document.querySelectorAll(`.edit-cat-check-${index}:checked`).forEach(chk => {
             selectedCategories.push(chk.value);
@@ -488,7 +478,6 @@
         const offer = document.getElementById('prodOffer').value;
         const img = document.getElementById('prodImg').value;
 
-        // جمع الأقسام والفئات المحددة من مربعات الاختيار
         let selectedCategories = [];
         document.querySelectorAll('input[name="productCategoryCheck"]:checked').forEach(chk => {
             selectedCategories.push(chk.value);
@@ -508,7 +497,7 @@
             id: Date.now(),
             name,
             weight,
-            categories: selectedCategories, // حفظ مصفوفة الفئات المتعددة
+            categories: selectedCategories,
             price: Number(price),
             oldPrice: oldPrice ? Number(oldPrice) : null,
             offer,
@@ -518,7 +507,6 @@
 
         localStorage.setItem('aloroba_products', JSON.stringify(products));
         
-        // إعادة تعيين الحقول
         document.getElementById('prodName').value = '';
         document.getElementById('prodWeight').value = '';
         document.getElementById('prodPrice').value = '';
