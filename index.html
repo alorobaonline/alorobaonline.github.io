@@ -240,7 +240,6 @@
         let productBundlesMap = {}; 
         let bundlesDataMap = {}; 
         
-        // جلب السلة المحفوظة مسبقاً من ذاكرة التخزين المؤقت (LocalStorage) إن وجدت
         let cartItems = {};
         try {
             const savedCart = localStorage.getItem('aloroba_cart');
@@ -253,7 +252,6 @@
 
         let activeBundleIdInModal = null;
 
-        // دالة حفظ السلة تلقائياً
         function saveCartToLocalStorage() {
             try {
                 localStorage.setItem('aloroba_cart', JSON.stringify(cartItems));
@@ -347,9 +345,12 @@
         function updateCartCounter() {
             let totalCount = 0;
             for (let id in cartItems) {
-                totalCount += cartItems[id];
+                totalCount += Number(cartItems[id]) || 0;
             }
-            document.getElementById('cart-count').innerText = totalCount;
+            const countEl = document.getElementById('cart-count');
+            if (countEl) {
+                countEl.innerText = totalCount;
+            }
         }
 
         function handleProductClick(productId) {
@@ -700,7 +701,6 @@
             document.getElementById('store-products-grid').innerHTML = gridHtml;
         }
 
-        // تحديث عداد السلة عند التحميل الأولي
         updateCartCounter();
     </script>
 </body>
