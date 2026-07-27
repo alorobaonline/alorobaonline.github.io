@@ -239,8 +239,28 @@
         let dbCategories = [];
         let productBundlesMap = {}; 
         let bundlesDataMap = {}; 
+        
+        // جلب السلة المحفوظة مسبقاً من ذاكرة التخزين المؤقت (LocalStorage) إن وجدت
         let cartItems = {};
+        try {
+            const savedCart = localStorage.getItem('aloroba_cart');
+            if (savedCart) {
+                cartItems = JSON.parse(savedCart);
+            }
+        } catch (e) {
+            cartItems = {};
+        }
+
         let activeBundleIdInModal = null;
+
+        // دالة حفظ السلة تلقائياً
+        function saveCartToLocalStorage() {
+            try {
+                localStorage.setItem('aloroba_cart', JSON.stringify(cartItems));
+            } catch (e) {
+                console.error("Could not save cart", e);
+            }
+        }
 
         db.collection("categories").onSnapshot((snapshot) => {
             dbCategories = [];
@@ -292,6 +312,7 @@
             });
             updateCategoriesBar();
             renderProducts();
+            updateCartCounter();
         });
 
         function increaseQuantity(productId) {
@@ -300,6 +321,7 @@
             } else {
                 cartItems[productId]++;
             }
+            saveCartToLocalStorage();
             updateCartCounter();
             renderProducts();
             if(activeBundleIdInModal) {
@@ -314,6 +336,7 @@
                     delete cartItems[productId];
                 }
             }
+            saveCartToLocalStorage();
             updateCartCounter();
             renderProducts();
             if(activeBundleIdInModal) {
@@ -370,7 +393,6 @@
                 bannerText.innerHTML = `أضف ${needed} منتجات أخرى للحصول العرض`;
             }
 
-            // حساب المجموع الخاص بهذه التشكيلة لعرضه في الأسفل
             let bundleItemsListForCalc = [];
             let bundleSubtotal = 0;
             bundle.productIds.forEach(pId => {
@@ -612,76 +634,74 @@
             let gridHtml = '';
             filtered.forEach((p) => {
                 let imgSrc = (p.img && p.img.length > 5) ? p.img : '';
-                let mediaHtml = imgSrc ? `<img src="${imgSrc}" class="product-img" alt="صورة">` : `<span style="font-size: 55px;">${p.emoji || '🛒'}</span>`;
+                let mediaHtml = imgSrc ? `<div class="product-img-wrap"><img src="${imgSrc}" class="product-img" alt="${p.title}"></div>` : `<div class="product-img-wrap" style="font-size:40px;">${p.emoji || '🛒'}</div>`;
                 
-                let badgeHtml = p.isOffer ? `<div class="offer-badge">عرض</div>` : '';
-
-                let bundleTagHtml = '';
-                if (productBundlesMap[p.id]) {
-                    let bInfo = productBundlesMap[p.id];
-                    bundleTagHtml = `<div class="product-bundle-tag" onclick="openBundleModal('${bInfo.bundleId}')">${bInfo.text}</div>`;
+                let badgeHtml = '';
+                if (p.isOffer) {
+                    badgeHtml = `<div class="offer-badge">عرض</div>`;
                 }
 
+                let bundleInfo = productBundlesMap[p.id];
+                let bundleTagHtml = bundleInfo ? `<div class="product-bundle-tag" onclick="openBundleModal('${bundleInfo.bundleId}')">${bundleInfo.text}</div>` : '';
+
                 let priceHtml = '';
-                let unitText = p.unit || 'حبة';
-                
                 if (p.isOffer && p.offerPrice && Number(p.offerPrice) > 0) {
                     priceHtml = `
                         <div class="offer-price-container">
                             <div class="price-offer-top">
                                 <span class="price-offer-new">${p.offerPrice}₪</span>
-                                <span style="font-size:0.75rem; color:#4b5563; font-weight:600;">/ ${unitText}</span>
+                                <span class="price-offer-old">${p.price}₪</span>
                             </div>
-                            <div class="price-offer-old">${p.price}₪</div>
                         </div>
                     `;
                 } else {
-                    priceHtml = `
-                        <div>
-                            <span class="price-normal">${p.price}₪</span>
-                            <span style="font-size:0.75rem; color:#4b5563; font-weight:600;">/ ${unitText}</span>
-                        </div>
-                    `;
+                    priceHtml = `<div class="product-price-row"><span class="price-normal">${p.price}₪</span></div>`;
                 }
 
-                let quantityInCart = cartItems[p.id] || 0;
-                let actionButtonHtml = '';
-
-                if (quantityInCart > 0) {
-                    actionButtonHtml = `
+                let qty = cartItems[p.id] || 0;
+                let actionBtnHtml = '';
+                
+                if (qty === 0) {
+                    let btnText = bundleInfo ? 'عرض التشكيلة 🎁' : 'إضافة للسلة 🛒';
+                    actionBtnHtml = `<button class="btn-add-cart" onclick="handleProductClick('${p.id}')">${btnText}</button>`;
+                } else {
+                    actionBtnHtml = `
                         <div class="cart-counter-box">
                             <button class="cart-counter-btn" onclick="decreaseQuantity('${p.id}')">-</button>
-                            <span class="cart-counter-value">${quantityInCart}</span>
+                            <span class="cart-counter-value">${qty}</span>
                             <button class="cart-counter-btn" onclick="increaseQuantity('${p.id}')">+</button>
                         </div>
                     `;
-                } else {
-                    actionButtonHtml = `
-                        <button class="btn-add-cart" onclick="handleProductClick('${p.id}')">أضف للسلة +</button>
-                    `;
                 }
+
+                let stockText = (p.stock !== undefined && p.stock !== '') ? `المتوفر: ${p.stock}` : '';
 
                 gridHtml += `
                     <div class="product-card">
                         ${badgeHtml}
-                        <div class="product-img-wrap" onclick="handleProductClick('${p.id}')" style="cursor: pointer;">
-                            ${mediaHtml}
-                        </div>
                         <div>
                             ${bundleTagHtml}
+                            ${mediaHtml}
                             <div class="product-name">${p.title}</div>
-                            <div class="product-stock">${p.stock || 'متوفر'}</div>
-                            <div class="product-price-row">${priceHtml}</div>
+                            <div class="product-stock">${stockText}</div>
+                            ${priceHtml}
                         </div>
                         <div>
-                            ${actionButtonHtml}
+                            ${actionBtnHtml}
                         </div>
                     </div>
                 `;
             });
 
-            document.getElementById('store-products-grid').innerHTML = gridHtml || '<p style="text-align: center; color: #888; grid-column: span 2;">لا توجد منتجات في هذا القسم</p>';
+            if (filtered.length === 0) {
+                gridHtml = `<p style="text-align: center; color: #888; grid-column: span 2; padding: 20px;">لا توجد منتجات في هذا القسم حالياً</p>`;
+            }
+
+            document.getElementById('store-products-grid').innerHTML = gridHtml;
         }
+
+        // تحديث عداد السلة عند التحميل الأولي
+        updateCartCounter();
     </script>
 </body>
 </html>
