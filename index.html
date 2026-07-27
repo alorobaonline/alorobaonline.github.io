@@ -26,11 +26,10 @@
         
         .cart-badge-btn { background: var(--primary-green); color: white; border: none; padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 
-        /* شريط الفئات (خلفية بيضاء وتتحول للأخضر عند الاختيار) */
+        /* شريط الفئات */
         .categories-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; }
         .categories-bar::-webkit-scrollbar { display: none; }
         
-        /* التصميم الافتراضي للفئات (خلفية بيضاء) */
         .cat-chip { 
             background: #ffffff; 
             border: 1px solid #d1d5db; 
@@ -45,7 +44,6 @@
             transition: all 0.2s; 
         }
         
-        /* عند الضغط أو التفعيل تصبح أخضر */
         .cat-chip.active { 
             background: var(--primary-green) !important; 
             color: #ffffff !important; 
@@ -53,7 +51,6 @@
             box-shadow: 0 4px 10px rgba(104, 166, 51, 0.3);
         }
 
-        /* قالب عروض الأسبوع (أحمر حصري دائماً) */
         .cat-chip.offer-chip { 
             background: #fee2e2; 
             color: #dc2626; 
@@ -89,18 +86,15 @@
 
         .btn-add-cart { background: var(--primary-green); color: white; border: none; width: 100%; padding: 8px; border-radius: var(--radius-md); font-weight: 700; font-size: 0.85rem; cursor: pointer; text-align: center; }
 
-        /* أزرار عداد المنتجات في الكارد الرئيسي */
         .cart-counter-box { display: flex; align-items: center; justify-content: space-between; background: var(--primary-green); border-radius: var(--radius-md); overflow: hidden; width: 100%; }
         .cart-counter-btn { background: rgba(0,0,0,0.15); color: white; border: none; padding: 8px 14px; font-size: 1rem; font-weight: 700; cursor: pointer; }
         .cart-counter-value { color: white; font-weight: 700; font-size: 0.95rem; }
 
-        /* تصميم عصري لأزرار العداد (دائرية ومنفصلة) */
         .modern-qty-control { display: flex; align-items: center; background: #f3f4f6; border-radius: 30px; padding: 3px; border: 1px solid #e5e7eb; }
         .modern-qty-btn { width: 28px; height: 28px; border-radius: 50%; background: white; border: 1px solid #d1d5db; color: #374151; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s; }
         .modern-qty-btn:active { background: #e5e7eb; transform: scale(0.95); }
         .modern-qty-val { min-width: 26px; text-align: center; font-weight: 700; font-size: 0.9rem; color: #1f2937; }
 
-        /* نافذة السلة المتقدمة */
         #cart-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-end; }
         .cart-modal-content { background: white; width: 100%; max-width: 600px; max-height: 85vh; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; display: flex; flex-direction: column; }
         .cart-items-list { overflow-y: auto; max-height: 45vh; flex-grow: 1; margin-bottom: 12px; }
@@ -112,7 +106,7 @@
         .summary-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
         .summary-row.total { font-weight: 700; font-size: 1.1rem; color: var(--primary-green); border-top: 1px solid #e2e8f0; padding-top: 6px; }
 
-        /* نافذة العرض التفاعلية (Bundle Modal) */
+        /* نافذة العرض التفاعلية (Bundle Modal) مع تثبيت القالب لمنع الاهتزاز */
         #bundle-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1100; justify-content: center; align-items: flex-end; }
         .bundle-modal-content { background: white; width: 100%; max-width: 600px; max-height: 85vh; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; display: flex; flex-direction: column; }
         .bundle-items-list { overflow-y: auto; max-height: 45vh; flex-grow: 1; margin-bottom: 12px; }
@@ -120,10 +114,13 @@
         .bundle-item-row.active-row { border-color: #fca5a5; background: #fef2f2; }
         .bundle-item-img { width: 45px; height: 45px; object-fit: contain; border-radius: 6px; background: #fff; flex-shrink: 0; }
         
-        .bundle-progress-banner { background: #fee2e2; color: #dc2626; padding: 12px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #fca5a5; }
-        .bundle-banner-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 700; font-size: 0.95rem; }
-        .bundle-banner-text { font-size: 0.85rem; font-weight: 700; }
-        .progress-bar-container { background: #fca5a5; height: 6px; border-radius: 3px; margin-top: 6px; overflow: hidden; }
+        /* شريط التقدم بتصميم ثابت لا يهتز */
+        .bundle-progress-banner { background: #fee2e2; color: #dc2626; padding: 12px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #fca5a5; width: 100%; }
+        .bundle-banner-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 700; font-size: 0.9rem; direction: rtl; unicode-bidi: plaintext; }
+        .bundle-banner-text { flex-grow: 1; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bundle-price-tag { flex-shrink: 0; margin-left: 8px; direction: rtl; unicode-bidi: plaintext; }
+        
+        .progress-bar-container { background: #fca5a5; height: 6px; border-radius: 3px; margin-top: 6px; overflow: hidden; width: 100%; }
         .progress-bar-fill { background: #dc2626; height: 100%; width: 0%; transition: width 0.3s; }
         .bundle-progress-banner.completed { background: #dcfce7; border-color: #86efac; color: #16a34a; }
         .bundle-progress-banner.completed .progress-bar-fill { background: #16a34a; }
@@ -163,11 +160,11 @@
                 <button onclick="closeBundleModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; font-weight: bold;">✕</button>
             </div>
 
-            <!-- شريط التقدم للحزمة مع السعر -->
+            <!-- شريط التقدم للحزمة الثابت لمنع الاهتزاز -->
             <div id="bundle-banner" class="bundle-progress-banner">
                 <div class="bundle-banner-top">
                     <span id="bundle-banner-text" class="bundle-banner-text">أضف 3 منتجات أخرى للحصول العرض</span>
-                    <span id="bundle-price-tag" style="font-weight: 700; direction: rtl; unicode-bidi: plaintext;"></span>
+                    <span id="bundle-price-tag" class="bundle-price-tag"></span>
                 </div>
                 <div class="progress-bar-container">
                     <div id="bundle-progress-fill" class="progress-bar-fill"></div>
@@ -358,7 +355,7 @@
 
             if (totalInBundle >= reqQty) {
                 banner.className = "bundle-progress-banner completed";
-                bannerText.innerHTML = `🎉 تم تفعيل العرض بنجاح! (أضفت ${totalInBundle} منتجات)`;
+                bannerText.innerHTML = `🎉 تم تفعيل العرض بنجاح!`;
             } else {
                 banner.className = "bundle-progress-banner";
                 let needed = reqQty - totalInBundle;
