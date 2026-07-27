@@ -40,9 +40,12 @@
 
         .list-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 0.7rem; }
         
-        /* تنسيق قسم عرض المنتجات مقسمة حسب الفئات */
+        /* تنسيق قسم عرض المنتجات مقسمة حسب الفئات مع زر الطي */
         .category-group-box { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
         .category-group-title { font-size: 0.8rem; font-weight: 900; color: #1b4d2e; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+        .category-toggle-badge { margin-right: auto; font-size: 0.7rem; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; color: #334155; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; user-select: none; }
+        .category-toggle-badge:hover { background: #cbd5e1; }
+        
         .product-mini-row { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 6px 8px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 0.7rem; }
         .product-mini-info { display: flex; align-items: center; gap: 6px; overflow: hidden; }
         .product-mini-thumb { width: 30px; height: 30px; object-fit: contain; background: white; border-radius: 4px; border: 1px solid #ddd; padding: 2px; }
@@ -150,7 +153,7 @@
         <button class="btn-main" id="cancelEditBtn" onclick="resetProductForm()" style="background: #64748b; display:none; margin-top: 5px;">إلغاء التعديل ❌</button>
     </div>
 
-    <!-- 4. خانة المنتجات المقسمة حسب الفئات -->
+    <!-- 4. خانة المنتجات المقسمة حسب الفئات مع زر الطي والتصغير -->
     <div class="section-box" style="background: #edf2f7; border-color: #cbd5e1;">
         <h2>🛒 إدارة وعرض المنتجات (مقسمة حسب الأقسام)</h2>
         <div id="categorizedProductsAdminList">
@@ -196,7 +199,6 @@
         document.getElementById('bannerTagInput').value = bannerData.tag || "";
         document.getElementById('bannerImgInput').value = bannerData.img || "";
 
-        // تعبئة قائمة اختيار الأقسام في نموذج الإضافة
         const selectCat = document.getElementById('prodCategory');
         selectCat.innerHTML = '';
         categories.forEach(cat => {
@@ -205,7 +207,6 @@
             }
         });
 
-        // عرض الفئات في خانة الإدارة الخاصة بها
         const catList = document.getElementById('adminCategoriesList');
         catList.innerHTML = '';
         categories.forEach((cat, index) => {
@@ -217,24 +218,19 @@
             `;
         });
 
-        // ** عرض المنتجات مقسمة حسب الفئات في الخانة الجديدة المخصصة **
         const categorizedContainer = document.getElementById('categorizedProductsAdminList');
         categorizedContainer.innerHTML = '';
 
         let activeCategories = categories.filter(cat => cat.name !== "الكل" && cat.name !== "عروض");
-        
-        let hasAnyProduct = false;
 
-        activeCategories.forEach(cat => {
+        activeCategories.forEach((cat, catIdx) => {
             let catProducts = products.filter(p => p.category === cat.name);
             
             let productsHtml = '';
             if (catProducts.length === 0) {
                 productsHtml = '<div style="color: #9ca3af; font-size: 0.65rem; padding: 4px; text-align: center;">لا توجد منتجات في هذا القسم</div>';
             } else {
-                hasAnyProduct = true;
                 catProducts.forEach(p => {
-                    // البحث عن الفهرس الحقيقي للمنتج في المصفوفة الأصلية لحفظ عمليات التعديل والحذف بدقة
                     let originalIndex = products.findIndex(item => item.id === p.id);
                     productsHtml += `
                         <div class="product-mini-row">
@@ -254,17 +250,37 @@
                 });
             }
 
+            // إضافة القسم مع زر سهم قابل للتبديل (تصغير/تكبير)
             categorizedContainer.innerHTML += `
                 <div class="category-group-box">
                     <div class="category-group-title">
                         <span>${cat.icon}</span>
                         <span>${cat.name}</span>
-                        <span style="margin-right: auto; font-size: 0.65rem; background: #e2e8f0; padding: 1px 6px; border-radius: 10px; color: #475569;">${catProducts.length}</span>
+                        <div class="category-toggle-badge" onclick="toggleCategorySection(${catIdx})">
+                            <span>${catProducts.length}</span>
+                            <span id="arrow-icon-${catIdx}">▼</span>
+                        </div>
                     </div>
-                    <div>${productsHtml}</div>
+                    <div id="category-content-${catIdx}" style="display: block;">
+                        ${productsHtml}
+                    </div>
                 </div>
             `;
         });
+    }
+
+    // دالة لتصغير أو إظهار قائمة المنتجات عند النقر على الزر والسهم
+    function toggleCategorySection(catIdx) {
+        const contentBox = document.getElementById(`category-content-${catIdx}`);
+        const arrowIcon = document.getElementById(`arrow-icon-${catIdx}`);
+        
+        if (contentBox.style.display === "none") {
+            contentBox.style.display = "block";
+            arrowIcon.innerText = "▼";
+        } else {
+            contentBox.style.display = "none";
+            arrowIcon.innerText = "▲";
+        }
     }
 
     function previewBannerImage(event) {
