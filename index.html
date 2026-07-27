@@ -57,10 +57,10 @@
         
         .badge-offer { position: absolute; top: 4px; right: 4px; background: #fee2e2; color: #dc2626; font-size: 0.4rem; font-weight: 800; padding: 2px 4px; border-radius: 4px; z-index: 2; }
         .badge-red { position: absolute; top: 4px; left: 4px; background: #ef4444; color: white; font-size: 0.4rem; font-weight: 800; padding: 1px 4px; border-radius: 3px; z-index: 2; }
+        .fav-heart-btn { position: absolute; top: 22px; left: 4px; background: rgba(255,255,255,0.8); border: none; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.7rem; z-index: 2; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
 
         .product-img-box { width: 100%; height: 70px; display: flex; align-items: center; justify-content: center; margin: 10px 0 4px 0; cursor: pointer; }
         .product-img-box img { max-width: 100%; max-height: 70px; object-fit: contain; transition: transform 0.2s; }
-        .product-img-box img:hover { transform: scale(1.05); }
 
         .product-name { font-size: 0.65rem; font-weight: 800; color: #1f2937; text-align: center; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .product-weight { font-size: 0.5rem; color: #9ca3af; text-align: center; margin-bottom: 4px; font-weight: 600; }
@@ -98,17 +98,13 @@
             font-size: 0.8rem;
             font-weight: 900;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            box-shadow: 0 3px 10px rgba(120,188,56,0.3);
         }
         .checkout-info-side { text-align: left; }
         .checkout-total-price { font-size: 1rem; font-weight: 900; color: #1b4d2e; }
         .checkout-items-count { font-size: 0.65rem; color: #4b5563; font-weight: 700; }
 
-        /* نافذة السلة المنبثقة (Modal) */
-        .cart-modal-overlay {
+        /* النوافذ المنبثقة العامة (Modals) */
+        .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5);
@@ -117,7 +113,7 @@
             align-items: flex-end;
             z-index: 2000;
         }
-        .cart-modal-content {
+        .modal-content {
             background: white;
             width: 100%;
             max-width: 480px;
@@ -147,11 +143,11 @@
             font-size: 0.8rem;
             color: #333;
         }
-        .cart-section h2 { font-size: 0.9rem; color: #1b4d2e; margin-bottom: 10px; }
+        .modal-title { font-size: 0.95rem; color: #1b4d2e; font-weight: 900; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
         .cart-input { width: 100%; padding: 8px; margin-bottom: 6px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.75rem; outline: none; }
         .whatsapp-btn { width: 100%; background: #25d366; color: white; border: none; padding: 10px; border-radius: 20px; font-weight: bold; font-size: 0.75rem; cursor: pointer; margin-top: 6px; }
 
-        /* نافذة تكبير صورة المنتج (Zoom Modal) المعدلة والمكبرة */
+        /* نافذة تكبير الصورة (Zoom Modal) */
         .image-zoom-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -172,59 +168,27 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
-        .image-zoom-container img {
-            width: 100%;
-            max-height: 350px;
-            object-fit: contain;
-            border-radius: 12px;
-            margin-bottom: 15px;
-            background: #fff;
-        }
-        .zoom-product-title {
-            font-size: 1.1rem;
-            font-weight: 900;
-            color: #1b4d2e;
-            text-align: center;
-            margin-bottom: 5px;
-        }
-        .zoom-product-weight {
-            font-size: 0.8rem;
-            color: #6b7280;
-            font-weight: 700;
-        }
-        .close-zoom-btn {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            background: #fee2e2;
-            color: #dc2626;
-            border: none;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-        }
-        .close-zoom-btn:hover {
-            background: #fecaca;
-        }
+        .image-zoom-container img { width: 100%; max-height: 350px; object-fit: contain; border-radius: 12px; margin-bottom: 15px; }
+        .zoom-product-title { font-size: 1.1rem; font-weight: 900; color: #1b4d2e; text-align: center; margin-bottom: 5px; }
+        .zoom-product-weight { font-size: 0.8rem; color: #6b7280; font-weight: 700; }
+        .close-zoom-btn { position: absolute; top: 12px; left: 12px; background: #fee2e2; color: #dc2626; border: none; width: 32px; height: 32px; border-radius: 50%; font-weight: bold; font-size: 1rem; cursor: pointer; }
 
         /* شريط التنقل السفلي والزر العائم */
         .bottom-nav-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: white; display: flex; justify-content: space-around; align-items: center; padding: 6px 0 10px 0; box-shadow: 0 -4px 15px rgba(0,0,0,0.08); z-index: 1000; max-width: 480px; margin: 0 auto; right: 0; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #9ca3af; font-size: 0.6rem; font-weight: 700; cursor: pointer; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #9ca3af; font-size: 0.6rem; font-weight: 700; cursor: pointer; background: none; border: none; }
         .nav-item.active { color: #68a633; }
         .nav-item span.icon { font-size: 1.1rem; margin-bottom: 1px; }
 
         .floating-dashboard-btn { position: fixed; bottom: 130px; right: 12px; background: #1b4d2e; color: white; padding: 6px 10px; border-radius: 16px; text-decoration: none; font-size: 0.65rem; font-weight: 800; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 1100; display: flex; align-items: center; gap: 3px; border: 2px solid #84cc16; }
 
         footer { text-align: center; padding: 10px; font-size: 0.6rem; color: #6b7280; margin-top: 15px; }
+        
+        /* تصميم كروت لوحة تحكم الزبون (حسابي) */
+        .account-card-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; margin-bottom: 10px; font-size: 0.75rem; }
+        .account-card-title { font-weight: 800; color: var(--primary-green); margin-bottom: 6px; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
+        .order-history-item { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-reorder { background: #68a633; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -232,7 +196,7 @@
 <div class="store-container">
     <!-- الهيدر -->
     <header class="app-header">
-        <button class="top-cart-btn" onclick="toggleCartModal(true)">
+        <button class="top-cart-btn" onclick="openModal('cartModal')">
             🛒
             <span class="top-cart-count" id="cart-count">0</span>
         </button>
@@ -279,8 +243,8 @@
 
     <!-- الشريط العائم السفلي للدفع -->
     <div class="floating-checkout-bar" id="floatingCheckoutBar">
-        <button class="checkout-btn-main" onclick="toggleCartModal(true)">
-            للدفع ←
+        <button class="checkout-btn-main" onclick="openModal('cartModal')">
+            إتمام الدفع ←
         </button>
         <div class="checkout-info-side">
             <div class="checkout-total-price"><span id="floatingTotal">0.00</span> ₪</div>
@@ -292,36 +256,77 @@
 
     <footer>سوبر ماركت العروبة © 2026 - رهط</footer>
 
-    <!-- شريط التنقل السفلي -->
+    <!-- شريط التنقل السفلي (المعدل والمفصول بدقة) -->
     <nav class="bottom-nav-bar">
-        <a class="nav-item active"><span class="icon">🏠</span><span>الرئيسية</span></a>
-        <a class="nav-item" onclick="document.getElementById('categoriesContainer').scrollIntoView({behavior: 'smooth'})"><span class="icon">🗂️</span><span>التصنيفات</span></a>
-        <a class="nav-item" onclick="document.getElementById('productsContainer').scrollIntoView({behavior: 'smooth'})"><span class="icon">🏷️</span><span>العروض</span></a>
-        <a class="nav-item" onclick="alert('قريباً ميزة المفضلة')"><span class="icon">🤍</span><span>المفضلة</span></a>
-        <a class="nav-item" onclick="toggleCartModal(true)"><span class="icon">👤</span><span>حسابي</span></a>
+        <button class="nav-item active" onclick="goToHome()"><span class="icon">🏠</span><span>الرئيسية</span></button>
+        <button class="nav-item" onclick="scrollToCategories()"><span class="icon">🗂️</span><span>التصنيفات</span></button>
+        <button class="nav-item" onclick="filterByOffers()"><span class="icon">🏷️</span><span>العروض</span></button>
+        <button class="nav-item" onclick="openModal('favoritesModal')"><span class="icon">🤍</span><span>المفضلة</span></button>
+        <button class="nav-item" onclick="openModal('accountModal')"><span class="icon">👤</span><span>حسابي</span></button>
     </nav>
 </div>
 
-<!-- نافذة السلة وإتمام الطلب المنبثقة (Modal) -->
-<div class="cart-modal-overlay" id="cartModalOverlay" onclick="handleOverlayClick(event)">
-    <div class="cart-modal-content">
-        <button class="close-modal-btn" onclick="toggleCartModal(false)">✕</button>
-        <div class="cart-section">
-            <h2>🛒 سلة المشتريات وإتمام الطلب</h2>
-            <div id="cartItemsList" style="font-size: 0.75rem; color: #666; margin-bottom: 8px;">السلة فارغة حالياً</div>
-            <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 10px;">المجموع الكلي: <span id="cartTotal">0</span> ₪</div>
-            
-            <div style="display: flex; flex-direction: column; gap: 6px;">
-                <input type="text" id="customerName" class="cart-input" placeholder="اسم الزبون الكريم">
-                <input type="text" id="customerAddress" class="cart-input" placeholder="العنوان (رهط والمحيط)">
-                <input type="tel" id="customerPhone" class="cart-input" placeholder="رقم الهاتف">
+<!-- 1. نافذة السلة وإتمام الطلب المنبثقة -->
+<div class="modal-overlay" id="cartModal" onclick="handleOutsideClick(event, 'cartModal')">
+    <div class="modal-content">
+        <button class="close-modal-btn" onclick="closeModal('cartModal')">✕</button>
+        <div class="modal-title">🛒 سلة المشتريات وإتمام الطلب</div>
+        <div id="cartItemsList" style="font-size: 0.75rem; color: #666; margin-bottom: 8px;">السلة فارغة حالياً</div>
+        <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 10px;">المجموع الكلي: <span id="cartTotal">0</span> ₪</div>
+        
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+            <input type="text" id="customerName" class="cart-input" placeholder="اسم الزبون الكريم">
+            <input type="text" id="customerAddress" class="cart-input" placeholder="العنوان (رهط والمحيط)">
+            <input type="tel" id="customerPhone" class="cart-input" placeholder="رقم الهاتف">
+        </div>
+        <button class="whatsapp-btn" onclick="sendWhatsAppOrder()">إرسال الطلب عبر الواتساب 💬</button>
+    </div>
+</div>
+
+<!-- 2. نافذة المفضلة المنبثقة -->
+<div class="modal-overlay" id="favoritesModal" onclick="handleOutsideClick(event, 'favoritesModal')">
+    <div class="modal-content">
+        <button class="close-modal-btn" onclick="closeModal('favoritesModal')">✕</button>
+        <div class="modal-title">🤍 المنتجات المفضلة</div>
+        <div id="favoritesListContainer" style="font-size: 0.75rem; color: #666;">لم تقم بإضافة أي منتج للمفضلة بعد.</div>
+    </div>
+</div>
+
+<!-- 3. نافذة حسابي (لوحة تحكم الزبون الشاملة) -->
+<div class="modal-overlay" id="accountModal" onclick="handleOutsideClick(event, 'accountModal')">
+    <div class="modal-content">
+        <button class="close-modal-btn" onclick="closeModal('accountModal')">✕</button>
+        <div class="modal-title">👤 حسابي الشخصي</div>
+        
+        <!-- معلومات الزبون -->
+        <div class="account-card-box">
+            <div class="account-card-title">معلومات الحساب 📋</div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <input type="text" id="accName" class="cart-input" placeholder="الاسم الكامل" value="">
+                <input type="tel" id="accPhone" class="cart-input" placeholder="رقم الهاتف المحمول" value="">
+                <input type="text" id="accAddress" class="cart-input" placeholder="العنوان الافتراضي (المدينة، الحي)" value="">
+                <button class="btn-add-cart" style="padding: 6px; margin-top: 4px;" onclick="saveAccountInfo()">حفظ البيانات 💾</button>
             </div>
-            <button class="whatsapp-btn" onclick="sendWhatsAppOrder()">إرسال الطلب عبر الواتساب 💬</button>
+        </div>
+
+        <!-- سجل الطلبات السابقة وإعادة الطلب -->
+        <div class="account-card-box">
+            <div class="account-card-title">سجل الطلبات السابقة 📦</div>
+            <div id="orderHistoryContainer" style="font-size: 0.7rem; color: #666;">
+                لا توجد طلبات مسجلة حتى الآن.
+            </div>
+        </div>
+
+        <!-- روابط إضافية وتطبيق العروبة -->
+        <div class="account-card-box">
+            <div class="account-card-title">تطبيق سوبر ماركت العروبة 📱</div>
+            <p style="font-size: 0.65rem; color: #555; margin-bottom: 6px;">احصل على أحدث عروض العروبة أونلاين وتجربة تسوق أسرع.</p>
+            <a href="index.html" class="btn-add-cart" style="display: block; text-decoration: none; padding: 6px; text-align: center;">زيارة الصفحة الرئيسية</a>
         </div>
     </div>
 </div>
 
-<!-- نافذة تكبير صورة المنتج (Zoom Modal) المعدلة -->
+<!-- نافذة تكبير صورة المنتج (Zoom Modal) -->
 <div class="image-zoom-overlay" id="imageZoomOverlay" onclick="handleZoomOverlayClick(event)">
     <div class="image-zoom-container">
         <button class="close-zoom-btn" onclick="closeZoomModal()">✕</button>
@@ -354,6 +359,8 @@
     };
 
     let cart = [];
+    let favorites = JSON.parse(localStorage.getItem('aloroba_favorites')) || [];
+    let orderHistory = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
     let selectedCategory = "الكل";
 
     function renderBanner() {
@@ -388,7 +395,7 @@
             const filtered = products.filter(p => p.offer || (p.oldPrice && p.oldPrice > p.price));
             renderProducts(filtered);
         } else {
-            const filtered = products.filter(p => p.category === catName);
+            const filtered = products.filter(p => p.categories ? p.categories.includes(catName) : p.category === catName);
             renderProducts(filtered);
         }
     }
@@ -397,6 +404,22 @@
         selectedCategory = "الكل";
         renderCategories();
         renderProducts(products);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function goToHome() {
+        resetFilter();
+    }
+
+    function scrollToCategories() {
+        document.getElementById('categoriesContainer').scrollIntoView({behavior: 'smooth'});
+    }
+
+    function filterByOffers() {
+        selectedCategory = "عروض";
+        renderCategories();
+        const filtered = products.filter(p => p.offer || (p.oldPrice && p.oldPrice > p.price));
+        renderProducts(filtered);
     }
 
     function renderProducts(list = products) {
@@ -407,10 +430,12 @@
             return;
         }
         list.forEach(p => {
+            const isFav = favorites.some(f => f.id === p.id);
             container.innerHTML += `
                 <div class="product-card">
                     ${p.offer ? `<div class="badge-offer">${p.offer}</div>` : ''}
                     <div class="badge-red">عرض</div>
+                    <button class="fav-heart-btn" onclick="toggleFavorite(${p.id})">${isFav ? '❤️' : '🤍'}</button>
                     <div class="product-img-box" onclick="openZoomModal('${p.img}', '${p.name}', '${p.weight || 'حبة'}')">
                         <img src="${p.img}" alt="${p.name}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                     </div>
@@ -424,6 +449,44 @@
                 </div>
             `;
         });
+    }
+
+    function toggleFavorite(id) {
+        const product = products.find(p => p.id === id);
+        if(!product) return;
+        const index = favorites.findIndex(f => f.id === id);
+        if(index > -1) {
+            favorites.splice(index, 1);
+        } else {
+            favorites.push(product);
+        }
+        localStorage.setItem('aloroba_favorites', JSON.stringify(favorites));
+        renderProducts();
+        renderFavoritesUI();
+    }
+
+    function renderFavoritesUI() {
+        const container = document.getElementById('favoritesListContainer');
+        if(favorites.length === 0) {
+            container.innerHTML = "لم تقم بإضافة أي منتج للمفضلة بعد.";
+            return;
+        }
+        let html = "";
+        favorites.forEach(f => {
+            html += `
+                <div class="order-history-item">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <img src="${f.img}" style="width: 30px; height: 30px; object-fit: contain;">
+                        <div>
+                            <div style="font-weight: 800;">${f.name}</div>
+                            <div style="color: #68a633; font-weight: bold;">${f.price} ₪</div>
+                        </div>
+                    </div>
+                    <button class="btn-reorder" onclick="addToCart(${f.id}); closeModal('favoritesModal'); openModal('cartModal');">إضافة للسلة 🛒</button>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
     }
 
     function openZoomModal(imgSrc, title, weight) {
@@ -454,7 +517,6 @@
         document.getElementById('cart-count').innerText = cart.length;
         const listDiv = document.getElementById('cartItemsList');
         let total = 0;
-        
         const floatingBar = document.getElementById('floatingCheckoutBar');
 
         if(cart.length === 0) {
@@ -478,14 +540,79 @@
         document.getElementById('floatingCount').innerText = cart.length;
     }
 
-    function toggleCartModal(show) {
-        const modal = document.getElementById('cartModalOverlay');
-        modal.style.display = show ? 'flex' : 'none';
+    function openModal(modalId) {
+        document.getElementById(modalId).style.display = 'flex';
+        if(modalId === 'accountModal') {
+            loadAccountInfo();
+        } else if(modalId === 'favoritesModal') {
+            renderFavoritesUI();
+        }
     }
 
-    function handleOverlayClick(event) {
-        if (event.target === document.getElementById('cartModalOverlay')) {
-            toggleCartModal(false);
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    function handleOutsideClick(event, modalId) {
+        if (event.target === document.getElementById(modalId)) {
+            closeModal(modalId);
+        }
+    }
+
+    function saveAccountInfo() {
+        const name = document.getElementById('accName').value;
+        const phone = document.getElementById('accPhone').value;
+        const address = document.getElementById('accAddress').value;
+
+        localStorage.setItem('aloroba_user', JSON.stringify({ name, phone, address }));
+        document.getElementById('customerName').value = name;
+        document.getElementById('customerPhone').value = phone;
+        document.getElementById('customerAddress').value = address;
+        alert("تم حفظ بيانات الحساب بنجاح!");
+    }
+
+    function loadAccountInfo() {
+        let savedUser = JSON.parse(localStorage.getItem('aloroba_user'));
+        if(savedUser) {
+            document.getElementById('accName').value = savedUser.name || "";
+            document.getElementById('accPhone').value = savedUser.phone || "";
+            document.getElementById('accAddress').value = savedUser.address || "";
+            
+            document.getElementById('customerName').value = savedUser.name || "";
+            document.getElementById('customerPhone').value = savedUser.phone || "";
+            document.getElementById('customerAddress').value = savedUser.address || "";
+        }
+        renderOrderHistory();
+    }
+
+    function renderOrderHistory() {
+        const container = document.getElementById('orderHistoryContainer');
+        if(orderHistory.length === 0) {
+            container.innerHTML = "لا توجد طلبات مسجلة حتى الآن.";
+            return;
+        }
+        let html = "";
+        orderHistory.forEach((ord, index) => {
+            html += `
+                <div class="order-history-item">
+                    <div>
+                        <div style="font-weight: 800;">طلب #${index + 1} (${ord.date})</div>
+                        <div style="color: #4b5563;">المجموع: ${ord.total} ₪ | ${ord.items.length} منتجات</div>
+                    </div>
+                    <button class="btn-reorder" onclick="reorderItems(${index})">إعادة الطلب 🔄</button>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    function reorderItems(index) {
+        const ord = orderHistory[index];
+        if(ord && ord.items) {
+            cart = [...ord.items];
+            updateCartUI();
+            closeModal('accountModal');
+            openModal('cartModal');
         }
     }
 
@@ -513,6 +640,15 @@
         orderText += `%0A📍 *العنوان:* ${address}`;
         orderText += `%0A📞 *رقم الهاتف:* ${phone}`;
 
+        // حفظ الطلب في السجل
+        const newOrder = {
+            date: new Date().toLocaleDateString('ar-AE'),
+            total: total,
+            items: [...cart]
+        };
+        orderHistory.unshift(newOrder);
+        localStorage.setItem('aloroba_orders', JSON.stringify(orderHistory));
+
         window.open(`https://wa.me/972546288791?text=${orderText}`);
     }
 
@@ -526,6 +662,7 @@
         renderBanner();
         renderCategories();
         renderProducts();
+        loadAccountInfo();
     };
 </script>
 </body>
