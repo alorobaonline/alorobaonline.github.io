@@ -53,6 +53,9 @@
         .btn-img-action { padding: 8px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; border: none; text-align: center; width: 100%; }
         .btn-change-img { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; }
         .btn-remove-img { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+
+        /* تنسيق خاص لقسم العرض بلون أحمر */
+        .offer-section-box { background: #fff5f5; border: 1px solid #fecaca; padding: 12px; border-radius: var(--radius-md); margin-top: 8px; display: none; }
     </style>
 </head>
 <body>
@@ -77,13 +80,11 @@
             </div>
         </div>
 
-        <!-- زر إضافة منتج جديد (يظهر افتراضياً كمستطيل أخضر) -->
         <div id="open-product-form-btn-wrapper" class="card-box" style="text-align: center; padding: 0;">
             <button class="btn-main" type="button" onclick="openNewProductForm()" style="padding: 16px; font-size: 1.05rem;">➕ إضافة منتج جديد</button>
         </div>
 
         <div id="form-original-parent">
-            <!-- نموذج إدخال المنتج (مخفي افتراضياً حتى الضغط على زر الإضافة أو التعديل) -->
             <div class="card-box" id="product-form-container" style="display: none;">
                 <h3 id="prod-panel-title" style="margin-bottom: 12px; font-size: 1rem;">🛒 إضافة منتج جديد</h3>
                 <input type="hidden" id="prod-id">
@@ -160,9 +161,18 @@
                     </select>
                 </div>
 
-                <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
-                    <input type="checkbox" id="prod-is-offer" style="width: 18px; height: 18px;">
-                    <label for="prod-is-offer" style="margin: 0; cursor: pointer;">🔴 منتج بالعرض</label>
+                <!-- خيار منتج بالعرض مع مربع سعر العرض باللون الأحمر تحته مباشرة -->
+                <div class="form-group">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="prod-is-offer" style="width: 18px; height: 18px;" onchange="toggleOfferPriceBox()">
+                        <label for="prod-is-offer" style="margin: 0; cursor: pointer; color: #dc2626; font-weight: bold;">🔴 منتج بالعرض</label>
+                    </div>
+                    
+                    <div id="offer-price-container" class="offer-section-box">
+                        <label style="color: #dc2626; font-weight: bold;">سعر المنتج بالعرض (الجديد)</label>
+                        <input type="number" step="0.01" id="prod-offer-price" placeholder="0.00" style="border-color: #f87171; color: #dc2626; font-weight: bold; background: #fff;">
+                        <span style="font-size: 0.75rem; color: #ef4444; display: block; margin-top: 3px;">هذا السعر سيظهر بلون أحمر بارز، وسيبقى السعر الأصلي مشطوباً بجانبه في المتجر.</span>
+                    </div>
                 </div>
 
                 <button class="btn-main" id="prod-submit-btn" type="button" onclick="saveProduct()">💾 حفظ</button>
@@ -215,6 +225,15 @@
             document.getElementById('barcode-scanner-container').style.display = 'none';
         }
 
+        function toggleOfferPriceBox() {
+            const isOffer = document.getElementById('prod-is-offer').checked;
+            const container = document.getElementById('offer-price-container');
+            container.style.display = isOffer ? 'block' : 'none';
+            if (!isOffer) {
+                document.getElementById('prod-offer-price').value = '';
+            }
+        }
+
         db.collection("categories").onSnapshot((snapshot) => {
             let catHtml = '';
             let selectHtml = `<option value="الكل">الكل</option>`;
@@ -243,10 +262,15 @@
                 let imgSrc = (p.img && p.img.length > 5) ? p.img : '';
                 let thumbHtml = imgSrc ? `<img src="${imgSrc}" class="product-thumb" alt="صورة">` : `<span style="font-size:24px; margin-left:10px;">${p.emoji || '🛒'}</span>`;
                 
+                let priceDisplayHtml = p.isOffer && p.offerPrice ? 
+                    `<span style="color:#dc2626; font-weight:bold;">₪${p.offerPrice}</span> <span style="text-decoration: line-through; color:#9ca3af; font-size:0.75rem; margin-right:4px;">₪${p.price}</span>` : 
+                    `₪${p.price}`;
+
                 let safeData = encodeURIComponent(JSON.stringify({
                     id: doc.id,
                     title: p.title || '',
                     price: p.price || 0,
+                    offerPrice: p.offerPrice || 0,
                     cost: p.cost || 0,
                     stock: p.stock || 0,
                     unit: p.unit || 'حبة',
@@ -264,7 +288,7 @@
                                 ${thumbHtml}
                                 <div>
                                     <strong style="font-size:0.9rem; display:block;">${p.title}</strong>
-                                    <div style="font-size:0.75rem; color:#666;">₪${p.price} | مخزون: ${p.stock} | باركود: ${p.barcode || 'لا يوجد'} ${p.isOffer ? ' | 🔥 عرض' : ''}</div>
+                                    <div style="font-size:0.75rem; color:#666;">${priceDisplayHtml} | مخزون: ${p.stock} | باركود: ${p.barcode || 'لا يوجد'} ${p.isOffer ? ' | 🔥 عرض' : ''}</div>
                                 </div>
                             </div>
                             <div style="display:flex; gap:6px;">
@@ -391,6 +415,7 @@
             const id = document.getElementById('prod-id').value;
             const title = document.getElementById('prod-title').value.trim();
             const price = parseFloat(document.getElementById('prod-price').value) || 0;
+            const offerPrice = parseFloat(document.getElementById('prod-offer-price').value) || 0;
             const cost = parseFloat(document.getElementById('prod-cost').value) || 0;
             const stock = parseInt(document.getElementById('prod-stock').value) || 0;
             const unit = document.getElementById('prod-unit').value.trim() || 'حبة';
@@ -401,8 +426,9 @@
             const isOffer = document.getElementById('prod-is-offer').checked;
 
             if (!title) { alert("الرجاء إدخال اسم المنتج بالعربية!"); return; }
+            if (isOffer && (!offerPrice || offerPrice <= 0)) { alert("الرجاء إدخال سعر العرض الجديد!"); return; }
 
-            const prodData = { title, price, cost, stock, unit, barcode, category, img, emoji, isOffer };
+            const prodData = { title, price, offerPrice: isOffer ? offerPrice : 0, cost, stock, unit, barcode, category, img, emoji, isOffer };
 
             let request = id ? db.collection("products").doc(id).update(prodData) : db.collection("products").add(prodData);
 
@@ -425,13 +451,16 @@
             document.getElementById('prod-id').value = p.id;
             document.getElementById('prod-title').value = p.title;
             document.getElementById('prod-price').value = p.price;
+            document.getElementById('prod-offer-price').value = p.offerPrice || '';
             document.getElementById('prod-cost').value = p.cost || '';
             document.getElementById('prod-stock').value = p.stock;
             document.getElementById('prod-unit').value = p.unit;
             document.getElementById('prod-barcode').value = p.barcode;
             document.getElementById('prod-category').value = p.category;
             document.getElementById('prod-emoji').value = p.emoji;
+            
             document.getElementById('prod-is-offer').checked = p.isOffer;
+            toggleOfferPriceBox();
             
             document.getElementById('prod-img-base64').value = p.img || '';
             updateImageDisplayState(p.img);
@@ -453,12 +482,16 @@
             document.getElementById('prod-id').value = '';
             document.getElementById('prod-title').value = '';
             document.getElementById('prod-price').value = '';
+            document.getElementById('prod-offer-price').value = '';
             document.getElementById('prod-cost').value = '';
             document.getElementById('prod-stock').value = '50';
             document.getElementById('prod-unit').value = 'حبة';
             document.getElementById('prod-barcode').value = '';
             document.getElementById('prod-emoji').value = '🛒';
+            
             document.getElementById('prod-is-offer').checked = false;
+            toggleOfferPriceBox();
+
             document.getElementById('prod-img-base64').value = '';
             document.getElementById('prod-file-input').value = '';
             
