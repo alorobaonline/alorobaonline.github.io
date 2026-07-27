@@ -39,7 +39,8 @@
         
         .offer-badge { position: absolute; top: 10px; left: 10px; background: #ef4444; color: white; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; z-index: 2; }
         
-        .product-img-wrap { width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; background: #fff; border-radius: 8px; }
+        /* تكبير حجم عرض الصورة لتكون واضحة ومميزة للعين */
+        .product-img-wrap { width: 100%; height: 150px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; background: #fff; border-radius: 8px; }
         .product-img { max-width: 100%; max-height: 100%; object-fit: contain; }
         
         .product-name { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; text-align: center; }
@@ -50,9 +51,8 @@
         /* السعر العادي (برتقالي كبير) */
         .price-normal { font-weight: 700; color: #f97316; font-size: 1.05rem; }
         
-        /* حاوية العرض لتكون مرتبة عمودياً */
+        /* حاوية العرض */
         .offer-price-container { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-        
         .price-offer-top { display: flex; align-items: center; justify-content: center; gap: 4px; }
         
         /* سعر العرض الجديد (أحمر كبير) */
@@ -162,7 +162,7 @@
             let gridHtml = '';
             filtered.forEach((p) => {
                 let imgSrc = (p.img && p.img.length > 5) ? p.img : '';
-                let mediaHtml = imgSrc ? `<img src="${imgSrc}" class="product-img" alt="صورة">` : `<span style="font-size: 45px;">${p.emoji || '🛒'}</span>`;
+                let mediaHtml = imgSrc ? `<img src="${imgSrc}" class="product-img" alt="صورة">` : `<span style="font-size: 55px;">${p.emoji || '🛒'}</span>`;
                 
                 let badgeHtml = p.isOffer ? `<div class="offer-badge">عرض</div>` : '';
 
