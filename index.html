@@ -61,6 +61,7 @@
             text-align: center; 
             flex: 0 0 auto; 
             min-width: 65px; 
+            border: 1px solid transparent;
         }
         .cat-circle { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 3px; font-size: 0.9rem; }
         .cat-name { font-size: 0.55rem; font-weight: 700; color: #4b5563; white-space: nowrap; }
@@ -70,12 +71,12 @@
         .section-title { font-size: 0.85rem; font-weight: 900; color: #111; }
         .section-all { font-size: 0.65rem; font-weight: 700; color: #16a34a; cursor: pointer; text-decoration: none; }
 
-        /* شبكة المنتجات (3 منتجات في العرض تماماً) */
+        /* شبكة المنتجات */
         .products-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
         .product-card { background: #ffffff; border-radius: 12px; padding: 6px; box-shadow: var(--shadow-card); display: flex; flex-direction: column; justify-content: space-between; position: relative; border: 1px solid #f1f5f9; }
         
-        .badge-offer { position: absolute; top: 4px; right: 4px; background: #fee2e2; color: #dc2626; font-size: 0.4rem; font-weight: 800; padding: 2px 4px; border-radius: 4px; }
-        .badge-red { position: absolute; top: 4px; left: 4px; background: #ef4444; color: white; font-size: 0.4rem; font-weight: 800; padding: 1px 4px; border-radius: 3px; }
+        .badge-offer { position: absolute; top: 4px; right: 4px; background: #fee2e2; color: #dc2626; font-size: 0.4rem; font-weight: 800; padding: 2px 4px; border-radius: 4px; z-index: 2; }
+        .badge-red { position: absolute; top: 4px; left: 4px; background: #ef4444; color: white; font-size: 0.4rem; font-weight: 800; padding: 1px 4px; border-radius: 3px; z-index: 2; }
 
         .product-img-box { width: 100%; height: 70px; display: flex; align-items: center; justify-content: center; margin: 10px 0 4px 0; }
         .product-img-box img { max-width: 100%; max-height: 70px; object-fit: contain; }
@@ -149,11 +150,11 @@
 
     <!-- عنوان القسم -->
     <div class="section-header">
-        <a class="section-all">عرض الكل ❮</a>
+        <a class="section-all" onclick="resetFilter()">عرض الكل ❮</a>
         <div class="section-title">🏷️ عروض حصرية</div>
     </div>
 
-    <!-- شبكة المنتجات (3 منتجات في العرض) -->
+    <!-- شبكة المنتجات -->
     <div class="products-grid" id="productsContainer"></div>
 
     <!-- قسم السلة -->
@@ -173,18 +174,19 @@
     <!-- شريط التنقل السفلي -->
     <nav class="bottom-nav-bar">
         <a class="nav-item active"><span class="icon">🏠</span><span>الرئيسية</span></a>
-        <a class="nav-item"><span class="icon">🗂️</span><span>التصنيفات</span></a>
-        <a class="nav-item"><span class="icon">🏷️</span><span>العروض</span></a>
-        <a class="nav-item"><span class="icon">🤍</span><span>المفضلة</span></a>
-        <a class="nav-item"><span class="icon">👤</span><span>حسابي</span></a>
+        <a class="nav-item" onclick="document.getElementById('categoriesContainer').scrollIntoView({behavior: 'smooth'})"><span class="icon">🗂️</span><span>التصنيفات</span></a>
+        <a class="nav-item" onclick="document.getElementById('productsContainer').scrollIntoView({behavior: 'smooth'})"><span class="icon">🏷️</span><span>العروض</span></a>
+        <a class="nav-item" onclick="alert('قريباً ميزة المفضلة')"><span class="icon">🤍</span><span>المفضلة</span></a>
+        <a class="nav-item" onclick="document.querySelector('.cart-section').scrollIntoView({behavior: 'smooth'})"><span class="icon">👤</span><span>حسابي</span></a>
     </nav>
 </div>
 
 <script>
+    // جلب البيانات من لوحة التحكم (LocalStorage) أو تحميل الافتراضية
     let products = JSON.parse(localStorage.getItem('aloroba_products')) || [
-        { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png" },
-        { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png" },
-        { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png" }
+        { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", category: "معلبات" },
+        { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png", category: "معلبات" },
+        { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png", category: "ألبان" }
     ];
 
     let categories = JSON.parse(localStorage.getItem('aloroba_categories')) || [
@@ -203,6 +205,7 @@
     };
 
     let cart = [];
+    let selectedCategory = "الكل";
 
     function renderBanner() {
         document.getElementById('bannerTitle').innerText = bannerData.title || "كل احتياجات بيتك في مكان واحد";
@@ -216,10 +219,10 @@
     function renderCategories() {
         const container = document.getElementById('categoriesContainer');
         container.innerHTML = '';
-        categories.forEach((cat, index) => {
-            const isActive = index === 0;
+        categories.forEach((cat) => {
+            const isActive = cat.name === selectedCategory;
             container.innerHTML += `
-                <div class="cat-item" ${isActive ? 'style="border: 1px solid #68a633; background: #f4fbf0;"' : ''}>
+                <div class="cat-item" onclick="filterByCategory('${cat.name}')" ${isActive ? 'style="border: 1px solid #68a633; background: #f4fbf0;"' : ''}>
                     <div class="cat-circle" style="background: ${cat.bg}; color: ${cat.color};">${cat.icon}</div>
                     <div class="cat-name" ${isActive ? 'style="color: #2e6930;"' : ''}>${cat.name}</div>
                 </div>
@@ -227,11 +230,31 @@
         });
     }
 
+    function filterByCategory(catName) {
+        selectedCategory = catName;
+        renderCategories();
+        if(catName === "الكل") {
+            renderProducts(products);
+        } else if(catName === "عروض") {
+            const filtered = products.filter(p => p.offer || (p.oldPrice && p.oldPrice > p.price));
+            renderProducts(filtered);
+        } else {
+            const filtered = products.filter(p => p.category === catName);
+            renderProducts(filtered);
+        }
+    }
+
+    function resetFilter() {
+        selectedCategory = "الكل";
+        renderCategories();
+        renderProducts(products);
+    }
+
     function renderProducts(list = products) {
         const container = document.getElementById('productsContainer');
         container.innerHTML = '';
         if(list.length === 0) {
-            container.innerHTML = '<p style="grid-column: span 3; text-align: center; color: #888; padding: 15px; font-size: 0.75rem;">لا توجد منتجات</p>';
+            container.innerHTML = '<p style="grid-column: span 3; text-align: center; color: #888; padding: 15px; font-size: 0.75rem;">لا توجد منتجات في هذا القسم</p>';
             return;
         }
         list.forEach(p => {
