@@ -83,7 +83,6 @@
                 <div class="store-title">العروبة أون لاين</div>
                 <div class="store-sub">توصيل سريع • رهط</div>
             </div>
-            <!-- تم ربط زر السلة بفتح نافذة تفاصيل السلة المتقدمة -->
             <button class="cart-badge-btn" onclick="openCartModal()">
                 🛒 <span id="cart-count">0</span>
             </button>
@@ -163,13 +162,18 @@
             updateCategoriesBar();
         });
 
+        // جلب عروض الحزم وتخزين تفاصيلها بالكامل (الكمية المطلوبة والسعر الإجمالي للحزمة)
         db.collection("bundles").onSnapshot((snapshot) => {
             productBundlesMap = {};
             snapshot.forEach((doc) => {
                 let b = doc.data();
                 if (b.productIds && Array.isArray(b.productIds)) {
                     b.productIds.forEach(prodId => {
-                        productBundlesMap[prodId] = `🎁 ${b.quantity} بـ ${b.price} ₪`;
+                        productBundlesMap[prodId] = {
+                            qty: Number(b.quantity) || 3,
+                            price: Number(b.price) || 0,
+                            text: `🎁 ${b.quantity} بـ ${b.price} ₪`
+                        };
                     });
                 }
             });
@@ -233,18 +237,33 @@
                 if (p) {
                     hasItems = true;
                     let regularPrice = Number(p.price) || 0;
-                    let hasOffer = p.isOffer && p.offerPrice && Number(p.offerPrice) > 0;
-                    let activePrice = hasOffer ? Number(p.offerPrice) : regularPrice;
-                    
-                    let itemTotal = activePrice * qty;
-                    subtotal += regularPrice * qty;
-                    totalDiscount += (regularPrice - activePrice) * qty;
+                    let itemSubtotal = regularPrice * qty;
+                    let itemFinalTotal = itemSubtotal;
+                    let pricingDetailText = `${regularPrice} ₪ × ${qty}`;
+
+                    // التحقق من وجود عرض حزمة لهذا المنتج وتطبيق حساب السعر بدقة
+                    let bundle = productBundlesMap[id];
+                    if (bundle && qty >= bundle.qty) {
+                        let bundlesCount = Math.floor(qty / bundle.qty);
+                        let remainderQty = qty % bundle.qty;
+                        itemFinalTotal = (bundlesCount * bundle.price) + (remainderQty * regularPrice);
+                        pricingDetailText = `عرض (${bundlesCount} حزمة) + ${remainderQty} مفرد`;
+                    } else if (p.isOffer && p.offerPrice && Number(p.offerPrice) > 0) {
+                        let activePrice = Number(p.offerPrice);
+                        itemFinalTotal = activePrice * qty;
+                        pricingDetailText = `${activePrice} ₪ × ${qty}`;
+                    }
+
+                    let itemDiscount = itemSubtotal - itemFinalTotal;
+                    subtotal += itemSubtotal;
+                    totalDiscount += itemDiscount;
 
                     html += `
                         <div class="cart-item-row">
                             <div>
                                 <div style="font-weight: 700; font-size: 0.9rem;">${p.title}</div>
-                                <div style="font-size: 0.8rem; color: #e11d48; direction: ltr; unicode-bidi: isolate;">${activePrice} ₪ × ${qty} = ${itemTotal.toFixed(2)} ₪</div>
+                                <div style="font-size: 0.75rem; color: #6b7280;">${pricingDetailText}</div>
+                                <div style="font-size: 0.85rem; color: #e11d48; font-weight: 700; direction: ltr; unicode-bidi: isolate;">${itemFinalTotal.toFixed(2)} ₪</div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <button class="cart-counter-btn" style="padding: 2px 8px; font-size: 0.8rem;" onclick="decreaseQuantity('${id}'); openCartModal();">-</button>
@@ -319,13 +338,13 @@
 
                 let bundleTagHtml = '';
                 if (productBundlesMap[p.id]) {
-                    bundleTagHtml = `<div class="product-bundle-tag">${productBundlesMap[p.id]}</div>`;
+                    bundleTagHtml = `<div class="product-bundle-tag">${productBundlesMap[p.id].text}</div>`;
                 }
 
                 let priceHtml = '';
                 let unitText = p.unit || 'حبة';
                 
-                if (p.isOffer && p.offerPrice && p.offerPrice > 0) {
+                if (p.isOffer && p.offerPrice && Number(p.offerPrice) > 0) {
                     priceHtml = `
                         <div class="offer-price-container">
                             <div class="price-offer-top">
