@@ -91,7 +91,6 @@
         .product-img { max-width: 100%; max-height: 100%; object-fit: contain; }
         
         .product-name { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; text-align: center; }
-        .product-stock { font-size: 0.75rem; color: #6b7280; text-align: center; margin-bottom: 6px; font-weight: 600; }
         
         .product-price-row { text-align: center; margin-bottom: 10px; font-size: 0.9rem; direction: rtl; unicode-bidi: plaintext; }
         .price-normal { font-weight: 700; color: #f97316; font-size: 1.05rem; }
@@ -102,6 +101,7 @@
         .price-offer-old { text-decoration: line-through; color: #1f2937; font-size: 0.8rem; font-weight: 600; }
 
         .btn-add-cart { background: var(--primary-green); color: white; border: none; width: 100%; padding: 8px; border-radius: var(--radius-md); font-weight: 700; font-size: 0.85rem; cursor: pointer; text-align: center; }
+        .btn-add-cart:disabled { background: #9ca3af; cursor: not-allowed; }
 
         .cart-counter-box { display: flex; align-items: center; justify-content: space-between; background: var(--primary-green); border-radius: var(--radius-md); overflow: hidden; width: 100%; }
         .cart-counter-btn { background: rgba(0,0,0,0.15); color: white; border: none; padding: 8px 14px; font-size: 1rem; font-weight: 700; cursor: pointer; }
@@ -381,6 +381,15 @@
         });
 
         function increaseQuantity(productId) {
+            let p = allProductsMap[productId];
+            let currentStock = (p && p.stock !== undefined && p.stock !== '') ? Number(p.stock) : 99999;
+            let currentCartQty = cartItems[productId] || 0;
+
+            if (currentCartQty >= currentStock) {
+                alert("عذراً، الكمية المطلوبة غير متوفرة في المخزون");
+                return;
+            }
+
             if (!cartItems[productId]) {
                 cartItems[productId] = 1;
             } else {
@@ -795,10 +804,13 @@
                     priceHtml = `<div class="product-price-row"><span class="price-normal">${p.price}₪</span></div>`;
                 }
 
+                let stockNum = (p.stock !== undefined && p.stock !== '') ? Number(p.stock) : 99999;
                 let qty = cartItems[p.id] || 0;
                 let actionBtnHtml = '';
                 
-                if (qty === 0) {
+                if (stockNum <= 0) {
+                    actionBtnHtml = `<button class="btn-add-cart" disabled style="background: #9ca3af; cursor: not-allowed;">نفذت الكمية ❌</button>`;
+                } else if (qty === 0) {
                     let btnText = bundleInfo ? 'عرض التشكيلة 🎁' : 'إضافة للسلة 🛒';
                     actionBtnHtml = `<button class="btn-add-cart" onclick="handleProductClick('${p.id}')">${btnText}</button>`;
                 } else {
@@ -811,8 +823,6 @@
                     `;
                 }
 
-                let stockText = (p.stock !== undefined && p.stock !== '') ? `المتوفر: ${p.stock}` : '';
-
                 gridHtml += `
                     <div class="product-card">
                         ${badgeHtml}
@@ -820,7 +830,6 @@
                             ${bundleTagHtml}
                             ${mediaHtml}
                             <div class="product-name">${p.title}</div>
-                            <div class="product-stock">${stockText}</div>
                             ${priceHtml}
                         </div>
                         <div>
