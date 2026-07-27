@@ -43,10 +43,17 @@
         #barcode-scanner-container { display: none; margin-top: 10px; width: 100%; border-radius: 8px; overflow: hidden; border: 2px solid var(--primary-green); background: #000; position: relative; }
         #barcode-video { width: 100%; max-height: 220px; object-fit: cover; display: block; }
         
+        /* تصميم صندوق رفع وتعديل الصورة الجديد */
         .image-upload-box { border: 2px dashed #cbd5e1; border-radius: var(--radius-md); padding: 16px; text-align: center; background: #f8fafc; cursor: pointer; position: relative; transition: all 0.2s ease; }
         .image-upload-box:hover { border-color: var(--primary-green); background: #f0fdf4; }
         .image-upload-box input[type="file"] { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer; z-index: 2; }
-        .preview-img-disp { width: 70px; height: 70px; object-fit: contain; margin-top: 8px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; display: none; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        
+        .preview-container { display: none; align-items: center; justify-content: center; gap: 12px; margin-top: 5px; position: relative; z-index: 3; }
+        .preview-img-disp { width: 80px; height: 80px; object-fit: contain; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .img-actions-col { display: flex; flex-direction: column; gap: 6px; flex: 1; max-width: 150px; }
+        .btn-img-action { padding: 8px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; border: none; text-align: center; width: 100%; }
+        .btn-change-img { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; }
+        .btn-remove-img { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
     </style>
 </head>
 <body>
@@ -117,12 +124,24 @@
                 </div>
 
                 <div class="form-group">
-                    <label>صورة المنتج (يتم ضغطها تلقائياً لتناسب التخزين)</label>
-                    <div class="image-upload-box">
+                    <label>صورة المنتج</label>
+                    <div class="image-upload-box" id="upload-box-wrapper">
                         <input type="file" id="prod-file-input" accept="image/*" onchange="handleImagePick(event)">
-                        <div style="font-size: 1.6rem; margin-bottom: 2px;">📸</div>
-                        <span style="font-size: 0.85rem; font-weight: bold; color: #334155;">تصوير / اختيار من المعرض</span>
-                        <div><img id="img-preview" class="preview-img-disp" alt="معاينة"></div>
+                        
+                        <!-- الحالة الأولى: لم يتم اختيار صورة -->
+                        <div id="upload-placeholder">
+                            <div style="font-size: 1.6rem; margin-bottom: 2px;">📸</div>
+                            <span style="font-size: 0.85rem; font-weight: bold; color: #334155;">تصوير / اختيار من المعرض</span>
+                        </div>
+
+                        <!-- الحالة الثانية: تم اختيار صورة (صورة مصغرة + أزرار تبديل وحذف) -->
+                        <div id="preview-container" class="preview-container">
+                            <img id="img-preview" class="preview-img-disp" alt="معاينة">
+                            <div class="img-actions-col">
+                                <button type="button" class="btn-img-action btn-change-img" onclick="triggerFileSelect(event)">🔄 تبديل الصورة</button>
+                                <button type="button" class="btn-img-action btn-remove-img" onclick="removeProductImage(event)">🗑️ حذف الصورة</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -221,7 +240,6 @@
                 let imgSrc = (p.img && p.img.length > 5) ? p.img : '';
                 let thumbHtml = imgSrc ? `<img src="${imgSrc}" class="product-thumb" alt="صورة">` : `<span style="font-size:24px; margin-left:10px;">${p.emoji || '🛒'}</span>`;
                 
-                // تخزين البيانات بشكل آمن لزر التعديل
                 let safeData = encodeURIComponent(JSON.stringify({
                     id: doc.id,
                     title: p.title || '',
@@ -290,13 +308,45 @@
 
                     const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
                     document.getElementById('prod-img-base64').value = compressedBase64;
-                    const preview = document.getElementById('img-preview');
-                    preview.src = compressedBase64;
-                    preview.style.display = 'inline-block';
+                    
+                    // إظهار المعاينة وأزرار التحكم الجديدة وإخفاء نص الرفع الافتراضي
+                    document.getElementById('img-preview').src = compressedBase64;
+                    document.getElementById('upload-placeholder').style.display = 'none';
+                    document.getElementById('preview-container').style.display = 'flex';
                 }
                 img.src = e.target.result;
             }
             reader.readAsDataURL(file);
+        }
+
+        function triggerFileSelect(e) {
+            e.stopPropagation();
+            document.getElementById('prod-file-input').click();
+        }
+
+        function removeProductImage(e) {
+            e.stopPropagation();
+            document.getElementById('prod-img-base64').value = '';
+            document.getElementById('prod-file-input').value = '';
+            document.getElementById('img-preview').src = '';
+            document.getElementById('preview-container').style.display = 'none';
+            document.getElementById('upload-placeholder').style.display = 'block';
+        }
+
+        function updateImageDisplayState(imgUrl) {
+            const preview = document.getElementById('img-preview');
+            const placeholder = document.getElementById('upload-placeholder');
+            const previewContainer = document.getElementById('preview-container');
+
+            if (imgUrl && imgUrl.length > 5) {
+                preview.src = imgUrl;
+                placeholder.style.display = 'none';
+                previewContainer.style.display = 'flex';
+            } else {
+                preview.src = '';
+                previewContainer.style.display = 'none';
+                placeholder.style.display = 'block';
+            }
         }
 
         function saveCategory() {
@@ -371,14 +421,8 @@
             document.getElementById('prod-emoji').value = p.emoji;
             document.getElementById('prod-is-offer').checked = p.isOffer;
             
-            document.getElementById('prod-img-base64').value = p.img;
-            const preview = document.getElementById('img-preview');
-            if (p.img && p.img.length > 5) {
-                preview.src = p.img;
-                preview.style.display = 'inline-block';
-            } else {
-                preview.style.display = 'none';
-            }
+            document.getElementById('prod-img-base64').value = p.img || '';
+            updateImageDisplayState(p.img);
             document.getElementById('prod-file-input').value = "";
 
             document.getElementById('prod-panel-title').innerText = `✏️ تعديل المنتج: ${p.title}`;
@@ -404,7 +448,8 @@
             document.getElementById('prod-is-offer').checked = false;
             document.getElementById('prod-img-base64').value = '';
             document.getElementById('prod-file-input').value = '';
-            document.getElementById('img-preview').style.display = 'none';
+            
+            updateImageDisplayState('');
 
             document.getElementById('prod-panel-title').innerText = "🛒 إضافة منتج جديد";
             document.getElementById('prod-submit-btn').innerText = "💾 حفظ";
