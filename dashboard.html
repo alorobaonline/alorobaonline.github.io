@@ -33,7 +33,6 @@
         .form-control { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; outline: none; background: white; }
         .form-control:focus { border-color: var(--accent-green); }
 
-        /* تعديل حاوية الأقسام لتكون شبكية وكل 3 أقسام في صف واحد بشكل صحيح ومتناسق */
         .categories-checkbox-container {
             border: 1px solid #cbd5e1;
             border-radius: 8px;
@@ -220,13 +219,12 @@
         </div>
         <div id="addProductSection" class="section-content">
             
-            <!-- 1. اسم المنتج -->
             <div class="form-group">
                 <label>اسم المنتج *</label>
                 <input type="text" id="prodName" class="form-control" placeholder="مثال: أرز تات بسمتي">
             </div>
 
-            <!-- 2. السعر الحالي + الكمية المتاحة + الوزن أو الحجم في صف واحد -->
+            <!-- السعر الحالي، الكمية المتاحة، والوزن / الحجم في صف واحد متناسق -->
             <div style="display: flex; gap: 6px;">
                 <div class="form-group" style="flex: 1;">
                     <label>السعر الحالي (₪) *</label>
@@ -242,13 +240,11 @@
                 </div>
             </div>
 
-            <!-- 3. الأقسام والفئات (كل 3 في صف واحد بشكل صحيح) -->
             <div class="form-group">
                 <label>الأقسام والفئات المطلوبة *</label>
                 <div id="prodCategoriesCheckboxes" class="categories-checkbox-container"></div>
             </div>
 
-            <!-- 4. صورة المنتج -->
             <div class="form-group">
                 <label>صورة المنتج *</label>
                 <div class="file-upload-box">
@@ -259,7 +255,6 @@
                 <input type="hidden" id="prodImgData">
             </div>
 
-            <!-- 5. زر الإضافة والنشر -->
             <button class="btn-main" onclick="saveProduct()">إضافة ونشر المنتج فوراً 🚀</button>
         </div>
     </div>
@@ -541,47 +536,57 @@
                                     <button class="btn-delete" onclick="deleteProduct(${originalIndex})">حذف</button>
                                 </div>
                             </div>
+                            
+                            <!-- نموذج التعديل المدمج والمطابق لنموذج الإضافة تماماً -->
                             <div id="inline-edit-${originalIndex}" class="inline-edit-form">
                                 <div class="form-group">
-                                    <label>اسم المنتج</label>
+                                    <label>اسم المنتج *</label>
                                     <input type="text" id="edit-name-${originalIndex}" class="form-control" value="${p.name}">
                                 </div>
-                                <div class="form-group">
-                                    <label>الوزن أو الحجم</label>
-                                    <input type="text" id="edit-weight-${originalIndex}" class="form-control" value="${p.weight || ''}">
+
+                                <!-- السعر الحالي، الكمية المتاحة، والوزن في صف واحد تماماً كنموذج الإضافة -->
+                                <div style="display: flex; gap: 6px;">
+                                    <div class="form-group" style="flex: 1;">
+                                        <label>السعر الحالي (₪) *</label>
+                                        <input type="number" id="edit-price-${originalIndex}" class="form-control" value="${p.price}">
+                                    </div>
+                                    <div class="form-group" style="flex: 1;">
+                                        <label>الكمية المتاحة *</label>
+                                        <input type="number" id="edit-stock-${originalIndex}" class="form-control" value="${p.stockQty ?? 0}">
+                                    </div>
+                                    <div class="form-group" style="flex: 1;">
+                                        <label>الوزن / الحجم</label>
+                                        <input type="text" id="edit-weight-${originalIndex}" class="form-control" value="${p.weight || ''}">
+                                    </div>
                                 </div>
+
                                 <div class="form-group">
-                                    <label>الكمية المتاحة في المخزن</label>
-                                    <input type="number" id="edit-stock-${originalIndex}" class="form-control" value="${p.stockQty ?? 0}">
-                                </div>
-                                <div class="form-group">
-                                    <label>الفئات التابع لها:</label>
-                                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; background: white; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                    <label>الأقسام والفئات المطلوبة *</label>
+                                    <div class="categories-checkbox-container">
                                         ${categories.filter(c => c.name !== "الكل").map(c => `
-                                            <label style="font-size: 0.65rem; font-weight: 600; display: flex; align-items: center; justify-content: flex-start; gap: 4px; cursor: pointer; background: #f8fafc; padding: 4px; border-radius: 4px; border: 1px solid #e2e8f0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                                                <input type="checkbox" class="edit-cat-check-${originalIndex}" value="${c.name}" ${p.categories && p.categories.includes(c.name) ? 'checked' : ''} style="margin-left:2px;">
-                                                ${c.icon || ''} ${c.name}
+                                            <label class="checkbox-item" title="${c.name}">
+                                                <input type="checkbox" class="edit-cat-check-${originalIndex}" value="${c.name}" ${p.categories && p.categories.includes(c.name) ? 'checked' : ''}>
+                                                <span>${c.icon || ''} ${c.name}</span>
                                             </label>
                                         `).join('')}
                                     </div>
                                 </div>
+
                                 <div class="form-group">
-                                    <label>السعر الحالي (₪)</label>
-                                    <input type="number" id="edit-price-${originalIndex}" class="form-control" value="${p.price}">
-                                </div>
-                                <div class="form-group">
-                                    <label>رزمة الحملة أو العرض</label>
+                                    <label>رزمة العرض (اختياري)</label>
                                     <input type="text" id="edit-offer-${originalIndex}" class="form-control" value="${p.offer || ''}">
                                 </div>
+
                                 <div class="form-group">
-                                    <label>تغيير صورة المنتج</label>
+                                    <label>صورة المنتج *</label>
                                     <div class="file-upload-box">
-                                        <label class="camera-btn" for="editFile-${originalIndex}">📸 اختر صورة جديدة</label>
+                                        <label class="camera-btn" for="editFile-${originalIndex}">📸 التقاط أو اختيار صورة</label>
                                         <input type="file" id="editFile-${originalIndex}" accept="image/*" onchange="compressAndSetImage(event, 'edit-imgData-${originalIndex}', 'editPreview-${originalIndex}')">
                                         <img id="editPreview-${originalIndex}" class="preview-thumb" src="${p.img}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                                     </div>
                                     <input type="hidden" id="edit-imgData-${originalIndex}" value="${p.img}">
                                 </div>
+
                                 <div style="display: flex; gap: 5px; margin-top: 5px;">
                                     <button class="btn-main" style="margin-top:0; background: #3b82f6;" onclick="saveInlineEdit(${originalIndex})">حفظ التعديلات ✅</button>
                                     <button class="btn-main" style="margin-top:0; background: #64748b;" onclick="toggleInlineEdit(${originalIndex})">إلغاء ❌</button>
@@ -822,8 +827,8 @@
             selectedCategories.push(chk.value);
         });
 
-        if (!name || isNaN(price)) {
-            alert("الرجاء إدخال اسم المنتج والسعر الحالي على الأقل.");
+        if (!name || isNaN(price) || isNaN(stockQty)) {
+            alert("الرجاء إدخال اسم المنتج، السعر الحالي، والكمية المتاحة.");
             return;
         }
 
