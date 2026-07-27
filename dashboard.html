@@ -26,8 +26,13 @@
 
         .form-group { margin-bottom: 8px; }
         .form-group label { display: block; font-size: 0.7rem; font-weight: 700; margin-bottom: 3px; color: #4b5563; }
-        .form-control { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; outline: none; }
+        .form-control { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; outline: none; background: white; }
         .form-control:focus { border-color: var(--accent-green); }
+
+        .file-upload-box { display: flex; align-items: center; gap: 8px; }
+        .file-upload-box input[type="file"] { display: none; }
+        .camera-btn { background: #e2e8f0; color: #1b4d2e; border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+        .camera-btn:hover { background: #cbd5e1; }
 
         .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 9px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; margin-top: 5px; }
         .btn-delete { background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.6rem; cursor: pointer; font-weight: bold; }
@@ -55,8 +60,12 @@
             <input type="text" id="bannerTagInput" class="form-control" placeholder="سوبر ماركت العروبة">
         </div>
         <div class="form-group">
-            <label>رابط صورة البانر (URL)</label>
-            <input type="text" id="bannerImgInput" class="form-control" placeholder="https://...">
+            <label>صورة البانر من الجهاز</label>
+            <div class="file-upload-box">
+                <label class="camera-btn" for="bannerFile">📷 اختر صورة البانر</label>
+                <input type="file" id="bannerFile" accept="image/*" onchange="previewBannerImage(event)">
+                <input type="text" id="bannerImgInput" class="form-control" placeholder="مسار الصورة أو رابطها">
+            </div>
         </div>
         <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث البانر 💾</button>
     </div>
@@ -112,8 +121,12 @@
             <input type="text" id="prodOffer" class="form-control" placeholder="مثال: 3 بـ22 أو عرض خاص">
         </div>
         <div class="form-group">
-            <label>رابط صورة المنتج (URL)</label>
-            <input type="text" id="prodImg" class="form-control" placeholder="https://...">
+            <label>صورة المنتج من الهاتف</label>
+            <div class="file-upload-box">
+                <label class="camera-btn" for="prodFile">📷 التقاط / اختيار صورة</label>
+                <input type="file" id="prodFile" accept="image/*" onchange="previewProductImage(event)">
+                <input type="text" id="prodImg" class="form-control" placeholder="مسار الصورة أو رابطها">
+            </div>
         </div>
         <button class="btn-main" onclick="addProduct()">إضافة ونشر المنتج فوراً 🚀</button>
         
@@ -169,6 +182,28 @@
                 </div>
             `;
         });
+    }
+
+    function previewBannerImage(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('bannerImgInput').value = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function previewProductImage(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('prodImg').value = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
     }
 
     function saveBannerSettings() {
@@ -238,6 +273,7 @@
         document.getElementById('prodOldPrice').value = '';
         document.getElementById('prodOffer').value = '';
         document.getElementById('prodImg').value = '';
+        document.getElementById('prodFile').value = '';
 
         renderAdmin();
         alert("تمت إضافة المنتج/الحملة بنجاح وتحديث المتجر!");
