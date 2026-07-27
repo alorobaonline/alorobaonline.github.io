@@ -239,6 +239,7 @@
         let productBundlesMap = {}; 
         let bundlesDataMap = {}; 
         
+        // استرجاع السلة مباشرة عند تحميل الصفحة لضمان عدم ضياعها أو تصفيرها
         let cartItems = {};
         try {
             const savedCart = localStorage.getItem('aloroba_cart');
@@ -309,7 +310,7 @@
             });
             updateCategoriesBar();
             renderProducts();
-            updateCartCounter();
+            updateCartCounter(); // تحديث العداد دائماً فور جلب المنتجات
         });
 
         function increaseQuantity(productId) {
@@ -700,6 +701,7 @@
             document.getElementById('store-products-grid').innerHTML = gridHtml;
         }
 
+        // تشغيل العداد فور فتح الصفحة لضمان استقرار السلة تماماً
         updateCartCounter();
     </script>
 </body>
