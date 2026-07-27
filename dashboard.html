@@ -23,9 +23,9 @@
 
         .section-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
         
-        /* عناوين الأقسام القابلة للطي والتوسيع */
+        /* عناوين الأقسام القابلة للطي والتوسيع (تبدأ مغلقة) */
         .section-header-toggle { font-size: 0.85rem; color: var(--primary-green); font-weight: 800; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
-        .section-content { margin-top: 10px; display: block; }
+        .section-content { margin-top: 10px; display: none; } /* مغلق افتراضياً */
 
         .form-group { margin-bottom: 8px; }
         .form-group label { display: block; font-size: 0.7rem; font-weight: 700; margin-bottom: 3px; color: #4b5563; }
@@ -93,11 +93,11 @@
         <a href="index.html" class="back-btn">← عودة للمتجر</a>
     </div>
 
-    <!-- 1. إعدادات البانر الرئيسي -->
+    <!-- 1. إعدادات البانر الرئيسي (مغلق افتراضياً) -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleMainSection('bannerSection', 'bannerArrow')">
             <span>📢 تخصيص البانر الرئيسي</span>
-            <span id="bannerArrow" class="toggle-arrow">▲</span>
+            <span id="bannerArrow" class="toggle-arrow">▼</span>
         </div>
         <div id="bannerSection" class="section-content">
             <div class="form-group">
@@ -113,7 +113,7 @@
                 <div class="file-upload-box">
                     <label class="camera-btn" for="bannerFile">📷 اختيار صورة البانر</label>
                     <input type="file" id="bannerFile" accept="image/*" onchange="compressAndSetImage(event, 'bannerImgData', 'bannerPreview')">
-                    <img id="bannerPreview" class="preview-thumb" src="https://cdn-icons-png.flaticon.com/512/3081/3081986.png">
+                    <img id="bannerPreview" class="preview-thumb" src="https://cdn-icons-png.flaticon.com/512/3081/3081986.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                 </div>
                 <input type="hidden" id="bannerImgData">
             </div>
@@ -121,11 +121,11 @@
         </div>
     </div>
 
-    <!-- 2. إدارة الفئات والأقسام -->
+    <!-- 2. إدارة الفئات والأقسام (مغلق افتراضياً) -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleMainSection('categoriesSection', 'catArrow')">
             <span>📁 إدارة الفئات (الأقسام)</span>
-            <span id="catArrow" class="toggle-arrow">▲</span>
+            <span id="catArrow" class="toggle-arrow">▼</span>
         </div>
         <div id="categoriesSection" class="section-content">
             <div class="form-group">
@@ -151,11 +151,11 @@
         </div>
     </div>
 
-    <!-- 3. إضافة منتج جديد -->
+    <!-- 3. إضافة منتج جديد (مغلق افتراضياً) -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleMainSection('addProductSection', 'prodArrow')">
             <span>📦 إضافة منتج أو حملة جديدة</span>
-            <span id="prodArrow" class="toggle-arrow">▲</span>
+            <span id="prodArrow" class="toggle-arrow">▼</span>
         </div>
         <div id="addProductSection" class="section-content">
             <div class="form-group">
@@ -189,7 +189,7 @@
                 <div class="file-upload-box">
                     <label class="camera-btn" for="prodFile">📸 التقاط أو اختيار صورة</label>
                     <input type="file" id="prodFile" accept="image/*" onchange="compressAndSetImage(event, 'prodImgData', 'prodPreview')">
-                    <img id="prodPreview" class="preview-thumb" src="https://cdn-icons-png.flaticon.com/512/3081/3081986.png">
+                    <img id="prodPreview" class="preview-thumb" src="https://cdn-icons-png.flaticon.com/512/3081/3081986.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                 </div>
                 <input type="hidden" id="prodImgData">
             </div>
@@ -197,11 +197,11 @@
         </div>
     </div>
 
-    <!-- 4. خانة المنتجات المقسمة حسب الفئات -->
+    <!-- 4. خانة المنتجات المقسمة حسب الفئات (مغلق افتراضياً) -->
     <div class="section-box" style="background: #edf2f7; border-color: #cbd5e1;">
         <div class="section-header-toggle" onclick="toggleMainSection('manageProductsSection', 'manageArrow')">
             <span>🛒 إدارة وعرض المنتجات (مقسمة حسب الأقسام)</span>
-            <span id="manageArrow" class="toggle-arrow">▲</span>
+            <span id="manageArrow" class="toggle-arrow">▼</span>
         </div>
         <div id="manageProductsSection" class="section-content" style="margin-top: 12px;">
             <div id="categorizedProductsAdminList"></div>
@@ -210,11 +210,10 @@
 </div>
 
 <script>
-    // دالة عامة لطي وتوسيع الأقسام الرئيسية
     function toggleMainSection(sectionId, arrowId) {
         const section = document.getElementById(sectionId);
         const arrow = document.getElementById(arrowId);
-        if (section.style.display === "none") {
+        if (section.style.display === "none" || section.style.display === "") {
             section.style.display = "block";
             arrow.innerText = "▲";
         } else {
@@ -223,7 +222,6 @@
         }
     }
 
-    // دالة لضغط الصور وتصغيرها لمنع امتلاء مساحة التخزين المحلية
     function compressAndSetImage(event, hiddenInputId, previewImgId) {
         const file = event.target.files[0];
         if (!file) return;
@@ -427,7 +425,7 @@
                                     <div class="file-upload-box">
                                         <label class="camera-btn" for="editFile-${originalIndex}">📸 اختر صورة جديدة</label>
                                         <input type="file" id="editFile-${originalIndex}" accept="image/*" onchange="compressAndSetImage(event, 'edit-imgData-${originalIndex}', 'editPreview-${originalIndex}')">
-                                        <img id="editPreview-${originalIndex}" class="preview-thumb" src="${p.img}">
+                                        <img id="editPreview-${originalIndex}" class="preview-thumb" src="${p.img}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                                     </div>
                                     <input type="hidden" id="edit-imgData-${originalIndex}" value="${p.img}">
                                 </div>
@@ -448,10 +446,10 @@
                         <span>${cat.name}</span>
                         <div class="category-toggle-badge">
                             <span>${catProducts.length}</span>
-                            <span id="arrow-icon-${catIdx}">▼</span>
+                            <span id="arrow-icon-${catIdx}">▲</span>
                         </div>
                     </div>
-                    <div id="category-content-${catIdx}" style="display: block;">
+                    <div id="category-content-${catIdx}" style="display: none;">
                         ${productsHtml}
                     </div>
                 </div>
