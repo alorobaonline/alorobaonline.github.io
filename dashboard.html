@@ -78,8 +78,6 @@
         .product-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
         .btn-delete { background: #ef4444; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; white-space: nowrap; }
         .btn-edit { background: #3b82f6; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; white-space: nowrap; }
-        .btn-stock { background: #10b981; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; white-space: nowrap; }
-        .btn-out-stock { background: #f59e0b; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; white-space: nowrap; }
 
         .list-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 0.7rem; }
         
@@ -395,9 +393,9 @@
         }
         
         const defaultProducts = [
-            { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات", "عروض"], inStock: true, stockQty: 15 },
-            { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png", categories: ["معلبات"], inStock: true, stockQty: 30 },
-            { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png", categories: ["ألبان"], inStock: true, stockQty: 10 }
+            { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات", "عروض"], inStock: true, stockQty: 15 },
+            { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, img: "https://i.ibb.co/1q20K0v/maggi.png", categories: ["معلبات"], inStock: true, stockQty: 30 },
+            { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, img: "https://i.ibb.co/7Xv8L9p/nido.png", categories: ["ألبان"], inStock: true, stockQty: 10 }
         ];
         try {
             localStorage.setItem('aloroba_products', JSON.stringify(defaultProducts));
@@ -531,20 +529,19 @@
                                     </div>
                                 </div>
                                 <div class="product-actions">
-                                    <button class="${isAvailable ? 'btn-out-stock' : 'btn-stock'}" onclick="toggleStock(${originalIndex})">${isAvailable ? 'إيقاف ⚠️' : 'تفعيل ✅'}</button>
                                     <button class="btn-edit" onclick="toggleInlineEdit(${originalIndex})">تعديل ✏️</button>
                                     <button class="btn-delete" onclick="deleteProduct(${originalIndex})">حذف</button>
                                 </div>
                             </div>
                             
-                            <!-- نموذج التعديل المدمج والمطابق لنموذج الإضافة تماماً -->
+                            <!-- نموذج التعديل المدمج والمرتب (بدون زر إيقاف وبدون رزمة العرض) -->
                             <div id="inline-edit-${originalIndex}" class="inline-edit-form">
                                 <div class="form-group">
                                     <label>اسم المنتج *</label>
                                     <input type="text" id="edit-name-${originalIndex}" class="form-control" value="${p.name}">
                                 </div>
 
-                                <!-- السعر الحالي، الكمية المتاحة، والوزن في صف واحد تماماً كنموذج الإضافة -->
+                                <!-- السعر الحالي، الكمية المتاحة، والوزن في صف واحد منظم تماماً -->
                                 <div style="display: flex; gap: 6px;">
                                     <div class="form-group" style="flex: 1;">
                                         <label>السعر الحالي (₪) *</label>
@@ -573,11 +570,6 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label>رزمة العرض (اختياري)</label>
-                                    <input type="text" id="edit-offer-${originalIndex}" class="form-control" value="${p.offer || ''}">
-                                </div>
-
-                                <div class="form-group">
                                     <label>صورة المنتج *</label>
                                     <div class="file-upload-box">
                                         <label class="camera-btn" for="editFile-${originalIndex}">📸 التقاط أو اختيار صورة</label>
@@ -587,9 +579,10 @@
                                     <input type="hidden" id="edit-imgData-${originalIndex}" value="${p.img}">
                                 </div>
 
+                                <!-- تصحيح ترتيب الأزرار: زر الحفظ أولاً في اليمين، ثم الإلغاء في اليسار -->
                                 <div style="display: flex; gap: 5px; margin-top: 5px;">
-                                    <button class="btn-main" style="margin-top:0; background: #3b82f6;" onclick="saveInlineEdit(${originalIndex})">حفظ التعديلات ✅</button>
-                                    <button class="btn-main" style="margin-top:0; background: #64748b;" onclick="toggleInlineEdit(${originalIndex})">إلغاء ❌</button>
+                                    <button class="btn-main" style="margin-top:0; background: #3b82f6; flex: 2;" onclick="saveInlineEdit(${originalIndex})">حفظ التعديلات ✅</button>
+                                    <button class="btn-main" style="margin-top:0; background: #64748b; flex: 1;" onclick="toggleInlineEdit(${originalIndex})">إلغاء ❌</button>
                                 </div>
                             </div>
                         </div>
@@ -762,15 +755,6 @@
         renderAdmin();
     }
 
-    function toggleStock(index) {
-        let products = getStoredProducts();
-        if (products[index]) {
-            products[index].inStock = products[index].inStock === false ? true : false;
-            localStorage.setItem('aloroba_products', JSON.stringify(products));
-            renderAdmin();
-        }
-    }
-
     function deleteOrder(index) {
         if(confirm("هل تريد حذف هذا الطلب؟")) {
             let orders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
@@ -819,7 +803,6 @@
         const weight = document.getElementById(`edit-weight-${index}`).value;
         const stockQty = parseInt(document.getElementById(`edit-stock-${index}`).value);
         const price = parseFloat(document.getElementById(`edit-price-${index}`).value);
-        const offer = document.getElementById(`edit-offer-${index}`).value;
         const img = document.getElementById(`edit-imgData-${index}`).value;
         
         let selectedCategories = [];
@@ -838,7 +821,6 @@
             weight,
             stockQty: isNaN(stockQty) ? 0 : stockQty,
             price,
-            offer,
             img,
             categories: selectedCategories.length > 0 ? selectedCategories : ['عروض']
         };
