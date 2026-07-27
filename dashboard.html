@@ -83,11 +83,12 @@
         
         .toggle-arrow { font-size: 0.75rem; transition: transform 0.2s; }
         
-        .order-card { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 0.75rem; }
+        .order-card { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 0.75rem; animation: fadeIn 0.5s; }
         .order-header { display: flex; justify-content: space-between; font-weight: bold; color: var(--primary-green); border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body onload="renderAdmin()">
+<body onload="initAdmin()">
 
 <div class="dashboard-container">
     <div class="dash-header">
@@ -267,6 +268,18 @@
         }
     }
 
+    function toggleCategorySection(catIdx) {
+        const content = document.getElementById(`category-content-${catIdx}`);
+        const arrow = document.getElementById(`arrow-icon-${catIdx}`);
+        if (content.style.display === "none" || content.style.display === "") {
+            content.style.display = "block";
+            arrow.innerText = "▼";
+        } else {
+            content.style.display = "none";
+            arrow.innerText = "▲";
+        }
+    }
+
     function compressAndSetImage(event, hiddenInputId, previewImgId) {
         const file = event.target.files[0];
         if (!file) return;
@@ -362,6 +375,12 @@
             img: ""
         };
     } catch(e) {}
+
+    function initAdmin() {
+        renderAdmin();
+        // تحديث الطلبات تلقائياً كل 3 ثوانٍ في حال قام زبون بإرسال طلب من المتجر المفتوح في تبويب آخر
+        setInterval(renderLiveOrders, 3000);
+    }
 
     function renderAdmin() {
         let products = getStoredProducts();
@@ -515,18 +534,18 @@
         }
 
         orders.forEach((ord, idx) => {
-            let itemsHtml = ord.items.map(i => `• ${i.name} (×${i.quantity}) - ${i.price * i.quantity} ₪`).join('<br>');
+            let itemsHtml = ord.items && Array.isArray(ord.items) ? ord.items.map(i => `• ${i.name} (×${i.quantity || 1}) - ${(i.price || 0) * (i.quantity || 1)} ₪`).join('<br>') : 'تفاصيل المنتجات غير متوفرة';
             container.innerHTML += `
                 <div class="order-card">
                     <div class="order-header">
-                        <span>👤 الزبون: ${ord.customerName}</span>
+                        <span>👤 الزبون: ${ord.customerName || ord.name || 'مشتري'}</span>
                         <span>${ord.date || ''}</span>
                     </div>
-                    <div style="margin-bottom: 5px;">📞 الهاتف: <a href="tel:${ord.customerPhone}" style="color: #2563eb; font-weight: bold;">${ord.customerPhone}</a></div>
-                    <div style="margin-bottom: 5px;">📍 العنوان: ${ord.customerAddress || 'غير محدد'}</div>
+                    <div style="margin-bottom: 5px;">📞 الهاتف: <a href="tel:${ord.customerPhone || ord.phone || ''}" style="color: #2563eb; font-weight: bold;">${ord.customerPhone || ord.phone || 'غير محدد'}</a></div>
+                    <div style="margin-bottom: 5px;">📍 العنوان: ${ord.customerAddress || ord.address || 'غير محدد'}</div>
                     <div style="background: #f8fafc; padding: 5px; border-radius: 4px; margin-bottom: 5px;">${itemsHtml}</div>
                     <div style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: var(--accent-green);">
-                        <span>المجموع: ${ord.totalAmount} ₪</span>
+                        <span>المجموع: ${ord.totalAmount || ord.total || 0} ₪</span>
                         <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteOrder(${idx})">حذف الطلب</button>
                     </div>
                 </div>
@@ -587,13 +606,9 @@
         products[index].offer = offer;
         if(img) products[index].img = img;
 
-        try {
-            localStorage.setItem('aloroba_products', JSON.stringify(products));
-            alert("تم تحديث المنتج بنجاح!");
-            renderAdmin();
-        } catch (err) {
-            alert("مساحة الذاكرة ممتلئة.");
-        }
+        localStorage.setItem('aloroba_products', JSON.stringify(products));
+        alert("تم تحديث المنتج بنجاح! ✅");
+        renderAdmin();
     }
 
     function deleteProduct(index) {
@@ -605,162 +620,120 @@
         }
     }
 
-    function toggleCategorySection(catIdx) {
-        const contentBox = document.getElementById(`category-content-${catIdx}`);
-        const arrowIcon = document.getElementById(`arrow-icon-${catIdx}`);
-        if (contentBox.style.display === "none") {
-            contentBox.style.display = "block";
-            arrowIcon.innerText = "▼";
-        } else {
-            contentBox.style.display = "none";
-            arrowIcon.innerText = "▲";
-        }
-    }
-
     function saveBannerSettings() {
         bannerData.title = document.getElementById('bannerTitleInput').value;
         bannerData.tag = document.getElementById('bannerTagInput').value;
-        bannerData.img = document.getElementById('bannerImgData').value;
-        try {
-            localStorage.setItem('aloroba_banner', JSON.stringify(bannerData));
-            alert("تم تحديث البانر الرئيسي بنجاح!");
-        } catch(e) {
-            alert("خطأ: مساحة التخزين ممتلئة.");
-        }
+        const img = document.getElementById('bannerImgData').value;
+        if(img) bannerData.img = img;
+
+        localStorage.setItem('aloroba_banner', JSON.stringify(bannerData));
+        alert("تم حفظ وتحديث البانر بنجاح! 💾");
     }
 
     function addCategory() {
         const name = document.getElementById('catName').value.trim();
-        const icon = document.getElementById('catIcon').value.trim();
-        const bg = document.getElementById('catBg').value;
-        const color = document.getElementById('catColor').value;
+        const icon = document.getElementById('catIcon').value.trim() || "📦";
+        const bg = document.getElementById('catBg').value.trim() || "#eaf3df";
+        const color = document.getElementById('catColor').value.trim() || "#2e6930";
 
-        if(!name || !icon) {
-            alert("الرجاء إدخال اسم الفئة والأيقونة");
+        if(!name) {
+            alert("الرجاء إدخال اسم الفئة");
             return;
         }
 
         categories.push({ name, icon, bg, color });
-        try {
-            localStorage.setItem('aloroba_categories', JSON.stringify(categories));
-            document.getElementById('catName').value = '';
-            document.getElementById('catIcon').value = '';
-            renderAdmin();
-            alert("تمت إضافة الفئة بنجاح!");
-        } catch(e) {
-            alert("خطأ: مساحة التخزين ممتلئة.");
-        }
+        localStorage.setItem('aloroba_categories', JSON.stringify(categories));
+        document.getElementById('catName').value = '';
+        document.getElementById('catIcon').value = '';
+        alert("تمت إضافة الفئة بنجاح!");
+        renderAdmin();
     }
 
     function deleteCategory(index) {
-        if(confirm("هل أنت متأكد من حذف هذه الفئة؟")) {
+        if(confirm("هل تريد حذف هذه الفئة؟")) {
             categories.splice(index, 1);
-            try {
-                localStorage.setItem('aloroba_categories', JSON.stringify(categories));
-                renderAdmin();
-            } catch(e) {}
+            localStorage.setItem('aloroba_categories', JSON.stringify(categories));
+            renderAdmin();
         }
     }
 
     function saveProduct() {
-        try {
-            const name = document.getElementById('prodName').value.trim();
-            const weight = document.getElementById('prodWeight').value.trim();
-            const price = document.getElementById('prodPrice').value.trim();
-            const oldPrice = document.getElementById('prodOldPrice').value.trim();
-            let img = document.getElementById('prodImgData').value;
+        const name = document.getElementById('prodName').value.trim();
+        const weight = document.getElementById('prodWeight').value.trim();
+        const price = document.getElementById('prodPrice').value.trim();
+        const oldPrice = document.getElementById('prodOldPrice').value.trim();
+        const img = document.getElementById('prodImgData').value;
 
-            let selectedCategories = [];
-            document.querySelectorAll('input[name="productCategoryCheck"]:checked').forEach(chk => {
-                selectedCategories.push(chk.value);
-            });
+        let selectedCategories = [];
+        document.querySelectorAll('input[name="productCategoryCheck"]:checked').forEach(chk => {
+            selectedCategories.push(chk.value);
+        });
 
-            if(!name || !price) {
-                alert("الرجاء إدخال اسم المنتج والسعر الحالي");
-                return;
-            }
-
-            if(selectedCategories.length === 0) {
-                alert("الرجاء اختيار فئة واحدة على الأقل للمنتج");
-                return;
-            }
-
-            if(!img) {
-                img = "https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
-            }
-
-            let products = getStoredProducts();
-            let newProduct = {
-                id: Date.now(),
-                name: name,
-                weight: weight || "حبة",
-                price: Number(price),
-                oldPrice: oldPrice ? Number(oldPrice) : null,
-                offer: "",
-                img: img,
-                categories: selectedCategories
-            };
-
-            products.unshift(newProduct);
-            localStorage.setItem('aloroba_products', JSON.stringify(products));
-
-            document.getElementById('prodName').value = '';
-            document.getElementById('prodWeight').value = '';
-            document.getElementById('prodPrice').value = '';
-            document.getElementById('prodOldPrice').value = '';
-            document.getElementById('prodImgData').value = '';
-            document.getElementById('prodPreview').src = "https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
-            document.querySelectorAll('input[name="productCategoryCheck"]').forEach(chk => chk.checked = false);
-
-            renderAdmin();
-            alert("تم إضافة ونشر المنتج بنجاح! 🚀");
-        } catch(e) {
-            alert("حدث خطأ، ربما حجم الصورة كبير جداً.");
+        if(!name || !price || selectedCategories.length === 0 || !img) {
+            alert("الرجاء تعبئة الحقول الإجبارية (اسم المنتج، السعر، اختيار فئة واحدة على الأقل، والصورة)");
+            return;
         }
+
+        let products = getStoredProducts();
+        let newProduct = {
+            id: Date.now(),
+            name: name,
+            weight: weight,
+            price: Number(price),
+            oldPrice: oldPrice ? Number(oldPrice) : null,
+            img: img,
+            categories: selectedCategories
+        };
+
+        products.unshift(newProduct);
+        localStorage.setItem('aloroba_products', JSON.stringify(products));
+        alert("تم إضافة ونشر المنتج بنجاح! 🚀");
+        
+        // إعادة تعيين الحقول
+        document.getElementById('prodName').value = '';
+        document.getElementById('prodWeight').value = '';
+        document.getElementById('prodPrice').value.value = '';
+        document.getElementById('prodOldPrice').value = '';
+        document.getElementById('prodImgData').value = '';
+        document.getElementById('prodPreview').src = "https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
+        document.querySelectorAll('input[name="productCategoryCheck"]').forEach(chk => chk.checked = false);
+        
+        renderAdmin();
     }
 
     function saveCampaign() {
-        try {
-            const name = document.getElementById('campName').value.trim();
-            const offer = document.getElementById('campOffer').value.trim();
-            const price = document.getElementById('campPrice').value.trim();
-            let img = document.getElementById('campImgData').value;
+        const name = document.getElementById('campName').value.trim();
+        const offer = document.getElementById('campOffer').value.trim();
+        const price = document.getElementById('campPrice').value.trim();
+        const img = document.getElementById('campImgData').value;
 
-            if(!name || !offer || !price) {
-                alert("الرجاء تعبئة حقول الحملة الأساسية");
-                return;
-            }
-
-            if(!img) {
-                img = "https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
-            }
-
-            let products = getStoredProducts();
-            let newCampaign = {
-                id: Date.now(),
-                name: name,
-                weight: "عرض خاص",
-                price: Number(price),
-                oldPrice: null,
-                offer: offer,
-                img: img,
-                categories: ["عروض"]
-            };
-
-            products.unshift(newCampaign);
-            localStorage.setItem('aloroba_products', JSON.stringify(products));
-
-            document.getElementById('campName').value = '';
-            document.getElementById('campOffer').value = '';
-            document.getElementById('campPrice').value = '';
-            document.getElementById('campImgData').value = '';
-            document.getElementById('campPreview').src = "https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
-
-            renderAdmin();
-            alert("تم إطلاق الحملة ونشرها بنجاح! 🎯");
-        } catch(e) {
-            alert("حدث خطأ أثناء حفظ الحملة.");
+        if(!name || !offer || !price || !img) {
+            alert("الرجاء تعبئة كافة حقول الحملة مع الصورة");
+            return;
         }
+
+        let products = getStoredProducts();
+        let newCamp = {
+            id: Date.now(),
+            name: name,
+            weight: "عرض خاص",
+            price: Number(price),
+            offer: offer,
+            img: img,
+            categories: ["عروض"]
+        };
+
+        products.unshift(newCamp);
+        localStorage.setItem('aloroba_products', JSON.stringify(products));
+        alert("تم إطلاق ونشر الحملة بنجاح ضمن قسم العروض! 🎯");
+        
+        document.getElementById('campName').value = '';
+        document.getElementById('campOffer').value = '';
+        document.getElementById('campPrice').value = '';
+        document.getElementById('campImgData').value = '';
+        document.getElementById('campPreview').src = "https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
+        
+        renderAdmin();
     }
 </script>
 </body>
