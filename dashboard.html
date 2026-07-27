@@ -13,12 +13,12 @@
             --shadow-card: 0 4px 15px rgba(0,0,0,0.05);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
-        body { background-color: var(--light-bg); color: #1f2937; padding: 12px; }
+        body { background-color: var(--light-bg); color: #1f2937; padding: 12px; padding-bottom: 50px; }
 
         .dashboard-container { max-width: 480px; margin: 0 auto; background: white; border-radius: 20px; padding: 15px; box-shadow: var(--shadow-card); }
         
         .dash-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 15px; }
-        .dash-header h1 { font-size: 1rem; color: var(--primary-green); font-weight: 900; }
+        .dash-header h1 { font-size: 0.95rem; color: var(--primary-green); font-weight: 900; }
         .back-btn { background: #e5e7eb; color: #374151; padding: 5px 12px; border-radius: 8px; text-decoration: none; font-size: 0.7rem; font-weight: 700; }
 
         .section-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 15px; }
@@ -106,6 +106,15 @@
             <label>الوزن أو الحجم</label>
             <input type="text" id="prodWeight" class="form-control" placeholder="مثال: 5 كجم">
         </div>
+        <div class="form-group">
+            <label>اختر القسم (الفئة)</label>
+            <select id="prodCategory" class="form-control">
+                <option value="معلبات">معلبات</option>
+                <option value="ألبان">ألبان</option>
+                <option value="خضار">خضار</option>
+                <option value="منظفات">منظفات</option>
+            </select>
+        </div>
         <div style="display: flex; gap: 8px;">
             <div class="form-group" style="flex: 1;">
                 <label>السعر الحالي (₪)</label>
@@ -130,15 +139,15 @@
         </div>
         <button class="btn-main" onclick="addProduct()">إضافة ونشر المنتج فوراً 🚀</button>
         
-        <div style="margin-top: 10px;" id="adminProductsList"></div>
+        <div style="margin-top: 15px;" id="adminProductsList"></div>
     </div>
 </div>
 
 <script>
     let products = JSON.parse(localStorage.getItem('aloroba_products')) || [
-        { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png" },
-        { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png" },
-        { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png" }
+        { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", category: "معلبات" },
+        { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png", category: "معلبات" },
+        { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png", category: "ألبان" }
     ];
 
     let categories = JSON.parse(localStorage.getItem('aloroba_categories')) || [
@@ -161,13 +170,22 @@
         document.getElementById('bannerTagInput').value = bannerData.tag || "";
         document.getElementById('bannerImgInput').value = bannerData.img || "";
 
+        // تعبئة القائمة المنسدلة للأقسام في إضافة المنتج
+        const selectCat = document.getElementById('prodCategory');
+        selectCat.innerHTML = '';
+        categories.forEach(cat => {
+            if(cat.name !== "الكل" && cat.name !== "عروض") {
+                selectCat.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
+            }
+        });
+
         const catList = document.getElementById('adminCategoriesList');
         catList.innerHTML = '';
         categories.forEach((cat, index) => {
             catList.innerHTML += `
                 <div class="list-item">
                     <span>${cat.icon} <b>${cat.name}</b></span>
-                    ${index > 0 ? `<button class="btn-delete" onclick="deleteCategory(${index})">حذف</button>` : '<span style="font-size:0.6rem; color:#888;">الأساسية</span>'}
+                    ${index > 1 ? `<button class="btn-delete" onclick="deleteCategory(${index})">حذف</button>` : '<span style="font-size:0.6rem; color:#888;">الأساسية</span>'}
                 </div>
             `;
         });
@@ -177,7 +195,7 @@
         products.forEach((p, index) => {
             prodList.innerHTML += `
                 <div class="list-item">
-                    <span><b>${p.name}</b> (${p.price}₪) ${p.offer ? '[' + p.offer + ']' : ''}</span>
+                    <span><b>${p.name}</b> (${p.price}₪)</span>
                     <button class="btn-delete" onclick="deleteProduct(${index})">حذف</button>
                 </div>
             `;
@@ -244,6 +262,7 @@
     function addProduct() {
         const name = document.getElementById('prodName').value;
         const weight = document.getElementById('prodWeight').value;
+        const category = document.getElementById('prodCategory').value;
         const price = document.getElementById('prodPrice').value;
         const oldPrice = document.getElementById('prodOldPrice').value;
         const offer = document.getElementById('prodOffer').value;
@@ -258,13 +277,14 @@
             id: Date.now(),
             name,
             weight,
+            category,
             price: Number(price),
             oldPrice: oldPrice ? Number(oldPrice) : null,
             offer,
             img: img || "https://cdn-icons-png.flaticon.com/512/3081/3081986.png"
         };
 
-        products.push(newProd);
+        products.unshift(newProd);
         localStorage.setItem('aloroba_products', JSON.stringify(products));
         
         document.getElementById('prodName').value = '';
