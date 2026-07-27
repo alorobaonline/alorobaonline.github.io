@@ -65,7 +65,12 @@
         #cart-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-end; }
         .cart-modal-content { background: white; width: 100%; max-width: 600px; max-height: 85vh; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; display: flex; flex-direction: column; }
         .cart-items-list { overflow-y: auto; max-height: 45vh; flex-grow: 1; margin-bottom: 12px; }
-        .cart-item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
+        .cart-item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f3f4f6; gap: 10px; }
+        
+        /* تنسيق صورة المنتج داخل السلة */
+        .cart-item-img { width: 50px; height: 50px; object-fit: contain; border-radius: 6px; background: #fff; border: 1px solid #eee; flex-shrink: 0; }
+        .cart-item-info { flex-grow: 1; }
+
         .cart-summary-box { background: #f8fafc; padding: 12px; border-radius: 10px; margin-bottom: 12px; font-size: 0.9rem; }
         .summary-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
         .summary-row.total { font-weight: 700; font-size: 1.1rem; color: var(--primary-green); border-top: 1px solid #e2e8f0; padding-top: 6px; }
@@ -228,7 +233,7 @@
             let subtotal = 0;
 
             // الخطوة 1: حساب السعر الأصلي لكل منتج وتجميع المنتجات المشتركة في نفس العرض
-            let bundleGroups = {}; // لتجميع الكميات لكل حزمة عرض مشتركة
+            let bundleGroups = {}; 
             let cartLines = [];
 
             for (let id in cartItems) {
@@ -253,7 +258,6 @@
                         bundleGroups[bundle.bundleId].totalBundleQty += qty;
                         bundleGroups[bundle.bundleId].items.push({ id, p, qty, regularPrice });
                     } else {
-                        // منتج عادي أو عرض مفرد خاص به
                         let finalItemPrice = itemSubtotal;
                         if (p.isOffer && p.offerPrice && Number(p.offerPrice) > 0) {
                             finalItemPrice = Number(p.offerPrice) * qty;
@@ -261,6 +265,8 @@
                         cartLines.push({
                             id,
                             title: p.title,
+                            img: p.img || '',
+                            emoji: p.emoji || '🛒',
                             qty: qty,
                             totalPrice: finalItemPrice,
                             detailText: `${p.isOffer && p.offerPrice ? p.offerPrice : regularPrice} ₪ × ${qty}`
@@ -269,16 +275,12 @@
                 }
             }
 
-            // الخطوة 2: حساب العروض المشتركة (Mix & Match) وتوزيع التخفيضات على المنتجات المشكلة بدقة
+            // الخطوة 2: حساب العروض المشتركة (Mix & Match) وتوزيع التخفيضات بدقة
             let totalBundleDiscount = 0;
             for (let bId in bundleGroups) {
                 let bg = bundleGroups[bId];
                 let fullBundlesCount = Math.floor(bg.totalBundleQty / bg.reqQty);
-                let remainderQty = bg.totalBundleQty % bg.reqQty;
-
-                // حساب القيمة الأصلية للكميات التي دخلت ضمن العرض المشترك
                 let itemsList = bg.items;
-                // نرتب المنتجات من الأغلى للأرخص لكي نطبق خصم العرض بشكل عادل ومنطقي على إجمالي المجموعة
                 let sortedItems = [];
                 itemsList.forEach(item => {
                     for(let i = 0; i < item.qty; i++) {
@@ -286,32 +288,6 @@
                     }
                 });
 
-                let processedCount = 0;
-                let currentBundleIndex = 0;
-
-                // لحساب السعر الفعلي لكل سطر منتج داخل السلة بعد تطبيق العرض المشترك
-                let itemFinalTotals = {};
-                itemsList.forEach(item => { itemFinalTotals[item.id] = { finalPrice: 0, sub: item.regularPrice * item.qty }; });
-
-                // توزيع الحزم الكاملة
-                for (let b = 0; b < fullBundlesCount; b++) {
-                    // حزمة كاملة مكونة من reqQty حبات بسعر العرض bg.bundlePrice
-                    // سنقوم بتوزيع سعر الحزمة نسبياً أو خصم الفرق الإجمالي على السطور
-                    let bundleItemsSubset = sortedItems.slice(processedCount, processedCount + bg.reqQty);
-                    let subsetOriginalSum = bundleItemsSubset.reduce((sum, x) => sum + x.price, 0);
-                    
-                    bundleItemsSubset.forEach(subItem => {
-                        let proportion = subItem.price / (subsetOriginalSum || 1);
-                        // نصيبه من سعر العرض الإجمالي
-                        let allocatedPrice = proportion * bg.bundlePrice;
-                        // لتجنب الأخطاء الحسابية الدقيقة، نضيفه للسطر الخاص بالمنتج
-                        // سنجعل التوزيع يدعم إظهار الأسعار بشكل سليم
-                    });
-                    processedCount += bg.reqQty;
-                }
-
-                // طريقة أبسط وأكثر دقة لتوزيع العرض المشترك على السطور:
-                // حساب إجمالي السعر الأصلي لمجموعة الحزم المتحققة VS سعر العرض الإجمالي لها
                 let totalEligibleQty = fullBundlesCount * bg.reqQty;
                 let originalSumOfEligible = 0;
                 for(let i = 0; i < totalEligibleQty; i++) {
@@ -322,35 +298,39 @@
                 if (bundleSavings < 0) bundleSavings = 0;
                 totalBundleDiscount += bundleSavings;
 
-                // الآن نبني سطور العرض المشترك للزبون في السلة مع توضيح السعر بعد الخصم المشترك
-                let allocatedSavingsRemaining = bundleSavings;
-                itemsList.forEach((item, idx) => {
+                let isPartOffer = (bg.totalBundleQty >= bg.reqQty);
+                itemsList.forEach((item) => {
                     let itemOriginalTotal = item.regularPrice * item.qty;
-                    // حصة هذا المنتج من التوفير الإجمالي للعرض
-                    let itemShareOfSavings = (itemOriginalTotal / (subtotal || 1)) * bundleSavings; // تقريب تقريبي دقيق
-                    // لضمان دقة العرض لكل سطر:
-                    let itemFinalTotal = itemOriginalTotal - (itemOriginalTotal * (bundleSavings / (originalSumOfEligible || 1)));
+                    let itemFinalTotal = itemOriginalTotal;
+                    if (originalSumOfEligible > 0) {
+                        itemFinalTotal = itemOriginalTotal - (itemOriginalTotal * (bundleSavings / (originalSumOfEligible || 1)));
+                    }
                     if (itemFinalTotal < 0) itemFinalTotal = 0;
 
                     cartLines.push({
                         id: item.id,
                         title: item.p.title,
+                        img: item.p.img || '',
+                        emoji: item.p.emoji || '🛒',
                         qty: item.qty,
                         totalPrice: itemFinalTotal,
-                        detailText: `عرض تشكيلة (${bg.reqQty} بـ ${bg.bundlePrice} ₪)`
+                        detailText: isPartOffer ? `عرض تشكيلة (${bg.reqQty} بـ ${bg.bundlePrice} ₪)` : `${item.regularPrice} ₪ × ${item.qty}`
                     });
                 });
             }
 
-            // بناء واجهة السلة HTML
+            // بناء واجهة السلة HTML مع الصور
             let html = '';
             let finalCalculatedTotal = 0;
 
             cartLines.forEach(line => {
                 finalCalculatedTotal += line.totalPrice;
+                let imgContent = line.img ? `<img src="${line.img}" class="cart-item-img" alt="صورة">` : `<div class="cart-item-img" style="display:flex;align-items:center;justify-content:center;font-size:20px;">${line.emoji}</div>`;
+
                 html += `
                     <div class="cart-item-row">
-                        <div>
+                        ${imgContent}
+                        <div class="cart-item-info">
                             <div style="font-weight: 700; font-size: 0.9rem;">${line.title}</div>
                             <div style="font-size: 0.75rem; color: #dc2626; font-weight: 600;">${line.detailText}</div>
                             <div style="font-size: 0.85rem; color: #1f2937; font-weight: 700; direction: ltr; unicode-bidi: isolate;">${line.totalPrice.toFixed(2)} ₪</div>
