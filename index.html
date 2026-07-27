@@ -385,6 +385,11 @@
             let currentStock = (p && p.stock !== undefined && p.stock !== '') ? Number(p.stock) : 99999;
             let currentCartQty = cartItems[productId] || 0;
 
+            if (currentStock <= 0) {
+                alert("عذراً، هذا المنتج نفذ من المخزون");
+                return;
+            }
+
             if (currentCartQty >= currentStock) {
                 alert("عذراً، الكمية المطلوبة غير متوفرة في المخزون");
                 return;
@@ -430,6 +435,13 @@
         }
 
         function handleProductClick(productId) {
+            let p = allProductsMap[productId];
+            let currentStock = (p && p.stock !== undefined && p.stock !== '') ? Number(p.stock) : 99999;
+            if (currentStock <= 0) {
+                alert("عذراً، هذا المنتج نفذ من المخزون");
+                return;
+            }
+
             let bundleInfo = productBundlesMap[productId];
             if (bundleInfo) {
                 openBundleModal(bundleInfo.bundleId);
@@ -506,10 +518,24 @@
                 let p = allProductsMap[pId];
                 if (!p) return;
                 let qty = cartItems[pId] || 0;
+                let stockNum = (p.stock !== undefined && p.stock !== '') ? Number(p.stock) : 99999;
 
                 let imgSrc = (p.img && p.img.length > 5) ? p.img : '';
                 let mediaHtml = imgSrc ? `<img src="${imgSrc}" class="bundle-item-img" alt="صورة">` : `<div class="bundle-item-img" style="display:flex;align-items:center;justify-content:center;font-size:18px;">${p.emoji || '🛒'}</div>`;
                 let rowActive = qty > 0 ? 'active-row' : '';
+
+                let qtyControlHtml = '';
+                if (stockNum <= 0) {
+                    qtyControlHtml = `<span style="font-size: 0.75rem; color: #dc2626; font-weight: 700; background: #fee2e2; padding: 4px 8px; border-radius: 6px;">نفذ المخزون ❌</span>`;
+                } else {
+                    qtyControlHtml = `
+                        <div class="modern-qty-control">
+                            <button class="modern-qty-btn" onclick="decreaseQuantity('${pId}')">-</button>
+                            <span class="modern-qty-val">${qty}</span>
+                            <button class="modern-qty-btn" onclick="increaseQuantity('${pId}')">+</button>
+                        </div>
+                    `;
+                }
 
                 html += `
                     <div class="bundle-item-row ${rowActive}">
@@ -518,11 +544,7 @@
                             <div style="font-weight:700; font-size:0.85rem;">${p.title}</div>
                             <div style="font-size:0.8rem; color:#f97316; font-weight:700; direction:rtl; unicode-bidi:plaintext;">${p.price}₪ · حبة</div>
                         </div>
-                        <div class="modern-qty-control">
-                            <button class="modern-qty-btn" onclick="decreaseQuantity('${pId}')">-</button>
-                            <span class="modern-qty-val">${qty}</span>
-                            <button class="modern-qty-btn" onclick="increaseQuantity('${pId}')">+</button>
-                        </div>
+                        ${qtyControlHtml}
                     </div>
                 `;
             });
