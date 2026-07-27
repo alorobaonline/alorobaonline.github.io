@@ -39,7 +39,7 @@
         .banner-img-side { width: 38%; text-align: left; }
         .banner-img-side img { max-width: 110%; height: auto; object-fit: contain; }
 
-        /* الـ 6 فئات في الأعلى (متجاورة بشكل مضغوط) */
+        /* الـ 6 فئات متجاورة في الأعلى */
         .categories-slider { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-bottom: 12px; }
         .cat-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; background: white; padding: 6px 2px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); text-align: center; }
         .cat-circle { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 3px; font-size: 0.9rem; }
@@ -50,7 +50,7 @@
         .section-title { font-size: 0.85rem; font-weight: 900; color: #111; }
         .section-all { font-size: 0.65rem; font-weight: 700; color: #16a34a; cursor: pointer; text-decoration: none; }
 
-        /* شبكة المنتجات: 3 منتجات في العرض */
+        /* شبكة المنتجات (3 منتجات في العرض) */
         .products-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
         .product-card { background: #ffffff; border-radius: 12px; padding: 8px; box-shadow: var(--shadow-card); display: flex; flex-direction: column; justify-content: space-between; position: relative; border: 1px solid #f1f5f9; }
         
@@ -63,9 +63,10 @@
         .product-name { font-size: 0.7rem; font-weight: 800; color: #1f2937; text-align: center; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .product-weight { font-size: 0.55rem; color: #9ca3af; text-align: center; margin-bottom: 4px; font-weight: 600; }
         
-        .product-price-box { text-align: center; margin-bottom: 6px; }
-        .price-new { font-size: 0.8rem; font-weight: 900; color: #2e6930; }
-        .price-old { font-size: 0.55rem; color: #9ca3af; text-decoration: line-through; margin-right: 2px; }
+        /* تنسيق الأسعار الجديد: متباعد، السعر الأصلي برتقالي غامق، المشطوب أسود غامق */
+        .product-price-box { text-align: center; margin-bottom: 6px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .price-new { font-size: 0.8rem; font-weight: 900; color: #ea580c; }
+        .price-old { font-size: 0.6rem; font-weight: 800; color: #000000; text-decoration: line-through; }
 
         .btn-add-cart { width: 100%; background: #68a633; color: white; border: none; border-radius: 8px; padding: 5px 0; font-size: 0.6rem; font-weight: 700; cursor: pointer; text-align: center; }
 
