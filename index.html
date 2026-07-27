@@ -12,27 +12,27 @@
         :root {
             --primary-green: #68a633;
             --bg-color: #f4f6f8;
-            --radius-lg: 16px;
-            --radius-md: 10px;
-            --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+            --radius-lg: 24px; /* تحديث حواف البطاقة إلى 24 */
+            --radius-md: 12px;
+            --shadow-card: 0 10px 20px rgba(0,0,0,0.06); /* ظل البطاقة Blur 20 مع شفافية خفيفة */
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
         body { background-color: var(--bg-color); color: #1f2937; padding: 10px; }
         .store-container { max-width: 600px; margin: 0 auto; padding-bottom: 80px; }
         
-        .store-header { background: white; padding: 16px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-top: 4px solid var(--primary-green); }
+        .store-header { background: white; padding: 16px; border-radius: var(--radius-lg); box-shadow: var(--shadow-card); display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-top: 4px solid var(--primary-green); }
         .store-title { font-size: 1.25rem; font-weight: 700; }
         .store-sub { font-size: 0.8rem; color: #6b7280; font-weight: 600; }
         
         .cart-badge-btn { background: var(--primary-green); color: white; border: none; padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 
-        /* تنسيق قسم البانرات الإعلانية */
+        /* تنسيق قسم البانرات الإعلانية (1080 × 450) */
         .store-banners-container {
             width: 100%;
             margin-bottom: 12px;
             border-radius: var(--radius-lg);
             overflow: hidden;
-            box-shadow: var(--shadow-sm);
+            box-shadow: var(--shadow-card);
             background: #ffffff;
         }
         .banner-slide-img {
@@ -43,21 +43,42 @@
             border-radius: var(--radius-lg);
         }
 
-        /* شريط الفئات */
-        .categories-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; }
+        /* شريط البحث (920 × 80) */
+        .search-bar-container {
+            width: 100%;
+            height: 50px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: center;
+        }
+        .search-input-field {
+            width: 100%;
+            max-width: 520px;
+            height: 100%;
+            padding: 0 16px;
+            border: 1px solid #d1d5db;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            outline: none;
+            background: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        }
+
+        /* شريط الفئات وأيقونات التصنيفات */
+        .categories-bar { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 16px; scrollbar-width: none; }
         .categories-bar::-webkit-scrollbar { display: none; }
         
         .cat-chip { 
             background: #ffffff; 
             border: 1px solid #d1d5db; 
-            padding: 8px 16px; 
-            border-radius: 20px; 
+            padding: 10px 18px; 
+            border-radius: var(--radius-lg); 
             font-size: 0.85rem; 
             font-weight: 700; 
             white-space: nowrap; 
             cursor: pointer; 
             color: #4b5563; 
-            box-shadow: var(--shadow-sm);
+            box-shadow: var(--shadow-card);
             transition: all 0.2s; 
         }
         
@@ -65,7 +86,6 @@
             background: var(--primary-green) !important; 
             color: #ffffff !important; 
             border-color: var(--primary-green) !important; 
-            box-shadow: 0 4px 10px rgba(104, 166, 51, 0.3);
         }
 
         .cat-chip.offer-chip { 
@@ -77,40 +97,158 @@
             background: #dc2626 !important; 
             color: white !important; 
             border-color: #dc2626 !important; 
-            box-shadow: 0 4px 10px rgba(220, 38, 38, 0.3);
         }
 
-        .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .product-card { background: white; border-radius: var(--radius-lg); padding: 12px; box-shadow: var(--shadow-sm); border: 1px solid #e5e7eb; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+        /* شبكة المنتجات مع مسافة 24 بين البطاقات */
+        .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         
-        .offer-badge { position: absolute; top: 10px; left: 10px; background: #dc2626; color: white; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; z-index: 2; }
+        /* بطاقة المنتج (340 × 520 مقاس نسبي، خلفية بيضاء بالكامل، مسافة داخلية 24، حواف 24، ظل Blur 20) */
+        .product-card { 
+            background: #ffffff; 
+            border-radius: var(--radius-lg); 
+            padding: 24px; 
+            box-shadow: var(--shadow-card); 
+            border: 1px solid #f3f4f6; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            position: relative; 
+            overflow: hidden; 
+        }
+        
+        /* شارة الخصم (100 × 45) وتأخذ ارتفاع 45px في الترتيب */
+        .offer-badge { 
+            width: 100px;
+            height: 45px;
+            background: #dc2626; 
+            color: white; 
+            font-size: 0.75rem; 
+            font-weight: 700; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px; 
+            margin-bottom: 8px;
+            z-index: 2; 
+        }
         
         .product-bundle-tag { background: #fee2e2; color: #dc2626; font-size: 0.75rem; font-weight: 700; padding: 4px 8px; border-radius: 6px; text-align: center; margin-bottom: 6px; border: 1px dashed #fca5a5; cursor: pointer; direction: rtl; unicode-bidi: plaintext; }
 
-        .product-img-wrap { width: 100%; height: 150px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; background: #fff; border-radius: 8px; }
-        .product-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        /* صورة المنتج (260 × 260 مع تكبيرها لـ 70-75% من مساحة البطاقة) */
+        .product-img-wrap { 
+            width: 100%; 
+            height: 220px; /* مقاس يحقق التغطية الواسعة داخل البطاقة */
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            margin-bottom: 8px; 
+            background: #fff; 
+            border-radius: 12px; 
+        }
+        .product-img { 
+            max-width: 90%; 
+            max-height: 90%; 
+            object-fit: contain; 
+        }
         
-        .product-name { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; text-align: center; }
-        
-        .product-price-row { text-align: center; margin-bottom: 10px; font-size: 0.9rem; direction: rtl; unicode-bidi: plaintext; }
-        .price-normal { font-weight: 700; color: #f97316; font-size: 1.05rem; }
-        
-        .offer-price-container { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-bottom: 10px; }
-        .price-offer-top { display: flex; align-items: center; justify-content: center; gap: 4px; direction: rtl; unicode-bidi: plaintext; }
-        .price-offer-new { font-weight: 700; color: #dc2626; font-size: 1.05rem; }
-        .price-offer-old { text-decoration: line-through; color: #1f2937; font-size: 0.8rem; font-weight: 600; }
+        /* اسم المنتج (ارتفاع 55) */
+        .product-name { 
+            height: 55px;
+            font-size: 0.95rem; 
+            font-weight: 700; 
+            margin-bottom: 4px; 
+            text-align: center; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
 
-        .btn-add-cart { background: var(--primary-green); color: white; border: none; width: 100%; padding: 8px; border-radius: var(--radius-md); font-weight: 700; font-size: 0.85rem; cursor: pointer; text-align: center; }
-        .btn-add-cart:disabled { background: #9ca3af; cursor: not-allowed; }
+        /* الوزن (ارتفاع 30) */
+        .product-weight {
+            height: 30px;
+            font-size: 0.8rem;
+            color: #6b7280;
+            font-weight: 600;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 4px;
+        }
+        
+        /* السعر (ارتفاع 50) */
+        .product-price-row { 
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px; 
+            font-size: 1.05rem; 
+            direction: rtl; 
+            unicode-bidi: plaintext; 
+        }
+        .price-normal { font-weight: 700; color: #f97316; }
+        
+        .offer-price-container { 
+            height: 50px;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            gap: 2px; 
+            margin-bottom: 10px; 
+        }
+        .price-offer-top { display: flex; align-items: center; justify-content: center; gap: 6px; direction: rtl; unicode-bidi: plaintext; }
+        .price-offer-new { font-weight: 700; color: #dc2626; font-size: 1.1rem; }
+        .price-offer-old { text-decoration: line-through; color: #9ca3af; font-size: 0.85rem; font-weight: 600; }
 
-        .cart-counter-box { display: flex; align-items: center; justify-content: space-between; background: var(--primary-green); border-radius: var(--radius-md); overflow: hidden; width: 100%; }
-        .cart-counter-btn { background: rgba(0,0,0,0.15); color: white; border: none; padding: 8px 14px; font-size: 1rem; font-weight: 700; cursor: pointer; }
-        .cart-counter-value { color: white; font-weight: 700; font-size: 0.95rem; }
+        /* زر "أضف للسلة" (300 × 70 أو ممتد بعرض البطاقة، ارتفاعه 50px ليتناسب مع الحزمة التصميمية) */
+        .btn-add-cart { 
+            width: 100%;
+            height: 50px; /* متوافق مع قياسات الأزرار المريحة */
+            background: var(--primary-green); 
+            color: white; 
+            border: none; 
+            border-radius: var(--radius-md); 
+            font-weight: 700; 
+            font-size: 0.9rem; 
+            cursor: pointer; 
+            text-align: center; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(104, 166, 51, 0.2);
+        }
+        .btn-add-cart:disabled { background: #9ca3af; cursor: not-allowed; box-shadow: none; }
+
+        .cart-counter-box { display: flex; align-items: center; justify-content: space-between; background: var(--primary-green); border-radius: var(--radius-md); overflow: hidden; width: 100%; height: 50px; }
+        .cart-counter-btn { background: rgba(0,0,0,0.15); color: white; border: none; padding: 0 16px; height: 100%; font-size: 1.1rem; font-weight: 700; cursor: pointer; }
+        .cart-counter-value { color: white; font-weight: 700; font-size: 1rem; }
 
         .modern-qty-control { display: flex; align-items: center; background: #f3f4f6; border-radius: 30px; padding: 3px; border: 1px solid #e5e7eb; }
         .modern-qty-btn { width: 28px; height: 28px; border-radius: 50%; background: white; border: 1px solid #d1d5db; color: #374151; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s; }
         .modern-qty-btn:active { background: #e5e7eb; transform: scale(0.95); }
         .modern-qty-val { min-width: 26px; text-align: center; font-weight: 700; font-size: 0.9rem; color: #1f2937; }
+
+        /* أيقونة المفضلة (50 × 50) */
+        .favorite-icon-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            z-index: 3;
+            font-size: 1.2rem;
+        }
 
         #cart-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-end; }
         .cart-modal-content { background: white; width: 100%; max-width: 600px; max-height: 85vh; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; display: flex; flex-direction: column; }
@@ -119,23 +257,21 @@
         .cart-item-img { width: 50px; height: 50px; object-fit: contain; border-radius: 8px; background: #fff; border: 1px solid #eee; flex-shrink: 0; }
         .cart-item-info { flex-grow: 1; }
 
-        /* تنسيق حقول إدخال بيانات الزبون في السلة */
         .customer-inputs-box { background: #f8fafc; padding: 10px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #e2e8f0; }
         .customer-input-group { margin-bottom: 8px; }
         .customer-input-group:last-child { margin-bottom: 0; }
         .customer-input-group label { display: block; font-size: 0.8rem; font-weight: 700; color: #4b5563; margin-bottom: 4px; }
-        .customer-input-field { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; font-family: 'Cairo', sans-serif; outline: none; transition: border-color 0.2s; }
+        .customer-input-field { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; font-family: 'Cairo', sans-serif; outline: none; }
         .customer-input-field:focus { border-color: var(--primary-green); }
 
         .cart-summary-box { background: #f8fafc; padding: 10px; border-radius: 10px; margin-bottom: 10px; font-size: 0.9rem; }
         .summary-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
         .summary-row.total { font-weight: 700; font-size: 1.05rem; color: var(--primary-green); border-top: 1px solid #e2e8f0; padding-top: 6px; }
 
-        /* نافذة العرض التفاعلية (Bundle Modal) */
         #bundle-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1100; justify-content: center; align-items: flex-end; }
         .bundle-modal-content { background: white; width: 100%; max-width: 600px; max-height: 85vh; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; display: flex; flex-direction: column; }
         .bundle-items-list { overflow-y: auto; max-height: 40vh; flex-grow: 1; margin-bottom: 10px; }
-        .bundle-item-row { display: flex; align-items: center; justify-content: space-between; padding: 10px; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 8px; gap: 10px; background: #fff; transition: all 0.2s; }
+        .bundle-item-row { display: flex; align-items: center; justify-content: space-between; padding: 10px; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 8px; gap: 10px; background: #fff; }
         .bundle-item-row.active-row { border-color: #fca5a5; background: #fef2f2; }
         .bundle-item-img { width: 45px; height: 45px; object-fit: contain; border-radius: 6px; background: #fff; flex-shrink: 0; }
         
@@ -166,7 +302,12 @@
             </button>
         </div>
 
-        <!-- مكان عرض البانرات الإعلانية المتحركة (تدار من لوحة التحكم) -->
+        <!-- شريط البحث (920 × 80 مقياس نسبي مريح) -->
+        <div class="search-bar-container">
+            <input type="text" class="search-input-field" placeholder="ابحث عن منتجات...">
+        </div>
+
+        <!-- مكان عرض البانرات الإعلانية المتحركة (1080 × 450) -->
         <div id="store-banners-slider" class="store-banners-container" style="display: none;"></div>
 
         <!-- شريط الفئات -->
@@ -189,7 +330,6 @@
                 <button onclick="closeBundleModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; font-weight: bold;">✕</button>
             </div>
 
-            <!-- شريط التقدم للحزمة الثابت -->
             <div id="bundle-banner" class="bundle-progress-banner">
                 <div class="bundle-banner-top">
                     <span id="bundle-banner-text" class="bundle-banner-text">أضف منتجات للحصول العرض</span>
@@ -200,17 +340,14 @@
                 </div>
             </div>
             
-            <div class="bundle-items-list" id="bundle-items-container">
-                <!-- المنتجات المشمولة في الحزمة -->
-            </div>
+            <div class="bundle-items-list" id="bundle-items-container"></div>
 
-            <!-- إجمالي السعر قبل زر متابعة التسوق -->
             <div class="bundle-total-footer-box">
                 <span>المجموع الإجمالي للتشكيلة:</span>
                 <span id="bundle-total-price-val" style="color: var(--primary-green); font-size: 1.1rem;">0₪</span>
             </div>
 
-            <button class="btn-add-cart" onclick="closeBundleModal()" style="background: var(--primary-green); padding: 12px; font-size: 1rem;">متابعة التسوق ✓</button>
+            <button class="btn-add-cart" onclick="closeBundleModal()">متابعة التسوق ✓</button>
         </div>
     </div>
 
@@ -226,7 +363,6 @@
                 <p style="text-align: center; color: #888;">السلة فارغة حالياً</p>
             </div>
 
-            <!-- خانات بيانات الزبون (الاسم والواتساب) -->
             <div class="customer-inputs-box" id="customer-inputs-box" style="display: none;">
                 <div class="customer-input-group">
                     <label for="customer-name">اسم الزبون الكريم:</label>
@@ -253,7 +389,7 @@
                 </div>
             </div>
 
-            <button class="btn-add-cart" id="checkout-btn" onclick="sendOrderToWhatsApp()" style="padding: 12px; font-size: 1rem; display: none; background: #25d366;">إتمام الطلب عبر الواتساب 💬</button>
+            <button class="btn-add-cart" id="checkout-btn" onclick="sendOrderToWhatsApp()" style="display: none; background: #25d366;">إتمام الطلب عبر الواتساب 💬</button>
         </div>
     </div>
 
@@ -301,7 +437,6 @@
 
         updateCartCounter();
 
-        // جلب البانرات الإعلانية وتحديثها تلقائياً من قاعدة البيانات
         db.collection("banners").onSnapshot((snapshot) => {
             let bannersContainer = document.getElementById('store-banners-slider');
             if (!bannersContainer) return;
@@ -759,7 +894,6 @@
 
             window.open(whatsappUrl, '_blank');
 
-            // تفريغ السلة وتحديث واجهة المتجر تلقائياً بعد الطلب
             cartItems = {};
             localStorage.removeItem('aloroba_cart');
             updateCartCounter();
@@ -826,6 +960,8 @@
                     priceHtml = `<div class="product-price-row"><span class="price-normal">${p.price}₪</span></div>`;
                 }
 
+                let weightText = p.weight || (p.size ? p.size : 'حبة');
+
                 let stockNum = (p.stock !== undefined && p.stock !== '') ? Number(p.stock) : 99999;
                 let qty = cartItems[p.id] || 0;
                 let actionBtnHtml = '';
@@ -833,7 +969,7 @@
                 if (stockNum <= 0) {
                     actionBtnHtml = `<button class="btn-add-cart" disabled style="background: #9ca3af; cursor: not-allowed;">نفذت الكمية ❌</button>`;
                 } else if (qty === 0) {
-                    let btnText = bundleInfo ? 'عرض التشكيلة 🎁' : 'إضافة للسلة 🛒';
+                    let btnText = bundleInfo ? 'عرض التشكيلة 🎁' : 'أضف للسلة';
                     actionBtnHtml = `<button class="btn-add-cart" onclick="handleProductClick('${p.id}')">${btnText}</button>`;
                 } else {
                     actionBtnHtml = `
@@ -847,11 +983,13 @@
 
                 gridHtml += `
                     <div class="product-card">
-                        ${badgeHtml}
+                        <button class="favorite-icon-btn">♡</button>
                         <div>
+                            ${badgeHtml}
                             ${bundleTagHtml}
                             ${mediaHtml}
                             <div class="product-name">${p.title}</div>
+                            <div class="product-weight">${weightText}</div>
                             ${priceHtml}
                         </div>
                         <div>
