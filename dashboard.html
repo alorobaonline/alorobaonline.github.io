@@ -282,7 +282,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>اختر المنتجات المتاحة في المتجر لضمها لهذه الحزمة:</label>
+                <label>اختر المنتجات الأساسية المتاحة لضمها لهذه الحزمة:</label>
                 <div id="campProductsCheckboxes" class="categories-checkbox-container" style="max-height: 120px; overflow-y: auto; grid-template-columns: 1fr;"></div>
             </div>
             <div class="form-group">
@@ -500,13 +500,17 @@
             }
         });
 
-        // تعبئة قائمة المنتجات المتاحة لربطها بالحملة أو الحزمة (عروض اجمع وتوفر)
+        // تعبئة قائمة المنتجات المتاحة لربطها بالحملة (مع استثناء الحزم السابقة لتجنب التداخل)
         const campProductsContainer = document.getElementById('campProductsCheckboxes');
         campProductsContainer.innerHTML = '';
-        if (products.length === 0) {
-            campProductsContainer.innerHTML = '<span style="font-size:0.65rem; color:#888;">لا توجد منتجات مضافة بعد</span>';
+        
+        // استثناء المنتجات التي تحتوي على bundledItems لكي تظهر المنتجات الفردية فقط
+        let baseProducts = products.filter(p => !p.bundledItems);
+
+        if (baseProducts.length === 0) {
+            campProductsContainer.innerHTML = '<span style="font-size:0.65rem; color:#888;">لا توجد منتجات فردية مضافة بعد</span>';
         } else {
-            products.forEach(p => {
+            baseProducts.forEach(p => {
                 campProductsContainer.innerHTML += `
                     <label class="checkbox-item" style="width:100%; white-space:normal;" title="${p.name}">
                         <input type="checkbox" name="campaignProductCheck" value="${p.name}">
@@ -562,7 +566,7 @@
                             
                             <div id="inline-edit-${originalIndex}" class="inline-edit-form">
                                 <div class="form-group">
-                                    <label>اسم المنتج *</label>
+                                    <label>اسم المنتج / الحزمة *</label>
                                     <input type="text" id="edit-name-${originalIndex}" class="form-control" value="${p.name}">
                                 </div>
 
@@ -576,7 +580,7 @@
                                         <input type="number" id="edit-stock-${originalIndex}" class="form-control" value="${p.stockQty ?? 0}">
                                     </div>
                                     <div class="form-group" style="flex: 1;">
-                                        <label>الوزن / الحجم</label>
+                                        <label>الوصف / الحجم</label>
                                         <input type="text" id="edit-weight-${originalIndex}" class="form-control" value="${p.weight || ''}">
                                     </div>
                                 </div>
@@ -594,7 +598,7 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label>صورة المنتج *</label>
+                                    <label>الصورة *</label>
                                     <div class="file-upload-box">
                                         <label class="camera-btn" for="editFile-${originalIndex}">📸 التقاط أو اختيار صورة</label>
                                         <input type="file" id="editFile-${originalIndex}" accept="image/*" onchange="compressAndSetImage(event, 'edit-imgData-${originalIndex}', 'editPreview-${originalIndex}')">
@@ -834,7 +838,7 @@
         });
 
         if (!name || isNaN(price) || isNaN(stockQty)) {
-            alert("الرجاء إدخال اسم المنتج، السعر الحالي، والكمية المتاحة.");
+            alert("الرجاء إدخال الاسم، السعر الحالي، والكمية المتاحة.");
             return;
         }
 
@@ -849,12 +853,12 @@
         };
 
         localStorage.setItem('aloroba_products', JSON.stringify(products));
-        alert("تم تحديث المنتج بنجاح! ✅");
+        alert("تم تحديث العنصر بنجاح! ✅");
         renderAdmin();
     }
 
     function deleteProduct(index) {
-        if(confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
+        if(confirm("هل أنت متأكد من حذف هذا العنصر؟")) {
             let products = getStoredProducts();
             products.splice(index, 1);
             localStorage.setItem('aloroba_products', JSON.stringify(products));
