@@ -201,7 +201,7 @@
         .price-offer-new { font-weight: 800; color: #dc2626; font-size: 1.05rem; }
         .price-offer-old { text-decoration: line-through; color: #9ca3af; font-size: 0.8rem; font-weight: 600; }
 
-        /* أزرار السلة والتحكم بالكمية المطابقة تماماً للصورة */
+        /* أزرار السلة والتحكم بالكمية */
         .btn-add-cart { 
             background: var(--primary-green); 
             color: white; 
@@ -296,7 +296,7 @@
 
         .cart-summary-box { background: #f8fafc; padding: 10px; border-radius: 10px; margin-bottom: 10px; font-size: 0.9rem; }
         .summary-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
-        .summary-row.total { font-weight: 700; font-size: 1.05rem; color: var(--primary-green); border-top: 1px solid #e2e8f0; paddingTop: 6px; }
+        .summary-row.total { font-weight: 700; font-size: 1.05rem; color: var(--primary-green); border-top: 1px solid #e2e8f0; padding-top: 6px; }
 
         .bundle-progress-banner { background: #fee2e2; color: #dc2626; padding: 10px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #fca5a5; }
         .bundle-banner-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-weight: 700; font-size: 0.9rem; }
@@ -375,7 +375,7 @@
         </div>
     </div>
 
-    <!-- نافذة السلة المتقدمة -->
+    <!-- نافذة السلة المتقدمة مع حساب الرزم والتخفيضات بدقة -->
     <div id="cart-modal">
         <div class="cart-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
@@ -401,7 +401,7 @@
                     <span id="subtotal-price">0₪</span>
                 </div>
                 <div class="summary-row" style="color: #dc2626; display: none;" id="discount-row">
-                    <span>إجمالي التوفير:</span>
+                    <span>إجمالي التوفير (الرزم):</span>
                     <span id="discount-price">0₪</span>
                 </div>
                 <div class="summary-row total">
@@ -444,6 +444,7 @@
 
         updateCartCounter();
 
+        // جلب البانرات الإعلانية
         db.collection("banners").onSnapshot((snapshot) => {
             let bannersContainer = document.getElementById('store-banners-slider');
             if (!bannersContainer) return;
@@ -459,6 +460,7 @@
             bannersContainer.innerHTML = bannersHtml;
         });
 
+        // جلب الأقسام والفئات
         db.collection("categories").onSnapshot((snapshot) => {
             dbCategories = [];
             snapshot.forEach((doc) => {
@@ -468,6 +470,7 @@
             updateCategoriesBar();
         });
 
+        // جلب رزم العروض (Bundles & Offers Engine) بدقة كاملة
         db.collection("bundles").onSnapshot((snapshot) => {
             productBundlesMap = {};
             bundlesDataMap = {};
@@ -485,6 +488,7 @@
             if(activeBundleIdInModal) openBundleModal(activeBundleIdInModal);
         });
 
+        // جلب المنتجات
         db.collection("products").onSnapshot((snapshot) => {
             allProducts = [];
             allProductsMap = {};
@@ -534,21 +538,87 @@
             if(activeBundleIdInModal) openBundleModal(activeBundleIdInModal);
         }
 
-        function updateCartCounter() {
-            let totalCount = 0;
-            let totalSum = 0;
+        // حساب الأسعار الإجمالية مع تفعيل منطق الخصومات والرزم بدقة
+        function calculateCartTotals() {
+            let subtotal = 0;
+            let totalWithBundles = 0;
+            let bundleCalculated = {};
+
             for (let id in cartItems) {
                 let qty = Number(cartItems[id]) || 0;
-                totalCount += qty;
                 let p = allProductsMap[id];
-                if(p) {
+                if (p && qty > 0) {
                     let price = (p.isOffer && p.offerPrice) ? Number(p.offerPrice) : Number(p.price);
-                    totalSum += price * qty;
+                    subtotal += price * qty;
+
+                    let bundleInfo = productBundlesMap[id];
+                    if (bundleInfo && !bundleCalculated[bundleInfo.bundleId]) {
+                        bundleCalculated[bundleInfo.bundleId] = true;
+                        let bundle = bundlesDataMap[bundleInfo.bundleId];
+                        if (bundle) {
+                            let totalQtyInBundle = 0;
+                            bundle.productIds.forEach(pId => {
+                                totalQtyInBundle += (Number(cartItems[pId]) || 0);
+                            });
+                            let bundlesCount = Math.floor(totalQtyInBundle / bundle.quantity);
+                            let remainder = totalQtyInBundle % bundle.quantity;
+                            
+                            let bundleItemsSubtotal = 0;
+                            let countedRem = remainder;
+                            bundle.productIds.forEach(pId => {
+                                let pr = allProductsMap[pId];
+                                let pq = Number(cartItems[pId]) || 0;
+                                if(pr && pq > 0) {
+                                    let unitPr = (pr.isOffer && pr.offerPrice) ? Number(pr.offerPrice) : Number(pr.price);
+                                    let takeForBundle = Math.min(pq, bundlesCount * bundle.quantity);
+                                    let takeForRem = pq - takeForBundle;
+                                    bundleItemsSubtotal += (takeForBundle * (bundle.price / bundle.quantity)) + (takeForRem * unitPr);
+                                }
+                            });
+                            totalWithBundles += bundleItemsSubtotal;
+                        }
+                    } else if (!bundleInfo) {
+                        totalWithBundles += price * qty;
+                    }
                 }
             }
-            document.getElementById('cart-count').innerText = totalCount;
-            document.getElementById('bar-total-amount').innerText = `₪${totalSum.toFixed(2)}`;
-            document.getElementById('bar-total-items').innerText = `${totalCount} منتجات`;
+            
+            for (let bId in bundlesDataMap) {
+                if (!bundleCalculated[bId]) {
+                    let bundle = bundlesDataMap[bId];
+                    let totalQtyInBundle = 0;
+                    bundle.productIds.forEach(pId => {
+                        totalQtyInBundle += (Number(cartItems[pId]) || 0);
+                    });
+                    if (totalQtyInBundle > 0) {
+                        bundleCalculated[bId] = true;
+                        let bundlesCount = Math.floor(totalQtyInBundle / bundle.quantity);
+                        let remainder = totalQtyInBundle % bundle.quantity;
+                        bundle.productIds.forEach(pId => {
+                            let pr = allProductsMap[pId];
+                            let pq = Number(cartItems[pId]) || 0;
+                            if(pr && pq > 0) {
+                                let unitPr = (pr.isOffer && pr.offerPrice) ? Number(pr.offerPrice) : Number(pr.price);
+                                let takeForBundle = Math.min(pq, bundlesCount * bundle.quantity);
+                                let takeForRem = pq - takeForBundle;
+                                totalWithBundles += (takeForBundle * (bundle.price / bundle.quantity)) + (takeForRem * unitPr);
+                            }
+                        });
+                    }
+                }
+            }
+
+            let totalCount = 0;
+            for(let id in cartItems) totalCount += Number(cartItems[id]) || 0;
+
+            return { totalCount, subtotal, finalTotal: totalWithBundles };
+        }
+
+        function updateCartCounter() {
+            let res = calculateCartTotals();
+            document.getElementById('cart-count').innerText = res.totalCount;
+            document.getElementById('bar-total-amount').innerText = `₪${res.finalTotal.toFixed(2)}`;
+            document.getElementById('bar-total-items').innerText = `${res.totalCount} منتجات`;
         }
 
         function renderProducts() {
@@ -683,7 +753,6 @@
         function openCartModal() {
             let container = document.getElementById('cart-items-container');
             let hasItems = false;
-            let subtotal = 0;
             let html = '';
 
             for (let id in cartItems) {
@@ -693,7 +762,6 @@
                     hasItems = true;
                     let price = (p.isOffer && p.offerPrice) ? Number(p.offerPrice) : Number(p.price);
                     let itemTotal = price * qty;
-                    subtotal += itemTotal;
 
                     let imgSrc = (p.img && p.img.length > 5) ? p.img : '';
                     let mHtml = imgSrc ? `<img src="${imgSrc}" class="cart-item-img">` : `<div class="cart-item-img" style="display:flex;align-items:center;justify-content:center;">${p.emoji || '🛒'}</div>`;
@@ -713,11 +781,22 @@
 
             if (!hasItems) {
                 container.innerHTML = `<p style="text-align: center; color: #888; padding: 20px;">السلة فارغة حالياً</p>`;
+                document.getElementById('subtotal-price').innerText = '0₪';
+                document.getElementById('discount-row').style.display = 'none';
                 document.getElementById('final-total-price').innerText = '0₪';
             } else {
                 container.innerHTML = html;
-                document.getElementById('subtotal-price').innerText = `₪${subtotal.toFixed(2)}`;
-                document.getElementById('final-total-price').innerText = `₪${subtotal.toFixed(2)}`;
+                let res = calculateCartTotals();
+                document.getElementById('subtotal-price').innerText = `₪${res.subtotal.toFixed(2)}`;
+                
+                let discount = res.subtotal - res.finalTotal;
+                if (discount > 0.01) {
+                    document.getElementById('discount-price').innerText = `-₪${discount.toFixed(2)}`;
+                    document.getElementById('discount-row').style.display = 'flex';
+                } else {
+                    document.getElementById('discount-row').style.display = 'none';
+                }
+                document.getElementById('final-total-price').innerText = `₪${res.finalTotal.toFixed(2)}`;
             }
             document.getElementById('cart-modal').style.display = 'flex';
         }
@@ -738,18 +817,22 @@
             msg += `👤 *الاسم:* ${name}\n`;
             msg += `📱 *الهاتف:* ${whatsapp}\n\n*المنتجات المطلوبة:*\n`;
             
-            let totalSum = 0;
             for (let id in cartItems) {
                 let p = allProductsMap[id];
                 let qty = cartItems[id];
                 if (p && qty > 0) {
                     let price = (p.isOffer && p.offerPrice) ? Number(p.offerPrice) : Number(p.price);
                     let sum = price * qty;
-                    totalSum += sum;
                     msg += `▪️ ${p.title} × ${qty} = ₪${sum.toFixed(2)}\n`;
                 }
             }
-            msg += `\n💰 *الإجمالي النهائي:* ₪${totalSum.toFixed(2)}`;
+            
+            let res = calculateCartTotals();
+            if (res.subtotal - res.finalTotal > 0.01) {
+                msg += `\n🏷️ مجموع المنتجات: ₪${res.subtotal.toFixed(2)}`;
+                msg += `\n🎁 قيمة التوفير (الرزم): -₪${(res.subtotal - res.finalTotal).toFixed(2)}`;
+            }
+            msg += `\n💰 *الإجمالي النهائي: ₪${res.finalTotal.toFixed(2)}*`;
 
             let url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
             window.open(url, '_blank');
