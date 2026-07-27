@@ -630,6 +630,7 @@
         }
     }
 
+    // دالة إرسال الطلب المصححة بالكامل
     function submitOrderToDashboard() {
         const name = document.getElementById('customerName').value.trim();
         const address = document.getElementById('customerAddress').value.trim();
@@ -657,15 +658,20 @@
             date: new Date().toLocaleDateString('ar-EG', { hour: '2-digit', minute: '2-digit' })
         };
 
+        // جلب الطلبات السابقة وتحديثها في الـ localStorage
         let allOrders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
         allOrders.unshift(newOrder);
         localStorage.setItem('aloroba_orders', JSON.stringify(allOrders));
 
-        alert("🎉 تم إرسال طلبك بنجاح إلى لوحة التحكم وسيتم متابعته فوراً!");
-
+        // تفريغ السلة وتحديث الواجهة
         cart = [];
         updateCartUI();
         closeModal('cartModal');
+
+        // تنبيه الزبون وإتاحة الانتقال الفوري لوحة التحكم
+        if(confirm("🎉 تم إرسال الطلب بنجاح إلى لوحة التحكم! هل تريد الانتقال إلى 'لوحة التحكم' لمشاهدته الآن؟")) {
+            window.location.href = "dashboard.html";
+        }
     }
 </script>
 </body>
