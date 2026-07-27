@@ -56,6 +56,11 @@
 
         /* تنسيق خاص لقسم العرض بلون أحمر */
         .offer-section-box { background: #fff5f5; border: 1px solid #fecaca; padding: 12px; border-radius: var(--radius-md); margin-top: 8px; display: none; }
+        
+        /* تنسيق قسم الحزم الجديد */
+        .products-select-box { border: 1px solid #d1d5db; border-radius: var(--radius-md); max-height: 200px; overflow-y: auto; padding: 8px; background: #fff; }
+        .product-select-item { display: flex; align-items: center; justify-content: space-between; padding: 6px; border-bottom: 1px solid #f3f4f6; font-size: 0.85rem; }
+        .product-select-item:last-child { border-bottom: none; }
     </style>
 </head>
 <body>
@@ -77,6 +82,51 @@
             <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px;">
                 <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; display:block;">الفئات النشطة حالياً:</label>
                 <div id="categories-list-box">جاري التحميل...</div>
+            </div>
+        </div>
+
+        <!-- قسم إضافة حزمة عروض جديدة -->
+        <div class="card-box">
+            <h3 style="margin-bottom: 12px; font-size: 1rem; color: var(--primary-green);">🎁 عرض حزمة جديد</h3>
+            
+            <div class="form-group">
+                <label>اسم العرض (عربي) *</label>
+                <input type="text" id="bundle-name-ar" placeholder="مثال: عرض 3 منتجات بـ 19.9 ₪">
+            </div>
+
+            <div class="form-group">
+                <label>اسم العرض (عبري)</label>
+                <input type="text" id="bundle-name-he" placeholder="Hebrew name">
+            </div>
+
+            <div class="row-2">
+                <div class="form-group">
+                    <label>الكمية لكل عرض *</label>
+                    <input type="number" id="bundle-qty" value="3" min="1">
+                </div>
+                <div class="form-group">
+                    <label>السعر لهذه الكمية (₪) *</label>
+                    <input type="number" step="0.1" id="bundle-price" placeholder="19.9">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label id="selected-count-label">المنتجات المشاركة (0)</label>
+                <input type="text" id="search-prod-input" placeholder="ابحث عن منتج بالاسم أو الباركود..." onkeyup="filterProductsSelection()" style="margin-bottom: 6px;">
+                
+                <div class="products-select-box" id="products-checkbox-list">
+                    <p style="text-align: center; color: #888; font-size: 0.8rem;">جاري تحميل المنتجات...</p>
+                </div>
+            </div>
+
+            <button class="btn-main" type="button" onclick="saveBundle()">حفظ ونشر العرض</button>
+        </div>
+
+        <!-- قائمة الحزم الحالية -->
+        <div class="card-box">
+            <h3 style="margin-bottom: 12px; font-size: 1rem; color: var(--primary-green);">📋 حزم العروض الحالية</h3>
+            <div id="bundles-list-container">
+                <p style="text-align: center; color: #888; font-size: 0.85rem;">لا توجد حزم مضافة بعد</p>
             </div>
         </div>
 
@@ -200,6 +250,7 @@
         const db = firebase.firestore();
 
         let codeReader = null;
+        let allProductsForBundle = [];
 
         function startBarcodeScanner() {
             const container = document.getElementById('barcode-scanner-container');
@@ -255,10 +306,14 @@
             document.getElementById('prod-category').innerHTML = selectHtml;
         });
 
+        // جلب المنتجات لقائمة الاختيار الخاصة بالحزم وإدارتها
         db.collection("products").onSnapshot((snapshot) => {
+            allProductsForBundle = [];
             let prodHtml = '';
             snapshot.forEach((doc) => {
                 let p = doc.data();
+                allProductsForBundle.push({ id: doc.id, ...p });
+
                 let imgSrc = (p.img && p.img.length > 5) ? p.img : '';
                 let thumbHtml = imgSrc ? `<img src="${imgSrc}" class="product-thumb" alt="صورة">` : `<span style="font-size:24px; margin-left:10px;">${p.emoji || '🛒'}</span>`;
                 
@@ -300,7 +355,98 @@
                     </div>`;
             });
             document.getElementById('products-list-box').innerHTML = prodHtml || '<p style="color:#888; font-size:0.85rem;">لا توجد منتجات مضافة</p>';
+            renderProductsCheckboxList(allProductsForBundle);
         });
+
+        // جلب الحزم المخزنة لعرضها في القائمة وإدارتها
+        db.collection("bundles").onSnapshot((snapshot) => {
+            let listHtml = '';
+            snapshot.forEach((doc) => {
+                let b = doc.data();
+                listHtml += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; margin-bottom: 8px;">
+                        <div>
+                            <strong>${b.nameAr}</strong>
+                            <div style="font-size: 0.75rem; color: #6b7280;">الكمية: ${b.quantity} | السعر: ${b.price} ₪ | المنتجات: ${b.productIds ? b.productIds.length : 0}</div>
+                        </div>
+                        <button class="btn-del-sm" onclick="deleteBundle('${doc.id}')">حذف</button>
+                    </div>`;
+            });
+            document.getElementById('bundles-list-container').innerHTML = listHtml || '<p style="text-align: center; color: #888; font-size: 0.85rem;">لا توجد حزم مضافة بعد</p>';
+        });
+
+        function renderProductsCheckboxList(products) {
+            let html = '';
+            products.forEach(p => {
+                html += `
+                    <div class="product-select-item">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex-grow: 1;">
+                            <input type="checkbox" class="bundle-prod-checkbox" value="${p.id}" onchange="updateSelectedCount()">
+                            <span>${p.title} (${p.price} ₪)</span>
+                        </label>
+                    </div>`;
+            });
+            document.getElementById('products-checkbox-list').innerHTML = html || '<p style="text-align: center; color: #888; font-size: 0.8rem;">لا توجد منتجات</p>';
+        }
+
+        function filterProductsSelection() {
+            let query = document.getElementById('search-prod-input').value.toLowerCase();
+            let filtered = allProductsForBundle.filter(p => p.title.toLowerCase().includes(query));
+            renderProductsCheckboxList(filtered);
+        }
+
+        function updateSelectedCount() {
+            let checkboxes = document.querySelectorAll('.bundle-prod-checkbox:checked');
+            document.getElementById('selected-count-label').innerText = `المنتجات المشاركة (${checkboxes.length})`;
+        }
+
+        function saveBundle() {
+            let nameAr = document.getElementById('bundle-name-ar').value.trim();
+            let nameHe = document.getElementById('bundle-name-he').value.trim();
+            let quantity = parseInt(document.getElementById('bundle-qty').value);
+            let price = parseFloat(document.getElementById('bundle-price').value);
+
+            if (!nameAr || !quantity || isNaN(price)) {
+                alert('الرجاء إدخال اسم العرض، الكمية، والسعر بشكل صحيح.');
+                return;
+            }
+
+            let checkboxes = document.querySelectorAll('.bundle-prod-checkbox:checked');
+            let productIds = [];
+            checkboxes.forEach(cb => productIds.push(cb.value));
+
+            if (productIds.length === 0) {
+                alert('الرجاء اختيار منتج واحد على الأقل للمشاركة في العرض.');
+                return;
+            }
+
+            db.collection("bundles").add({
+                nameAr: nameAr,
+                nameHe: nameHe,
+                quantity: quantity,
+                price: price,
+                productIds: productIds,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                alert('تم حفظ ونشر الحزمة بنجاح!');
+                document.getElementById('bundle-name-ar').value = '';
+                document.getElementById('bundle-name-he').value = '';
+                document.getElementById('bundle-qty').value = '3';
+                document.getElementById('bundle-price').value = '';
+                document.querySelectorAll('.bundle-prod-checkbox').forEach(cb => cb.checked = false);
+                updateSelectedCount();
+            }).catch(err => {
+                alert('حدث خطأ أثناء الحفظ: ' + err.message);
+            });
+        }
+
+        function deleteBundle(id) {
+            if (confirm('هل أنت متأكد من حذف هذه الحزمة؟')) {
+                db.collection("bundles").doc(id).delete().then(() => {
+                    alert('تم الحذف بنجاح');
+                });
+            }
+        }
 
         function handleImagePick(event) {
             const file = event.target.files[0];
