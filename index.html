@@ -47,14 +47,19 @@
         
         .product-price-row { text-align: center; margin-bottom: 10px; font-size: 0.9rem; direction: ltr; unicode-bidi: isolate; }
         
-        /* السعر العادي للمنتجات التي لا تحتوي على عروض (برتقالي جذاب وبنفس حجم سعر العرض) */
+        /* السعر العادي (برتقالي كبير) */
         .price-normal { font-weight: 700; color: #f97316; font-size: 1.05rem; }
+        
+        /* حاوية العرض لتكون مرتبة عمودياً */
+        .offer-price-container { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        
+        .price-offer-top { display: flex; align-items: center; justify-content: center; gap: 4px; }
         
         /* سعر العرض الجديد (أحمر كبير) */
         .price-offer-new { font-weight: 700; color: #dc2626; font-size: 1.05rem; }
         
-        /* السعر القديم المشطوب (أسود غامق وبحجمه الأصغر) */
-        .price-offer-old { text-decoration: line-through; color: #1f2937; font-size: 0.8rem; margin-right: 6px; font-weight: 600; }
+        /* السعر القديم المشطوب (أسود غامق وصغير تحته) */
+        .price-offer-old { text-decoration: line-through; color: #1f2937; font-size: 0.8rem; font-weight: 600; }
 
         .btn-add-cart { background: var(--primary-green); color: white; border: none; width: 100%; padding: 8px; border-radius: var(--radius-md); font-weight: 700; font-size: 0.85rem; cursor: pointer; text-align: center; }
 
@@ -166,14 +171,20 @@
                 
                 if (p.isOffer && p.offerPrice && p.offerPrice > 0) {
                     priceHtml = `
-                        <span class="price-offer-new">${p.offerPrice} ₪</span>
-                        <span class="price-offer-old">${p.price} ₪</span>
-                        <span style="font-size:0.75rem; color:#4b5563; font-weight:600;">/ ${unitText}</span>
+                        <div class="offer-price-container">
+                            <div class="price-offer-top">
+                                <span class="price-offer-new">${p.offerPrice}₪</span>
+                                <span style="font-size:0.75rem; color:#4b5563; font-weight:600;">/ ${unitText}</span>
+                            </div>
+                            <div class="price-offer-old">${p.price}₪</div>
+                        </div>
                     `;
                 } else {
                     priceHtml = `
-                        <span class="price-normal">${p.price} ₪</span>
-                        <span style="font-size:0.75rem; color:#4b5563; font-weight:600;">/ ${unitText}</span>
+                        <div>
+                            <span class="price-normal">${p.price}₪</span>
+                            <span style="font-size:0.75rem; color:#4b5563; font-weight:600;">/ ${unitText}</span>
+                        </div>
                     `;
                 }
 
