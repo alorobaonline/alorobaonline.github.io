@@ -26,41 +26,50 @@
         
         .cart-badge-btn { background: var(--primary-green); color: white; border: none; padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 
-        /* شريط الفئات المستوحى من تصميم البطاقات الملونة */
+        /* شريط الفئات (خلفية بيضاء وتتحول للأخضر عند الاختيار) */
         .categories-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; }
         .categories-bar::-webkit-scrollbar { display: none; }
         
-        /* التصميم الافتراضي (بطاقة فئة زرقاء أنيقة) */
+        /* التصميم الافتراضي للفئات (خلفية بيضاء) */
         .cat-chip { 
-            background: #0056ff; 
-            border: 2px dashed #ffffff; 
+            background: #ffffff; 
+            border: 1px solid #d1d5db; 
             padding: 8px 16px; 
-            border-radius: 14px; 
+            border-radius: 20px; 
             font-size: 0.85rem; 
             font-weight: 700; 
             white-space: nowrap; 
             cursor: pointer; 
-            color: #ffffff; 
-            box-shadow: 0 2px 6px rgba(0, 86, 255, 0.25);
+            color: #4b5563; 
+            box-shadow: var(--shadow-sm);
             transition: all 0.2s; 
         }
-        .cat-chip:nth-child(even) { background: #7b2cbf; box-shadow: 0 2px 6px rgba(123, 44, 191, 0.25); } /* بنفسجي للفئات المتناوبة */
-        .cat-chip:nth-child(3n) { background: #f0a500; box-shadow: 0 2px 6px rgba(240, 165, 0, 0.25); } /* أصفر متميز */
         
-        .cat-chip.active { transform: scale(1.05); filter: brightness(1.15); border-color: #ffffff; }
-
-        /* بطاقة عروض الأسبوع الحمراء المخصصة حصرياً للعروض */
-        .cat-chip.offer-chip { 
-            background: #e63946 !important; 
+        /* عند الضغط أو التفعيل تصبح أخضر */
+        .cat-chip.active { 
+            background: var(--primary-green) !important; 
             color: #ffffff !important; 
-            border-color: #ffb703 !important; 
-            box-shadow: 0 3px 8px rgba(230, 57, 70, 0.4);
+            border-color: var(--primary-green) !important; 
+            box-shadow: 0 4px 10px rgba(104, 166, 51, 0.3);
+        }
+
+        /* قالب عروض الأسبوع (أحمر حصري دائماً) */
+        .cat-chip.offer-chip { 
+            background: #fee2e2; 
+            color: #dc2626; 
+            border-color: #fca5a5; 
+        }
+        .cat-chip.offer-chip.active { 
+            background: #dc2626 !important; 
+            color: white !important; 
+            border-color: #dc2626 !important; 
+            box-shadow: 0 4px 10px rgba(220, 38, 38, 0.3);
         }
 
         .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .product-card { background: white; border-radius: var(--radius-lg); padding: 12px; box-shadow: var(--shadow-sm); border: 1px solid #e5e7eb; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
         
-        .offer-badge { position: absolute; top: 10px; left: 10px; background: #e63946; color: white; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; z-index: 2; }
+        .offer-badge { position: absolute; top: 10px; left: 10px; background: #dc2626; color: white; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; z-index: 2; }
         
         .product-bundle-tag { background: #fee2e2; color: #dc2626; font-size: 0.75rem; font-weight: 700; padding: 4px 8px; border-radius: 6px; text-align: center; margin-bottom: 6px; border: 1px dashed #fca5a5; cursor: pointer; direction: rtl; unicode-bidi: plaintext; }
 
