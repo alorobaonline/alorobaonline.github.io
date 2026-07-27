@@ -93,7 +93,7 @@
         <a href="index.html" class="back-btn">← عودة للمتجر</a>
     </div>
 
-    <!-- 1. إعدادات البانر الرئيسي (مغلق افتراضياً) -->
+    <!-- 1. إعدادات البانر الرئيسي -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleMainSection('bannerSection', 'bannerArrow')">
             <span>📢 تخصيص البانر الرئيسي</span>
@@ -121,7 +121,7 @@
         </div>
     </div>
 
-    <!-- 2. إدارة الفئات والأقسام (مغلق افتراضياً) -->
+    <!-- 2. إدارة الفئات والأقسام -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleMainSection('categoriesSection', 'catArrow')">
             <span>📁 إدارة الفئات (الأقسام)</span>
@@ -151,15 +151,15 @@
         </div>
     </div>
 
-    <!-- 3. إضافة منتج جديد (مغلق افتراضياً) -->
+    <!-- القسم الأول: إضافة منتج جديد (مستقل) -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleMainSection('addProductSection', 'prodArrow')">
-            <span>📦 إضافة منتج أو حملة جديدة</span>
+            <span>📦 إضافة منتج جديد</span>
             <span id="prodArrow" class="toggle-arrow">▼</span>
         </div>
         <div id="addProductSection" class="section-content">
             <div class="form-group">
-                <label>اسم المنتج أو الحملة *</label>
+                <label>اسم المنتج *</label>
                 <input type="text" id="prodName" class="form-control" placeholder="مثال: أرز تات بسمتي">
             </div>
             <div class="form-group">
@@ -181,10 +181,6 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>رزمة الحملة أو شارة العرض</label>
-                <input type="text" id="prodOffer" class="form-control" placeholder="مثال: 3 بـ22 أو عرض خاص">
-            </div>
-            <div class="form-group">
                 <label>صورة المنتج (من كاميرا الهاتف أو الاستوديو) *</label>
                 <div class="file-upload-box">
                     <label class="camera-btn" for="prodFile">📸 التقاط أو اختيار صورة</label>
@@ -197,7 +193,39 @@
         </div>
     </div>
 
-    <!-- 4. خانة المنتجات المقسمة حسب الفئات (مغلق افتراضياً) -->
+    <!-- القسم الثاني: حملات العروبة (مستقل) -->
+    <div class="section-box" style="border-color: #68a633; background: #f4fbf0;">
+        <div class="section-header-toggle" onclick="toggleMainSection('campaignsSection', 'campArrow')">
+            <span>🔥 حملات العروبة وعروضها الخاصة</span>
+            <span id="campArrow" class="toggle-arrow">▼</span>
+        </div>
+        <div id="campaignsSection" class="section-content">
+            <div class="form-group">
+                <label>عنوان الحملة أو العرض *</label>
+                <input type="text" id="campName" class="form-control" placeholder="مثال: حملة الأسبوع الكبرى">
+            </div>
+            <div class="form-group">
+                <label>رزمة الحملة أو شارة العرض *</label>
+                <input type="text" id="campOffer" class="form-control" placeholder="مثال: 3 بـ22 أو خصم 20%">
+            </div>
+            <div class="form-group">
+                <label>السعر الترويجي للحملة (₪) *</label>
+                <input type="number" id="campPrice" class="form-control" placeholder="22">
+            </div>
+            <div class="form-group">
+                <label>صورة الحملة أو العرض *</label>
+                <div class="file-upload-box">
+                    <label class="camera-btn" for="campFile">📸 التقاط أو اختيار صورة الحملة</label>
+                    <input type="file" id="campFile" accept="image/*" onchange="compressAndSetImage(event, 'campImgData', 'campPreview')">
+                    <img id="campPreview" class="preview-thumb" src="https://cdn-icons-png.flaticon.com/512/3081/3081986.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
+                </div>
+                <input type="hidden" id="campImgData">
+            </div>
+            <button class="btn-main" style="background: #68a633;" onclick="saveCampaign()">إطلاق ونشر الحملة فوراً 🎯</button>
+        </div>
+    </div>
+
+    <!-- 3. خانة المنتجات المقسمة حسب الفئات -->
     <div class="section-box" style="background: #edf2f7; border-color: #cbd5e1;">
         <div class="section-header-toggle" onclick="toggleMainSection('manageProductsSection', 'manageArrow')">
             <span>🛒 إدارة وعرض المنتجات (مقسمة حسب الأقسام)</span>
@@ -511,6 +539,15 @@
         }
     }
 
+    function deleteProduct(index) {
+        if(confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
+            let products = getStoredProducts();
+            products.splice(index, 1);
+            localStorage.setItem('aloroba_products', JSON.stringify(products));
+            renderAdmin();
+        }
+    }
+
     function toggleCategorySection(catIdx) {
         const contentBox = document.getElementById(`category-content-${catIdx}`);
         const arrowIcon = document.getElementById(`arrow-icon-${catIdx}`);
@@ -571,27 +608,14 @@
         }
     }
 
+    // حفظ منتج جديد (القسم الأول)
     function saveProduct() {
         try {
-            const nameInput = document.getElementById('prodName');
-            const weightInput = document.getElementById('prodWeight');
-            const priceInput = document.getElementById('prodPrice');
-            const oldPriceInput = document.getElementById('prodOldPrice');
-            const offerInput = document.getElementById('prodOffer');
-            const imgInput = document.getElementById('prodImgData');
-            const fileInput = document.getElementById('prodFile');
-
-            if (!nameInput || !priceInput) {
-                alert("حقول المدخلات غير موجودة.");
-                return;
-            }
-
-            const name = nameInput.value.trim();
-            const weight = weightInput.value.trim();
-            const price = priceInput.value.trim();
-            const oldPrice = oldPriceInput.value.trim();
-            const offer = offerInput.value.trim();
-            let img = imgInput.value.trim();
+            const name = document.getElementById('prodName').value.trim();
+            const weight = document.getElementById('prodWeight').value.trim();
+            const price = document.getElementById('prodPrice').value.trim();
+            const oldPrice = document.getElementById('prodOldPrice').value.trim();
+            let img = document.getElementById('prodImgData').value.trim();
 
             let selectedCategories = [];
             document.querySelectorAll('input[name="productCategoryCheck"]:checked').forEach(chk => {
@@ -604,7 +628,7 @@
             }
 
             if(selectedCategories.length === 0) {
-                alert("الرجاء اختيار فئة واحدة على الأقل للمنتج من مربعات الاختيار!");
+                alert("الرجاء اختيار فئة واحدة على الأقل للمنتج!");
                 return;
             }
 
@@ -621,47 +645,77 @@
                 categories: selectedCategories,
                 price: Number(price),
                 oldPrice: oldPrice ? Number(oldPrice) : null,
-                offer: offer,
+                offer: "", // منتج عادي بدون حملة
                 img: img
             };
 
             products.unshift(newProd);
-
             localStorage.setItem('aloroba_products', JSON.stringify(products));
             
-            nameInput.value = '';
-            weightInput.value = '';
-            priceInput.value = '';
-            oldPriceInput.value = '';
-            offerInput.value = '';
-            imgInput.value = '';
-            if(fileInput) fileInput.value = '';
+            document.getElementById('prodName').value = '';
+            document.getElementById('prodWeight').value = '';
+            document.getElementById('prodPrice').value = '';
+            document.getElementById('prodOldPrice').value = '';
+            document.getElementById('prodImgData').value = '';
             document.getElementById('prodPreview').src = "https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
             document.querySelectorAll('input[name="productCategoryCheck"]').forEach(chk => chk.checked = false);
 
-            alert("تمت إضافة ونشر المنتج بنجاح وظهر في لوحة التحكم! 🚀");
             renderAdmin();
-
-        } catch (error) {
-            console.error("خطأ في التخزين:", error);
-            alert("خطأ: مساحة الذاكرة المحلية ممتلئة. يرجى حذف بعض المنتجات القديمة لتفريغ مساحة.");
+            alert("تم إضافة ونشر المنتج بنجاح! 🚀");
+        } catch(e) {
+            alert("حدث خطأ أثناء الحفظ. تأكد من مساحة التخزين.");
         }
     }
 
-    function deleteProduct(index) {
-        if(confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
-            let products = getStoredProducts();
-            products.splice(index, 1);
-            try {
-                localStorage.setItem('aloroba_products', JSON.stringify(products));
-                renderAdmin();
-            } catch(e) {
-                alert("خطأ أثناء الحذف.");
+    // حفظ حملة العروبة (القسم الثاني)
+    function saveCampaign() {
+        try {
+            const name = document.getElementById('campName').value.trim();
+            const offer = document.getElementById('campOffer').value.trim();
+            const price = document.getElementById('campPrice').value.trim();
+            let img = document.getElementById('campImgData').value.trim();
+
+            if(!name || !offer || !price) {
+                alert("الرجاء إدخال اسم الحملة، رزمة العرض، والسعر الترويجي!");
+                return;
             }
+
+            if(!img) {
+                img = "https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
+            }
+
+            let products = getStoredProducts();
+
+            const newCampaign = {
+                id: Date.now(),
+                name: name,
+                weight: "عرض خاص",
+                categories: ["عروض"], // يتم إضافتها تلقائياً لقسم العروض
+                price: Number(price),
+                oldPrice: null,
+                offer: offer,
+                img: img
+            };
+
+            products.unshift(newCampaign);
+            localStorage.setItem('aloroba_products', JSON.stringify(products));
+            
+            document.getElementById('campName').value = '';
+            document.getElementById('campOffer').value = '';
+            document.getElementById('campPrice').value = '';
+            document.getElementById('campImgData').value = '';
+            document.getElementById('campPreview').src = "https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
+
+            renderAdmin();
+            alert("تم إطلاق ونشر الحملة بنجاح! 🎯");
+        } catch(e) {
+            alert("حدث خطأ أثناء حفظ الحملة.");
         }
     }
 
-    window.onload = () => renderAdmin();
+    window.onload = () => {
+        renderAdmin();
+    };
 </script>
 </body>
 </html>
