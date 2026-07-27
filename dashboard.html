@@ -147,11 +147,24 @@
 </div>
 
 <script>
-    let products = JSON.parse(localStorage.getItem('aloroba_products')) || [
-        { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", category: "معلبات" },
-        { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png", category: "معلبات" },
-        { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png", category: "ألبان" }
-    ];
+    // دالة ذكية لجلب المنتجات وضمان عدم ضياعها أو تكرارها
+    function getStoredProducts() {
+        let saved = localStorage.getItem('aloroba_products');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        const defaultProducts = [
+            { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", category: "معلبات" },
+            { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png", category: "معلبات" },
+            { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png", category: "ألبان" }
+        ];
+        localStorage.setItem('aloroba_products', JSON.stringify(defaultProducts));
+        return defaultProducts;
+    }
 
     let categories = JSON.parse(localStorage.getItem('aloroba_categories')) || [
         { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
@@ -169,6 +182,9 @@
     };
 
     function renderAdmin() {
+        // تحديث مصفوفة المنتجات من الذاكرة المحلية مباشرة في كل مرة يتم فيها الرسم
+        let products = getStoredProducts();
+
         document.getElementById('bannerTitleInput').value = bannerData.title || "";
         document.getElementById('bannerTagInput').value = bannerData.tag || "";
         document.getElementById('bannerImgInput').value = bannerData.img || "";
@@ -194,6 +210,12 @@
 
         const prodList = document.getElementById('adminProductsList');
         prodList.innerHTML = '';
+        
+        if (products.length === 0) {
+            prodList.innerHTML = '<div style="text-align: center; color: #888; font-size: 0.65rem; padding: 5px;">لا توجد منتجات مسجلة</div>';
+            return;
+        }
+
         products.forEach((p, index) => {
             prodList.innerHTML += `
                 <div class="list-item">
@@ -265,6 +287,7 @@
     }
 
     function saveProduct() {
+        let products = getStoredProducts(); // جلب أحدث نسخة دائماً
         const editIndex = Number(document.getElementById('editIndex').value);
         const name = document.getElementById('prodName').value;
         const weight = document.getElementById('prodWeight').value;
@@ -280,7 +303,7 @@
         }
 
         if(editIndex === -1) {
-            // إضافة منتج جديد
+            // إضافة منتج جديد في أعلى القائمة لكي يظهر فوراً
             const newProd = {
                 id: Date.now(),
                 name,
@@ -313,7 +336,10 @@
     }
 
     function editProduct(index) {
+        let products = getStoredProducts();
         const p = products[index];
+        if(!p) return;
+        
         document.getElementById('editIndex').value = index;
         document.getElementById('prodName').value = p.name;
         document.getElementById('prodWeight').value = p.weight || '';
@@ -348,6 +374,7 @@
 
     function deleteProduct(index) {
         if(confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
+            let products = getStoredProducts();
             products.splice(index, 1);
             localStorage.setItem('aloroba_products', JSON.stringify(products));
             renderAdmin();
