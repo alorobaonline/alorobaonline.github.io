@@ -18,11 +18,17 @@
         body { background-color: var(--bg-color); color: #1f2937; padding: 10px; }
         .store-container { max-width: 600px; margin: 0 auto; padding-bottom: 80px; }
         
-        .store-header { background: white; padding: 16px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-top: 4px solid var(--primary-green); }
+        .store-header { background: white; padding: 16px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-top: 4px solid var(--primary-green); }
         .store-title { font-size: 1.2rem; font-weight: bold; }
         .store-sub { font-size: 0.8rem; color: #6b7280; }
         
         .cart-badge-btn { background: var(--primary-green); color: white; border: none; padding: 8px 14px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+
+        /* شريط الفئات */
+        .categories-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; }
+        .categories-bar::-webkit-scrollbar { display: none; }
+        .cat-chip { background: white; border: 1px solid #d1d5db; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; white-space: nowrap; cursor: pointer; color: #4b5563; transition: all 0.2s; }
+        .cat-chip.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
 
         .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .product-card { background: white; border-radius: var(--radius-lg); padding: 12px; box-shadow: var(--shadow-sm); border: 1px solid #e5e7eb; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
@@ -57,6 +63,12 @@
             </button>
         </div>
 
+        <!-- شريط الفئات -->
+        <div id="categories-bar" class="categories-bar">
+            <button class="cat-chip active" onclick="filterCategory('الكل', this)">الكل</button>
+        </div>
+
+        <!-- شبكة المنتجات -->
         <div id="store-products-grid" class="products-grid">
             <p style="text-align: center; color: #888; grid-column: span 2;">جاري تحميل المنتجات...</p>
         </div>
@@ -77,16 +89,54 @@
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.firestore();
 
-        db.collection("products").onSnapshot((snapshot) => {
-            let gridHtml = '';
+        let currentCategory = "الكل";
+        let allProducts = [];
+
+        // جلب الفئات وعرضها في الشريط العلوي
+        db.collection("categories").onSnapshot((snapshot) => {
+            let catHtml = `<button class="cat-chip ${currentCategory === 'الكل' ? 'active' : ''}" onclick="filterCategory('الكل', this)">الكل</button>`;
             snapshot.forEach((doc) => {
-                let p = doc.data();
+                let d = doc.data();
+                let isActive = currentCategory === d.name ? 'active' : '';
+                catHtml += `<button class="cat-chip ${isActive}" onclick="filterCategory('${d.name}', this)">${d.name}</button>`;
+            });
+            document.getElementById('categories-bar').innerHTML = catHtml;
+        });
+
+        // جلب المنتجات وتخزينها
+        db.collection("products").onSnapshot((snapshot) => {
+            allProducts = [];
+            snapshot.forEach((doc) => {
+                allProducts.push({ id: doc.id, ...doc.data() });
+            });
+            renderProducts();
+        });
+
+        function filterCategory(category, element) {
+            currentCategory = category;
+            document.querySelectorAll('.cat-chip').forEach(btn => btn.classList.remove('active'));
+            if(element) element.classList.add('active');
+            renderProducts();
+        }
+
+        function renderProducts() {
+            let filtered = allProducts;
+            
+            if (currentCategory === "عروض الاسبوع") {
+                // إذا تم اختيار فئة عروض الأسبوع، اعرض المنتجات التي عليها عروض فقط
+                filtered = allProducts.filter(p => p.isOffer === true);
+            } else if (currentCategory !== "الكل") {
+                // الفئات العادية الأخرى
+                filtered = allProducts.filter(p => p.category === currentCategory);
+            }
+
+            let gridHtml = '';
+            filtered.forEach((p) => {
                 let imgSrc = (p.img && p.img.length > 5) ? p.img : '';
                 let mediaHtml = imgSrc ? `<img src="${imgSrc}" class="product-img" alt="صورة">` : `<span style="font-size: 45px;">${p.emoji || '🛒'}</span>`;
                 
                 let badgeHtml = p.isOffer ? `<div class="offer-badge">عرض</div>` : '';
 
-                // تنسيق الأسعار: عرض سعر العرض بالأحمر مع شطب السعر القديم
                 let priceHtml = '';
                 if (p.isOffer && p.offerPrice && p.offerPrice > 0) {
                     priceHtml = `
@@ -118,8 +168,8 @@
                     </div>`;
             });
 
-            document.getElementById('store-products-grid').innerHTML = gridHtml || '<p style="text-align: center; color: #888; grid-column: span 2;">لا توجد منتجات معروضة حالياً</p>';
-        });
+            document.getElementById('store-products-grid').innerHTML = gridHtml || '<p style="text-align: center; color: #888; grid-column: span 2;">لا توجد منتجات مطابقة حالياً</p>';
+        }
     </script>
 </body>
 </html>
