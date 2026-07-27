@@ -85,9 +85,10 @@
             </div>
         </div>
 
-        <!-- قسم إضافة حزمة عروض جديدة -->
+        <!-- قسم إضافة / تعديل حزمة عروض -->
         <div class="card-box">
-            <h3 style="margin-bottom: 12px; font-size: 1rem; color: var(--primary-green);">🎁 عرض حزمة جديد</h3>
+            <h3 id="bundle-form-title" style="margin-bottom: 12px; font-size: 1rem; color: var(--primary-green);">🎁 عرض حزمة جديد</h3>
+            <input type="hidden" id="bundle-edit-id" value="">
             
             <div class="form-group">
                 <label>اسم العرض (عربي) *</label>
@@ -119,7 +120,8 @@
                 </div>
             </div>
 
-            <button class="btn-main" type="button" onclick="saveBundle()">حفظ ونشر العرض</button>
+            <button class="btn-main" type="button" id="bundle-submit-btn" onclick="saveBundle()">حفظ ونشر العرض</button>
+            <button type="button" id="bundle-cancel-edit-btn" onclick="resetBundleForm()" style="display: none; background: #6b7280; color: white; border: none; width: 100%; padding: 10px; border-radius: var(--radius-md); font-weight: bold; font-size: 0.9rem; cursor: pointer; text-align: center; margin-top: 6px;">إلغاء التعديل</button>
         </div>
 
         <!-- قائمة الحزم الحالية -->
@@ -211,7 +213,6 @@
                     </select>
                 </div>
 
-                <!-- خيار منتج بالعرض مع مربع سعر العرض باللون الأحمر تحته مباشرة -->
                 <div class="form-group">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <input type="checkbox" id="prod-is-offer" style="width: 18px; height: 18px;" onchange="toggleOfferPriceBox()">
@@ -251,6 +252,7 @@
 
         let codeReader = null;
         let allProductsForBundle = [];
+        let loadedBundlesMap = {};
 
         function startBarcodeScanner() {
             const container = document.getElementById('barcode-scanner-container');
@@ -358,18 +360,25 @@
             renderProductsCheckboxList(allProductsForBundle);
         });
 
-        // جلب الحزم المخزنة لعرضها في القائمة وإدارتها
+        // جلب الحزم المخزنة لعرضها مع زري التعديل والحذف
         db.collection("bundles").onSnapshot((snapshot) => {
             let listHtml = '';
+            loadedBundlesMap = {};
             snapshot.forEach((doc) => {
                 let b = doc.data();
+                let bId = doc.id;
+                loadedBundlesMap[bId] = b;
+
                 listHtml += `
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; margin-bottom: 8px;">
                         <div>
-                            <strong>${b.nameAr}</strong>
+                            <strong>${b.nameAr || 'عرض حزمة'}</strong>
                             <div style="font-size: 0.75rem; color: #6b7280;">الكمية: ${b.quantity} | السعر: ${b.price} ₪ | المنتجات: ${b.productIds ? b.productIds.length : 0}</div>
                         </div>
-                        <button class="btn-del-sm" onclick="deleteBundle('${doc.id}')">حذف</button>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="btn-edit-sm" onclick="editBundle('${bId}')">تعديل</button>
+                            <button class="btn-del-sm" onclick="deleteBundle('${bId}')">حذف</button>
+                        </div>
                     </div>`;
             });
             document.getElementById('bundles-list-container').innerHTML = listHtml || '<p style="text-align: center; color: #888; font-size: 0.85rem;">لا توجد حزم مضافة بعد</p>';
@@ -386,7 +395,8 @@
                         </label>
                     </div>`;
             });
-            document.getElementById('products-checkbox-list').innerHTML = html || '<p style="text-align: center; color: #888; font-size: 0.8rem;">لا توجد منتجات</p>';
+            document.getElementById('products-checkbox-list').innerHTML = html || '<p style="text-align: center; color: #888; font-size: 0.80rem;">لا توجد منتجات</p>';
+            updateSelectedCount();
         }
 
         function filterProductsSelection() {
@@ -401,6 +411,7 @@
         }
 
         function saveBundle() {
+            let editId = document.getElementById('bundle-edit-id').value;
             let nameAr = document.getElementById('bundle-name-ar').value.trim();
             let nameHe = document.getElementById('bundle-name-he').value.trim();
             let quantity = parseInt(document.getElementById('bundle-qty').value);
@@ -420,24 +431,67 @@
                 return;
             }
 
-            db.collection("bundles").add({
+            let bundleData = {
                 nameAr: nameAr,
                 nameHe: nameHe,
                 quantity: quantity,
                 price: price,
                 productIds: productIds,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            let promise = editId ? db.collection("bundles").doc(editId).update(bundleData) : db.collection("bundles").add({
+                ...bundleData,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                alert('تم حفظ ونشر الحزمة بنجاح!');
-                document.getElementById('bundle-name-ar').value = '';
-                document.getElementById('bundle-name-he').value = '';
-                document.getElementById('bundle-qty').value = '3';
-                document.getElementById('bundle-price').value = '';
-                document.querySelectorAll('.bundle-prod-checkbox').forEach(cb => cb.checked = false);
-                updateSelectedCount();
+            });
+
+            promise.then(() => {
+                alert(editId ? 'تم تحديث الحزمة بنجاح!' : 'تم حفظ ونشر الحزمة بنجاح!');
+                resetBundleForm();
             }).catch(err => {
                 alert('حدث خطأ أثناء الحفظ: ' + err.message);
             });
+        }
+
+        function editBundle(bId) {
+            let b = loadedBundlesMap[bId];
+            if (!b) return;
+
+            document.getElementById('bundle-edit-id').value = bId;
+            document.getElementById('bundle-name-ar').value = b.nameAr || '';
+            document.getElementById('bundle-name-he').value = b.nameHe || '';
+            document.getElementById('bundle-qty').value = b.quantity || 3;
+            document.getElementById('bundle-price').value = b.price || '';
+            
+            document.getElementById('bundle-form-title').innerText = '✏️ تعديل حزمة العروض';
+            document.getElementById('bundle-submit-btn').innerText = 'حفظ التعديلات';
+            document.getElementById('bundle-cancel-edit-btn').style.display = 'block';
+
+            // تحديد المنتجات المشاركة المرتبطة بالعرض
+            let checkboxes = document.querySelectorAll('.bundle-prod-checkbox');
+            checkboxes.forEach(cb => {
+                if (b.productIds && b.productIds.includes(cb.value)) {
+                    cb.checked = true;
+                } else {
+                    cb.checked = false;
+                }
+            });
+            updateSelectedCount();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetBundleForm() {
+            document.getElementById('bundle-edit-id').value = '';
+            document.getElementById('bundle-name-ar').value = '';
+            document.getElementById('bundle-name-he').value = '';
+            document.getElementById('bundle-qty').value = '3';
+            document.getElementById('bundle-price').value = '';
+            document.getElementById('search-prod-input').value = '';
+            document.getElementById('bundle-form-title').innerText = '🎁 عرض حزمة جديد';
+            document.getElementById('bundle-submit-btn').innerText = 'حفظ ونشر العرض';
+            document.getElementById('bundle-cancel-edit-btn').style.display = 'none';
+            
+            renderProductsCheckboxList(allProductsForBundle);
         }
 
         function deleteBundle(id) {
@@ -591,40 +645,35 @@
             document.getElementById('open-product-form-btn-wrapper').style.display = 'none';
             const formBox = document.getElementById('product-form-container');
             formBox.style.display = 'block';
-            const slot = document.getElementById(`edit-slot-${p.id}`);
-            slot.appendChild(formBox);
+            formBox.scrollIntoView({ behavior: 'smooth' });
 
+            document.getElementById('prod-panel-title').innerText = "✏️ تعديل المنتج: " + p.title;
             document.getElementById('prod-id').value = p.id;
             document.getElementById('prod-title').value = p.title;
             document.getElementById('prod-price').value = p.price;
-            document.getElementById('prod-offer-price').value = p.offerPrice || '';
-            document.getElementById('prod-cost').value = p.cost || '';
+            document.getElementById('prod-cost').value = p.cost;
             document.getElementById('prod-stock').value = p.stock;
             document.getElementById('prod-unit').value = p.unit;
             document.getElementById('prod-barcode').value = p.barcode;
             document.getElementById('prod-category').value = p.category;
             document.getElementById('prod-emoji').value = p.emoji;
+            document.getElementById('prod-img-base64').value = p.img;
             
             document.getElementById('prod-is-offer').checked = p.isOffer;
-            toggleOfferPriceBox();
-            
-            document.getElementById('prod-img-base64').value = p.img || '';
-            updateImageDisplayState(p.img);
-            document.getElementById('prod-file-input').value = "";
+            document.getElementById('prod-offer-price').value = p.offerPrice || '';
+            document.getElementById('offer-price-container').style.display = p.isOffer ? 'block' : 'none';
 
-            document.getElementById('prod-panel-title').innerText = `✏️ تعديل المنتج: ${p.title}`;
-            document.getElementById('prod-submit-btn').innerText = "💾 تحديث المنتج";
-            formBox.scrollIntoView({ behavior: 'smooth' });
+            updateImageDisplayState(p.img);
+        }
+
+        function deleteProduct(id) {
+            if (confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
+                db.collection("products").doc(id).delete();
+            }
         }
 
         function resetProductForm() {
             stopBarcodeScanner();
-            const formBox = document.getElementById('product-form-container');
-            const originalParent = document.getElementById('form-original-parent');
-            originalParent.appendChild(formBox);
-            formBox.style.display = 'none';
-            document.getElementById('open-product-form-btn-wrapper').style.display = 'block';
-
             document.getElementById('prod-id').value = '';
             document.getElementById('prod-title').value = '';
             document.getElementById('prod-price').value = '';
@@ -634,23 +683,15 @@
             document.getElementById('prod-unit').value = 'حبة';
             document.getElementById('prod-barcode').value = '';
             document.getElementById('prod-emoji').value = '🛒';
-            
-            document.getElementById('prod-is-offer').checked = false;
-            toggleOfferPriceBox();
-
             document.getElementById('prod-img-base64').value = '';
             document.getElementById('prod-file-input').value = '';
+            document.getElementById('prod-is-offer').checked = false;
+            document.getElementById('offer-price-container').style.display = 'none';
             
             updateImageDisplayState('');
-
             document.getElementById('prod-panel-title').innerText = "🛒 إضافة منتج جديد";
-            document.getElementById('prod-submit-btn').innerText = "💾 حفظ";
-        }
-
-        function deleteProduct(id) {
-            if (confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
-                db.collection("products").doc(id).delete();
-            }
+            document.getElementById('product-form-container').style.display = 'none';
+            document.getElementById('open-product-form-btn-wrapper').style.display = 'block';
         }
     </script>
 </body>
