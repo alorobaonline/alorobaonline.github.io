@@ -29,6 +29,8 @@
         .categories-bar::-webkit-scrollbar { display: none; }
         .cat-chip { background: white; border: 1px solid #d1d5db; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; white-space: nowrap; cursor: pointer; color: #4b5563; transition: all 0.2s; }
         .cat-chip.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
+        .cat-chip.offer-chip { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+        .cat-chip.offer-chip.active { background: #dc2626; color: white; border-color: #dc2626; }
 
         .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .product-card { background: white; border-radius: var(--radius-lg); padding: 12px; box-shadow: var(--shadow-sm); border: 1px solid #e5e7eb; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
@@ -66,6 +68,7 @@
         <!-- شريط الفئات -->
         <div id="categories-bar" class="categories-bar">
             <button class="cat-chip active" onclick="filterCategory('الكل', this)">الكل</button>
+            <button class="cat-chip offer-chip" onclick="filterCategory('عروض الاسبوع', this)">🔥 عروض الاسبوع</button>
         </div>
 
         <!-- شبكة المنتجات -->
@@ -91,31 +94,49 @@
 
         let currentCategory = "الكل";
         let allProducts = [];
+        let dbCategories = [];
 
-        // جلب الفئات وعرضها في الشريط العلوي
+        // جلب الفئات من جدول categories
         db.collection("categories").onSnapshot((snapshot) => {
-            let catHtml = `<button class="cat-chip ${currentCategory === 'الكل' ? 'active' : ''}" onclick="filterCategory('الكل', this)">الكل</button>`;
+            dbCategories = [];
             snapshot.forEach((doc) => {
                 let d = doc.data();
-                let isActive = currentCategory === d.name ? 'active' : '';
-                catHtml += `<button class="cat-chip ${isActive}" onclick="filterCategory('${d.name}', this)">${d.name}</button>`;
+                if (d.name) dbCategories.push(d.name);
             });
-            document.getElementById('categories-bar').innerHTML = catHtml;
+            updateCategoriesBar();
         });
 
-        // جلب المنتجات وتخزينها
+        // جلب المنتجات وتحديث القائمة
         db.collection("products").onSnapshot((snapshot) => {
             allProducts = [];
             snapshot.forEach((doc) => {
                 allProducts.push({ id: doc.id, ...doc.data() });
             });
+            updateCategoriesBar();
             renderProducts();
         });
 
+        function updateCategoriesBar() {
+            // جمع الفئات من قاعدة البيانات ومن المنتجات نفسها لضمان ظهورها دائماً
+            let categoriesSet = new Set(dbCategories);
+            allProducts.forEach(p => {
+                if (p.category) categoriesSet.add(p.category);
+            });
+
+            let catHtml = `<button class="cat-chip ${currentCategory === 'الكل' ? 'active' : ''}" onclick="filterCategory('الكل', this)">الكل</button>`;
+            catHtml += `<button class="cat-chip offer-chip ${currentCategory === 'عروض الاسبوع' ? 'active' : ''}" onclick="filterCategory('عروض الاسبوع', this)">🔥 عروض الاسبوع</button>`;
+
+            categoriesSet.forEach(cat => {
+                let isActive = currentCategory === cat ? 'active' : '';
+                catHtml += `<button class="cat-chip ${isActive}" onclick="filterCategory('${cat}', this)">${cat}</button>`;
+            });
+
+            document.getElementById('categories-bar').innerHTML = catHtml;
+        }
+
         function filterCategory(category, element) {
             currentCategory = category;
-            document.querySelectorAll('.cat-chip').forEach(btn => btn.classList.remove('active'));
-            if(element) element.classList.add('active');
+            updateCategoriesBar();
             renderProducts();
         }
 
@@ -123,10 +144,8 @@
             let filtered = allProducts;
             
             if (currentCategory === "عروض الاسبوع") {
-                // إذا تم اختيار فئة عروض الأسبوع، اعرض المنتجات التي عليها عروض فقط
                 filtered = allProducts.filter(p => p.isOffer === true);
             } else if (currentCategory !== "الكل") {
-                // الفئات العادية الأخرى
                 filtered = allProducts.filter(p => p.category === currentCategory);
             }
 
@@ -168,7 +187,7 @@
                     </div>`;
             });
 
-            document.getElementById('store-products-grid').innerHTML = gridHtml || '<p style="text-align: center; color: #888; grid-column: span 2;">لا توجد منتجات مطابقة حالياً</p>';
+            document.getElementById('store-products-grid').innerHTML = gridHtml || '<p style="text-align: center; color: #888; grid-column: span 2;">لا توجد منتجات مطابقة في هذه الفئة</p>';
         }
     </script>
 </body>
