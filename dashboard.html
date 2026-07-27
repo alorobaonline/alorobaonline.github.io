@@ -33,31 +33,40 @@
         .form-control { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; outline: none; background: white; }
         .form-control:focus { border-color: var(--accent-green); }
 
-        /* تعديل خانة الأقسام والفئات لتكون مربعة وكبيرة وبدون سحب */
+        /* تعديل حاوية الأقسام لتكون شبكية وكل 3 أقسام في صف واحد بشكل صحيح ومتناسق */
         .categories-checkbox-container {
             border: 1px solid #cbd5e1;
             border-radius: 8px;
-            padding: 10px;
+            padding: 8px;
             background: white;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
         }
         .checkbox-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 0.75rem;
-            padding: 4px 0;
+            justify-content: flex-start;
+            gap: 4px;
+            font-size: 0.65rem;
+            padding: 5px 6px;
             cursor: pointer;
             font-weight: 600;
             color: #374151;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
         }
         .checkbox-item input {
             accent-color: var(--primary-green);
-            width: 15px;
-            height: 15px;
+            width: 13px;
+            height: 13px;
             cursor: pointer;
+            flex-shrink: 0;
+            margin-left: 2px;
         }
 
         .file-upload-box { display: flex; align-items: center; gap: 8px; }
@@ -203,7 +212,7 @@
         </div>
     </div>
 
-    <!-- القسم الأول: إضافة منتج جديد (الترتيب الجديد المطلوب) -->
+    <!-- القسم الأول: إضافة منتج جديد -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleMainSection('addProductSection', 'prodArrow')">
             <span>📦 إضافة منتج جديد</span>
@@ -233,7 +242,7 @@
                 </div>
             </div>
 
-            <!-- 3. الأقسام والفئات (مربع كبير وبجانب كل فئة مربع اختيار بدون سحب) -->
+            <!-- 3. الأقسام والفئات (كل 3 في صف واحد بشكل صحيح) -->
             <div class="form-group">
                 <label>الأقسام والفئات المطلوبة *</label>
                 <div id="prodCategoriesCheckboxes" class="categories-checkbox-container"></div>
@@ -480,7 +489,7 @@
         categories.forEach(cat => {
             if(cat.name !== "الكل") {
                 checkboxesContainer.innerHTML += `
-                    <label class="checkbox-item">
+                    <label class="checkbox-item" title="${cat.name}">
                         <input type="checkbox" name="productCategoryCheck" value="${cat.name.trim()}">
                         <span>${cat.icon || ''} ${cat.name}</span>
                     </label>
@@ -547,10 +556,10 @@
                                 </div>
                                 <div class="form-group">
                                     <label>الفئات التابع لها:</label>
-                                    <div style="display: flex; flex-wrap: wrap; gap: 6px; background: white; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; background: white; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px;">
                                         ${categories.filter(c => c.name !== "الكل").map(c => `
-                                            <label style="font-size: 0.7rem; font-weight: 600; display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                                                <input type="checkbox" class="edit-cat-check-${originalIndex}" value="${c.name}" ${p.categories && p.categories.includes(c.name) ? 'checked' : ''}>
+                                            <label style="font-size: 0.65rem; font-weight: 600; display: flex; align-items: center; justify-content: flex-start; gap: 4px; cursor: pointer; background: #f8fafc; padding: 4px; border-radius: 4px; border: 1px solid #e2e8f0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                                <input type="checkbox" class="edit-cat-check-${originalIndex}" value="${c.name}" ${p.categories && p.categories.includes(c.name) ? 'checked' : ''} style="margin-left:2px;">
                                                 ${c.icon || ''} ${c.name}
                                             </label>
                                         `).join('')}
