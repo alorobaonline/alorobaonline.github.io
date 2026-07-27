@@ -191,7 +191,7 @@
         .btn-reorder { background: #68a633; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; cursor: pointer; }
     </style>
 </head>
-<body>
+<body onload="initStoreData()">
 
 <div class="store-container">
     <!-- الهيدر -->
@@ -235,7 +235,7 @@
     <!-- عنوان القسم -->
     <div class="section-header">
         <a class="section-all" onclick="resetFilter()">عرض الكل ❮</a>
-        <div class="section-title">🏷️ عروض حصرية</div>
+        <div class="section-title">🏷️ المنتجات والعروض</div>
     </div>
 
     <!-- شبكة المنتجات -->
@@ -256,7 +256,7 @@
 
     <footer>سوبر ماركت العروبة © 2026 - رهط</footer>
 
-    <!-- شريط التنقل السفلي (المعدل والمفصول بدقة) -->
+    <!-- شريط التنقل السفلي -->
     <nav class="bottom-nav-bar">
         <button class="nav-item active" onclick="goToHome()"><span class="icon">🏠</span><span>الرئيسية</span></button>
         <button class="nav-item" onclick="scrollToCategories()"><span class="icon">🗂️</span><span>التصنيفات</span></button>
@@ -292,13 +292,12 @@
     </div>
 </div>
 
-<!-- 3. نافذة حسابي (لوحة تحكم الزبون الشاملة) -->
+<!-- 3. نافذة حسابي -->
 <div class="modal-overlay" id="accountModal" onclick="handleOutsideClick(event, 'accountModal')">
     <div class="modal-content">
         <button class="close-modal-btn" onclick="closeModal('accountModal')">✕</button>
         <div class="modal-title">👤 حسابي الشخصي</div>
         
-        <!-- معلومات الزبون -->
         <div class="account-card-box">
             <div class="account-card-title">معلومات الحساب 📋</div>
             <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -309,7 +308,6 @@
             </div>
         </div>
 
-        <!-- سجل الطلبات السابقة وإعادة الطلب -->
         <div class="account-card-box">
             <div class="account-card-title">سجل الطلبات السابقة 📦</div>
             <div id="orderHistoryContainer" style="font-size: 0.7rem; color: #666;">
@@ -317,7 +315,6 @@
             </div>
         </div>
 
-        <!-- روابط إضافية وتطبيق العروبة -->
         <div class="account-card-box">
             <div class="account-card-title">تطبيق سوبر ماركت العروبة 📱</div>
             <p style="font-size: 0.65rem; color: #555; margin-bottom: 6px;">احصل على أحدث عروض العروبة أونلاين وتجربة تسوق أسرع.</p>
@@ -337,6 +334,7 @@
 </div>
 
 <script>
+    // جلب البيانات من الـ localStorage (التي يتم إدارتها من لوحة التحكم dashboard.html)
     let products = JSON.parse(localStorage.getItem('aloroba_products')) || [
         { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", category: "معلبات" },
         { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png", category: "معلبات" },
@@ -363,6 +361,12 @@
     let orderHistory = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
     let selectedCategory = "الكل";
 
+    function initStoreData() {
+        renderBanner();
+        renderCategories();
+        renderProducts(products);
+    }
+
     function renderBanner() {
         document.getElementById('bannerTitle').innerText = bannerData.title || "كل احتياجات بيتك في مكان واحد";
         document.getElementById('bannerTag').innerText = bannerData.tag || "سوبر ماركت العروبة";
@@ -379,7 +383,7 @@
             const isActive = cat.name === selectedCategory;
             container.innerHTML += `
                 <div class="cat-item" onclick="filterByCategory('${cat.name}')" ${isActive ? 'style="border: 1px solid #68a633; background: #f4fbf0;"' : ''}>
-                    <div class="cat-circle" style="background: ${cat.bg}; color: ${cat.color};">${cat.icon}</div>
+                    <div class="cat-circle" style="background: ${cat.bg || '#eaf3df'}; color: ${cat.color || '#2e6930'};">${cat.icon || '📦'}</div>
                     <div class="cat-name" ${isActive ? 'style="color: #2e6930;"' : ''}>${cat.name}</div>
                 </div>
             `;
@@ -392,10 +396,10 @@
         if(catName === "الكل") {
             renderProducts(products);
         } else if(catName === "عروض") {
-            const filtered = products.filter(p => p.offer || (p.oldPrice && p.oldPrice > p.price));
+            const filtered = products.filter(p => p.offer || (p.oldPrice && Number(p.oldPrice) > Number(p.price)));
             renderProducts(filtered);
         } else {
-            const filtered = products.filter(p => p.categories ? p.categories.includes(catName) : p.category === catName);
+            const filtered = products.filter(p => (p.categories && p.categories.includes(catName)) || p.category === catName);
             renderProducts(filtered);
         }
     }
@@ -418,15 +422,25 @@
     function filterByOffers() {
         selectedCategory = "عروض";
         renderCategories();
-        const filtered = products.filter(p => p.offer || (p.oldPrice && p.oldPrice > p.price));
+        const filtered = products.filter(p => p.offer || (p.oldPrice && Number(p.oldPrice) > Number(p.price)));
         renderProducts(filtered);
     }
 
-    function renderProducts(list = products) {
+    function filterProducts() {
+        const query = document.getElementById('searchInput').value.toLowerCase().trim();
+        if(!query) {
+            renderProducts(products);
+            return;
+        }
+        const filtered = products.filter(p => p.name.toLowerCase().includes(query));
+        renderProducts(filtered);
+    }
+
+    function renderProducts(list) {
         const container = document.getElementById('productsContainer');
         container.innerHTML = '';
-        if(list.length === 0) {
-            container.innerHTML = '<p style="grid-column: span 3; text-align: center; color: #888; padding: 15px; font-size: 0.75rem;">لا توجد منتجات في هذا القسم</p>';
+        if(!list || list.length === 0) {
+            container.innerHTML = '<p style="grid-column: span 3; text-align: center; color: #888; padding: 15px; font-size: 0.75rem;">لا توجد منتجات مطابقة</p>';
             return;
         }
         list.forEach(p => {
@@ -461,7 +475,7 @@
             favorites.push(product);
         }
         localStorage.setItem('aloroba_favorites', JSON.stringify(favorites));
-        renderProducts();
+        renderProducts(products);
         renderFavoritesUI();
     }
 
@@ -476,7 +490,7 @@
             html += `
                 <div class="order-history-item">
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <img src="${f.img}" style="width: 30px; height: 30px; object-fit: contain;">
+                        <img src="${f.img}" style="width: 30px; height: 30px; object-fit: contain;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                         <div>
                             <div style="font-weight: 800;">${f.name}</div>
                             <div style="color: #68a633; font-weight: bold;">${f.price} ₪</div>
@@ -586,6 +600,7 @@
     }
 
     function renderOrderHistory() {
+        orderHistory = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
         const container = document.getElementById('orderHistoryContainer');
         if(orderHistory.length === 0) {
             container.innerHTML = "لا توجد طلبات مسجلة حتى الآن.";
@@ -596,8 +611,8 @@
             html += `
                 <div class="order-history-item">
                     <div>
-                        <div style="font-weight: 800;">طلب #${index + 1} (${ord.date})</div>
-                        <div style="color: #4b5563;">المجموع: ${ord.total} ₪ | ${ord.items.length} منتجات</div>
+                        <div style="font-weight: 800;">طلب #${index + 1} (${ord.date || 'وقت سابق'})</div>
+                        <div style="color: #4b5563;">المجموع: ${ord.totalAmount || ord.total} ₪ | ${ord.items.length} منتجات</div>
                     </div>
                     <button class="btn-reorder" onclick="reorderItems(${index})">إعادة الطلب 🔄</button>
                 </div>
@@ -617,9 +632,9 @@
     }
 
     function sendWhatsAppOrder() {
-        const name = document.getElementById('customerName').value;
-        const address = document.getElementById('customerAddress').value;
-        const phone = document.getElementById('customerPhone').value;
+        const name = document.getElementById('customerName').value.trim();
+        const address = document.getElementById('customerAddress').value.trim();
+        const phone = document.getElementById('customerPhone').value.trim();
 
         if(!name || !address || !phone) {
             alert("الرجاء إدخال الاسم، العنوان، ورقم الهاتف لإتمام الطلب");
@@ -629,41 +644,45 @@
             alert("السلة فارغة");
             return;
         }
-        let total = 0;
-        let orderText = "🛒 *طلب جديد من سوبر ماركت العروبة أون لاين*%0A%0A";
-        cart.forEach(item => {
-            orderText += `▪️ ${item.name} (${item.price}₪)%0A`;
-            total += Number(item.price);
-        });
-        orderText += `%0A💰 *المجموع الكلي:* ${total} ₪`;
-        orderText += `%0A👤 *اسم الزبون:* ${name}`;
-        orderText += `%0A📍 *العنوان:* ${address}`;
-        orderText += `%0A📞 *رقم الهاتف:* ${phone}`;
-
-        // حفظ الطلب في السجل
-        const newOrder = {
-            date: new Date().toLocaleDateString('ar-AE'),
-            total: total,
-            items: [...cart]
+        
+        let total = cart.reduce((sum, item) => sum + Number(item.price), 0);
+        
+        // حفظ الطلب في سجل الطلبات لكي يظهر في لوحة التحكم والزبون
+        let newOrder = {
+            id: Date.now(),
+            customerName: name,
+            customerPhone: phone,
+            customerAddress: address,
+            items: [...cart],
+            totalAmount: total,
+            date: new Date().toLocaleDateString('ar-EG', { hour: '2-digit', minute: '2-digit' })
         };
-        orderHistory.unshift(newOrder);
-        localStorage.setItem('aloroba_orders', JSON.stringify(orderHistory));
 
-        window.open(`https://wa.me/972546288791?text=${orderText}`);
+        let allOrders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
+        allOrders.unshift(newOrder);
+        localStorage.setItem('aloroba_orders', JSON.stringify(allOrders));
+
+        // إعداد رسالة الواتساب
+        let msg = `🛒 *طلب جديد من متجر العروبة اونلاين*%0A`;
+        msg += `👤 الاسم: ${name}%0A`;
+        msg += `📍 العنوان: ${address}%0A`;
+        msg += `📞 الهاتف: ${phone}%0A%0A`;
+        msg += `*المنتجات:*%0A`;
+        cart.forEach((item, idx) => {
+            msg += `${idx + 1}. ${item.name} - ${item.price} ₪%0A`;
+        });
+        msg += `%0A💰 *المجموع الكلي:* ${total} ₪`;
+
+        // رقم الواتساب الخاص بالمتجر (يمكن تعديله حسب الحاجة)
+        let whatsappNumber = "972500000000"; 
+        window.open(`https://wa.me/${whatsappNumber}?text=${msg}`, '_blank');
+
+        // إعادة تعيين السلة
+        cart = [];
+        updateCartUI();
+        closeModal('cartModal');
+        alert("تم إرسال الطلب وحفظه بنجاح!");
     }
-
-    function filterProducts() {
-        const query = document.getElementById('searchInput').value.toLowerCase();
-        const filtered = products.filter(p => p.name.toLowerCase().includes(query));
-        renderProducts(filtered);
-    }
-
-    window.onload = () => {
-        renderBanner();
-        renderCategories();
-        renderProducts();
-        loadAccountInfo();
-    };
 </script>
 </body>
 </html>
