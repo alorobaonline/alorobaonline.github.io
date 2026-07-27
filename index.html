@@ -630,7 +630,7 @@
         }
     }
 
-    // دالة إرسال الطلب المتوافقة مع لوحة التحكم (تحديث المفتاحين معا)
+    // دالة إرسال الطلب المتوافقة مع لوحة التحكم
     function submitOrderToDashboard() {
         const name = document.getElementById('customerName').value.trim();
         const address = document.getElementById('customerAddress').value.trim();
@@ -659,7 +659,6 @@
             fullDate: new Date().toLocaleDateString()
         };
 
-        // جلب وتحديث الطلبات للوحة التحكم ولحساب الزبون
         let liveOrders = JSON.parse(localStorage.getItem('aloroba_live_orders')) || [];
         let allOrders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
 
@@ -669,12 +668,10 @@
         localStorage.setItem('aloroba_live_orders', JSON.stringify(liveOrders));
         localStorage.setItem('aloroba_orders', JSON.stringify(allOrders));
 
-        // تفريغ السلة وتحديث الواجهة
         cart = [];
         updateCartUI();
         closeModal('cartModal');
 
-        // تنبيه الزبون وإتاحة الانتقال الفوري لوحة التحكم
         if(confirm("🎉 تم إرسال الطلب بنجاح إلى لوحة التحكم! هل تريد الانتقال إلى 'لوحة التحكم' لمشاهدته الآن؟")) {
             window.location.href = "dashboard.html";
         }
