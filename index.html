@@ -13,7 +13,8 @@
             --shadow-card: 0 2px 10px rgba(0,0,0,0.03);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
-        body { background-color: var(--light-bg); color: #1f2937; padding-bottom: 90px; }
+        /* زيادة المساحة الفارغة أسفل الصفحة لضمان عدم اختفاء المحتوى خلف الأشرطة السفلية */
+        body { background-color: var(--light-bg); color: #1f2937; padding-bottom: 140px; }
         
         .store-container { max-width: 480px; margin: 0 auto; background: var(--light-bg); min-height: 100vh; position: relative; padding: 10px; }
 
@@ -70,29 +71,29 @@
 
         .btn-add-cart { width: 100%; background: #68a633; color: white; border: none; border-radius: 6px; padding: 4px 0; font-size: 0.55rem; font-weight: 700; cursor: pointer; text-align: center; }
 
-        /* الشريط العائم السفلي للدفع (يظهر عند وجود منتجات) */
+        /* الشريط العائم السفلي للدفع (مرفوع بوضوح فوق شريط التنقل السفلي) */
         .floating-checkout-bar {
             position: fixed;
-            bottom: 50px;
+            bottom: 55px; /* مرفوع فوق شريط التنقل السفلي تماماً */
             left: 50%;
             transform: translateX(-50%);
             width: 100%;
             max-width: 480px;
-            background: white;
+            background: #ffffff;
             padding: 10px 15px;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 -6px 20px rgba(0,0,0,0.12);
             display: none;
             justify-content: space-between;
             align-items: center;
-            z-index: 1000;
-            border-top: 2px solid #e2e8f0;
+            z-index: 1050;
+            border-top: 3px solid #68a633;
             border-radius: 16px 16px 0 0;
         }
         .checkout-btn-main {
             background: #78bc38;
             color: white;
             border: none;
-            padding: 8px 20px;
+            padding: 8px 22px;
             border-radius: 12px;
             font-size: 0.8rem;
             font-weight: 900;
@@ -100,18 +101,19 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            box-shadow: 0 3px 10px rgba(120,188,56,0.3);
         }
         .checkout-info-side {
             text-align: left;
         }
         .checkout-total-price {
-            font-size: 0.95rem;
+            font-size: 1rem;
             font-weight: 900;
             color: #1b4d2e;
         }
         .checkout-items-count {
-            font-size: 0.6rem;
-            color: #6b7280;
+            font-size: 0.65rem;
+            color: #4b5563;
             font-weight: 700;
         }
 
@@ -122,12 +124,12 @@
         .whatsapp-btn { width: 100%; background: #25d366; color: white; border: none; padding: 10px; border-radius: 20px; font-weight: bold; font-size: 0.75rem; cursor: pointer; margin-top: 6px; }
 
         /* شريط التنقل السفلي والزر العائم */
-        .bottom-nav-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: white; display: flex; justify-content: space-around; align-items: center; padding: 6px 0 10px 0; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); z-index: 1000; max-width: 480px; margin: 0 auto; right: 0; }
+        .bottom-nav-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: white; display: flex; justify-content: space-around; align-items: center; padding: 6px 0 10px 0; box-shadow: 0 -4px 15px rgba(0,0,0,0.08); z-index: 1000; max-width: 480px; margin: 0 auto; right: 0; }
         .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #9ca3af; font-size: 0.6rem; font-weight: 700; cursor: pointer; }
         .nav-item.active { color: #68a633; }
         .nav-item span.icon { font-size: 1.1rem; margin-bottom: 1px; }
 
-        .floating-dashboard-btn { position: fixed; bottom: 125px; right: 12px; background: #1b4d2e; color: white; padding: 6px 10px; border-radius: 16px; text-decoration: none; font-size: 0.65rem; font-weight: 800; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 1100; display: flex; align-items: center; gap: 3px; border: 2px solid #84cc16; }
+        .floating-dashboard-btn { position: fixed; bottom: 130px; right: 12px; background: #1b4d2e; color: white; padding: 6px 10px; border-radius: 16px; text-decoration: none; font-size: 0.65rem; font-weight: 800; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 1100; display: flex; align-items: center; gap: 3px; border: 2px solid #84cc16; }
 
         footer { text-align: center; padding: 10px; font-size: 0.6rem; color: #6b7280; margin-top: 15px; }
     </style>
@@ -196,7 +198,7 @@
         <button class="whatsapp-btn" onclick="sendWhatsAppOrder()">إرسال الطلب عبر الواتساب 💬</button>
     </div>
 
-    <!-- الشريط العائم السفلي المخصص للدفع -->
+    <!-- الشريط العائم السفلي للدفع (واضح ومرتفع فوق شريط التنقل) -->
     <div class="floating-checkout-bar" id="floatingCheckoutBar">
         <button class="checkout-btn-main" onclick="goToCheckout()">
             للدفع ←
@@ -337,7 +339,6 @@
             return;
         }
 
-        // إظهار الشريط العائم عند وجود منتجات
         floatingBar.style.display = "flex";
 
         let html = "";
