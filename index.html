@@ -26,6 +26,23 @@
         
         .cart-badge-btn { background: var(--primary-green); color: white; border: none; padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 
+        /* تنسيق قسم البانرات الإعلانية */
+        .store-banners-container {
+            width: 100%;
+            margin-bottom: 12px;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            background: #ffffff;
+        }
+        .banner-slide-img {
+            width: 100%;
+            max-height: 180px;
+            object-fit: cover;
+            display: block;
+            border-radius: var(--radius-lg);
+        }
+
         /* شريط الفئات */
         .categories-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; }
         .categories-bar::-webkit-scrollbar { display: none; }
@@ -148,6 +165,9 @@
                 🛒 <span id="cart-count">0</span>
             </button>
         </div>
+
+        <!-- مكان عرض البانرات الإعلانية المتحركة (تدار من لوحة التحكم) -->
+        <div id="store-banners-slider" class="store-banners-container" style="display: none;"></div>
 
         <!-- شريط الفئات -->
         <div id="categories-bar" class="categories-bar">
@@ -280,6 +300,32 @@
         }
 
         updateCartCounter();
+
+        // جلب البانرات الإعلانية وتحديثها تلقائياً من قاعدة البيانات
+        db.collection("banners").onSnapshot((snapshot) => {
+            let bannersContainer = document.getElementById('store-banners-slider');
+            if (!bannersContainer) return;
+            
+            let bannersHtml = '';
+            snapshot.forEach((doc) => {
+                let b = doc.data();
+                if (b.img) {
+                    let linkAttr = b.link ? `onclick="window.open('${b.link}', '_blank')" style="cursor:pointer;"` : '';
+                    bannersHtml += `
+                        <div class="banner-item" ${linkAttr} style="margin-bottom: 8px;">
+                            <img src="${b.img}" class="banner-slide-img" alt="إعلان">
+                        </div>
+                    `;
+                }
+            });
+            
+            if (bannersHtml === '') {
+                bannersContainer.style.display = 'none';
+            } else {
+                bannersContainer.style.display = 'block';
+                bannersContainer.innerHTML = bannersHtml;
+            }
+        });
 
         db.collection("categories").onSnapshot((snapshot) => {
             dbCategories = [];
@@ -682,7 +728,7 @@
 
             window.open(whatsappUrl, '_blank');
 
-            // تفريغ السلة وتحديث الواجهة تلقائياً بعد إتمام الطلب
+            // تفريغ السلة وتحديث واجهة المتجر تلقائياً بعد الطلب
             cartItems = {};
             localStorage.removeItem('aloroba_cart');
             updateCartCounter();
