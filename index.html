@@ -39,7 +39,7 @@
         
         .offer-badge { position: absolute; top: 10px; left: 10px; background: #ef4444; color: white; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; z-index: 2; }
         
-        .product-bundle-tag { background: #fee2e2; color: #dc2626; font-size: 0.75rem; font-weight: 700; padding: 4px 8px; border-radius: 6px; text-align: center; margin-bottom: 6px; border: 1px dashed #fca5a5; cursor: pointer; }
+        .product-bundle-tag { background: #fee2e2; color: #dc2626; font-size: 0.75rem; font-weight: 700; padding: 4px 8px; border-radius: 6px; text-align: center; margin-bottom: 6px; border: 1px dashed #fca5a5; cursor: pointer; direction: rtl; unicode-bidi: plaintext; }
 
         .product-img-wrap { width: 100%; height: 150px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; background: #fff; border-radius: 8px; }
         .product-img { max-width: 100%; max-height: 100%; object-fit: contain; }
@@ -47,11 +47,11 @@
         .product-name { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; text-align: center; }
         .product-stock { font-size: 0.75rem; color: #6b7280; text-align: center; margin-bottom: 6px; font-weight: 600; }
         
-        .product-price-row { text-align: center; margin-bottom: 10px; font-size: 0.9rem; direction: ltr; unicode-bidi: isolate; }
+        .product-price-row { text-align: center; margin-bottom: 10px; font-size: 0.9rem; direction: rtl; unicode-bidi: plaintext; }
         .price-normal { font-weight: 700; color: #f97316; font-size: 1.05rem; }
         
         .offer-price-container { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-        .price-offer-top { display: flex; align-items: center; justify-content: center; gap: 4px; }
+        .price-offer-top { display: flex; align-items: center; justify-content: center; gap: 4px; direction: rtl; unicode-bidi: plaintext; }
         .price-offer-new { font-weight: 700; color: #dc2626; font-size: 1.05rem; }
         .price-offer-old { text-decoration: line-through; color: #1f2937; font-size: 0.8rem; font-weight: 600; }
 
@@ -131,11 +131,11 @@
                 <button onclick="closeBundleModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; font-weight: bold;">✕</button>
             </div>
 
-            <!-- شريط التقدم للحزمة مع السعر على الجهة الشمال والنص المطلوب في المنتصف -->
+            <!-- شريط التقدم للحزمة مع السعر -->
             <div id="bundle-banner" class="bundle-progress-banner">
                 <div class="bundle-banner-top">
                     <span id="bundle-banner-text" class="bundle-banner-text">أضف 3 منتجات أخرى للحصول العرض</span>
-                    <span id="bundle-price-tag" style="font-weight: 700; direction: ltr; unicode-bidi: isolate;"></span>
+                    <span id="bundle-price-tag" style="font-weight: 700; direction: rtl; unicode-bidi: plaintext;"></span>
                 </div>
                 <div class="progress-bar-container">
                     <div id="bundle-progress-fill" class="progress-bar-fill"></div>
@@ -165,15 +165,15 @@
             <div class="cart-summary-box" id="cart-summary-box" style="display: none;">
                 <div class="summary-row">
                     <span>مجموع المنتجات:</span>
-                    <span id="subtotal-price">0 ₪</span>
+                    <span id="subtotal-price" style="direction: rtl; unicode-bidi: plaintext;">0₪</span>
                 </div>
                 <div class="summary-row" style="color: #dc2626;" id="discount-row">
                     <span>إجمالي التوفير والعروض:</span>
-                    <span id="discount-price">0 ₪</span>
+                    <span id="discount-price" style="direction: rtl; unicode-bidi: plaintext;">0₪</span>
                 </div>
                 <div class="summary-row total">
                     <span>المجموع الإجمالي النهائي:</span>
-                    <span id="final-total-price">0 ₪</span>
+                    <span id="final-total-price" style="direction: rtl; unicode-bidi: plaintext;">0₪</span>
                 </div>
             </div>
 
@@ -234,7 +234,7 @@
                             bundleId: bId,
                             qty: Number(b.quantity) || 3,
                             price: Number(b.price) || 0,
-                            text: `🎁 ${b.quantity} بـ ${b.price} ₪`
+                            text: `🎁 ${b.quantity} بـ ${b.price}₪`
                         };
                     });
                 }
@@ -319,8 +319,7 @@
             let priceTag = document.getElementById('bundle-price-tag');
             let progressFill = document.getElementById('bundle-progress-fill');
 
-            // عرض السعر المحطوط في لوحة التحكم على الجهة الشمال (اليسار)
-            priceTag.innerText = `${bundle.quantity} بـ ${bundle.price} ₪`;
+            priceTag.innerText = `${bundle.quantity} بـ ${bundle.price}₪`;
 
             let percent = Math.min(100, (totalInBundle / reqQty) * 100);
             progressFill.style.width = percent + '%';
@@ -350,7 +349,7 @@
                         ${mediaHtml}
                         <div style="flex-grow:1;">
                             <div style="font-weight:700; font-size:0.85rem;">${p.title}</div>
-                            <div style="font-size:0.8rem; color:#f97316; font-weight:700; direction:ltr; unicode-bidi:isolate;">${p.price} ₪ · حبة</div>
+                            <div style="font-size:0.8rem; color:#f97316; font-weight:700; direction:rtl; unicode-bidi:plaintext;">${p.price}₪ · حبة</div>
                         </div>
                         <div class="modern-qty-control">
                             <button class="modern-qty-btn" onclick="decreaseQuantity('${pId}')">-</button>
@@ -413,7 +412,7 @@
                             emoji: p.emoji || '🛒',
                             qty: qty,
                             totalPrice: finalItemPrice,
-                            detailText: `${p.isOffer && p.offerPrice ? p.offerPrice : regularPrice} ₪ × ${qty}`
+                            detailText: `${p.isOffer && p.offerPrice ? p.offerPrice : regularPrice}₪ × ${qty}`
                         });
                     }
                 }
@@ -457,7 +456,7 @@
                         emoji: item.p.emoji || '🛒',
                         qty: item.qty,
                         totalPrice: itemFinalTotal,
-                        detailText: isPartOffer ? `عرض التشكيلة (${bg.reqQty} بـ ${bg.bundlePrice} ₪)` : `${item.regularPrice} ₪ × ${item.qty}`
+                        detailText: isPartOffer ? `عرض التشكيلة (${bg.reqQty} بـ ${bg.bundlePrice}₪)` : `${item.regularPrice}₪ × ${item.qty}`
                     });
                 });
             }
@@ -474,8 +473,8 @@
                         ${imgContent}
                         <div class="cart-item-info">
                             <div style="font-weight: 700; font-size: 0.9rem;">${line.title}</div>
-                            <div style="font-size: 0.75rem; color: #dc2626; font-weight: 600;">${line.detailText}</div>
-                            <div style="font-size: 0.85rem; color: #1f2937; font-weight: 700; direction: ltr; unicode-bidi: isolate;">${line.totalPrice.toFixed(2)} ₪</div>
+                            <div style="font-size: 0.75rem; color: #dc2626; font-weight: 600; direction: rtl; unicode-bidi: plaintext;">${line.detailText}</div>
+                            <div style="font-size: 0.85rem; color: #1f2937; font-weight: 700; direction: rtl; unicode-bidi: plaintext;">${line.totalPrice.toFixed(2)}₪</div>
                         </div>
                         <div class="modern-qty-control">
                             <button class="modern-qty-btn" onclick="decreaseQuantity('${line.id}'); openCartModal();">-</button>
@@ -494,9 +493,9 @@
                 let totalDiscount = subtotal - finalCalculatedTotal;
                 if (totalDiscount < 0) totalDiscount = 0;
 
-                document.getElementById('subtotal-price').innerText = subtotal.toFixed(2) + ' ₪';
-                document.getElementById('discount-price').innerText = '-' + totalDiscount.toFixed(2) + ' ₪';
-                document.getElementById('final-total-price').innerText = finalCalculatedTotal.toFixed(2) + ' ₪';
+                document.getElementById('subtotal-price').innerText = subtotal.toFixed(2) + '₪';
+                document.getElementById('discount-price').innerText = '-' + totalDiscount.toFixed(2) + '₪';
+                document.getElementById('final-total-price').innerText = finalCalculatedTotal.toFixed(2) + '₪';
             } else {
                 container.innerHTML = '<p style="text-align: center; color: #888;">السلة فارغة حالياً</p>';
                 summaryBox.style.display = 'none';
@@ -603,16 +602,17 @@
                         <div>
                             ${bundleTagHtml}
                             <div class="product-name">${p.title}</div>
-                            <div class="product-stock">المتوفر: ${p.stock} ${unitText}</div>
-                            <div class="product-price-row">
-                                ${priceHtml}
-                            </div>
+                            <div class="product-stock">${p.stock || 'متوفر'}</div>
+                            <div class="product-price-row">${priceHtml}</div>
                         </div>
-                        ${actionButtonHtml}
-                    </div>`;
+                        <div>
+                            ${actionButtonHtml}
+                        </div>
+                    </div>
+                `;
             });
 
-            document.getElementById('store-products-grid').innerHTML = gridHtml || '<p style="text-align: center; color: #888; grid-column: span 2;">لا توجد منتجات مطابقة في هذه الفئة</p>';
+            document.getElementById('store-products-grid').innerHTML = gridHtml || '<p style="text-align: center; color: #888; grid-column: span 2;">لا توجد منتجات في هذه الفئة</p>';
         }
     </script>
 </body>
