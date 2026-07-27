@@ -39,11 +39,31 @@
         .banner-img-side { width: 38%; text-align: left; }
         .banner-img-side img { max-width: 110%; height: auto; object-fit: contain; }
 
-        /* الـ 6 فئات متجاورة في الأعلى */
-        .categories-slider { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-bottom: 12px; }
-        .cat-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; background: white; padding: 6px 2px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); text-align: center; }
+        /* شريط الفئات الأفقي (سحب يمين ويسار) */
+        .categories-slider { 
+            display: flex; 
+            gap: 8px; 
+            overflow-x: auto; 
+            margin-bottom: 12px; 
+            padding-bottom: 4px; 
+            scroll-behavior: smooth;
+        }
+        .categories-slider::-webkit-scrollbar { display: none; } /* إخفاء شريط التمرير */
+        .cat-item { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            cursor: pointer; 
+            background: white; 
+            padding: 6px 10px; 
+            border-radius: 12px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02); 
+            text-align: center; 
+            flex: 0 0 auto; 
+            min-width: 65px; 
+        }
         .cat-circle { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 3px; font-size: 0.9rem; }
-        .cat-name { font-size: 0.55rem; font-weight: 700; color: #4b5563; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+        .cat-name { font-size: 0.55rem; font-weight: 700; color: #4b5563; white-space: nowrap; }
 
         /* عناوين الأقسام */
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 2px; }
@@ -63,7 +83,6 @@
         .product-name { font-size: 0.7rem; font-weight: 800; color: #1f2937; text-align: center; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .product-weight { font-size: 0.55rem; color: #9ca3af; text-align: center; margin-bottom: 4px; font-weight: 600; }
         
-        /* تنسيق الأسعار الجديد: متباعد، السعر الأصلي برتقالي غامق، المشطوب أسود غامق */
         .product-price-box { text-align: center; margin-bottom: 6px; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .price-new { font-size: 0.8rem; font-weight: 900; color: #ea580c; }
         .price-old { font-size: 0.6rem; font-weight: 800; color: #000000; text-decoration: line-through; }
@@ -112,8 +131,8 @@
     <!-- البانر الرئيسي -->
     <div class="main-banner">
         <div class="banner-text-side">
-            <span class="banner-tag">سوبر ماركت العروبة</span>
-            <div class="banner-title">كل احتياجات بيتك في مكان واحد</div>
+            <span class="banner-tag" id="bannerTag">سوبر ماركت العروبة</span>
+            <div class="banner-title" id="bannerTitle">كل احتياجات بيتك في مكان واحد</div>
             <div class="banner-features">
                 <div>📦 توصيل سريع</div>
                 <div>🏷️ أرخص الأسعار</div>
@@ -125,32 +144,9 @@
         </div>
     </div>
 
-    <!-- الـ 6 فئات متجاورة في الأعلى -->
-    <div class="categories-slider">
-        <div class="cat-item" style="border: 1px solid #68a633; background: #f4fbf0;">
-            <div class="cat-circle" style="background: #eaf3df; color: #2e6930;">🛍️</div>
-            <div class="cat-name" style="color: #2e6930;">الكل</div>
-        </div>
-        <div class="cat-item">
-            <div class="cat-circle" style="background: #fee2e2; color: #dc2626;">🔥</div>
-            <div class="cat-name">عروض</div>
-        </div>
-        <div class="cat-item">
-            <div class="cat-circle" style="background: #fef3c7; color: #d97706;">🥛</div>
-            <div class="cat-name">ألبان</div>
-        </div>
-        <div class="cat-item">
-            <div class="cat-circle" style="background: #ffedd5; color: #c2410c;">🥫</div>
-            <div class="cat-name">معلبات</div>
-        </div>
-        <div class="cat-item">
-            <div class="cat-circle" style="background: #ecfdf5; color: #059669;">🥦</div>
-            <div class="cat-name">خضار</div>
-        </div>
-        <div class="cat-item">
-            <div class="cat-circle" style="background: #f3e8ff; color: #7e22ce;">🧴</div>
-            <div class="cat-name">منظفات</div>
-        </div>
+    <!-- شريط الفئات الأفقي (سحب يمين ويسار) -->
+    <div class="categories-slider" id="categoriesContainer">
+        <!-- يتم جلب الفئات هنا -->
     </div>
 
     <!-- عنوان القسم -->
@@ -160,9 +156,7 @@
     </div>
 
     <!-- شبكة المنتجات (3 منتجات في العرض) -->
-    <div class="products-grid" id="productsContainer">
-        <!-- يتم جلب المنتجات ديناميكياً هنا -->
-    </div>
+    <div class="products-grid" id="productsContainer"></div>
 
     <!-- قسم السلة -->
     <div class="cart-section">
@@ -174,7 +168,6 @@
         <button class="whatsapp-btn" onclick="sendWhatsAppOrder()">إرسال الطلب عبر الواتساب 💬</button>
     </div>
 
-    <!-- زر الانتقال للوحة التحكم -->
     <a href="dashboard.html" class="floating-dashboard-btn">⚙️ لوحة التحكم</a>
 
     <footer>سوبر ماركت العروبة © 2026 - رهط</footer>
@@ -196,7 +189,40 @@
         { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png" }
     ];
 
+    let categories = JSON.parse(localStorage.getItem('aloroba_categories')) || [
+        { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
+        { name: "عروض", icon: "🔥", bg: "#fee2e2", color: "#dc2626" },
+        { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
+        { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
+        { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
+        { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" }
+    ];
+
+    let bannerData = JSON.parse(localStorage.getItem('aloroba_banner')) || {
+        title: "كل احتياجات بيتك في مكان واحد",
+        tag: "سوبر ماركت العروبة"
+    };
+
     let cart = [];
+
+    function renderBanner() {
+        document.getElementById('bannerTitle').innerText = bannerData.title;
+        document.getElementById('bannerTag').innerText = bannerData.tag;
+    }
+
+    function renderCategories() {
+        const container = document.getElementById('categoriesContainer');
+        container.innerHTML = '';
+        categories.forEach((cat, index) => {
+            const isActive = index === 0;
+            container.innerHTML += `
+                <div class="cat-item" ${isActive ? 'style="border: 1px solid #68a633; background: #f4fbf0;"' : ''}>
+                    <div class="cat-circle" style="background: ${cat.bg}; color: ${cat.color};">${cat.icon}</div>
+                    <div class="cat-name" ${isActive ? 'style="color: #2e6930;"' : ''}>${cat.name}</div>
+                </div>
+            `;
+        });
+    }
 
     function renderProducts(list = products) {
         const container = document.getElementById('productsContainer');
@@ -280,7 +306,11 @@
         renderProducts(filtered);
     }
 
-    window.onload = () => renderProducts();
+    window.onload = () => {
+        renderBanner();
+        renderCategories();
+        renderProducts();
+    };
 </script>
 </body>
 </html>
