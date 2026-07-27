@@ -33,13 +33,15 @@
         .form-control { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; outline: none; background: white; }
         .form-control:focus { border-color: var(--accent-green); }
 
+        /* تعديل خانة الأقسام والفئات لتكون مربعة وكبيرة وبدون سحب */
         .categories-checkbox-container {
-            max-height: 130px;
-            overflow-y: auto;
             border: 1px solid #cbd5e1;
             border-radius: 8px;
-            padding: 8px;
+            padding: 10px;
             background: white;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
         .checkbox-item {
             display: flex;
@@ -201,39 +203,43 @@
         </div>
     </div>
 
-    <!-- القسم الأول: إضافة منتج جديد (محدث بحقل الكمية) -->
+    <!-- القسم الأول: إضافة منتج جديد (الترتيب الجديد المطلوب) -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleMainSection('addProductSection', 'prodArrow')">
             <span>📦 إضافة منتج جديد</span>
             <span id="prodArrow" class="toggle-arrow">▼</span>
         </div>
         <div id="addProductSection" class="section-content">
+            
+            <!-- 1. اسم المنتج -->
             <div class="form-group">
                 <label>اسم المنتج *</label>
                 <input type="text" id="prodName" class="form-control" placeholder="مثال: أرز تات بسمتي">
             </div>
-            <div class="form-group">
-                <label>الوزن أو الحجم</label>
-                <input type="text" id="prodWeight" class="form-control" placeholder="مثال: 5 كجم">
-            </div>
-            <div class="form-group">
-                <label>الكمية المتاحة في السوبرماركت *</label>
-                <input type="number" id="prodStockQty" class="form-control" placeholder="مثال: 20">
-            </div>
-            <div class="form-group">
-                <label>اختر الأقسام والفئات المطلوبة *</label>
-                <div id="prodCategoriesCheckboxes" class="categories-checkbox-container"></div>
-            </div>
-            <div style="display: flex; gap: 8px;">
+
+            <!-- 2. السعر الحالي + الكمية المتاحة + الوزن أو الحجم في صف واحد -->
+            <div style="display: flex; gap: 6px;">
                 <div class="form-group" style="flex: 1;">
                     <label>السعر الحالي (₪) *</label>
                     <input type="number" id="prodPrice" class="form-control" placeholder="22">
                 </div>
                 <div class="form-group" style="flex: 1;">
-                    <label>السعر القديم (₪)</label>
-                    <input type="number" id="prodOldPrice" class="form-control" placeholder="30">
+                    <label>الكمية المتاحة *</label>
+                    <input type="number" id="prodStockQty" class="form-control" placeholder="20">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>الوزن / الحجم</label>
+                    <input type="text" id="prodWeight" class="form-control" placeholder="5 كجم">
                 </div>
             </div>
+
+            <!-- 3. الأقسام والفئات (مربع كبير وبجانب كل فئة مربع اختيار بدون سحب) -->
+            <div class="form-group">
+                <label>الأقسام والفئات المطلوبة *</label>
+                <div id="prodCategoriesCheckboxes" class="categories-checkbox-container"></div>
+            </div>
+
+            <!-- 4. صورة المنتج -->
             <div class="form-group">
                 <label>صورة المنتج *</label>
                 <div class="file-upload-box">
@@ -243,6 +249,8 @@
                 </div>
                 <input type="hidden" id="prodImgData">
             </div>
+
+            <!-- 5. زر الإضافة والنشر -->
             <button class="btn-main" onclick="saveProduct()">إضافة ونشر المنتج فوراً 🚀</button>
         </div>
     </div>
@@ -372,7 +380,7 @@
                             p.inStock = true;
                         }
                         if (p.stockQty === undefined) {
-                            p.stockQty = 10; // افتراضي في حال المنتج القديم
+                            p.stockQty = 10;
                         }
                         return p;
                     });
@@ -383,9 +391,9 @@
         }
         
         const defaultProducts = [
-            { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات", "عروض"], inStock: true, stockQty: 15 },
-            { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png", categories: ["معلبات"], inStock: true, stockQty: 30 },
-            { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png", categories: ["ألبان"], inStock: true, stockQty: 10 }
+            { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات", "عروض"], inStock: true, stockQty: 15 },
+            { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png", categories: ["معلبات"], inStock: true, stockQty: 30 },
+            { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png", categories: ["ألبان"], inStock: true, stockQty: 10 }
         ];
         try {
             localStorage.setItem('aloroba_products', JSON.stringify(defaultProducts));
@@ -548,15 +556,9 @@
                                         `).join('')}
                                     </div>
                                 </div>
-                                <div style="display: flex; gap: 8px;">
-                                    <div class="form-group" style="flex: 1;">
-                                        <label>السعر الحالي (₪)</label>
-                                        <input type="number" id="edit-price-${originalIndex}" class="form-control" value="${p.price}">
-                                    </div>
-                                    <div class="form-group" style="flex: 1;">
-                                        <label>السعر القديم (₪)</label>
-                                        <input type="number" id="edit-oldprice-${originalIndex}" class="form-control" value="${p.oldPrice || ''}">
-                                    </div>
+                                <div class="form-group">
+                                    <label>السعر الحالي (₪)</label>
+                                    <input type="number" id="edit-price-${originalIndex}" class="form-control" value="${p.price}">
                                 </div>
                                 <div class="form-group">
                                     <label>رزمة الحملة أو العرض</label>
@@ -706,7 +708,6 @@
             let oldStatus = orderToUpdate.status || 'جديد';
             orderToUpdate.status = newStatus;
             
-            // عند قبول الطلب كـ "قيد التجهيز" أو عند وروده لأول مرة، نقوم بخصم الكميات من المخزون تلقائياً (مرة واحدة فقط)
             if (newStatus === 'قيد التجهيز' && oldStatus === 'جديد' && !orderToUpdate.stockDeducted) {
                 deductInventoryForOrder(orderToUpdate);
                 orderToUpdate.stockDeducted = true;
@@ -804,7 +805,6 @@
         const weight = document.getElementById(`edit-weight-${index}`).value;
         const stockQty = parseInt(document.getElementById(`edit-stock-${index}`).value);
         const price = parseFloat(document.getElementById(`edit-price-${index}`).value);
-        const oldPrice = document.getElementById(`edit-oldprice-${index}`).value;
         const offer = document.getElementById(`edit-offer-${index}`).value;
         const img = document.getElementById(`edit-imgData-${index}`).value;
         
@@ -824,7 +824,6 @@
             weight,
             stockQty: isNaN(stockQty) ? 0 : stockQty,
             price,
-            oldPrice: oldPrice ? parseFloat(oldPrice) : '',
             offer,
             img,
             categories: selectedCategories.length > 0 ? selectedCategories : ['عروض']
@@ -886,7 +885,6 @@
         const weight = document.getElementById('prodWeight').value.trim();
         const stockQty = parseInt(document.getElementById('prodStockQty').value);
         const price = parseFloat(document.getElementById('prodPrice').value);
-        const oldPrice = document.getElementById('prodOldPrice').value;
         const img = document.getElementById('prodImgData').value;
 
         let selectedCategories = [];
@@ -906,7 +904,6 @@
             weight,
             stockQty,
             price,
-            oldPrice: oldPrice ? parseFloat(oldPrice) : '',
             img,
             categories: selectedCategories.length > 0 ? selectedCategories : ['عروض'],
             inStock: stockQty > 0
@@ -920,7 +917,6 @@
         document.getElementById('prodWeight').value = '';
         document.getElementById('prodStockQty').value = '';
         document.getElementById('prodPrice').value = '';
-        document.getElementById('prodOldPrice').value = '';
         document.getElementById('prodImgData').value = '';
         document.getElementById('prodPreview').src = 'https://cdn-icons-png.flaticon.com/512/3081/3081986.png';
         document.querySelectorAll('input[name="productCategoryCheck"]').forEach(chk => chk.checked = false);
