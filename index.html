@@ -58,7 +58,14 @@
         .price-offer-new { font-weight: 700; color: #dc2626; font-size: 1.05rem; }
         .price-offer-old { text-decoration: line-through; color: #1f2937; font-size: 0.8rem; font-weight: 600; }
 
+        /* زر الإضافة الأولي */
         .btn-add-cart { background: var(--primary-green); color: white; border: none; width: 100%; padding: 8px; border-radius: var(--radius-md); font-weight: 700; font-size: 0.85rem; cursor: pointer; text-align: center; }
+
+        /* العداد الالكتروني (+ و -) على الكرت */
+        .cart-counter-box { display: flex; align-items: center; justify-content: space-between; background: var(--primary-green); border-radius: var(--radius-md); overflow: hidden; width: 100%; }
+        .cart-counter-btn { background: rgba(0,0,0,0.15); color: white; border: none; padding: 8px 14px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+        .cart-counter-btn:active { background: rgba(0,0,0,0.3); }
+        .cart-counter-value { color: white; font-weight: 700; font-size: 0.95rem; }
 
         .floating-dashboard-btn { position: fixed; bottom: 20px; right: 20px; background: #374151; color: white; padding: 10px 16px; border-radius: 30px; text-decoration: none; font-size: 0.85rem; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 100; display: flex; align-items: center; gap: 6px; }
     </style>
@@ -105,7 +112,8 @@
         let currentCategory = "الكل";
         let allProducts = [];
         let dbCategories = [];
-        let productBundlesMap = {}; // تخزين تفاصيل العروض المرتبطة بكل منتج
+        let productBundlesMap = {}; 
+        let cartItems = {}; // تخزين كميات المنتجات في السلة
 
         db.collection("categories").onSnapshot((snapshot) => {
             dbCategories = [];
@@ -116,7 +124,6 @@
             updateCategoriesBar();
         });
 
-        // جلب عروض الحزم وربطها بالمنتجات الخاصة بها
         db.collection("bundles").onSnapshot((snapshot) => {
             productBundlesMap = {};
             snapshot.forEach((doc) => {
@@ -138,6 +145,38 @@
             updateCategoriesBar();
             renderProducts();
         });
+
+        // زيادة الكمية
+        function increaseQuantity(productId) {
+            if (!cartItems[productId]) {
+                cartItems[productId] = 1;
+            } else {
+                cartItems[productId]++;
+            }
+            updateCartCounter();
+            renderProducts();
+        }
+
+        // نقصان الكمية
+        function decreaseQuantity(productId) {
+            if (cartItems[productId] && cartItems[productId] > 0) {
+                cartItems[productId]--;
+                if (cartItems[productId] === 0) {
+                    delete cartItems[productId];
+                }
+            }
+            updateCartCounter();
+            renderProducts();
+        }
+
+        // تحديث الرقم الظاهر في أيقونة السلة العلوي
+        function updateCartCounter() {
+            let totalCount = 0;
+            for (let id in cartItems) {
+                totalCount += cartItems[id];
+            }
+            document.getElementById('cart-count').innerText = totalCount;
+        }
 
         function updateCategoriesBar() {
             let categoriesSet = new Set(dbCategories);
@@ -178,7 +217,6 @@
                 
                 let badgeHtml = p.isOffer ? `<div class="offer-badge">عرض</div>` : '';
 
-                // فحص إذا كان المنتج من ضمن الحزم لعرض النص تحته
                 let bundleTagHtml = '';
                 if (productBundlesMap[p.id]) {
                     bundleTagHtml = `<div class="product-bundle-tag">${productBundlesMap[p.id]}</div>`;
@@ -206,6 +244,24 @@
                     `;
                 }
 
+                // تحديد شكل الزر بناءً على ما إذا كانت الكمية في السلة أكبر من الصفر
+                let quantityInCart = cartItems[p.id] || 0;
+                let actionButtonHtml = '';
+
+                if (quantityInCart > 0) {
+                    actionButtonHtml = `
+                        <div class="cart-counter-box">
+                            <button class="cart-counter-btn" onclick="decreaseQuantity('${p.id}')">-</button>
+                            <span class="cart-counter-value">${quantityInCart}</span>
+                            <button class="cart-counter-btn" onclick="increaseQuantity('${p.id}')">+</button>
+                        </div>
+                    `;
+                } else {
+                    actionButtonHtml = `
+                        <button class="btn-add-cart" onclick="increaseQuantity('${p.id}')">أضف للسلة +</button>
+                    `;
+                }
+
                 gridHtml += `
                     <div class="product-card">
                         ${badgeHtml}
@@ -220,7 +276,7 @@
                                 ${priceHtml}
                             </div>
                         </div>
-                        <button class="btn-add-cart" onclick="alert('تمت الإضافة للسلة')">أضف للسلة +</button>
+                        ${actionButtonHtml}
                     </div>`;
             });
 
