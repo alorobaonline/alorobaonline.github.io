@@ -21,7 +21,6 @@
         .dash-header h1 { font-size: 0.95rem; color: var(--primary-green); font-weight: 900; }
         .back-btn { background: #e5e7eb; color: #374151; padding: 5px 12px; border-radius: 8px; text-decoration: none; font-size: 0.7rem; font-weight: 700; }
 
-        /* لوحة ملخص المبيعات */
         .sales-summary-box { background: linear-gradient(135deg, #1b4d2e, #2e6930); color: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: bold; }
         
         .section-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
@@ -86,7 +85,6 @@
         
         .toggle-arrow { font-size: 0.75rem; transition: transform 0.2s; }
         
-        /* تصميم بطاقة الطلب المحسنة */
         .order-card { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 0.75rem; animation: fadeIn 0.5s; position: relative; }
         .order-header { display: flex; justify-content: space-between; font-weight: bold; color: var(--primary-green); border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; }
         
@@ -109,7 +107,7 @@
 
     <!-- شريط إجمالي المبيعات اليومية -->
     <div class="sales-summary-box">
-        <div>📊 إجمالي قيمة الطلبات الواردة:</div>
+        <div>📊 إجمالي قيمة المبيعات والطلبات:</div>
         <div><span id="totalRevenueBadge">0</span> ₪</div>
     </div>
 
@@ -121,10 +119,25 @@
         </div>
         <div id="liveOrdersSection" class="section-content" style="display: block;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span style="font-size: 0.7rem; color: #555;">الطلبات الواردة من الزبائن تسجل هنا تلقائياً:</span>
+                <span style="font-size: 0.7rem; color: #555;">الطلبات الواردة (تتحول للأرشيف تلقائياً عند اكتمالها):</span>
                 <button class="btn-delete" style="padding: 3px 8px; font-size: 0.6rem;" onclick="clearAllOrders()">تفريغ السجل 🗑️</button>
             </div>
             <div id="liveOrdersListContainer"></div>
+        </div>
+    </div>
+
+    <!-- أرشيف الطلبات المكتملة -->
+    <div class="section-box" style="border-color: #10b981; background: #ecfdf5;">
+        <div class="section-header-toggle" onclick="toggleMainSection('archiveSection', 'archiveArrow')">
+            <span>📦 أرشيف الطلبات المسلمة (<span id="archiveCountBadge">0</span>)</span>
+            <span id="archiveArrow" class="toggle-arrow">▼</span>
+        </div>
+        <div id="archiveSection" class="section-content">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-size: 0.7rem; color: #555;">الطلبات التي تم تسليمها بنجاح:</span>
+                <button class="btn-delete" style="padding: 3px 8px; font-size: 0.6rem;" onclick="clearArchive()">تفريغ الأرشيف 🗑️</button>
+            </div>
+            <div id="archiveOrdersListContainer"></div>
         </div>
     </div>
 
@@ -397,7 +410,6 @@
 
     function initAdmin() {
         renderAdmin();
-        // فحص الطلبات كل 3 ثوانٍ للتحديث والتنبيه عند وصول طلب جديد
         setInterval(checkNewOrders, 3000);
     }
 
@@ -412,6 +424,7 @@
         }
         lastOrdersCount = orders.length;
         renderLiveOrders();
+        renderArchiveOrders();
     }
 
     function playNotificationSound() {
@@ -420,7 +433,7 @@
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(587.33, ctx.currentTime); // نغمة تنبيه رقيقة
+            osc.frequency.setValueAtTime(587.33, ctx.currentTime);
             gain.gain.setValueAtTime(0.1, ctx.currentTime);
             osc.connect(gain);
             gain.connect(ctx.destination);
@@ -440,6 +453,7 @@
         }
 
         renderLiveOrders();
+        renderArchiveOrders();
 
         const checkboxesContainer = document.getElementById('prodCategoriesCheckboxes');
         checkboxesContainer.innerHTML = '';
@@ -571,19 +585,23 @@
             orders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
         } catch(e) { orders = []; }
 
-        document.getElementById('ordersCountBadge').innerText = orders.length;
-        
+        let archive = [];
+        try {
+            archive = JSON.parse(localStorage.getItem('aloroba_archive')) || [];
+        } catch(e) { archive = []; }
+
+        // حساب إجمالي المبيعات من الطلبات الحية والأرشيف معاً
         let totalRev = 0;
-        orders.forEach(o => {
-            totalRev += parseFloat(o.totalAmount || o.total || 0);
-        });
+        orders.forEach(o => { totalRev += parseFloat(o.totalAmount || o.total || 0); });
+        archive.forEach(o => { totalRev += parseFloat(o.totalAmount || o.total || 0); });
         document.getElementById('totalRevenueBadge').innerText = totalRev;
 
+        document.getElementById('ordersCountBadge').innerText = orders.length;
         const container = document.getElementById('liveOrdersListContainer');
         container.innerHTML = '';
 
         if (orders.length === 0) {
-            container.innerHTML = '<div style="text-align: center; color: #6b7280; font-size: 0.7rem; padding: 10px;">لا توجد طلبات جديدة حالياً</div>';
+            container.innerHTML = '<div style="text-align: center; color: #6b7280; font-size: 0.7rem; padding: 10px;">لا توجد طلبات حية حالياً</div>';
             return;
         }
 
@@ -627,16 +645,62 @@
         });
     }
 
+    function renderArchiveOrders() {
+        let archive = [];
+        try {
+            archive = JSON.parse(localStorage.getItem('aloroba_archive')) || [];
+        } catch(e) { archive = []; }
+
+        document.getElementById('archiveCountBadge').innerText = archive.length;
+        const container = document.getElementById('archiveOrdersListContainer');
+        container.innerHTML = '';
+
+        if (archive.length === 0) {
+            container.innerHTML = '<div style="text-align: center; color: #6b7280; font-size: 0.7rem; padding: 10px;">الأرشيف فارغ</div>';
+            return;
+        }
+
+        archive.forEach((ord, idx) => {
+            let itemsHtml = ord.items && Array.isArray(ord.items) ? ord.items.map(i => `• ${i.name} (×${i.quantity || 1}) - ${(i.price || 0) * (i.quantity || 1)} ₪`).join('<br>') : 'تفاصيل المنتجات غير متوفرة';
+            container.innerHTML += `
+                <div class="order-card" style="border-color: #10b981;">
+                    <div class="order-header" style="color: #059669;">
+                        <span>👤 الزبون: ${ord.customerName || ord.name || 'مشتري'}</span>
+                        <span>✅ تم التسليم</span>
+                    </div>
+                    <div style="margin-bottom: 5px;">📞 الهاتف: <b dir="ltr">${ord.customerPhone || ord.phone || ''}</b></div>
+                    <div style="margin-bottom: 5px;">📍 العنوان: ${ord.customerAddress || ord.address || ''}</div>
+                    <div style="background: #f8fafc; padding: 6px; border-radius: 4px; margin-bottom: 6px; font-size: 0.7rem;">${itemsHtml}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: #059669;">
+                        <span>المجموع: ${ord.totalAmount || ord.total || 0} ₪ (${ord.date || ''})</span>
+                        <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteArchiveOrder(${idx})">حذف من الأرشيف</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
     function updateOrderStatus(index, newStatus) {
         let orders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
         if (orders[index]) {
             orders[index].status = newStatus;
+            
+            if (newStatus === 'تم التسليم') {
+                // سحب الطلب من الحية وإضافته للأرشيف تلقائياً
+                let completedOrder = orders.splice(index, 1)[0];
+                let archive = JSON.parse(localStorage.getItem('aloroba_archive')) || [];
+                archive.unshift(completedOrder);
+                localStorage.setItem('aloroba_archive', JSON.stringify(archive));
+            }
+            
             localStorage.setItem('aloroba_orders', JSON.stringify(orders));
+            renderLiveOrders();
+            renderArchiveOrders();
         }
     }
 
     function deleteOrder(index) {
-        if(confirm("هل تريد حذف هذا الطلب من السجل؟")) {
+        if(confirm("هل تريد حذف هذا الطلب؟")) {
             let orders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
             orders.splice(index, 1);
             localStorage.setItem('aloroba_orders', JSON.stringify(orders));
@@ -645,9 +709,25 @@
     }
 
     function clearAllOrders() {
-        if(confirm("هل أنت متأكد من تفريغ سجل الطلبات بالكامل؟")) {
+        if(confirm("هل أنت متأكد من تفريغ سجل الطلبات الحية؟")) {
             localStorage.removeItem('aloroba_orders');
             renderLiveOrders();
+        }
+    }
+
+    function deleteArchiveOrder(index) {
+        if(confirm("هل تريد حذف هذا الطلب من الأرشيف؟")) {
+            let archive = JSON.parse(localStorage.getItem('aloroba_archive')) || [];
+            archive.splice(index, 1);
+            localStorage.setItem('aloroba_archive', JSON.stringify(archive));
+            renderArchiveOrders();
+        }
+    }
+
+    function clearArchive() {
+        if(confirm("هل أنت متأكد من تفريغ أرشيف الطلبات المسلمة بالكامل؟")) {
+            localStorage.removeItem('aloroba_archive');
+            renderArchiveOrders();
         }
     }
 
