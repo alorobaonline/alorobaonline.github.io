@@ -54,6 +54,10 @@
             <label>نص العرض / التاج</label>
             <input type="text" id="bannerTagInput" class="form-control" placeholder="سوبر ماركت العروبة">
         </div>
+        <div class="form-group">
+            <label>رابط صورة البانر (URL)</label>
+            <input type="text" id="bannerImgInput" class="form-control" placeholder="https://...">
+        </div>
         <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث البانر 💾</button>
     </div>
 
@@ -135,15 +139,15 @@
 
     let bannerData = JSON.parse(localStorage.getItem('aloroba_banner')) || {
         title: "كل احتياجات بيتك في مكان واحد",
-        tag: "سوبر ماركت العروبة"
+        tag: "سوبر ماركت العروبة",
+        img: "https://i.ibb.co/3m1K2wP/basket.png"
     };
 
     function renderAdmin() {
-        // تعبئة بيانات البانر الحالية
-        document.getElementById('bannerTitleInput').value = bannerData.title;
-        document.getElementById('bannerTagInput').value = bannerData.tag;
+        document.getElementById('bannerTitleInput').value = bannerData.title || "";
+        document.getElementById('bannerTagInput').value = bannerData.tag || "";
+        document.getElementById('bannerImgInput').value = bannerData.img || "";
 
-        // عرض الفئات
         const catList = document.getElementById('adminCategoriesList');
         catList.innerHTML = '';
         categories.forEach((cat, index) => {
@@ -155,7 +159,6 @@
             `;
         });
 
-        // عرض المنتجات والحملات
         const prodList = document.getElementById('adminProductsList');
         prodList.innerHTML = '';
         products.forEach((p, index) => {
@@ -171,8 +174,9 @@
     function saveBannerSettings() {
         bannerData.title = document.getElementById('bannerTitleInput').value;
         bannerData.tag = document.getElementById('bannerTagInput').value;
+        bannerData.img = document.getElementById('bannerImgInput').value;
         localStorage.setItem('aloroba_banner', JSON.stringify(bannerData));
-        alert("تم تحديث البانر الرئيسي بنجاح!");
+        alert("تم تحديث البانر الرئيسي وصورته بنجاح!");
     }
 
     function addCategory() {
