@@ -476,15 +476,11 @@
             document.getElementById('bundle-modal').style.display = 'flex';
         }
 
-        fncloseBundleModal = function() {
+        function closeBundleModal() {
             activeBundleIdInModal = null;
             document.getElementById('bundle-modal').style.display = 'none';
         }
-        function closeBundleModal() {
-            fncloseBundleModal();
-        }
 
-        // متغير عام لتخزين إجمالي السعر النهائي ليتم استخدامه عند إرسال الطلب
         let globalFinalTotal = 0;
         let globalCartLinesForWhatsApp = [];
 
@@ -578,7 +574,6 @@
             let html = '';
             globalFinalTotal = 0;
 
-            // بناء العناصر للعرض في واجهة السلة مع مصفوفة مؤقتة لعرض الأيقونات
             let tempCartLinesRender = [];
             for (let id in cartItems) {
                 let p = allProductsMap[id];
@@ -652,7 +647,6 @@
             document.getElementById('cart-modal').style.display = 'none';
         }
 
-        // وظيفة إرسال الطلب عبر الواتساب مع تضمين اسم الزبون، رقمه، والمنتجات
         function sendOrderToWhatsApp() {
             let customerName = document.getElementById('customer-name').value.trim();
             let customerWhatsapp = document.getElementById('customer-whatsapp').value.trim();
@@ -668,7 +662,7 @@
                 return;
             }
 
-            let storePhoneNumber = "972500000000"; // استبدل هذا الرقم برقم واتساب المتجر الأساسي إن أردت
+            let storePhoneNumber = "972546288791";
 
             let message = `🛒 *طلب جديد من متجر العروبة أون لاين*\n\n`;
             message += `👤 *اسم الزبون:* ${customerName}\n`;
@@ -791,4 +785,4 @@
         }
     </script>
 </body>
-              </html>
+</html>
