@@ -239,7 +239,7 @@
         let productBundlesMap = {}; 
         let bundlesDataMap = {}; 
         
-        // استرجاع السلة مباشرة عند تحميل الصفحة لضمان عدم ضياعها أو تصفيرها
+        // استرجاع السلة مباشرة أولاً وبشكل آمن من الذاكرة المحلية
         let cartItems = {};
         try {
             const savedCart = localStorage.getItem('aloroba_cart');
@@ -259,6 +259,9 @@
                 console.error("Could not save cart", e);
             }
         }
+
+        // تحديث عداد السلة فوريًا عند بدء التشغيل
+        updateCartCounter();
 
         db.collection("categories").onSnapshot((snapshot) => {
             dbCategories = [];
@@ -310,7 +313,7 @@
             });
             updateCategoriesBar();
             renderProducts();
-            updateCartCounter(); // تحديث العداد دائماً فور جلب المنتجات
+            updateCartCounter(); // إعادة التأكيد على العداد بعد جلب المنتجات
         });
 
         function increaseQuantity(productId) {
@@ -700,9 +703,6 @@
 
             document.getElementById('store-products-grid').innerHTML = gridHtml;
         }
-
-        // تشغيل العداد فور فتح الصفحة لضمان استقرار السلة تماماً
-        updateCartCounter();
     </script>
 </body>
 </html>
