@@ -36,6 +36,7 @@
 
         .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 9px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; margin-top: 5px; }
         .btn-delete { background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.6rem; cursor: pointer; font-weight: bold; }
+        .btn-edit { background: #3b82f6; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.6rem; cursor: pointer; font-weight: bold; margin-left: 4px; }
 
         .list-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 0.7rem; }
     </style>
@@ -97,7 +98,8 @@
 
     <!-- 3. إدارة المنتجات ورزمة الحملات -->
     <div class="section-box">
-        <h2>📦 إضافة منتج أو حملة جديدة</h2>
+        <h2 id="formBoxTitle">📦 إضافة منتج أو حملة جديدة</h2>
+        <input type="hidden" id="editIndex" value="-1">
         <div class="form-group">
             <label>اسم المنتج أو الحملة</label>
             <input type="text" id="prodName" class="form-control" placeholder="مثال: أرز تات بسمتي">
@@ -137,7 +139,8 @@
                 <input type="text" id="prodImg" class="form-control" placeholder="مسار الصورة أو رابطها">
             </div>
         </div>
-        <button class="btn-main" onclick="addProduct()">إضافة ونشر المنتج فوراً 🚀</button>
+        <button class="btn-main" id="saveProdBtn" onclick="saveProduct()">إضافة ونشر المنتج فوراً 🚀</button>
+        <button class="btn-main" id="cancelEditBtn" onclick="resetProductForm()" style="background: #64748b; display:none; margin-top: 5px;">إلغاء التعديل ❌</button>
         
         <div style="margin-top: 15px;" id="adminProductsList"></div>
     </div>
@@ -170,7 +173,6 @@
         document.getElementById('bannerTagInput').value = bannerData.tag || "";
         document.getElementById('bannerImgInput').value = bannerData.img || "";
 
-        // تعبئة القائمة المنسدلة للأقسام في إضافة المنتج
         const selectCat = document.getElementById('prodCategory');
         selectCat.innerHTML = '';
         categories.forEach(cat => {
@@ -196,7 +198,10 @@
             prodList.innerHTML += `
                 <div class="list-item">
                     <span><b>${p.name}</b> (${p.price}₪)</span>
-                    <button class="btn-delete" onclick="deleteProduct(${index})">حذف</button>
+                    <div>
+                        <button class="btn-edit" onclick="editProduct(${index})">تعديل</button>
+                        <button class="btn-delete" onclick="deleteProduct(${index})">حذف</button>
+                    </div>
                 </div>
             `;
         });
@@ -259,7 +264,8 @@
         }
     }
 
-    function addProduct() {
+    function saveProduct() {
+        const editIndex = Number(document.getElementById('editIndex').value);
         const name = document.getElementById('prodName').value;
         const weight = document.getElementById('prodWeight').value;
         const category = document.getElementById('prodCategory').value;
@@ -273,20 +279,59 @@
             return;
         }
 
-        const newProd = {
-            id: Date.now(),
-            name,
-            weight,
-            category,
-            price: Number(price),
-            oldPrice: oldPrice ? Number(oldPrice) : null,
-            offer,
-            img: img || "https://cdn-icons-png.flaticon.com/512/3081/3081986.png"
-        };
+        if(editIndex === -1) {
+            // إضافة منتج جديد
+            const newProd = {
+                id: Date.now(),
+                name,
+                weight,
+                category,
+                price: Number(price),
+                oldPrice: oldPrice ? Number(oldPrice) : null,
+                offer,
+                img: img || "https://cdn-icons-png.flaticon.com/512/3081/3081986.png"
+            };
+            products.unshift(newProd);
+            alert("تمت إضافة المنتج بنجاح وتحديث المتجر!");
+        } else {
+            // تحديث منتج موجود
+            products[editIndex].name = name;
+            products[editIndex].weight = weight;
+            products[editIndex].category = category;
+            products[editIndex].price = Number(price);
+            products[editIndex].oldPrice = oldPrice ? Number(oldPrice) : null;
+            products[editIndex].offer = offer;
+            if(img) {
+                products[editIndex].img = img;
+            }
+            alert("تم تحديث المنتج بنجاح!");
+        }
 
-        products.unshift(newProd);
         localStorage.setItem('aloroba_products', JSON.stringify(products));
-        
+        resetProductForm();
+        renderAdmin();
+    }
+
+    function editProduct(index) {
+        const p = products[index];
+        document.getElementById('editIndex').value = index;
+        document.getElementById('prodName').value = p.name;
+        document.getElementById('prodWeight').value = p.weight || '';
+        document.getElementById('prodCategory').value = p.category || '';
+        document.getElementById('prodPrice').value = p.price;
+        document.getElementById('prodOldPrice').value = p.oldPrice || '';
+        document.getElementById('prodOffer').value = p.offer || '';
+        document.getElementById('prodImg').value = p.img || '';
+
+        document.getElementById('formBoxTitle').innerText = "✏️ تعديل المنتج الحالي";
+        document.getElementById('saveProdBtn').innerText = "حفظ التعديلات ✅";
+        document.getElementById('saveProdBtn').style.background = "#3b82f6";
+        document.getElementById('cancelEditBtn').style.display = "block";
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    function resetProductForm() {
+        document.getElementById('editIndex').value = "-1";
         document.getElementById('prodName').value = '';
         document.getElementById('prodWeight').value = '';
         document.getElementById('prodPrice').value = '';
@@ -295,8 +340,10 @@
         document.getElementById('prodImg').value = '';
         document.getElementById('prodFile').value = '';
 
-        renderAdmin();
-        alert("تمت إضافة المنتج/الحملة بنجاح وتحديث المتجر!");
+        document.getElementById('formBoxTitle').innerText = "📦 إضافة منتج أو حملة جديدة";
+        document.getElementById('saveProdBtn').innerText = "إضافة ونشر المنتج فوراً 🚀";
+        document.getElementById('saveProdBtn').style.background = "var(--primary-green)";
+        document.getElementById('cancelEditBtn').style.display = "none";
     }
 
     function deleteProduct(index) {
