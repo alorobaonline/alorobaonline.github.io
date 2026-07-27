@@ -40,15 +40,19 @@
 
         .list-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 0.7rem; }
         
-        /* تنسيق قسم عرض المنتجات مقسمة حسب الفئات مع زر الطي */
+        /* تنسيق قسم عرض المنتجات مقسمة حسب الفئات */
         .category-group-box { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
         .category-group-title { font-size: 0.8rem; font-weight: 900; color: #1b4d2e; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
         .category-toggle-badge { margin-right: auto; font-size: 0.7rem; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; color: #334155; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; user-select: none; }
         .category-toggle-badge:hover { background: #cbd5e1; }
         
-        .product-mini-row { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 6px 8px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 0.7rem; }
+        .product-card-container { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+        .product-mini-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; font-size: 0.7rem; }
         .product-mini-info { display: flex; align-items: center; gap: 6px; overflow: hidden; }
         .product-mini-thumb { width: 30px; height: 30px; object-fit: contain; background: white; border-radius: 4px; border: 1px solid #ddd; padding: 2px; }
+        
+        /* تنسيق قائمة التعديل الفورية الداخلية */
+        .inline-edit-form { background: #eff6ff; border-top: 1px dashed #bfdbfe; padding: 10px; display: none; }
     </style>
 </head>
 <body>
@@ -106,10 +110,9 @@
         <div style="margin-top: 10px;" id="adminCategoriesList"></div>
     </div>
 
-    <!-- 3. إدارة المنتجات ورزمة الحملات -->
+    <!-- 3. إضافة منتج جديد -->
     <div class="section-box">
-        <h2 id="formBoxTitle">📦 إضافة منتج أو حملة جديدة</h2>
-        <input type="hidden" id="editIndex" value="-1">
+        <h2>📦 إضافة منتج أو حملة جديدة</h2>
         <div class="form-group">
             <label>اسم المنتج أو الحملة</label>
             <input type="text" id="prodName" class="form-control" placeholder="مثال: أرز تات بسمتي">
@@ -149,11 +152,10 @@
                 <input type="text" id="prodImg" class="form-control" placeholder="مسار الصورة أو رابطها">
             </div>
         </div>
-        <button class="btn-main" id="saveProdBtn" onclick="saveProduct()">إضافة ونشر المنتج فوراً 🚀</button>
-        <button class="btn-main" id="cancelEditBtn" onclick="resetProductForm()" style="background: #64748b; display:none; margin-top: 5px;">إلغاء التعديل ❌</button>
+        <button class="btn-main" onclick="saveProduct()">إضافة ونشر المنتج فوراً 🚀</button>
     </div>
 
-    <!-- 4. خانة المنتجات المقسمة حسب الفئات مع زر الطي والتصغير -->
+    <!-- 4. خانة المنتجات المقسمة حسب الفئات مع التعديل الداخلي -->
     <div class="section-box" style="background: #edf2f7; border-color: #cbd5e1;">
         <h2>🛒 إدارة وعرض المنتجات (مقسمة حسب الأقسام)</h2>
         <div id="categorizedProductsAdminList">
@@ -233,24 +235,58 @@
                 catProducts.forEach(p => {
                     let originalIndex = products.findIndex(item => item.id === p.id);
                     productsHtml += `
-                        <div class="product-mini-row">
-                            <div class="product-mini-info">
-                                <img src="${p.img}" class="product-mini-thumb" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
+                        <div class="product-card-container">
+                            <div class="product-mini-row">
+                                <div class="product-mini-info">
+                                    <img src="${p.img}" class="product-mini-thumb" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
+                                    <div>
+                                        <div style="font-weight: 800; color: #1f2937;">${p.name}</div>
+                                        <div style="font-size: 0.6rem; color: #6b7280;">السعر: ${p.price} ₪ | ${p.weight || 'حبة'}</div>
+                                    </div>
+                                </div>
                                 <div>
-                                    <div style="font-weight: 800; color: #1f2937;">${p.name}</div>
-                                    <div style="font-size: 0.6rem; color: #6b7280;">السعر: ${p.price} ₪ | ${p.weight || 'حبة'}</div>
+                                    <button class="btn-edit" onclick="toggleInlineEdit(${originalIndex})">تعديل ✏️</button>
+                                    <button class="btn-delete" onclick="deleteProduct(${originalIndex})">حذف</button>
                                 </div>
                             </div>
-                            <div>
-                                <button class="btn-edit" onclick="editProduct(${originalIndex})">تعديل</button>
-                                <button class="btn-delete" onclick="deleteProduct(${originalIndex})">حذف</button>
+                            <!-- نموذج التعديل الفوري الذي يفتح تحت المنتج مباشرة -->
+                            <div id="inline-edit-${originalIndex}" class="inline-edit-form">
+                                <div class="form-group">
+                                    <label>اسم المنتج</label>
+                                    <input type="text" id="edit-name-${originalIndex}" class="form-control" value="${p.name}">
+                                </div>
+                                <div class="form-group">
+                                    <label>الوزن أو الحجم</label>
+                                    <input type="text" id="edit-weight-${originalIndex}" class="form-control" value="${p.weight || ''}">
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <div class="form-group" style="flex: 1;">
+                                        <label>السعر الحالي (₪)</label>
+                                        <input type="number" id="edit-price-${originalIndex}" class="form-control" value="${p.price}">
+                                    </div>
+                                    <div class="form-group" style="flex: 1;">
+                                        <label>السعر القديم (₪)</label>
+                                        <input type="number" id="edit-oldprice-${originalIndex}" class="form-control" value="${p.oldPrice || ''}">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>رزمة الحملة أو العرض</label>
+                                    <input type="text" id="edit-offer-${originalIndex}" class="form-control" value="${p.offer || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label>رابط أو مسار الصورة</label>
+                                    <input type="text" id="edit-img-${originalIndex}" class="form-control" value="${p.img || ''}">
+                                </div>
+                                <div style="display: flex; gap: 5px; margin-top: 5px;">
+                                    <button class="btn-main" style="margin-top:0; background: #3b82f6;" onclick="saveInlineEdit(${originalIndex})">حفظ التعديلات ✅</button>
+                                    <button class="btn-main" style="margin-top:0; background: #64748b;" onclick="toggleInlineEdit(${originalIndex})">إلغاء ❌</button>
+                                </div>
                             </div>
                         </div>
                     `;
                 });
             }
 
-            // إضافة القسم مع زر سهم قابل للتبديل (تصغير/تكبير)
             categorizedContainer.innerHTML += `
                 <div class="category-group-box">
                     <div class="category-group-title">
@@ -269,7 +305,48 @@
         });
     }
 
-    // دالة لتصغير أو إظهار قائمة المنتجات عند النقر على الزر والسهم
+    // فتح أو إغلاق قائمة التعديل الداخلية تحت المنتج
+    function toggleInlineEdit(index) {
+        const editBox = document.getElementById(`inline-edit-${index}`);
+        if (editBox.style.display === "block") {
+            editBox.style.display = "none";
+        } else {
+            // إغلاق أي نوافذ تعديل مفتوحة أخرى أولاً لترتيب الواجهة
+            document.querySelectorAll('.inline-edit-form').forEach(box => box.style.display = 'none');
+            editBox.style.display = "block";
+        }
+    }
+
+    // حفظ التعديلات التي تم إجراؤها من داخل قائمة المنتج
+    function saveInlineEdit(index) {
+        let products = getStoredProducts();
+        
+        const name = document.getElementById(`edit-name-${index}`).value;
+        const weight = document.getElementById(`edit-weight-${index}`).value;
+        const price = document.getElementById(`edit-price-${index}`).value;
+        const oldPrice = document.getElementById(`edit-oldprice-${index}`).value;
+        const offer = document.getElementById(`edit-offer-${index}`).value;
+        const img = document.getElementById(`edit-img-${index}`).value;
+
+        if(!name || !price) {
+            alert("الرجاء إدخال اسم المنتج والسعر على الأقل");
+            return;
+        }
+
+        products[index].name = name;
+        products[index].weight = weight;
+        products[index].price = Number(price);
+        products[index].oldPrice = oldPrice ? Number(oldPrice) : null;
+        products[index].offer = offer;
+        if(img) {
+            products[index].img = img;
+        }
+
+        localStorage.setItem('aloroba_products', JSON.stringify(products));
+        alert("تم تحديث المنتج بنجاح!");
+        renderAdmin();
+    }
+
     function toggleCategorySection(catIdx) {
         const contentBox = document.getElementById(`category-content-${catIdx}`);
         const arrowIcon = document.getElementById(`arrow-icon-${catIdx}`);
@@ -342,7 +419,6 @@
 
     function saveProduct() {
         let products = getStoredProducts();
-        const editIndex = Number(document.getElementById('editIndex').value);
         const name = document.getElementById('prodName').value;
         const weight = document.getElementById('prodWeight').value;
         const category = document.getElementById('prodCategory').value;
@@ -356,60 +432,21 @@
             return;
         }
 
-        if(editIndex === -1) {
-            const newProd = {
-                id: Date.now(),
-                name,
-                weight,
-                category,
-                price: Number(price),
-                oldPrice: oldPrice ? Number(oldPrice) : null,
-                offer,
-                img: img || "https://cdn-icons-png.flaticon.com/512/3081/3081986.png"
-            };
-            products.unshift(newProd);
-            alert("تمت إضافة المنتج بنجاح وتحديث المتجر!");
-        } else {
-            products[editIndex].name = name;
-            products[editIndex].weight = weight;
-            products[editIndex].category = category;
-            products[editIndex].price = Number(price);
-            products[editIndex].oldPrice = oldPrice ? Number(oldPrice) : null;
-            products[editIndex].offer = offer;
-            if(img) {
-                products[editIndex].img = img;
-            }
-            alert("تم تحديث المنتج بنجاح!");
-        }
+        const newProd = {
+            id: Date.now(),
+            name,
+            weight,
+            category,
+            price: Number(price),
+            oldPrice: oldPrice ? Number(oldPrice) : null,
+            offer,
+            img: img || "https://cdn-icons-png.flaticon.com/512/3081/3081986.png"
+        };
+        products.unshift(newProd);
 
         localStorage.setItem('aloroba_products', JSON.stringify(products));
-        resetProductForm();
-        renderAdmin();
-    }
-
-    function editProduct(index) {
-        let products = getStoredProducts();
-        const p = products[index];
-        if(!p) return;
         
-        document.getElementById('editIndex').value = index;
-        document.getElementById('prodName').value = p.name;
-        document.getElementById('prodWeight').value = p.weight || '';
-        document.getElementById('prodCategory').value = p.category || '';
-        document.getElementById('prodPrice').value = p.price;
-        document.getElementById('prodOldPrice').value = p.oldPrice || '';
-        document.getElementById('prodOffer').value = p.offer || '';
-        document.getElementById('prodImg').value = p.img || '';
-
-        document.getElementById('formBoxTitle').innerText = "✏️ تعديل المنتج الحالي";
-        document.getElementById('saveProdBtn').innerText = "حفظ التعديلات ✅";
-        document.getElementById('saveProdBtn').style.background = "#3b82f6";
-        document.getElementById('cancelEditBtn').style.display = "block";
-        window.scrollTo({top: 0, behavior: 'smooth'});
-    }
-
-    function resetProductForm() {
-        document.getElementById('editIndex').value = "-1";
+        // تفريغ حقول الإضافة بعد الحفظ
         document.getElementById('prodName').value = '';
         document.getElementById('prodWeight').value = '';
         document.getElementById('prodPrice').value = '';
@@ -418,10 +455,8 @@
         document.getElementById('prodImg').value = '';
         document.getElementById('prodFile').value = '';
 
-        document.getElementById('formBoxTitle').innerText = "📦 إضافة منتج أو حملة جديدة";
-        document.getElementById('saveProdBtn').innerText = "إضافة ونشر المنتج فوراً 🚀";
-        document.getElementById('saveProdBtn').style.background = "var(--primary-green)";
-        document.getElementById('cancelEditBtn').style.display = "none";
+        alert("تمت إضافة المنتج بنجاح وتحديث المتجر!");
+        renderAdmin();
     }
 
     function deleteProduct(index) {
