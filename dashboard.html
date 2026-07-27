@@ -29,6 +29,32 @@
         .form-control { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; outline: none; background: white; }
         .form-control:focus { border-color: var(--accent-green); }
 
+        /* تنسيق مربعات اختيار الفئات المتعددة */
+        .categories-checkbox-container {
+            max-height: 130px;
+            overflow-y: auto;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 8px;
+            background: white;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            padding: 4px 0;
+            cursor: pointer;
+            font-weight: 600;
+            color: #374151;
+        }
+        .checkbox-item input {
+            accent-color: var(--primary-green);
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+        }
+
         .file-upload-box { display: flex; align-items: center; gap: 8px; }
         .file-upload-box input[type="file"] { display: none; }
         .camera-btn { background: #e2e8f0; color: #1b4d2e; border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
@@ -122,13 +148,10 @@
             <input type="text" id="prodWeight" class="form-control" placeholder="مثال: 5 كجم">
         </div>
         <div class="form-group">
-            <label>اختر القسم (الفئة)</label>
-            <select id="prodCategory" class="form-control">
-                <option value="معلبات">معلبات</option>
-                <option value="ألبان">ألبان</option>
-                <option value="خضار">خضار</option>
-                <option value="منظفات">منظفات</option>
-            </select>
+            <label>اختر الأقسام والفئات المطلوبة (يمكنك اختيار أكثر من فئة)</label>
+            <div id="prodCategoriesCheckboxes" class="categories-checkbox-container">
+                <!-- سيتم تعبئة خيارات الفئات هنا ديناميكياً كمربعات اختيار متعددة -->
+            </div>
         </div>
         <div style="display: flex; gap: 8px;">
             <div class="form-group" style="flex: 1;">
@@ -168,12 +191,23 @@
     function getStoredProducts() {
         let saved = localStorage.getItem('aloroba_products');
         if (saved) {
-            try { return JSON.parse(saved); } catch (e) { console.error(e); }
+            try { 
+                let parsed = JSON.parse(saved);
+                // توافقية عكسية: إذا كان المنتج مخزناً بخاصية category القديمة (النص المفرد)، نحوله تلقائياً لمصفوفة categories
+                return parsed.map(p => {
+                    if (!p.categories && p.category) {
+                        p.categories = [p.category];
+                    } else if (!p.categories) {
+                        p.categories = [];
+                    }
+                    return p;
+                });
+            } catch (e) { console.error(e); }
         }
         const defaultProducts = [
-            { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", category: "معلبات" },
-            { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png", category: "معلبات" },
-            { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png", category: "ألبان" }
+            { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات", "عروض"] },
+            { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png", categories: ["معلبات"] },
+            { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png", categories: ["ألبان"] }
         ];
         localStorage.setItem('aloroba_products', JSON.stringify(defaultProducts));
         return defaultProducts;
@@ -201,11 +235,17 @@
         document.getElementById('bannerTagInput').value = bannerData.tag || "";
         document.getElementById('bannerImgInput').value = bannerData.img || "";
 
-        const selectCat = document.getElementById('prodCategory');
-        selectCat.innerHTML = '';
+        // تعبئة مربعات الاختيار المتعددة للفئات عند إضافة منتج
+        const checkboxesContainer = document.getElementById('prodCategoriesCheckboxes');
+        checkboxesContainer.innerHTML = '';
         categories.forEach(cat => {
-            if(cat.name !== "الكل" && cat.name !== "عروض") {
-                selectCat.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
+            if(cat.name !== "الكل") { // نسمح باختيار أي قسم بما فيها العروض أو الأقسام الأخرى
+                checkboxesContainer.innerHTML += `
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="productCategoryCheck" value="${cat.name.trim()}">
+                        <span>${cat.icon || ''} ${cat.name}</span>
+                    </label>
+                `;
             }
         });
 
@@ -223,10 +263,12 @@
         const categorizedContainer = document.getElementById('categorizedProductsAdminList');
         categorizedContainer.innerHTML = '';
 
-        let activeCategories = categories.filter(cat => cat.name !== "الكل" && cat.name !== "عروض");
+        // عرض الأقسام (باستثناء "الكل")
+        let activeCategories = categories.filter(cat => cat.name !== "الكل");
 
         activeCategories.forEach((cat, catIdx) => {
-            let catProducts = products.filter(p => p.category === cat.name);
+            // البحث عن المنتجات التي تحتوي هذه الفئة ضمن مصفوفة فئاتها
+            let catProducts = products.filter(p => p.categories && p.categories.some(c => c.trim() === cat.name.trim()));
             
             let productsHtml = '';
             if (catProducts.length === 0) {
@@ -241,7 +283,7 @@
                                     <img src="${p.img}" class="product-mini-thumb" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                                     <div>
                                         <div style="font-weight: 800; color: #1f2937;">${p.name}</div>
-                                        <div style="font-size: 0.6rem; color: #6b7280;">السعر: ${p.price} ₪ | ${p.weight || 'حبة'}</div>
+                                        <div style="font-size: 0.6rem; color: #6b7280;">السعر: ${p.price} ₪ | ${p.weight || 'حبة'} | الفئات: ${(p.categories || []).join(', ')}</div>
                                     </div>
                                 </div>
                                 <div>
@@ -249,7 +291,7 @@
                                     <button class="btn-delete" onclick="deleteProduct(${originalIndex})">حذف</button>
                                 </div>
                             </div>
-                            <!-- نموذج التعديل الفوري الذي يفتح تحت المنتج مباشرة -->
+                            <!-- نموذج التعديل الفوري تحت المنتج -->
                             <div id="inline-edit-${originalIndex}" class="inline-edit-form">
                                 <div class="form-group">
                                     <label>اسم المنتج</label>
@@ -258,6 +300,17 @@
                                 <div class="form-group">
                                     <label>الوزن أو الحجم</label>
                                     <input type="text" id="edit-weight-${originalIndex}" class="form-control" value="${p.weight || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label>الفئات التابع لها:</label>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 6px; background: white; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                        ${categories.filter(c => c.name !== "الكل").map(c => `
+                                            <label style="font-size: 0.7rem; font-weight: 600; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                                <input type="checkbox" class="edit-cat-check-${originalIndex}" value="${c.name}" ${p.categories && p.categories.includes(c.name) ? 'checked' : ''}>
+                                                ${c.icon || ''} ${c.name}
+                                            </label>
+                                        `).join('')}
+                                    </div>
                                 </div>
                                 <div style="display: flex; gap: 8px;">
                                     <div class="form-group" style="flex: 1;">
@@ -305,19 +358,16 @@
         });
     }
 
-    // فتح أو إغلاق قائمة التعديل الداخلية تحت المنتج
     function toggleInlineEdit(index) {
         const editBox = document.getElementById(`inline-edit-${index}`);
         if (editBox.style.display === "block") {
             editBox.style.display = "none";
         } else {
-            // إغلاق أي نوافذ تعديل مفتوحة أخرى أولاً لترتيب الواجهة
             document.querySelectorAll('.inline-edit-form').forEach(box => box.style.display = 'none');
             editBox.style.display = "block";
         }
     }
 
-    // حفظ التعديلات التي تم إجراؤها من داخل قائمة المنتج
     function saveInlineEdit(index) {
         let products = getStoredProducts();
         
@@ -328,13 +378,25 @@
         const offer = document.getElementById(`edit-offer-${index}`).value;
         const img = document.getElementById(`edit-img-${index}`).value;
 
+        // جمع الفئات المحددة من مربعات الاختيار في نموذج التعديل
+        let selectedCategories = [];
+        document.querySelectorAll(`.edit-cat-check-${index}:checked`).forEach(chk => {
+            selectedCategories.push(chk.value);
+        });
+
         if(!name || !price) {
             alert("الرجاء إدخال اسم المنتج والسعر على الأقل");
             return;
         }
 
+        if(selectedCategories.length === 0) {
+            alert("الرجاء اختيار فئة واحدة على الأقل للمنتج");
+            return;
+        }
+
         products[index].name = name;
         products[index].weight = weight;
+        products[index].categories = selectedCategories;
         products[index].price = Number(price);
         products[index].oldPrice = oldPrice ? Number(oldPrice) : null;
         products[index].offer = offer;
@@ -343,7 +405,7 @@
         }
 
         localStorage.setItem('aloroba_products', JSON.stringify(products));
-        alert("تم تحديث المنتج بنجاح!");
+        alert("تم تحديث المنتج والفئات بنجاح!");
         renderAdmin();
     }
 
@@ -391,8 +453,8 @@
     }
 
     function addCategory() {
-        const name = document.getElementById('catName').value;
-        const icon = document.getElementById('catIcon').value;
+        const name = document.getElementById('catName').value.trim();
+        const icon = document.getElementById('catIcon').value.trim();
         const bg = document.getElementById('catBg').value;
         const color = document.getElementById('catColor').value;
 
@@ -421,14 +483,24 @@
         let products = getStoredProducts();
         const name = document.getElementById('prodName').value;
         const weight = document.getElementById('prodWeight').value;
-        const category = document.getElementById('prodCategory').value;
         const price = document.getElementById('prodPrice').value;
         const oldPrice = document.getElementById('prodOldPrice').value;
         const offer = document.getElementById('prodOffer').value;
         const img = document.getElementById('prodImg').value;
 
+        // جمع الأقسام والفئات المحددة من مربعات الاختيار
+        let selectedCategories = [];
+        document.querySelectorAll('input[name="productCategoryCheck"]:checked').forEach(chk => {
+            selectedCategories.push(chk.value);
+        });
+
         if(!name || !price) {
             alert("الرجاء إدخال اسم المنتج والسعر على الأقل");
+            return;
+        }
+
+        if(selectedCategories.length === 0) {
+            alert("الرجاء اختيار فئة واحدة على الأقل للمنتج");
             return;
         }
 
@@ -436,7 +508,7 @@
             id: Date.now(),
             name,
             weight,
-            category,
+            categories: selectedCategories, // حفظ مصفوفة الفئات المتعددة
             price: Number(price),
             oldPrice: oldPrice ? Number(oldPrice) : null,
             offer,
@@ -446,7 +518,7 @@
 
         localStorage.setItem('aloroba_products', JSON.stringify(products));
         
-        // تفريغ حقول الإضافة بعد الحفظ
+        // إعادة تعيين الحقول
         document.getElementById('prodName').value = '';
         document.getElementById('prodWeight').value = '';
         document.getElementById('prodPrice').value = '';
@@ -454,8 +526,9 @@
         document.getElementById('prodOffer').value = '';
         document.getElementById('prodImg').value = '';
         document.getElementById('prodFile').value = '';
+        document.querySelectorAll('input[name="productCategoryCheck"]').forEach(chk => chk.checked = false);
 
-        alert("تمت إضافة المنتج بنجاح وتحديث المتجر!");
+        alert("تمت إضافة المنتج للفئات المحددة بنجاح وتحديث المتجر! 🚀");
         renderAdmin();
     }
 
