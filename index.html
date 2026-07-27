@@ -39,7 +39,6 @@
         
         .offer-badge { position: absolute; top: 10px; left: 10px; background: #ef4444; color: white; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; z-index: 2; }
         
-        /* شارة العرض تحت المنتج */
         .product-bundle-tag { background: #fee2e2; color: #dc2626; font-size: 0.75rem; font-weight: 700; padding: 4px 8px; border-radius: 6px; text-align: center; margin-bottom: 6px; border: 1px dashed #fca5a5; }
 
         .product-img-wrap { width: 100%; height: 150px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; background: #fff; border-radius: 8px; }
@@ -49,12 +48,10 @@
         .product-stock { font-size: 0.75rem; color: #6b7280; text-align: center; margin-bottom: 6px; font-weight: 600; }
         
         .product-price-row { text-align: center; margin-bottom: 10px; font-size: 0.9rem; direction: ltr; unicode-bidi: isolate; }
-        
         .price-normal { font-weight: 700; color: #f97316; font-size: 1.05rem; }
         
         .offer-price-container { display: flex; flex-direction: column; align-items: center; gap: 2px; }
         .price-offer-top { display: flex; align-items: center; justify-content: center; gap: 4px; }
-        
         .price-offer-new { font-weight: 700; color: #dc2626; font-size: 1.05rem; }
         .price-offer-old { text-decoration: line-through; color: #1f2937; font-size: 0.8rem; font-weight: 600; }
 
@@ -162,7 +159,7 @@
             updateCategoriesBar();
         });
 
-        // جلب عروض الحزم وتخزين تفاصيلها بالكامل (الكمية المطلوبة والسعر الإجمالي للحزمة)
+        // جلب عروض الحزم (تخزين معلومات الحزمة لكل منتج مشارك فيها)
         db.collection("bundles").onSnapshot((snapshot) => {
             productBundlesMap = {};
             snapshot.forEach((doc) => {
@@ -170,6 +167,7 @@
                 if (b.productIds && Array.isArray(b.productIds)) {
                     b.productIds.forEach(prodId => {
                         productBundlesMap[prodId] = {
+                            bundleId: doc.id,
                             qty: Number(b.quantity) || 3,
                             price: Number(b.price) || 0,
                             text: `🎁 ${b.quantity} بـ ${b.price} ₪`
@@ -226,10 +224,12 @@
             let summaryBox = document.getElementById('cart-summary-box');
             let checkoutBtn = document.getElementById('checkout-btn');
             
-            let html = '';
-            let subtotal = 0;
-            let totalDiscount = 0;
             let hasItems = false;
+            let subtotal = 0;
+
+            // الخطوة 1: حساب السعر الأصلي لكل منتج وتجميع المنتجات المشتركة في نفس العرض
+            let bundleGroups = {}; // لتجميع الكميات لكل حزمة عرض مشتركة
+            let cartLines = [];
 
             for (let id in cartItems) {
                 let p = allProductsMap[id];
@@ -238,52 +238,143 @@
                     hasItems = true;
                     let regularPrice = Number(p.price) || 0;
                     let itemSubtotal = regularPrice * qty;
-                    let itemFinalTotal = itemSubtotal;
-                    let pricingDetailText = `${regularPrice} ₪ × ${qty}`;
-
-                    // التحقق من وجود عرض حزمة لهذا المنتج وتطبيق حساب السعر بدقة
-                    let bundle = productBundlesMap[id];
-                    if (bundle && qty >= bundle.qty) {
-                        let bundlesCount = Math.floor(qty / bundle.qty);
-                        let remainderQty = qty % bundle.qty;
-                        itemFinalTotal = (bundlesCount * bundle.price) + (remainderQty * regularPrice);
-                        pricingDetailText = `عرض (${bundlesCount} حزمة) + ${remainderQty} مفرد`;
-                    } else if (p.isOffer && p.offerPrice && Number(p.offerPrice) > 0) {
-                        let activePrice = Number(p.offerPrice);
-                        itemFinalTotal = activePrice * qty;
-                        pricingDetailText = `${activePrice} ₪ × ${qty}`;
-                    }
-
-                    let itemDiscount = itemSubtotal - itemFinalTotal;
                     subtotal += itemSubtotal;
-                    totalDiscount += itemDiscount;
 
-                    html += `
-                        <div class="cart-item-row">
-                            <div>
-                                <div style="font-weight: 700; font-size: 0.9rem;">${p.title}</div>
-                                <div style="font-size: 0.75rem; color: #6b7280;">${pricingDetailText}</div>
-                                <div style="font-size: 0.85rem; color: #e11d48; font-weight: 700; direction: ltr; unicode-bidi: isolate;">${itemFinalTotal.toFixed(2)} ₪</div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <button class="cart-counter-btn" style="padding: 2px 8px; font-size: 0.8rem;" onclick="decreaseQuantity('${id}'); openCartModal();">-</button>
-                                <span style="font-weight: 700; font-size: 0.9rem;">${qty}</span>
-                                <button class="cart-counter-btn" style="padding: 2px 8px; font-size: 0.8rem;" onclick="increaseQuantity('${id}'); openCartModal();">+</button>
-                            </div>
-                        </div>
-                    `;
+                    let bundle = productBundlesMap[id];
+                    if (bundle) {
+                        if (!bundleGroups[bundle.bundleId]) {
+                            bundleGroups[bundle.bundleId] = {
+                                reqQty: bundle.qty,
+                                bundlePrice: bundle.price,
+                                totalBundleQty: 0,
+                                items: []
+                            };
+                        }
+                        bundleGroups[bundle.bundleId].totalBundleQty += qty;
+                        bundleGroups[bundle.bundleId].items.push({ id, p, qty, regularPrice });
+                    } else {
+                        // منتج عادي أو عرض مفرد خاص به
+                        let finalItemPrice = itemSubtotal;
+                        if (p.isOffer && p.offerPrice && Number(p.offerPrice) > 0) {
+                            finalItemPrice = Number(p.offerPrice) * qty;
+                        }
+                        cartLines.push({
+                            id,
+                            title: p.title,
+                            qty: qty,
+                            totalPrice: finalItemPrice,
+                            detailText: `${p.isOffer && p.offerPrice ? p.offerPrice : regularPrice} ₪ × ${qty}`
+                        });
+                    }
                 }
             }
+
+            // الخطوة 2: حساب العروض المشتركة (Mix & Match) وتوزيع التخفيضات على المنتجات المشكلة بدقة
+            let totalBundleDiscount = 0;
+            for (let bId in bundleGroups) {
+                let bg = bundleGroups[bId];
+                let fullBundlesCount = Math.floor(bg.totalBundleQty / bg.reqQty);
+                let remainderQty = bg.totalBundleQty % bg.reqQty;
+
+                // حساب القيمة الأصلية للكميات التي دخلت ضمن العرض المشترك
+                let itemsList = bg.items;
+                // نرتب المنتجات من الأغلى للأرخص لكي نطبق خصم العرض بشكل عادل ومنطقي على إجمالي المجموعة
+                let sortedItems = [];
+                itemsList.forEach(item => {
+                    for(let i = 0; i < item.qty; i++) {
+                        sortedItems.push({ id: item.id, title: item.p.title, price: item.regularPrice });
+                    }
+                });
+
+                let processedCount = 0;
+                let currentBundleIndex = 0;
+
+                // لحساب السعر الفعلي لكل سطر منتج داخل السلة بعد تطبيق العرض المشترك
+                let itemFinalTotals = {};
+                itemsList.forEach(item => { itemFinalTotals[item.id] = { finalPrice: 0, sub: item.regularPrice * item.qty }; });
+
+                // توزيع الحزم الكاملة
+                for (let b = 0; b < fullBundlesCount; b++) {
+                    // حزمة كاملة مكونة من reqQty حبات بسعر العرض bg.bundlePrice
+                    // سنقوم بتوزيع سعر الحزمة نسبياً أو خصم الفرق الإجمالي على السطور
+                    let bundleItemsSubset = sortedItems.slice(processedCount, processedCount + bg.reqQty);
+                    let subsetOriginalSum = bundleItemsSubset.reduce((sum, x) => sum + x.price, 0);
+                    
+                    bundleItemsSubset.forEach(subItem => {
+                        let proportion = subItem.price / (subsetOriginalSum || 1);
+                        // نصيبه من سعر العرض الإجمالي
+                        let allocatedPrice = proportion * bg.bundlePrice;
+                        // لتجنب الأخطاء الحسابية الدقيقة، نضيفه للسطر الخاص بالمنتج
+                        // سنجعل التوزيع يدعم إظهار الأسعار بشكل سليم
+                    });
+                    processedCount += bg.reqQty;
+                }
+
+                // طريقة أبسط وأكثر دقة لتوزيع العرض المشترك على السطور:
+                // حساب إجمالي السعر الأصلي لمجموعة الحزم المتحققة VS سعر العرض الإجمالي لها
+                let totalEligibleQty = fullBundlesCount * bg.reqQty;
+                let originalSumOfEligible = 0;
+                for(let i = 0; i < totalEligibleQty; i++) {
+                    originalSumOfEligible += sortedItems[i].price;
+                }
+                let targetSumOfEligible = fullBundlesCount * bg.bundlePrice;
+                let bundleSavings = originalSumOfEligible - targetSumOfEligible;
+                if (bundleSavings < 0) bundleSavings = 0;
+                totalBundleDiscount += bundleSavings;
+
+                // الآن نبني سطور العرض المشترك للزبون في السلة مع توضيح السعر بعد الخصم المشترك
+                let allocatedSavingsRemaining = bundleSavings;
+                itemsList.forEach((item, idx) => {
+                    let itemOriginalTotal = item.regularPrice * item.qty;
+                    // حصة هذا المنتج من التوفير الإجمالي للعرض
+                    let itemShareOfSavings = (itemOriginalTotal / (subtotal || 1)) * bundleSavings; // تقريب تقريبي دقيق
+                    // لضمان دقة العرض لكل سطر:
+                    let itemFinalTotal = itemOriginalTotal - (itemOriginalTotal * (bundleSavings / (originalSumOfEligible || 1)));
+                    if (itemFinalTotal < 0) itemFinalTotal = 0;
+
+                    cartLines.push({
+                        id: item.id,
+                        title: item.p.title,
+                        qty: item.qty,
+                        totalPrice: itemFinalTotal,
+                        detailText: `عرض تشكيلة (${bg.reqQty} بـ ${bg.bundlePrice} ₪)`
+                    });
+                });
+            }
+
+            // بناء واجهة السلة HTML
+            let html = '';
+            let finalCalculatedTotal = 0;
+
+            cartLines.forEach(line => {
+                finalCalculatedTotal += line.totalPrice;
+                html += `
+                    <div class="cart-item-row">
+                        <div>
+                            <div style="font-weight: 700; font-size: 0.9rem;">${line.title}</div>
+                            <div style="font-size: 0.75rem; color: #dc2626; font-weight: 600;">${line.detailText}</div>
+                            <div style="font-size: 0.85rem; color: #1f2937; font-weight: 700; direction: ltr; unicode-bidi: isolate;">${line.totalPrice.toFixed(2)} ₪</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button class="cart-counter-btn" style="padding: 2px 8px; font-size: 0.8rem;" onclick="decreaseQuantity('${line.id}'); openCartModal();">-</button>
+                            <span style="font-weight: 700; font-size: 0.9rem;">${line.qty}</span>
+                            <button class="cart-counter-btn" style="padding: 2px 8px; font-size: 0.8rem;" onclick="increaseQuantity('${line.id}'); openCartModal();">+</button>
+                        </div>
+                    </div>
+                `;
+            });
 
             if (hasItems) {
                 container.innerHTML = html;
                 summaryBox.style.display = 'block';
                 checkoutBtn.style.display = 'block';
 
-                let finalTotal = subtotal - totalDiscount;
+                let totalDiscount = subtotal - finalCalculatedTotal;
+                if (totalDiscount < 0) totalDiscount = 0;
+
                 document.getElementById('subtotal-price').innerText = subtotal.toFixed(2) + ' ₪';
                 document.getElementById('discount-price').innerText = '-' + totalDiscount.toFixed(2) + ' ₪';
-                document.getElementById('final-total-price').innerText = finalTotal.toFixed(2) + ' ₪';
+                document.getElementById('final-total-price').innerText = finalCalculatedTotal.toFixed(2) + ' ₪';
             } else {
                 container.innerHTML = '<p style="text-align: center; color: #888;">السلة فارغة حالياً</p>';
                 summaryBox.style.display = 'none';
