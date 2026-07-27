@@ -9,91 +9,60 @@
     <style>
         :root {
             --primary-green: #68a633;
-            --primary-dark: #528427;
-            --bg-color: #f8fafc;
+            --bg-color: #f4f6f8;
             --radius-lg: 16px;
-            --radius-md: 12px;
-            --shadow-sm: 0 2px 10px rgba(0,0,0,0.04);
+            --radius-md: 10px;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-        body { background-color: var(--bg-color); color: #1f2937; padding-bottom: 80px; }
+        body { background-color: var(--bg-color); color: #1f2937; padding: 10px; }
+        .store-container { max-width: 600px; margin: 0 auto; padding-bottom: 80px; }
         
-        .header { background: white; padding: 15px 20px; box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
-        .header h1 { font-size: 1.2rem; color: #111; }
-        .header p { font-size: 0.75rem; color: #666; }
+        .store-header { background: white; padding: 16px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-top: 4px solid var(--primary-green); }
+        .store-title { font-size: 1.2rem; font-weight: bold; }
+        .store-sub { font-size: 0.8rem; color: #6b7280; }
         
-        .cart-btn-top { background: var(--primary-green); color: white; border: none; padding: 8px 14px; border-radius: 20px; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .cart-badge-btn { background: var(--primary-green); color: white; border: none; padding: 8px 14px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+
+        .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .product-card { background: white; border-radius: var(--radius-lg); padding: 12px; box-shadow: var(--shadow-sm); border: 1px solid #e5e7eb; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
         
-        .search-box { padding: 12px 15px; background: white; border-bottom: 1px solid #eee; }
-        .search-box input { width: 100%; padding: 10px 15px; border: 1px solid #e2e8f0; border-radius: var(--radius-md); font-size: 0.9rem; outline: none; background: #f8fafc; }
+        .offer-badge { position: absolute; top: 10px; left: 10px; background: #ef4444; color: white; font-size: 0.7rem; font-weight: bold; padding: 3px 8px; border-radius: 6px; z-index: 2; }
         
-        /* ترويسة أو إعلان الأسبوع المتحرك أو الثابت */
-        .banner { margin: 12px 15px; background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%); border: 1px solid #feb2b2; border-radius: var(--radius-lg); padding: 15px; display: flex; justify-content: space-between; align-items: center; }
-        .banner h3 { color: #c53030; font-size: 0.95rem; margin-bottom: 4px; }
-        .banner p { color: #742a2a; font-size: 0.75rem; }
+        .product-img-wrap { width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; background: #fff; border-radius: 8px; }
+        .product-img { max-width: 100%; max-height: 100%; object-fit: contain; }
         
-        /* شريط الفئات الأفقي */
-        .categories-bar { display: flex; gap: 8px; overflow-x: auto; padding: 10px 15px; background: white; border-bottom: 1px solid #eee; white-space: nowrap; scrollbar-width: none; }
-        .categories-bar::-webkit-scrollbar { display: none; }
-        .cat-chip { padding: 8px 14px; background: #f1f5f9; border-radius: 20px; font-size: 0.85rem; font-weight: 600; color: #475569; cursor: pointer; border: 1px solid #e2e8f0; transition: all 0.2s; }
-        .cat-chip.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
+        .product-name { font-size: 0.95rem; font-weight: bold; margin-bottom: 4px; text-align: center; }
+        .product-stock { font-size: 0.75rem; color: #6b7280; text-align: center; margin-bottom: 6px; }
         
-        /* شبكة المنتجات */
-        .products-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 15px; }
-        .product-card { background: white; border-radius: var(--radius-lg); padding: 12px; box-shadow: var(--shadow-sm); border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
-        
-        .badge-offer { position: absolute; top: 10px; right: 10px; background: #ef4444; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; font-weight: bold; }
-        
-        .product-img-box { width: 100%; height: 110px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
-        .product-img-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .product-emoji { font-size: 45px; }
-        
-        .product-title { font-size: 0.9rem; font-weight: bold; margin-bottom: 4px; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .product-stock { font-size: 0.75rem; color: #64748b; margin-bottom: 8px; }
-        .product-price { font-size: 0.95rem; font-weight: bold; color: var(--primary-dark); margin-bottom: 10px; }
-        
-        .btn-add-cart { background: var(--primary-green); color: white; border: none; width: 100%; padding: 8px; border-radius: 8px; font-weight: bold; font-size: 0.8rem; cursor: pointer; text-align: center; }
-        
-        /* زر لوحة التحكم العائم */
-        .admin-float-btn { position: fixed; bottom: 20px; left: 20px; background: #1e293b; color: white; padding: 10px 16px; border-radius: 30px; font-size: 0.85rem; font-weight: bold; text-decoration: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 1000; }
+        .product-price-row { text-align: center; margin-bottom: 10px; font-size: 0.9rem; }
+        .price-normal { font-weight: bold; color: #1f2937; }
+        .price-offer-new { font-weight: bold; color: #dc2626; font-size: 1rem; }
+        .price-offer-old { text-decoration: line-through; color: #9ca3af; font-size: 0.8rem; margin-right: 4px; }
+
+        .btn-add-cart { background: var(--primary-green); color: white; border: none; width: 100%; padding: 8px; border-radius: var(--radius-md); font-weight: bold; font-size: 0.85rem; cursor: pointer; text-align: center; }
+
+        .floating-dashboard-btn { position: fixed; bottom: 20px; right: 20px; background: #374151; color: white; padding: 10px 16px; border-radius: 30px; text-decoration: none; font-size: 0.85rem; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 100; display: flex; align-items: center; gap: 6px; }
     </style>
 </head>
 <body>
-
-    <div class="header">
-        <div>
-            <h1>العروبة أون لاين</h1>
-            <p>توصيل سريع • رهط</p>
+    <div class="store-container">
+        <div class="store-header">
+            <div>
+                <div class="store-title">العروبة أون لاين</div>
+                <div class="store-sub">توصيل سريع • رهط</div>
+            </div>
+            <button class="cart-badge-btn" onclick="alert('السلة قيد التطوير')">
+                🛒 <span id="cart-count">0</span>
+            </button>
         </div>
-        <button class="cart-btn-top" onclick="openCartModal()">
-            🛒 <span id="cart-count">0</span>
-        </button>
-    </div>
 
-    <div class="search-box">
-        <input type="text" id="search-input" placeholder="ابحث عن حليب، سكر، خبز..." oninput="filterProducts()">
-    </div>
-
-    <div class="banner">
-        <div>
-            <h3>🔥 عروض الأسبوع الحصرية</h3>
-            <p>تسوق أقوى التخفيضات والمنتجات المميزة لدينا</p>
+        <div id="store-products-grid" class="products-grid">
+            <p style="text-align: center; color: #888; grid-column: span 2;">جاري تحميل المنتجات...</p>
         </div>
-        <span style="font-size: 32px;">🥩</span>
     </div>
 
-    <!-- شريط الفئات -->
-    <div class="categories-bar" id="categories-bar">
-        <div class="cat-chip active" onclick="selectCategory('عروض الأسبوع', this)">🔥 عروض الأسبوع</div>
-        <div class="cat-chip" onclick="selectCategory('الكل', this)">الكل</div>
-    </div>
-
-    <!-- قائمة المنتجات -->
-    <div class="products-grid" id="products-grid">
-        <p style="grid-column: span 2; text-align: center; color: #888; padding: 20px;">جاري تحميل المنتجات...</p>
-    </div>
-
-    <a href="dashboard.html" class="admin-float-btn">⚙️ لوحة التحكم</a>
+    <a href="dashboard.html" class="floating-dashboard-btn">⚙️ لوحة التحكم</a>
 
     <script>
         const firebaseConfig = {
@@ -108,86 +77,49 @@
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.firestore();
 
-        let allProducts = [];
-        let allCategories = [];
-        let currentCategory = 'عروض الأسبوع'; // الفئة الافتتاحية عند فتح المتجر أصبحت عروض الأسبوع
-
-        // جلب الفئات والمنتجات من قاعدة البيانات
-        db.collection("categories").onSnapshot((snapshot) => {
-            allCategories = [];
-            snapshot.forEach(doc => allCategories.push(doc.data().name));
-            renderCategoriesBar();
-        });
-
         db.collection("products").onSnapshot((snapshot) => {
-            allProducts = [];
-            snapshot.forEach(doc => {
-                allProducts.push({ id: doc.id, ...doc.data() });
-            });
-            filterProducts();
-        });
-
-        function renderCategoriesBar() {
-            let html = `<div class="cat-chip ${currentCategory === 'عروض الأسبوع' ? 'active' : ''}" onclick="selectCategory('عروض الأسبوع', this)">🔥 عروض الأسبوع</div>`;
-            html += `<div class="cat-chip ${currentCategory === 'الكل' ? 'active' : ''}" onclick="selectCategory('الكل', this)">الكل</div>`;
-            
-            allCategories.forEach(cat => {
-                html += `<div class="cat-chip ${currentCategory === cat ? 'active' : ''}" onclick="selectCategory('${cat}', this)">📁 ${cat}</div>`;
-            });
-            document.getElementById('categories-bar').innerHTML = html;
-        }
-
-        function selectCategory(catName, element) {
-            currentCategory = catName;
-            document.querySelectorAll('.cat-chip').forEach(el => el.classList.remove('active'));
-            element.classList.add('active');
-            filterProducts();
-        }
-
-        function filterProducts() {
-            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
-            const grid = document.getElementById('products-grid');
-            
-            let filtered = allProducts.filter(p => {
-                const matchesSearch = p.title.toLowerCase().includes(searchVal);
+            let gridHtml = '';
+            snapshot.forEach((doc) => {
+                let p = doc.data();
+                let imgSrc = (p.img && p.img.length > 5) ? p.img : '';
+                let mediaHtml = imgSrc ? `<img src="${imgSrc}" class="product-img" alt="صورة">` : `<span style="font-size: 45px;">${p.emoji || '🛒'}</span>`;
                 
-                if (currentCategory === 'عروض الأسبوع') {
-                    return matchesSearch && (p.isOffer === true); // يظهر فقط المنتجات التي عليها علامة عرض في لوحة التحكم
-                } else if (currentCategory === 'الكل') {
-                    return matchesSearch;
+                let badgeHtml = p.isOffer ? `<div class="offer-badge">عرض</div>` : '';
+
+                // تنسيق الأسعار: عرض سعر العرض بالأحمر مع شطب السعر القديم
+                let priceHtml = '';
+                if (p.isOffer && p.offerPrice && p.offerPrice > 0) {
+                    priceHtml = `
+                        <span class="price-offer-new">₪${p.offerPrice}</span>
+                        <span class="price-offer-old">₪${p.price}</span>
+                        <span style="font-size:0.75rem; color:#4b5563;"> / ${p.unit || 'حبة'}</span>
+                    `;
                 } else {
-                    return matchesSearch && (p.category === currentCategory);
+                    priceHtml = `
+                        <span class="price-normal">₪${p.price}</span>
+                        <span style="font-size:0.75rem; color:#4b5563;"> / ${p.unit || 'حبة'}</span>
+                    `;
                 }
-            });
 
-            if (filtered.length === 0) {
-                grid.innerHTML = `<p style="grid-column: span 2; text-align: center; color: #888; padding: 30px;">لا توجد منتجات في هذه الفئة حالياً</p>`;
-                return;
-            }
-
-            let html = '';
-            filtered.forEach(p => {
-                let imgContent = (p.img && p.img.length > 5) ? `<img src="${p.img}" alt="صورة">` : `<span class="product-emoji">${p.emoji || '🛒'}</span>`;
-                let offerBadge = p.isOffer ? `<span class="badge-offer">عرض</span>` : '';
-
-                html += `
+                gridHtml += `
                     <div class="product-card">
-                        ${offerBadge}
-                        <div class="product-img-box">${imgContent}</div>
-                        <div>
-                            <div class="product-title">${p.title}</div>
-                            <div class="product-stock">المتوفر: ${p.stock} ${p.unit || 'حبة'}</div>
-                            <div class="product-price">₪${p.price} / ${p.unit || 'حبة'}</div>
+                        ${badgeHtml}
+                        <div class="product-img-wrap">
+                            ${mediaHtml}
                         </div>
-                        <button class="btn-add-cart" onclick="alert('تمت إضافة ${p.title} إلى السلة')">+ أضف للسلة</button>
+                        <div>
+                            <div class="product-name">${p.title}</div>
+                            <div class="product-stock">المتوفر: ${p.stock} ${p.unit || 'حبة'}</div>
+                            <div class="product-price-row">
+                                ${priceHtml}
+                            </div>
+                        </div>
+                        <button class="btn-add-cart" onclick="alert('تمت الإضافة للسلة')">أضف للسلة +</button>
                     </div>`;
             });
-            grid.innerHTML = html;
-        }
 
-        function openCartModal() {
-            alert("سلة التسوق قيد التفعيل");
-        }
+            document.getElementById('store-products-grid').innerHTML = gridHtml || '<p style="text-align: center; color: #888; grid-column: span 2;">لا توجد منتجات معروضة حالياً</p>';
+        });
     </script>
 </body>
 </html>
