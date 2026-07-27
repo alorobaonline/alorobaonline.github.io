@@ -6,7 +6,6 @@
     <title>العروبة - لوحة التحكم الشاملة</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-    <!-- مكتبة قراءة الباركود الحقيقية (ZXing) -->
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <style>
         :root {
@@ -135,7 +134,7 @@
                 <div class="form-group">
                     <label>الفئة</label>
                     <select id="prod-category">
-                        <option value="الكل">الكل وعروض الأسبوع</option>
+                        <option value="الكل">الكل</option>
                     </select>
                 </div>
 
@@ -196,7 +195,7 @@
 
         db.collection("categories").onSnapshot((snapshot) => {
             let catHtml = '';
-            let selectHtml = `<option value="الكل">الكل وعروض الأسبوع</option>`;
+            let selectHtml = `<option value="الكل">الكل</option>`;
             
             snapshot.forEach((doc) => {
                 let d = doc.data();
@@ -222,6 +221,21 @@
                 let imgSrc = (p.img && p.img.length > 5) ? p.img : '';
                 let thumbHtml = imgSrc ? `<img src="${imgSrc}" class="product-thumb" alt="صورة">` : `<span style="font-size:24px; margin-left:10px;">${p.emoji || '🛒'}</span>`;
                 
+                // تخزين البيانات بشكل آمن لزر التعديل
+                let safeData = encodeURIComponent(JSON.stringify({
+                    id: doc.id,
+                    title: p.title || '',
+                    price: p.price || 0,
+                    cost: p.cost || 0,
+                    stock: p.stock || 0,
+                    unit: p.unit || 'حبة',
+                    category: p.category || 'الكل',
+                    img: p.img || '',
+                    barcode: p.barcode || '',
+                    emoji: p.emoji || '🛒',
+                    isOffer: !!p.isOffer
+                }));
+
                 prodHtml += `
                     <div class="product-card-box" id="prod-box-${doc.id}">
                         <div class="product-row-info">
@@ -229,11 +243,11 @@
                                 ${thumbHtml}
                                 <div>
                                     <strong style="font-size:0.9rem; display:block;">${p.title}</strong>
-                                    <div style="font-size:0.75rem; color:#666;">₪${p.price} | مخزون: ${p.stock} | باركود: ${p.barcode || 'لا يوجد'}</div>
+                                    <div style="font-size:0.75rem; color:#666;">₪${p.price} | مخزون: ${p.stock} | باركود: ${p.barcode || 'لا يوجد'} ${p.isOffer ? ' | 🔥 عرض' : ''}</div>
                                 </div>
                             </div>
                             <div style="display:flex; gap:6px;">
-                                <button class="btn-edit-sm" onclick="editProduct('${doc.id}', '${p.title}', ${p.price}, ${p.stock}, '${p.unit || 'حبة'}', '${p.category || 'الكل'}', '${p.img || ''}', '${p.barcode || ''}', '${p.emoji || '🛒'}', ${p.cost || 0}, ${p.isOffer || false})">تعديل</button>
+                                <button class="btn-edit-sm" onclick="editProduct('${safeData}')">تعديل</button>
                                 <button class="btn-del-sm" onclick="deleteProduct('${doc.id}')">حذف</button>
                             </div>
                         </div>
@@ -243,7 +257,6 @@
             document.getElementById('products-list-box').innerHTML = prodHtml || '<p style="color:#888; font-size:0.85rem;">لا توجد منتجات مضافة</p>';
         });
 
-        // دالة ضغط وتصغير الصورة تلقائياً لتجنب تجاوز الحد الأقصى لقاعدة البيانات
         function handleImagePick(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -275,9 +288,7 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    // ضغط الجودة لـ 60% لضمان بقاء الحجم صغيراً جداً وأقل من الحد المسموح تماماً
                     const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
-                    
                     document.getElementById('prod-img-base64').value = compressedBase64;
                     const preview = document.getElementById('img-preview');
                     preview.src = compressedBase64;
@@ -341,34 +352,36 @@
             }).catch(err => alert("خطأ: " + err.message));
         }
 
-        function editProduct(id, title, price, stock, unit, category, img, barcode, emoji, cost, isOffer) {
+        function editProduct(encodedData) {
             stopBarcodeScanner();
+            let p = JSON.parse(decodeURIComponent(encodedData));
+
             const formBox = document.getElementById('product-form-container');
-            const slot = document.getElementById(`edit-slot-${id}`);
+            const slot = document.getElementById(`edit-slot-${p.id}`);
             slot.appendChild(formBox);
 
-            document.getElementById('prod-id').value = id;
-            document.getElementById('prod-title').value = title;
-            document.getElementById('prod-price').value = price;
-            document.getElementById('prod-cost').value = cost || '';
-            document.getElementById('prod-stock').value = stock;
-            document.getElementById('prod-unit').value = unit;
-            document.getElementById('prod-barcode').value = barcode;
-            document.getElementById('prod-category').value = category;
-            document.getElementById('prod-emoji').value = emoji;
-            document.getElementById('prod-is-offer').checked = isOffer;
+            document.getElementById('prod-id').value = p.id;
+            document.getElementById('prod-title').value = p.title;
+            document.getElementById('prod-price').value = p.price;
+            document.getElementById('prod-cost').value = p.cost || '';
+            document.getElementById('prod-stock').value = p.stock;
+            document.getElementById('prod-unit').value = p.unit;
+            document.getElementById('prod-barcode').value = p.barcode;
+            document.getElementById('prod-category').value = p.category;
+            document.getElementById('prod-emoji').value = p.emoji;
+            document.getElementById('prod-is-offer').checked = p.isOffer;
             
-            document.getElementById('prod-img-base64').value = img;
+            document.getElementById('prod-img-base64').value = p.img;
             const preview = document.getElementById('img-preview');
-            if (img && img.length > 5) {
-                preview.src = img;
+            if (p.img && p.img.length > 5) {
+                preview.src = p.img;
                 preview.style.display = 'inline-block';
             } else {
                 preview.style.display = 'none';
             }
             document.getElementById('prod-file-input').value = "";
 
-            document.getElementById('prod-panel-title').innerText = `✏️ تعديل المنتج: ${title}`;
+            document.getElementById('prod-panel-title').innerText = `✏️ تعديل المنتج: ${p.title}`;
             document.getElementById('prod-submit-btn').innerText = "💾 تحديث المنتج";
             document.getElementById('prod-cancel-btn').style.display = "block";
             formBox.scrollIntoView({ behavior: 'smooth' });
