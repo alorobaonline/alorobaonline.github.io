@@ -58,8 +58,9 @@
         .badge-offer { position: absolute; top: 4px; right: 4px; background: #fee2e2; color: #dc2626; font-size: 0.4rem; font-weight: 800; padding: 2px 4px; border-radius: 4px; z-index: 2; }
         .badge-red { position: absolute; top: 4px; left: 4px; background: #ef4444; color: white; font-size: 0.4rem; font-weight: 800; padding: 1px 4px; border-radius: 3px; z-index: 2; }
 
-        .product-img-box { width: 100%; height: 70px; display: flex; align-items: center; justify-content: center; margin: 10px 0 4px 0; }
-        .product-img-box img { max-width: 100%; max-height: 70px; object-fit: contain; }
+        .product-img-box { width: 100%; height: 70px; display: flex; align-items: center; justify-content: center; margin: 10px 0 4px 0; cursor: pointer; }
+        .product-img-box img { max-width: 100%; max-height: 70px; object-fit: contain; transition: transform 0.2s; }
+        .product-img-box img:hover { transform: scale(1.05); }
 
         .product-name { font-size: 0.65rem; font-weight: 800; color: #1f2937; text-align: center; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .product-weight { font-size: 0.5rem; color: #9ca3af; text-align: center; margin-bottom: 4px; font-weight: 600; }
@@ -106,7 +107,7 @@
         .checkout-total-price { font-size: 1rem; font-weight: 900; color: #1b4d2e; }
         .checkout-items-count { font-size: 0.65rem; color: #4b5563; font-weight: 700; }
 
-        /* نافذة السلة المنهدلة (Modal) */
+        /* نافذة السلة المنبثقة (Modal) */
         .cart-modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -149,6 +150,66 @@
         .cart-section h2 { font-size: 0.9rem; color: #1b4d2e; margin-bottom: 10px; }
         .cart-input { width: 100%; padding: 8px; margin-bottom: 6px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.75rem; outline: none; }
         .whatsapp-btn { width: 100%; background: #25d366; color: white; border: none; padding: 10px; border-radius: 20px; font-weight: bold; font-size: 0.75rem; cursor: pointer; margin-top: 6px; }
+
+        /* نافذة تكبير صورة المنتج (Zoom Modal) */
+        .image-zoom-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+            padding: 20px;
+        }
+        .image-zoom-container {
+            position: relative;
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            max-width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .image-zoom-container img {
+            max-width: 100%;
+            max-height: 55vh;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .zoom-product-title {
+            font-size: 0.95rem;
+            font-weight: 900;
+            color: #1b4d2e;
+            text-align: center;
+            margin-bottom: 4px;
+        }
+        .zoom-product-weight {
+            font-size: 0.7rem;
+            color: #6b7280;
+            font-weight: 700;
+        }
+        .close-zoom-btn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
         /* شريط التنقل السفلي والزر العائم */
         .bottom-nav-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: white; display: flex; justify-content: space-around; align-items: center; padding: 6px 0 10px 0; box-shadow: 0 -4px 15px rgba(0,0,0,0.08); z-index: 1000; max-width: 480px; margin: 0 auto; right: 0; }
@@ -255,6 +316,16 @@
     </div>
 </div>
 
+<!-- نافذة تكبير صورة المنتج (Zoom Modal) -->
+<div class="image-zoom-overlay" id="imageZoomOverlay" onclick="handleZoomOverlayClick(event)">
+    <div class="image-zoom-container">
+        <button class="close-zoom-btn" onclick="closeZoomModal()">✕</button>
+        <img id="zoomedImg" src="" alt="صورة مكبرة">
+        <div class="zoom-product-title" id="zoomedTitle"></div>
+        <div class="zoom-product-weight" id="zoomedWeight"></div>
+    </div>
+</div>
+
 <script>
     let products = JSON.parse(localStorage.getItem('aloroba_products')) || [
         { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", category: "معلبات" },
@@ -335,7 +406,7 @@
                 <div class="product-card">
                     ${p.offer ? `<div class="badge-offer">${p.offer}</div>` : ''}
                     <div class="badge-red">عرض</div>
-                    <div class="product-img-box">
+                    <div class="product-img-box" onclick="openZoomModal('${p.img}', '${p.name}', '${p.weight || 'حبة'}')">
                         <img src="${p.img}" alt="${p.name}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                     </div>
                     <div class="product-name" title="${p.name}">${p.name}</div>
@@ -348,6 +419,23 @@
                 </div>
             `;
         });
+    }
+
+    function openZoomModal(imgSrc, title, weight) {
+        document.getElementById('zoomedImg').src = imgSrc;
+        document.getElementById('zoomedTitle').innerText = title;
+        document.getElementById('zoomedWeight').innerText = weight;
+        document.getElementById('imageZoomOverlay').style.display = 'flex';
+    }
+
+    function closeZoomModal() {
+        document.getElementById('imageZoomOverlay').style.display = 'none';
+    }
+
+    function handleZoomOverlayClick(event) {
+        if (event.target === document.getElementById('imageZoomOverlay')) {
+            closeZoomModal();
+        }
     }
 
     function addToCart(id) {
