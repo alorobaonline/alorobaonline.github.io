@@ -630,7 +630,7 @@
         }
     }
 
-    // دالة إرسال الطلب المصححة بالكامل
+    // دالة إرسال الطلب المتوافقة مع لوحة التحكم (تحديث المفتاحين معا)
     function submitOrderToDashboard() {
         const name = document.getElementById('customerName').value.trim();
         const address = document.getElementById('customerAddress').value.trim();
@@ -648,19 +648,25 @@
         let total = cart.reduce((sum, item) => sum + Number(item.price), 0);
         
         let newOrder = {
-            id: Date.now(),
+            id: 'ORD-' + Date.now().toString().slice(-6),
             customerName: name,
             customerPhone: phone,
             customerAddress: address,
             items: [...cart],
             totalAmount: total,
             status: "جديد",
-            date: new Date().toLocaleDateString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+            date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            fullDate: new Date().toLocaleDateString()
         };
 
-        // جلب الطلبات السابقة وتحديثها في الـ localStorage
+        // جلب وتحديث الطلبات للوحة التحكم ولحساب الزبون
+        let liveOrders = JSON.parse(localStorage.getItem('aloroba_live_orders')) || [];
         let allOrders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
+
+        liveOrders.unshift(newOrder);
         allOrders.unshift(newOrder);
+
+        localStorage.setItem('aloroba_live_orders', JSON.stringify(liveOrders));
         localStorage.setItem('aloroba_orders', JSON.stringify(allOrders));
 
         // تفريغ السلة وتحديث الواجهة
