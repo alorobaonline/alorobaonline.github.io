@@ -96,7 +96,7 @@
 
         #cart-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-end; }
         .cart-modal-content { background: white; width: 100%; max-width: 600px; max-height: 85vh; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; display: flex; flex-direction: column; }
-        .cart-items-list { overflow-y: auto; max-height: 45vh; flex-grow: 1; margin-bottom: 12px; }
+        .cart-items-list { overflow-y: auto; max-height: 40vh; flex-grow: 1; margin-bottom: 12px; }
         .cart-item-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f3f4f6; gap: 10px; }
         .cart-item-img { width: 50px; height: 50px; object-fit: contain; border-radius: 8px; background: #fff; border: 1px solid #eee; flex-shrink: 0; }
         .cart-item-info { flex-grow: 1; }
@@ -104,6 +104,11 @@
         .cart-summary-box { background: #f8fafc; padding: 12px; border-radius: 10px; margin-bottom: 12px; font-size: 0.9rem; }
         .summary-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
         .summary-row.total { font-weight: 700; font-size: 1.1rem; color: var(--primary-green); border-top: 1px solid #e2e8f0; padding-top: 6px; }
+
+        /* نموذج بيانات الزبون */
+        .customer-form-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 10px; margin-bottom: 12px; display: none; flex-direction: column; gap: 8px; }
+        .customer-form-box input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; font-family: 'Cairo', sans-serif; outline: none; }
+        .customer-form-box input:focus { border-color: var(--primary-green); }
 
         #bundle-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1100; justify-content: center; align-items: flex-end; }
         .bundle-modal-content { background: white; width: 100%; max-width: 600px; max-height: 85vh; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; display: flex; flex-direction: column; }
@@ -149,6 +154,7 @@
         </div>
     </div>
 
+    <!-- نافذة العرض التفاعلية -->
     <div id="bundle-modal">
         <div class="bundle-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
@@ -177,6 +183,7 @@
         </div>
     </div>
 
+    <!-- نافذة السلة المتقدمة مع بيانات الزبون -->
     <div id="cart-modal">
         <div class="cart-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
@@ -203,11 +210,20 @@
                 </div>
             </div>
 
-            <button class="btn-add-cart" id="checkout-btn" onclick="alert('تم إرسال الطلب بنجاح!')" style="padding: 12px; font-size: 1rem; display: none;">إتمام الطلب الآن</button>
+            <!-- إدخال معلومات الزبون -->
+            <div class="customer-form-box" id="customer-form-box">
+                <div style="font-weight: 700; font-size: 0.85rem; color: #374151;">معلومات التوصيل:</div>
+                <input type="text" id="cust-name" placeholder="اسم الزبون الكريم">
+                <input type="tel" id="cust-phone" placeholder="رقم الجوال (واتساب)">
+                <input type="text" id="cust-address" placeholder="العنوان / الحي في رهط">
+            </div>
+
+            <button class="btn-add-cart" id="checkout-btn" onclick="processCheckout()" style="padding: 12px; font-size: 1rem; display: none;">إتمام الطلب الآن</button>
         </div>
     </div>
 
     <a href="dashboard.html" class="floating-dashboard-btn">⚙️ لوحة التحكم</a>
+
     <script[cite: 1]>
         const firebaseConfig = {
             apiKey: "AIzaSyAFk8EX7--EMt--ZU395",
@@ -220,6 +236,9 @@
         };
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.firestore();
+
+        // 🟢 ضع هنا رقم الواتساب الخاص بك الذي ستصل إليه الطلبات (مثلاً: 972500000000+)
+        const STORE_WHATSAPP_NUMBER = "972500000000"; 
 
         let currentCategory = "الكل";
         let allProducts = [];
@@ -450,10 +469,15 @@
             document.getElementById('bundle-modal').style.display = 'none';
         }
 
+        // متغير عالمي لحفظ إجمالي السعر النهائي عند فتح السلة
+        let lastCalculatedFinalTotal = 0;
+        let lastCartLinesSummary = [];
+
         function openCartModal() {
             let container = document.getElementById('cart-items-container');
             let summaryBox = document.getElementById('cart-summary-box');
             let checkoutBtn = document.getElementById('checkout-btn');
+            let customerFormBox = document.getElementById('customer-form-box');
             
             let hasItems = false;
             let subtotal = 0;
@@ -542,6 +566,7 @@
                 });
             }
 
+            lastCartLinesSummary = cartLines;
             let html = '';
             let finalCalculatedTotal = 0;
 
@@ -566,9 +591,12 @@
                 `;
             });
 
+            lastCalculatedFinalTotal = finalCalculatedTotal;
+
             if (hasItems) {
                 container.innerHTML = html;
                 summaryBox.style.display = 'block';
+                customerFormBox.style.display = 'flex';
                 checkoutBtn.style.display = 'block';
 
                 let totalDiscount = subtotal - finalCalculatedTotal;
@@ -580,6 +608,7 @@
             } else {
                 container.innerHTML = '<p style="text-align: center; color: #888;">السلة فارغة حالياً</p>';
                 summaryBox.style.display = 'none';
+                customerFormBox.style.display = 'none';
                 checkoutBtn.style.display = 'none';
             }
 
@@ -588,6 +617,41 @@
 
         function closeCartModal() {
             document.getElementById('cart-modal').style.display = 'none';
+        }
+
+        function processCheckout() {
+            let name = document.getElementById('cust-name').value.trim();
+            let phone = document.getElementById('cust-phone').value.trim();
+            let address = document.getElementById('cust-address').value.trim();
+
+            if (!name || !phone || !address) {
+                alert('الرجاء إدخال الاسم، رقم الهاتف والعنوان لإتمام الطلب.');
+                return;
+            }
+
+            let message = `🛒 *طلب جديد من العروبة أون لاين*\n\n`;
+            message += `👤 *الاسم:* ${name}\n`;
+            message += `📞 *الهاتف:* ${phone}\n`;
+            message += `📍 *العنوان:* ${address}\n\n`;
+            message += `📋 *المنتجات المطلوبة:*\n`;
+
+            lastCartLinesSummary.forEach(line => {
+                message += `• ${line.title} (الكمية: ${line.qty}) - ${line.totalPrice.toFixed(2)}₪\n`;
+            });
+
+            message += `\n💰 *المجموع النهائي:* ${lastCalculatedFinalTotal.toFixed(2)}₪`;
+
+            let encodedMessage = encodeURIComponent(message);
+            let whatsappUrl = `https://wa.me/${STORE_WHATSAPP_NUMBER}?text=${encodedMessage}`;
+
+            // تفريغ السلة وتخزين البيانات
+            cartItems = {};
+            saveCartToLocalStorage();
+            updateCartCounter();
+            closeCartModal();
+
+            // فتح واتساب لإرسال الرسالة
+            window.open(whatsappUrl, '_blank');
         }
 
         function updateCategoriesBar() {
