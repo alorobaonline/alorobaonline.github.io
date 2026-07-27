@@ -21,8 +21,11 @@
         .dash-header h1 { font-size: 0.95rem; color: var(--primary-green); font-weight: 900; }
         .back-btn { background: #e5e7eb; color: #374151; padding: 5px 12px; border-radius: 8px; text-decoration: none; font-size: 0.7rem; font-weight: 700; }
 
-        .section-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 15px; }
-        .section-box h2 { font-size: 0.85rem; margin-bottom: 10px; color: var(--primary-green); font-weight: 800; display: flex; align-items: center; gap: 5px; }
+        .section-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+        
+        /* عناوين الأقسام القابلة للطي والتوسيع */
+        .section-header-toggle { font-size: 0.85rem; color: var(--primary-green); font-weight: 800; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+        .section-content { margin-top: 10px; display: block; }
 
         .form-group { margin-bottom: 8px; }
         .form-group label { display: block; font-size: 0.7rem; font-weight: 700; margin-bottom: 3px; color: #4b5563; }
@@ -68,9 +71,8 @@
         .list-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 0.7rem; }
         
         .category-group-box { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
-        .category-group-title { font-size: 0.8rem; font-weight: 900; color: var(--primary-green); border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
-        .category-toggle-badge { margin-right: auto; font-size: 0.7rem; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; color: #334155; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; user-select: none; }
-        .category-toggle-badge:hover { background: #cbd5e1; }
+        .category-group-title { font-size: 0.8rem; font-weight: 900; color: var(--primary-green); border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
+        .category-toggle-badge { margin-right: auto; font-size: 0.7rem; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; color: #334155; display: flex; align-items: center; gap: 5px; font-weight: bold; }
         
         .product-card-container { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
         .product-mini-row { display: flex; justify-content: space-between; align-items: center; padding: 8px; font-size: 0.7rem; gap: 8px; }
@@ -79,6 +81,8 @@
         
         .inline-edit-form { background: #eff6ff; border-top: 1px dashed #bfdbfe; padding: 10px; display: none; }
         .preview-thumb { width: 45px; height: 45px; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 6px; background: white; padding: 2px; }
+        
+        .toggle-arrow { font-size: 0.75rem; transition: transform 0.2s; }
     </style>
 </head>
 <body>
@@ -91,101 +95,134 @@
 
     <!-- 1. إعدادات البانر الرئيسي -->
     <div class="section-box">
-        <h2>📢 تخصيص البانر الرئيسي</h2>
-        <div class="form-group">
-            <label>عنوان البانر الرئيسي</label>
-            <input type="text" id="bannerTitleInput" class="form-control">
+        <div class="section-header-toggle" onclick="toggleMainSection('bannerSection', 'bannerArrow')">
+            <span>📢 تخصيص البانر الرئيسي</span>
+            <span id="bannerArrow" class="toggle-arrow">▲</span>
         </div>
-        <div class="form-group">
-            <label>نص العرض / التاج</label>
-            <input type="text" id="bannerTagInput" class="form-control">
-        </div>
-        <div class="form-group">
-            <label>صورة البانر من الهاتف</label>
-            <div class="file-upload-box">
-                <label class="camera-btn" for="bannerFile">📷 اختيار صورة البانر</label>
-                <input type="file" id="bannerFile" accept="image/*" onchange="compressAndSetImage(event, 'bannerImgData', 'bannerPreview')">
-                <img id="bannerPreview" class="preview-thumb" src="https://cdn-icons-png.flaticon.com/512/3081/3081986.png">
+        <div id="bannerSection" class="section-content">
+            <div class="form-group">
+                <label>عنوان البانر الرئيسي</label>
+                <input type="text" id="bannerTitleInput" class="form-control">
             </div>
-            <input type="hidden" id="bannerImgData">
+            <div class="form-group">
+                <label>نص العرض / التاج</label>
+                <input type="text" id="bannerTagInput" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>صورة البانر من الهاتف</label>
+                <div class="file-upload-box">
+                    <label class="camera-btn" for="bannerFile">📷 اختيار صورة البانر</label>
+                    <input type="file" id="bannerFile" accept="image/*" onchange="compressAndSetImage(event, 'bannerImgData', 'bannerPreview')">
+                    <img id="bannerPreview" class="preview-thumb" src="https://cdn-icons-png.flaticon.com/512/3081/3081986.png">
+                </div>
+                <input type="hidden" id="bannerImgData">
+            </div>
+            <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث البانر 💾</button>
         </div>
-        <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث البانر 💾</button>
     </div>
 
     <!-- 2. إدارة الفئات والأقسام -->
     <div class="section-box">
-        <h2>📁 إدارة الفئات (الأقسام)</h2>
-        <div class="form-group">
-            <label>اسم الفئة</label>
-            <input type="text" id="catName" class="form-control" placeholder="مثال: لحوم، ألبان...">
+        <div class="section-header-toggle" onclick="toggleMainSection('categoriesSection', 'catArrow')">
+            <span>📁 إدارة الفئات (الأقسام)</span>
+            <span id="catArrow" class="toggle-arrow">▲</span>
         </div>
-        <div class="form-group">
-            <label>الأيقونة (إيموجي)</label>
-            <input type="text" id="catIcon" class="form-control" placeholder="مثال: 🥩">
-        </div>
-        <div style="display: flex; gap: 8px;">
-            <div class="form-group" style="flex: 1;">
-                <label>خلفية الأيقونة</label>
-                <input type="text" id="catBg" class="form-control" value="#eaf3df">
+        <div id="categoriesSection" class="section-content">
+            <div class="form-group">
+                <label>اسم الفئة</label>
+                <input type="text" id="catName" class="form-control" placeholder="مثال: لحوم، ألبان...">
             </div>
-            <div class="form-group" style="flex: 1;">
-                <label>لون الأيقونة</label>
-                <input type="text" id="catColor" class="form-control" value="#2e6930">
+            <div class="form-group">
+                <label>الأيقونة (إيموجي)</label>
+                <input type="text" id="catIcon" class="form-control" placeholder="مثال: 🥩">
             </div>
+            <div style="display: flex; gap: 8px;">
+                <div class="form-group" style="flex: 1;">
+                    <label>خلفية الأيقونة</label>
+                    <input type="text" id="catBg" class="form-control" value="#eaf3df">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>لون الأيقونة</label>
+                    <input type="text" id="catColor" class="form-control" value="#2e6930">
+                </div>
+            </div>
+            <button class="btn-main" onclick="addCategory()">إضافة فئة جديدة ➕</button>
+            <div style="margin-top: 10px;" id="adminCategoriesList"></div>
         </div>
-        <button class="btn-main" onclick="addCategory()">إضافة فئة جديدة ➕</button>
-        <div style="margin-top: 10px;" id="adminCategoriesList"></div>
     </div>
 
     <!-- 3. إضافة منتج جديد -->
     <div class="section-box">
-        <h2>📦 إضافة منتج أو حملة جديدة</h2>
-        <div class="form-group">
-            <label>اسم المنتج أو الحملة *</label>
-            <input type="text" id="prodName" class="form-control" placeholder="مثال: أرز تات بسمتي">
+        <div class="section-header-toggle" onclick="toggleMainSection('addProductSection', 'prodArrow')">
+            <span>📦 إضافة منتج أو حملة جديدة</span>
+            <span id="prodArrow" class="toggle-arrow">▲</span>
         </div>
-        <div class="form-group">
-            <label>الوزن أو الحجم</label>
-            <input type="text" id="prodWeight" class="form-control" placeholder="مثال: 5 كجم">
-        </div>
-        <div class="form-group">
-            <label>اختر الأقسام والفئات المطلوبة *</label>
-            <div id="prodCategoriesCheckboxes" class="categories-checkbox-container"></div>
-        </div>
-        <div style="display: flex; gap: 8px;">
-            <div class="form-group" style="flex: 1;">
-                <label>السعر الحالي (₪) *</label>
-                <input type="number" id="prodPrice" class="form-control" placeholder="22">
+        <div id="addProductSection" class="section-content">
+            <div class="form-group">
+                <label>اسم المنتج أو الحملة *</label>
+                <input type="text" id="prodName" class="form-control" placeholder="مثال: أرز تات بسمتي">
             </div>
-            <div class="form-group" style="flex: 1;">
-                <label>السعر القديم (₪)</label>
-                <input type="number" id="prodOldPrice" class="form-control" placeholder="30">
+            <div class="form-group">
+                <label>الوزن أو الحجم</label>
+                <input type="text" id="prodWeight" class="form-control" placeholder="مثال: 5 كجم">
             </div>
-        </div>
-        <div class="form-group">
-            <label>رزمة الحملة أو شارة العرض</label>
-            <input type="text" id="prodOffer" class="form-control" placeholder="مثال: 3 بـ22 أو عرض خاص">
-        </div>
-        <div class="form-group">
-            <label>صورة المنتج (من كاميرا الهاتف أو الاستوديو) *</label>
-            <div class="file-upload-box">
-                <label class="camera-btn" for="prodFile">📸 التقاط أو اختيار صورة</label>
-                <input type="file" id="prodFile" accept="image/*" onchange="compressAndSetImage(event, 'prodImgData', 'prodPreview')">
-                <img id="prodPreview" class="preview-thumb" src="https://cdn-icons-png.flaticon.com/512/3081/3081986.png">
+            <div class="form-group">
+                <label>اختر الأقسام والفئات المطلوبة *</label>
+                <div id="prodCategoriesCheckboxes" class="categories-checkbox-container"></div>
             </div>
-            <input type="hidden" id="prodImgData">
+            <div style="display: flex; gap: 8px;">
+                <div class="form-group" style="flex: 1;">
+                    <label>السعر الحالي (₪) *</label>
+                    <input type="number" id="prodPrice" class="form-control" placeholder="22">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>السعر القديم (₪)</label>
+                    <input type="number" id="prodOldPrice" class="form-control" placeholder="30">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>رزمة الحملة أو شارة العرض</label>
+                <input type="text" id="prodOffer" class="form-control" placeholder="مثال: 3 بـ22 أو عرض خاص">
+            </div>
+            <div class="form-group">
+                <label>صورة المنتج (من كاميرا الهاتف أو الاستوديو) *</label>
+                <div class="file-upload-box">
+                    <label class="camera-btn" for="prodFile">📸 التقاط أو اختيار صورة</label>
+                    <input type="file" id="prodFile" accept="image/*" onchange="compressAndSetImage(event, 'prodImgData', 'prodPreview')">
+                    <img id="prodPreview" class="preview-thumb" src="https://cdn-icons-png.flaticon.com/512/3081/3081986.png">
+                </div>
+                <input type="hidden" id="prodImgData">
+            </div>
+            <button class="btn-main" onclick="saveProduct()">إضافة ونشر المنتج فوراً 🚀</button>
         </div>
-        <button class="btn-main" onclick="saveProduct()">إضافة ونشر المنتج فوراً 🚀</button>
     </div>
 
     <!-- 4. خانة المنتجات المقسمة حسب الفئات -->
     <div class="section-box" style="background: #edf2f7; border-color: #cbd5e1;">
-        <h2>🛒 إدارة وعرض المنتجات (مقسمة حسب الأقسام)</h2>
-        <div id="categorizedProductsAdminList"></div>
+        <div class="section-header-toggle" onclick="toggleMainSection('manageProductsSection', 'manageArrow')">
+            <span>🛒 إدارة وعرض المنتجات (مقسمة حسب الأقسام)</span>
+            <span id="manageArrow" class="toggle-arrow">▲</span>
+        </div>
+        <div id="manageProductsSection" class="section-content" style="margin-top: 12px;">
+            <div id="categorizedProductsAdminList"></div>
+        </div>
     </div>
 </div>
 
 <script>
+    // دالة عامة لطي وتوسيع الأقسام الرئيسية
+    function toggleMainSection(sectionId, arrowId) {
+        const section = document.getElementById(sectionId);
+        const arrow = document.getElementById(arrowId);
+        if (section.style.display === "none") {
+            section.style.display = "block";
+            arrow.innerText = "▲";
+        } else {
+            section.style.display = "none";
+            arrow.innerText = "▼";
+        }
+    }
+
     // دالة لضغط الصور وتصغيرها لمنع امتلاء مساحة التخزين المحلية
     function compressAndSetImage(event, hiddenInputId, previewImgId) {
         const file = event.target.files[0];
@@ -218,7 +255,6 @@
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // ضغط الصورة بجودة مقبولة جداً وحجم صغير جداً
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
                 
                 document.getElementById(hiddenInputId).value = dataUrl;
@@ -407,10 +443,10 @@
 
             categorizedContainer.innerHTML += `
                 <div class="category-group-box">
-                    <div class="category-group-title">
+                    <div class="category-group-title" onclick="toggleCategorySection(${catIdx})">
                         <span>${cat.icon}</span>
                         <span>${cat.name}</span>
-                        <div class="category-toggle-badge" onclick="toggleCategorySection(${catIdx})">
+                        <div class="category-toggle-badge">
                             <span>${catProducts.length}</span>
                             <span id="arrow-icon-${catIdx}">▼</span>
                         </div>
@@ -595,7 +631,6 @@
 
             localStorage.setItem('aloroba_products', JSON.stringify(products));
             
-            // إعادة ضبط الحقول والصورة
             nameInput.value = '';
             weightInput.value = '';
             priceInput.value = '';
