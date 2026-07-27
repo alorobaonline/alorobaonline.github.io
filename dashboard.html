@@ -201,7 +201,7 @@
         </div>
     </div>
 
-    <!-- القسم الأول: إضافة منتج جديد -->
+    <!-- القسم الأول: إضافة منتج جديد (محدث بحقل الكمية) -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleMainSection('addProductSection', 'prodArrow')">
             <span>📦 إضافة منتج جديد</span>
@@ -215,6 +215,10 @@
             <div class="form-group">
                 <label>الوزن أو الحجم</label>
                 <input type="text" id="prodWeight" class="form-control" placeholder="مثال: 5 كجم">
+            </div>
+            <div class="form-group">
+                <label>الكمية المتاحة في السوبرماركت *</label>
+                <input type="number" id="prodStockQty" class="form-control" placeholder="مثال: 20">
             </div>
             <div class="form-group">
                 <label>اختر الأقسام والفئات المطلوبة *</label>
@@ -367,6 +371,9 @@
                         if (p.inStock === undefined) {
                             p.inStock = true;
                         }
+                        if (p.stockQty === undefined) {
+                            p.stockQty = 10; // افتراضي في حال المنتج القديم
+                        }
                         return p;
                     });
                 }
@@ -376,9 +383,9 @@
         }
         
         const defaultProducts = [
-            { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات", "عروض"], inStock: true },
-            { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png", categories: ["معلبات"], inStock: true },
-            { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png", categories: ["ألبان"], inStock: true }
+            { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات", "عروض"], inStock: true, stockQty: 15 },
+            { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png", categories: ["معلبات"], inStock: true, stockQty: 30 },
+            { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png", categories: ["ألبان"], inStock: true, stockQty: 10 }
         ];
         try {
             localStorage.setItem('aloroba_products', JSON.stringify(defaultProducts));
@@ -498,7 +505,7 @@
             } else {
                 catProducts.forEach(p => {
                     let originalIndex = products.findIndex(item => item.id === p.id);
-                    let isAvailable = p.inStock !== false;
+                    let isAvailable = p.inStock !== false && (p.stockQty === undefined || p.stockQty > 0);
                     productsHtml += `
                         <div class="product-card-container" style="${!isAvailable ? 'opacity: 0.7; background: #fffbeb;' : ''}">
                             <div class="product-mini-row">
@@ -508,7 +515,7 @@
                                         <div style="font-weight: 800; color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                             ${p.name} ${!isAvailable ? '<span style="color:#d97706; font-size:0.6rem;">(نفد من المخزن ⚠️)</span>' : ''}
                                         </div>
-                                        <div style="font-size: 0.6rem; color: #6b7280;">السعر: ${p.price} ₪ | ${p.weight || 'حبة'}</div>
+                                        <div style="font-size: 0.6rem; color: #6b7280;">السعر: ${p.price} ₪ | الكمية المتوفرة: <b>${p.stockQty ?? 'غير محدد'}</b></div>
                                     </div>
                                 </div>
                                 <div class="product-actions">
@@ -525,6 +532,10 @@
                                 <div class="form-group">
                                     <label>الوزن أو الحجم</label>
                                     <input type="text" id="edit-weight-${originalIndex}" class="form-control" value="${p.weight || ''}">
+                                </div>
+                                <div class="form-group">
+                                    <label>الكمية المتاحة في المخزن</label>
+                                    <input type="number" id="edit-stock-${originalIndex}" class="form-control" value="${p.stockQty ?? 0}">
                                 </div>
                                 <div class="form-group">
                                     <label>الفئات التابع لها:</label>
@@ -691,9 +702,21 @@
     function updateOrderStatus(index, newStatus) {
         let orders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
         if (orders[index]) {
-            orders[index].status = newStatus;
+            let orderToUpdate = orders[index];
+            let oldStatus = orderToUpdate.status || 'جديد';
+            orderToUpdate.status = newStatus;
             
+            // عند قبول الطلب كـ "قيد التجهيز" أو عند وروده لأول مرة، نقوم بخصم الكميات من المخزون تلقائياً (مرة واحدة فقط)
+            if (newStatus === 'قيد التجهيز' && oldStatus === 'جديد' && !orderToUpdate.stockDeducted) {
+                deductInventoryForOrder(orderToUpdate);
+                orderToUpdate.stockDeducted = true;
+            }
+
             if (newStatus === 'تم التسليم') {
+                if (!orderToUpdate.stockDeducted) {
+                    deductInventoryForOrder(orderToUpdate);
+                    orderToUpdate.stockDeducted = true;
+                }
                 let completedOrder = orders.splice(index, 1)[0];
                 let archive = JSON.parse(localStorage.getItem('aloroba_archive')) || [];
                 archive.unshift(completedOrder);
@@ -704,6 +727,24 @@
             renderLiveOrders();
             renderArchiveOrders();
         }
+    }
+
+    function deductInventoryForOrder(order) {
+        if (!order.items || !Array.isArray(order.items)) return;
+        let products = getStoredProducts();
+        
+        order.items.forEach(orderedItem => {
+            let prodIndex = products.findIndex(p => p.name.trim() === orderedItem.name.trim());
+            if (prodIndex !== -1) {
+                let qtyToSubtract = orderedItem.quantity || 1;
+                products[prodIndex].stockQty = Math.max(0, (products[prodIndex].stockQty || 0) - qtyToSubtract);
+                if (products[prodIndex].stockQty === 0) {
+                    products[prodIndex].inStock = false;
+                }
+            }
+        });
+        localStorage.setItem('aloroba_products', JSON.stringify(products));
+        renderAdmin();
     }
 
     function toggleStock(index) {
@@ -761,6 +802,7 @@
         let products = getStoredProducts();
         const name = document.getElementById(`edit-name-${index}`).value;
         const weight = document.getElementById(`edit-weight-${index}`).value;
+        const stockQty = parseInt(document.getElementById(`edit-stock-${index}`).value);
         const price = parseFloat(document.getElementById(`edit-price-${index}`).value);
         const oldPrice = document.getElementById(`edit-oldprice-${index}`).value;
         const offer = document.getElementById(`edit-offer-${index}`).value;
@@ -780,6 +822,7 @@
             ...products[index],
             name,
             weight,
+            stockQty: isNaN(stockQty) ? 0 : stockQty,
             price,
             oldPrice: oldPrice ? parseFloat(oldPrice) : '',
             offer,
@@ -841,6 +884,7 @@
     function saveProduct() {
         const name = document.getElementById('prodName').value.trim();
         const weight = document.getElementById('prodWeight').value.trim();
+        const stockQty = parseInt(document.getElementById('prodStockQty').value);
         const price = parseFloat(document.getElementById('prodPrice').value);
         const oldPrice = document.getElementById('prodOldPrice').value;
         const img = document.getElementById('prodImgData').value;
@@ -850,8 +894,8 @@
             selectedCategories.push(chk.value);
         });
 
-        if(!name || isNaN(price) || !img) {
-            alert("الرجاء إدخال اسم المنتج، السعر الحالي، واختيار الصورة على الأقل.");
+        if(!name || isNaN(price) || !img || isNaN(stockQty)) {
+            alert("الرجاء ملء اسم المنتج، الكمية، السعر الحالي، واختيار الصورة.");
             return;
         }
 
@@ -860,11 +904,12 @@
             id: Date.now(),
             name,
             weight,
+            stockQty,
             price,
             oldPrice: oldPrice ? parseFloat(oldPrice) : '',
             img,
             categories: selectedCategories.length > 0 ? selectedCategories : ['عروض'],
-            inStock: true
+            inStock: stockQty > 0
         };
 
         products.unshift(newProd);
@@ -873,6 +918,7 @@
         
         document.getElementById('prodName').value = '';
         document.getElementById('prodWeight').value = '';
+        document.getElementById('prodStockQty').value = '';
         document.getElementById('prodPrice').value = '';
         document.getElementById('prodOldPrice').value = '';
         document.getElementById('prodImgData').value = '';
@@ -898,6 +944,7 @@
             id: Date.now(),
             name,
             weight: 'عرض خاص',
+            stockQty: 50,
             price,
             offer,
             img,
