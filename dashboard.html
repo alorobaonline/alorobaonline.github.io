@@ -188,14 +188,16 @@
         if (saved) {
             try { 
                 let parsed = JSON.parse(saved);
-                return parsed.map(p => {
-                    if (!p.categories && p.category) {
-                        p.categories = [p.category];
-                    } else if (!p.categories) {
-                        p.categories = [];
-                    }
-                    return p;
-                });
+                if (Array.isArray(parsed)) {
+                    return parsed.map(p => {
+                        if (!p.categories && p.category) {
+                            p.categories = [p.category];
+                        } else if (!Array.isArray(p.categories)) {
+                            p.categories = [];
+                        }
+                        return p;
+                    });
+                }
             } catch (e) { console.error(e); }
         }
         const defaultProducts = [
@@ -474,7 +476,7 @@
         const weight = document.getElementById('prodWeight').value;
         const price = document.getElementById('prodPrice').value;
         const oldPrice = document.getElementById('prodOldPrice').value;
-        const offer = document.getElementById('prodOffer'].value;
+        const offer = document.getElementById('prodOffer').value;
         const img = document.getElementById('prodImg').value;
 
         let selectedCategories = [];
