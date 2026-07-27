@@ -56,7 +56,7 @@
 
         .file-upload-box { display: flex; align-items: center; gap: 8px; }
         .file-upload-box input[type="file"] { display: none; }
-        .camera-btn { background: #e2e8f0; color: #1b4d2e; border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+        .camera-btn { background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
         .camera-btn:hover { background: #cbd5e1; }
 
         .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 9px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; margin-top: 5px; }
@@ -68,7 +68,7 @@
         .list-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 0.7rem; }
         
         .category-group-box { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
-        .category-group-title { font-size: 0.8rem; font-weight: 900; color: #1b4d2e; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+        .category-group-title { font-size: 0.8rem; font-weight: 900; color: var(--primary-green); border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
         .category-toggle-badge { margin-right: auto; font-size: 0.7rem; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; color: #334155; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: bold; user-select: none; }
         .category-toggle-badge:hover { background: #cbd5e1; }
         
@@ -93,11 +93,11 @@
         <h2>📢 تخصيص البانر الرئيسي</h2>
         <div class="form-group">
             <label>عنوان البانر الرئيسي</label>
-            <input type="text" id="bannerTitleInput" class="form-control" placeholder="كل احتياجات بيتك في مكان واحد">
+            <input type="text" id="bannerTitleInput" class="form-control">
         </div>
         <div class="form-group">
             <label>نص العرض / التاج</label>
-            <input type="text" id="bannerTagInput" class="form-control" placeholder="سوبر ماركت العروبة">
+            <input type="text" id="bannerTagInput" class="form-control">
         </div>
         <div class="form-group">
             <label>صورة البانر من الجهاز</label>
@@ -139,7 +139,7 @@
     <div class="section-box">
         <h2>📦 إضافة منتج أو حملة جديدة</h2>
         <div class="form-group">
-            <label>اسم المنتج أو الحملة</label>
+            <label>اسم المنتج أو الحملة *</label>
             <input type="text" id="prodName" class="form-control" placeholder="مثال: أرز تات بسمتي">
         </div>
         <div class="form-group">
@@ -147,12 +147,12 @@
             <input type="text" id="prodWeight" class="form-control" placeholder="مثال: 5 كجم">
         </div>
         <div class="form-group">
-            <label>اختر الأقسام والفئات المطلوبة (يمكنك اختيار أكثر من فئة)</label>
+            <label>اختر الأقسام والفئات المطلوبة (يجب اختيار فئة واحدة على الأقل) *</label>
             <div id="prodCategoriesCheckboxes" class="categories-checkbox-container"></div>
         </div>
         <div style="display: flex; gap: 8px;">
             <div class="form-group" style="flex: 1;">
-                <label>السعر الحالي (₪)</label>
+                <label>السعر الحالي (₪) *</label>
                 <input type="number" id="prodPrice" class="form-control" placeholder="22">
             </div>
             <div class="form-group" style="flex: 1;">
@@ -184,9 +184,9 @@
 
 <script>
     function getStoredProducts() {
-        let saved = localStorage.getItem('aloroba_products');
-        if (saved) {
-            try { 
+        try {
+            let saved = localStorage.getItem('aloroba_products');
+            if (saved) {
                 let parsed = JSON.parse(saved);
                 if (Array.isArray(parsed)) {
                     return parsed.map(p => {
@@ -198,31 +198,48 @@
                         return p;
                     });
                 }
-            } catch (e) { console.error(e); }
+            }
+        } catch (e) {
+            console.error("خطأ في قراءة المنتجات:", e);
         }
+        
         const defaultProducts = [
             { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات", "عروض"] },
             { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png", categories: ["معلبات"] },
             { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png", categories: ["ألبان"] }
         ];
-        localStorage.setItem('aloroba_products', JSON.stringify(defaultProducts));
+        try {
+            localStorage.setItem('aloroba_products', JSON.stringify(defaultProducts));
+        } catch (err) {
+            console.error("فشل الحفظ الافتراضي:", err);
+        }
         return defaultProducts;
     }
 
-    let categories = JSON.parse(localStorage.getItem('aloroba_categories')) || [
-        { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
-        { name: "عروض", icon: "🔥", bg: "#fee2e2", color: "#dc2626" },
-        { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
-        { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
-        { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
-        { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" }
-    ];
+    let categories = [];
+    try {
+        categories = JSON.parse(localStorage.getItem('aloroba_categories')) || [
+            { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
+            { name: "عروض", icon: "🔥", bg: "#fee2e2", color: "#dc2626" },
+            { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
+            { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
+            { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
+            { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" }
+        ];
+    } catch(e) {
+        categories = [{ name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" }];
+    }
 
-    let bannerData = JSON.parse(localStorage.getItem('aloroba_banner')) || {
-        title: "كل احتياجات بيتك في مكان واحد",
-        tag: "سوبر ماركت العروبة",
-        img: "https://i.ibb.co/3m1K2wP/basket.png"
-    };
+    let bannerData = {};
+    try {
+        bannerData = JSON.parse(localStorage.getItem('aloroba_banner')) || {
+            title: "كل احتياجات بيتك في مكان واحد",
+            tag: "سوبر ماركت العروبة",
+            img: "https://i.ibb.co/3m1K2wP/basket.png"
+        };
+    } catch(e) {
+        bannerData = { title: "كل احتياجات بيتك", tag: "سوبر ماركت العروبة", img: "" };
+    }
 
     function renderAdmin() {
         let products = getStoredProducts();
@@ -395,9 +412,13 @@
             products[index].img = img;
         }
 
-        localStorage.setItem('aloroba_products', JSON.stringify(products));
-        alert("تم تحديث المنتج والفئات بنجاح!");
-        renderAdmin();
+        try {
+            localStorage.setItem('aloroba_products', JSON.stringify(products));
+            alert("تم تحديث المنتج بنجاح!");
+            renderAdmin();
+        } catch (err) {
+            alert("خطأ أثناء حفظ التعديلات في الذاكرة المحلية: " + err.message);
+        }
     }
 
     function toggleCategorySection(catIdx) {
@@ -439,8 +460,12 @@
         bannerData.title = document.getElementById('bannerTitleInput').value;
         bannerData.tag = document.getElementById('bannerTagInput').value;
         bannerData.img = document.getElementById('bannerImgInput').value;
-        localStorage.setItem('aloroba_banner', JSON.stringify(bannerData));
-        alert("تم تحديث البانر الرئيسي وصورته بنجاح!");
+        try {
+            localStorage.setItem('aloroba_banner', JSON.stringify(bannerData));
+            alert("تم تحديث البانر الرئيسي بنجاح!");
+        } catch(e) {
+            alert("خطأ في حفظ البانر: " + e.message);
+        }
     }
 
     function addCategory() {
@@ -455,78 +480,112 @@
         }
 
         categories.push({ name, icon, bg, color });
-        localStorage.setItem('aloroba_categories', JSON.stringify(categories));
-        document.getElementById('catName').value = '';
-        document.getElementById('catIcon').value = '';
-        renderAdmin();
-        alert("تمت إضافة الفئة بنجاح!");
+        try {
+            localStorage.setItem('aloroba_categories', JSON.stringify(categories));
+            document.getElementById('catName').value = '';
+            document.getElementById('catIcon').value = '';
+            renderAdmin();
+            alert("تمت إضافة الفئة بنجاح!");
+        } catch(e) {
+            alert("خطأ في حفظ الفئة: " + e.message);
+        }
     }
 
     function deleteCategory(index) {
         if(confirm("هل أنت متأكد من حذف هذه الفئة؟")) {
             categories.splice(index, 1);
-            localStorage.setItem('aloroba_categories', JSON.stringify(categories));
-            renderAdmin();
+            try {
+                localStorage.setItem('aloroba_categories', JSON.stringify(categories));
+                renderAdmin();
+            } catch(e) {
+                alert("خطأ في الحذف: " + e.message);
+            }
         }
     }
 
     function saveProduct() {
-        let products = getStoredProducts();
-        const name = document.getElementById('prodName').value;
-        const weight = document.getElementById('prodWeight').value;
-        const price = document.getElementById('prodPrice').value;
-        const oldPrice = document.getElementById('prodOldPrice').value;
-        const offer = document.getElementById('prodOffer').value;
-        const img = document.getElementById('prodImg').value;
+        try {
+            const nameInput = document.getElementById('prodName');
+            const weightInput = document.getElementById('prodWeight');
+            const priceInput = document.getElementById('prodPrice');
+            const oldPriceInput = document.getElementById('prodOldPrice');
+            const offerInput = document.getElementById('prodOffer');
+            const imgInput = document.getElementById('prodImg');
+            const fileInput = document.getElementById('prodFile');
 
-        let selectedCategories = [];
-        document.querySelectorAll('input[name="productCategoryCheck"]:checked').forEach(chk => {
-            selectedCategories.push(chk.value);
-        });
+            if (!nameInput || !priceInput) {
+                alert("عذراً، حقول المدخلات غير موجودة في الصفحة.");
+                return;
+            }
 
-        if(!name || !price) {
-            alert("الرجاء إدخال اسم المنتج والسعر على الأقل");
-            return;
+            const name = nameInput.value.trim();
+            const weight = weightInput.value.trim();
+            const price = priceInput.value.trim();
+            const oldPrice = oldPriceInput.value.trim();
+            const offer = offerInput.value.trim();
+            const img = imgInput.value.trim();
+
+            let selectedCategories = [];
+            document.querySelectorAll('input[name="productCategoryCheck"]:checked').forEach(chk => {
+                selectedCategories.push(chk.value);
+            });
+
+            if(!name || !price) {
+                alert("الرجاء إدخال اسم المنتج والسعر الحالي على الأقل!");
+                return;
+            }
+
+            if(selectedCategories.length === 0) {
+                alert("الرجاء اختيار فئة واحدة على الأقل للمنتج من مربعات الاختيار!");
+                return;
+            }
+
+            let products = getStoredProducts();
+
+            const newProd = {
+                id: Date.now(),
+                name: name,
+                weight: weight,
+                categories: selectedCategories,
+                price: Number(price),
+                oldPrice: oldPrice ? Number(oldPrice) : null,
+                offer: offer,
+                img: img !== "" ? img : "https://cdn-icons-png.flaticon.com/512/3081/3081986.png"
+            };
+
+            products.unshift(newProd);
+
+            localStorage.setItem('aloroba_products', JSON.stringify(products));
+            
+            // تفريغ الحقول بعد الإضافة بنجاح
+            nameInput.value = '';
+            weightInput.value = '';
+            priceInput.value = '';
+            oldPriceInput.value = '';
+            offerInput.value = '';
+            imgInput.value = '';
+            if(fileInput) fileInput.value = '';
+            document.querySelectorAll('input[name="productCategoryCheck"]').forEach(chk => chk.checked = false);
+
+            alert("تمت إضافة ونشر المنتج بنجاح وظهر في لوحة التحكم! 🚀");
+            renderAdmin();
+
+        } catch (error) {
+            console.error("خطأ غير متوقع أثناء حفظ المنتج:", error);
+            alert("حدث خطأ أثناء حفظ المنتج: " + error.message);
         }
-
-        if(selectedCategories.length === 0) {
-            alert("الرجاء اختيار فئة واحدة على الأقل للمنتج");
-            return;
-        }
-
-        const newProd = {
-            id: Date.now(),
-            name,
-            weight,
-            categories: selectedCategories,
-            price: Number(price),
-            oldPrice: oldPrice ? Number(oldPrice) : null,
-            offer,
-            img: img || "https://cdn-icons-png.flaticon.com/512/3081/3081986.png"
-        };
-        products.unshift(newProd);
-
-        localStorage.setItem('aloroba_products', JSON.stringify(products));
-        
-        document.getElementById('prodName').value = '';
-        document.getElementById('prodWeight').value = '';
-        document.getElementById('prodPrice').value = '';
-        document.getElementById('prodOldPrice').value = '';
-        document.getElementById('prodOffer').value = '';
-        document.getElementById('prodImg').value = '';
-        document.getElementById('prodFile').value = '';
-        document.querySelectorAll('input[name="productCategoryCheck"]').forEach(chk => chk.checked = false);
-
-        alert("تمت إضافة المنتج للفئات المحددة بنجاح وتحديث المتجر! 🚀");
-        renderAdmin();
     }
 
     function deleteProduct(index) {
         if(confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
             let products = getStoredProducts();
             products.splice(index, 1);
-            localStorage.setItem('aloroba_products', JSON.stringify(products));
-            renderAdmin();
+            try {
+                localStorage.setItem('aloroba_products', JSON.stringify(products));
+                renderAdmin();
+            } catch(e) {
+                alert("خطأ أثناء الحذف: " + e.message);
+            }
         }
     }
 
