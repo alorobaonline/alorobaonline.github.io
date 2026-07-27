@@ -145,7 +145,7 @@
         }
         .modal-title { font-size: 0.95rem; color: #1b4d2e; font-weight: 900; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
         .cart-input { width: 100%; padding: 8px; margin-bottom: 6px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.75rem; outline: none; }
-        .whatsapp-btn { width: 100%; background: #25d366; color: white; border: none; padding: 10px; border-radius: 20px; font-weight: bold; font-size: 0.75rem; cursor: pointer; margin-top: 6px; display: block; text-align: center; text-decoration: none; box-sizing: border-box; }
+        .submit-order-btn { width: 100%; background: #1b4d2e; color: white; border: none; padding: 10px; border-radius: 20px; font-weight: bold; font-size: 0.75rem; cursor: pointer; margin-top: 6px; }
 
         /* نافذة تكبير الصورة (Zoom Modal) */
         .image-zoom-overlay {
@@ -279,7 +279,7 @@
             <input type="text" id="customerAddress" class="cart-input" placeholder="العنوان (رهط والمحيط)">
             <input type="tel" id="customerPhone" class="cart-input" placeholder="رقم الهاتف">
         </div>
-        <a id="whatsappOrderBtn" href="#" target="_blank" class="whatsapp-btn" onclick="prepareWhatsAppOrder(event)">إرسال الطلب عبر الواتساب 💬</a>
+        <button class="submit-order-btn" onclick="submitOrderToDashboard()">إرسال الطلب إلى لوحة التحكم 🚀</button>
     </div>
 </div>
 
@@ -630,19 +630,17 @@
         }
     }
 
-    function prepareWhatsAppOrder(event) {
+    function submitOrderToDashboard() {
         const name = document.getElementById('customerName').value.trim();
         const address = document.getElementById('customerAddress').value.trim();
         const phone = document.getElementById('customerPhone').value.trim();
 
         if(!name || !address || !phone) {
             alert("الرجاء إدخال الاسم، العنوان، ورقم الهاتف لإتمام الطلب");
-            event.preventDefault();
             return;
         }
         if(cart.length === 0) {
             alert("السلة فارغة");
-            event.preventDefault();
             return;
         }
         
@@ -655,6 +653,7 @@
             customerAddress: address,
             items: [...cart],
             totalAmount: total,
+            status: "جديد",
             date: new Date().toLocaleDateString('ar-EG', { hour: '2-digit', minute: '2-digit' })
         };
 
@@ -662,26 +661,11 @@
         allOrders.unshift(newOrder);
         localStorage.setItem('aloroba_orders', JSON.stringify(allOrders));
 
-        let msg = `🛒 *طلب جديد من متجر العروبة اونلاين*\n`;
-        msg += `👤 الاسم: ${name}\n`;
-        msg += `📍 العنوان: ${address}\n`;
-        msg += `📞 الهاتف: ${phone}\n\n`;
-        msg += `*المنتجات:*\n`;
-        cart.forEach((item, idx) => {
-            msg += `${idx + 1}. ${item.name} - ${item.price} ₪\n`;
-        });
-        msg += `\n💰 *المجموع الكلي:* ${total} ₪`;
+        alert("🎉 تم إرسال طلبك بنجاح إلى لوحة التحكم وسيتم متابعته فوراً!");
 
-        let whatsappNumber = "972546288791"; 
-        const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`;
-        
-        document.getElementById('whatsappOrderBtn').href = whatsappUrl;
-
-        setTimeout(() => {
-            cart = [];
-            updateCartUI();
-            closeModal('cartModal');
-        }, 500);
+        cart = [];
+        updateCartUI();
+        closeModal('cartModal');
     }
 </script>
 </body>
