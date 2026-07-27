@@ -334,7 +334,6 @@
 </div>
 
 <script>
-    // جلب البيانات من الـ localStorage (التي يتم إدارتها من لوحة التحكم dashboard.html)
     let products = JSON.parse(localStorage.getItem('aloroba_products')) || [
         { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", category: "معلبات" },
         { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png", category: "معلبات" },
@@ -631,6 +630,7 @@
         }
     }
 
+    // دالة إرسال الطلب عبر الواتساب المُحدثة والمضمونة
     function sendWhatsAppOrder() {
         const name = document.getElementById('customerName').value.trim();
         const address = document.getElementById('customerAddress').value.trim();
@@ -647,7 +647,6 @@
         
         let total = cart.reduce((sum, item) => sum + Number(item.price), 0);
         
-        // حفظ الطلب في سجل الطلبات لكي يظهر في لوحة التحكم والزبون
         let newOrder = {
             id: Date.now(),
             customerName: name,
@@ -662,7 +661,6 @@
         allOrders.unshift(newOrder);
         localStorage.setItem('aloroba_orders', JSON.stringify(allOrders));
 
-        // إعداد رسالة الواتساب
         let msg = `🛒 *طلب جديد من متجر العروبة اونلاين*%0A`;
         msg += `👤 الاسم: ${name}%0A`;
         msg += `📍 العنوان: ${address}%0A`;
@@ -673,15 +671,15 @@
         });
         msg += `%0A💰 *المجموع الكلي:* ${total} ₪`;
 
-        // رقم الواتساب الخاص بالمتجر (يمكن تعديله حسب الحاجة)
-        let whatsappNumber = "972500000000"; 
-        window.open(`https://wa.me/${whatsappNumber}?text=${msg}`, '_blank');
+        // رقم الواتساب المعتمد الخاص بك
+        let whatsappNumber = "972546288791"; 
 
-        // إعادة تعيين السلة
+        const whatsappUrl = `https://api.whatsapp.com/send?phone=${whatsappNumber}&text=${msg}`;
+        window.location.href = whatsappUrl;
+
         cart = [];
         updateCartUI();
         closeModal('cartModal');
-        alert("تم إرسال الطلب وحفظه بنجاح!");
     }
 </script>
 </body>
