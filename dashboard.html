@@ -222,6 +222,7 @@
                 <input type="text" id="prodName" class="form-control" placeholder="مثال: أرز تات بسمتي">
             </div>
 
+            <!-- السعر الحالي، الكمية المتاحة، والوزن / الحجم في صف واحد متناسق -->
             <div style="display: flex; gap: 6px;">
                 <div class="form-group" style="flex: 1;">
                     <label>السعر الحالي (₪) *</label>
@@ -256,35 +257,37 @@
         </div>
     </div>
 
-    <!-- القسم الثاني: حملات العروبة (مستقل ومحدث لاختيار حزم المنتجات والعروض) -->
+    <!-- القسم الثاني: حملات العروبة وعروضها الخاصة (المحدث لدعم Bundles) -->
     <div class="section-box" style="border-color: #68a633; background: #f4fbf0;">
         <div class="section-header-toggle" onclick="toggleMainSection('campaignsSection', 'campArrow')">
-            <span>🔥 حملات العروبة وعروضها الخاصة</span>
+            <span>🔥 حملات العروبة وعروضها الخاصة (نظام الحزم)</span>
             <span id="campArrow" class="toggle-arrow">▼</span>
         </div>
         <div id="campaignsSection" class="section-content">
             <div class="form-group">
                 <label>عنوان الحملة أو اسم العرض *</label>
-                <input type="text" id="campName" class="form-control" placeholder="مثال: حزمة الفطور الأساسي (حليب، بيض، زيت)">
+                <input type="text" id="campName" class="form-control" placeholder="مثال: عرض 3 منتجات بـ 19.9">
             </div>
             <div class="form-group">
                 <label>وصف العرض / تفاصيل التوفير *</label>
-                <input type="text" id="campOffer" class="form-control" placeholder="مثال: وفرنا عليك مشوار السوبرماركت.. معنا رح توفر كل شيقل!">
+                <input type="text" id="campOffer" class="form-control" placeholder="مثال: اختر 3 منتجات (نفس النوع أو مشكلة)">
             </div>
             <div style="display: flex; gap: 6px;">
-                <div class="form-group" style="flex: 2;">
+                <div class="form-group" style="flex: 1;">
                     <label>السعر الترويجي للحزمة (₪) *</label>
-                    <input type="number" id="campPrice" class="form-control" placeholder="45">
+                    <input type="number" id="campPrice" class="form-control" placeholder="19.9">
                 </div>
                 <div class="form-group" style="flex: 1;">
-                    <label>الكمية المتاحة *</label>
-                    <input type="number" id="campStockQty" class="form-control" value="30">
+                    <label>الكمية المتاحة للحزمة *</label>
+                    <input type="number" id="campStock" class="form-control" value="30" placeholder="30">
                 </div>
             </div>
+
             <div class="form-group">
-                <label>اختر المنتجات الأساسية المتاحة لضمها لهذه الحزمة:</label>
-                <div id="campProductsCheckboxes" class="categories-checkbox-container" style="max-height: 120px; overflow-y: auto; grid-template-columns: 1fr;"></div>
+                <label>اختر المنتجات المتاحة في المتجر لضمها لهذه الحزمة *</label>
+                <div id="campProductsCheckboxes" class="categories-checkbox-container" style="grid-template-columns: 1fr; max-height: 150px; overflow-y: auto;"></div>
             </div>
+
             <div class="form-group">
                 <label>صورة العرض / الحزمة *</label>
                 <div class="file-upload-box">
@@ -294,7 +297,7 @@
                 </div>
                 <input type="hidden" id="campImgData">
             </div>
-            <button class="btn-main" style="background: #68a633;" onclick="saveCampaignBundle()">إنشاء ونشر الحملة أو الحزمة الآن 🎯</button>
+            <button class="btn-main" style="background: #68a633;" onclick="saveCampaign()">إنشاء ونشر الحملة أو الحزمة الآن 🎯</button>
         </div>
     </div>
 
@@ -486,7 +489,7 @@
         renderLiveOrders();
         renderArchiveOrders();
 
-        // تعبئة أقسام الفئات لنموذج إضافة منتج
+        // تعبئة فئات المنتجات لإضافة منتج جديد
         const checkboxesContainer = document.getElementById('prodCategoriesCheckboxes');
         checkboxesContainer.innerHTML = '';
         categories.forEach(cat => {
@@ -500,25 +503,17 @@
             }
         });
 
-        // تعبئة قائمة المنتجات المتاحة لربطها بالحملة (مع استثناء الحزم السابقة لتجنب التداخل)
-        const campProductsContainer = document.getElementById('campProductsCheckboxes');
-        campProductsContainer.innerHTML = '';
-        
-        // استثناء المنتجات التي تحتوي على bundledItems لكي تظهر المنتجات الفردية فقط
-        let baseProducts = products.filter(p => !p.bundledItems);
-
-        if (baseProducts.length === 0) {
-            campProductsContainer.innerHTML = '<span style="font-size:0.65rem; color:#888;">لا توجد منتجات فردية مضافة بعد</span>';
-        } else {
-            baseProducts.forEach(p => {
-                campProductsContainer.innerHTML += `
-                    <label class="checkbox-item" style="width:100%; white-space:normal;" title="${p.name}">
-                        <input type="checkbox" name="campaignProductCheck" value="${p.name}">
-                        <span>📦 ${p.name} (${p.price} ₪)</span>
-                    </label>
-                `;
-            });
-        }
+        // تعبئة منتجات المتجر داخل قسم العروض (لحزم العروض)
+        const campCheckboxesContainer = document.getElementById('campProductsCheckboxes');
+        campCheckboxesContainer.innerHTML = '';
+        products.forEach(p => {
+            campCheckboxesContainer.innerHTML += `
+                <label class="checkbox-item" style="width: 100%; white-space: normal;" title="${p.name}">
+                    <input type="checkbox" name="campaignProductCheck" value="${p.name.trim()}">
+                    <span>🛒 ${p.name} (${p.price} ₪)</span>
+                </label>
+            `;
+        });
 
         const catList = document.getElementById('adminCategoriesList');
         catList.innerHTML = '';
@@ -555,7 +550,7 @@
                                         <div style="font-weight: 800; color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                             ${p.name} ${!isAvailable ? '<span style="color:#d97706; font-size:0.6rem;">(نفد من المخزن ⚠️)</span>' : ''}
                                         </div>
-                                        <div style="font-size: 0.6rem; color: #6b7280;">السعر: ${p.price} ₪ | الكمية المتوفرة: <b>${p.stockQty ?? 'غير محدد'}</b> ${p.bundledItems ? `<br><b>مكونات الحزمة:</b> ${p.bundledItems.join(', ')}` : ''}</div>
+                                        <div style="font-size: 0.6rem; color: #6b7280;">السعر: ${p.price} ₪ | الكمية المتوفرة: <b>${p.stockQty ?? 'غير محدد'}</b></div>
                                     </div>
                                 </div>
                                 <div class="product-actions">
@@ -566,7 +561,7 @@
                             
                             <div id="inline-edit-${originalIndex}" class="inline-edit-form">
                                 <div class="form-group">
-                                    <label>اسم المنتج / الحزمة *</label>
+                                    <label>اسم المنتج *</label>
                                     <input type="text" id="edit-name-${originalIndex}" class="form-control" value="${p.name}">
                                 </div>
 
@@ -580,7 +575,7 @@
                                         <input type="number" id="edit-stock-${originalIndex}" class="form-control" value="${p.stockQty ?? 0}">
                                     </div>
                                     <div class="form-group" style="flex: 1;">
-                                        <label>الوصف / الحجم</label>
+                                        <label>الوزن / الحجم</label>
                                         <input type="text" id="edit-weight-${originalIndex}" class="form-control" value="${p.weight || ''}">
                                     </div>
                                 </div>
@@ -598,7 +593,7 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label>الصورة *</label>
+                                    <label>صورة المنتج *</label>
                                     <div class="file-upload-box">
                                         <label class="camera-btn" for="editFile-${originalIndex}">📸 التقاط أو اختيار صورة</label>
                                         <input type="file" id="editFile-${originalIndex}" accept="image/*" onchange="compressAndSetImage(event, 'edit-imgData-${originalIndex}', 'editPreview-${originalIndex}')">
@@ -838,7 +833,7 @@
         });
 
         if (!name || isNaN(price) || isNaN(stockQty)) {
-            alert("الرجاء إدخال الاسم، السعر الحالي، والكمية المتاحة.");
+            alert("الرجاء إدخال اسم المنتج، السعر الحالي، والكمية المتاحة.");
             return;
         }
 
@@ -853,12 +848,12 @@
         };
 
         localStorage.setItem('aloroba_products', JSON.stringify(products));
-        alert("تم تحديث العنصر بنجاح! ✅");
+        alert("تم تحديث المنتج بنجاح! ✅");
         renderAdmin();
     }
 
     function deleteProduct(index) {
-        if(confirm("هل أنت متأكد من حذف هذا العنصر؟")) {
+        if(confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
             let products = getStoredProducts();
             products.splice(index, 1);
             localStorage.setItem('aloroba_products', JSON.stringify(products));
@@ -947,44 +942,46 @@
         renderAdmin();
     }
 
-    function saveCampaignBundle() {
+    function saveCampaign() {
         const name = document.getElementById('campName').value.trim();
         const offer = document.getElementById('campOffer').value.trim();
         const price = parseFloat(document.getElementById('campPrice').value);
-        const stockQty = parseInt(document.getElementById('campStockQty').value) || 30;
+        const stockQty = parseInt(document.getElementById('campStock').value) || 30;
         const img = document.getElementById('campImgData').value;
 
-        let selectedBundledItems = [];
+        let selectedBundleProducts = [];
         document.querySelectorAll('input[name="campaignProductCheck"]:checked').forEach(chk => {
-            selectedBundledItems.push(chk.value);
+            selectedBundleProducts.push(chk.value);
         });
 
         if(!name || !offer || isNaN(price) || !img) {
-            alert("الرجاء ملء اسم الحملة، وصف التوفير، السعر، واختيار صورة العرض.");
+            alert("الرجاء ملء جميع حقول الحملة (العنوان، الوصف، السعر، واختيار الصورة).");
             return;
         }
 
         let products = getStoredProducts();
-        const newCampaignBundle = {
+        const newCampProd = {
             id: Date.now(),
             name,
-            weight: offer,
-            stockQty,
+            weight: 'عرض حزمة',
+            stockQty: stockQty,
             price,
-            bundledItems: selectedBundledItems,
+            offer,
             img,
+            isBundle: true,
+            bundleItems: selectedBundleProducts,
             categories: ['عروض'],
             inStock: true
         };
 
-        products.unshift(newCampaignBundle);
+        products.unshift(newCampProd);
         localStorage.setItem('aloroba_products', JSON.stringify(products));
-        alert("تم إنشاء وإطلاق الحزمة/العرض في قسم عروض العروبة بنجاح 🎯");
+        alert("تم إطلاق الحملة وحزمة العروض ونشرها بنجاح 🎯");
         
         document.getElementById('campName').value = '';
         document.getElementById('campOffer').value = '';
         document.getElementById('campPrice').value = '';
-        document.getElementById('campStockQty').value = '30';
+        document.getElementById('campStock').value = '30';
         document.getElementById('campImgData').value = '';
         document.getElementById('campPreview').src = 'https://cdn-icons-png.flaticon.com/512/3081/3081986.png';
         document.querySelectorAll('input[name="campaignProductCheck"]').forEach(chk => chk.checked = false);
