@@ -56,7 +56,7 @@
 
         .file-upload-box { display: flex; align-items: center; gap: 8px; }
         .file-upload-box input[type="file"] { display: none; }
-        .camera-btn { background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+        .camera-btn { background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; flex: 1; justify-content: center; }
         .camera-btn:hover { background: #cbd5e1; }
 
         .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 9px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; margin-top: 5px; }
@@ -78,6 +78,7 @@
         .product-mini-thumb { width: 32px; height: 32px; object-fit: contain; background: white; border-radius: 4px; border: 1px solid #ddd; padding: 2px; flex-shrink: 0; }
         
         .inline-edit-form { background: #eff6ff; border-top: 1px dashed #bfdbfe; padding: 10px; display: none; }
+        .preview-thumb { width: 45px; height: 45px; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 6px; background: white; padding: 2px; }
     </style>
 </head>
 <body>
@@ -100,8 +101,13 @@
             <input type="text" id="bannerTagInput" class="form-control">
         </div>
         <div class="form-group">
-            <label>رابط صورة البانر (أو مسارها)</label>
-            <input type="text" id="bannerImgInput" class="form-control" placeholder="أدخل رابط الصورة مباشرة لتوفير المساحة">
+            <label>صورة البانر من الهاتف</label>
+            <div class="file-upload-box">
+                <label class="camera-btn" for="bannerFile">📷 اختيار صورة البانر</label>
+                <input type="file" id="bannerFile" accept="image/*" onchange="compressAndSetImage(event, 'bannerImgData', 'bannerPreview')">
+                <img id="bannerPreview" class="preview-thumb" src="https://cdn-icons-png.flaticon.com/512/3081/3081986.png">
+            </div>
+            <input type="hidden" id="bannerImgData">
         </div>
         <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث البانر 💾</button>
     </div>
@@ -161,8 +167,13 @@
             <input type="text" id="prodOffer" class="form-control" placeholder="مثال: 3 بـ22 أو عرض خاص">
         </div>
         <div class="form-group">
-            <label>رابط صورة المنتج (أو اتركه فارغاً للصورة الافتراضية)</label>
-            <input type="text" id="prodImg" class="form-control" placeholder="ضع رابط صورة مباشر (مثل رابط إلكتروني)">
+            <label>صورة المنتج (من كاميرا الهاتف أو الاستوديو) *</label>
+            <div class="file-upload-box">
+                <label class="camera-btn" for="prodFile">📸 التقاط أو اختيار صورة</label>
+                <input type="file" id="prodFile" accept="image/*" onchange="compressAndSetImage(event, 'prodImgData', 'prodPreview')">
+                <img id="prodPreview" class="preview-thumb" src="https://cdn-icons-png.flaticon.com/512/3081/3081986.png">
+            </div>
+            <input type="hidden" id="prodImgData">
         </div>
         <button class="btn-main" onclick="saveProduct()">إضافة ونشر المنتج فوراً 🚀</button>
     </div>
@@ -175,6 +186,49 @@
 </div>
 
 <script>
+    // دالة لضغط الصور وتصغيرها لمنع امتلاء مساحة التخزين المحلية
+    function compressAndSetImage(event, hiddenInputId, previewImgId) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 300;
+                const MAX_HEIGHT = 300;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // ضغط الصورة بجودة مقبولة جداً وحجم صغير جداً
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                
+                document.getElementById(hiddenInputId).value = dataUrl;
+                document.getElementById(previewImgId).src = dataUrl;
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
     function getStoredProducts() {
         try {
             let saved = localStorage.getItem('aloroba_products');
@@ -240,7 +294,10 @@
 
         document.getElementById('bannerTitleInput').value = bannerData.title || "";
         document.getElementById('bannerTagInput').value = bannerData.tag || "";
-        document.getElementById('bannerImgInput').value = bannerData.img || "";
+        document.getElementById('bannerImgData').value = bannerData.img || "";
+        if(bannerData.img) {
+            document.getElementById('bannerPreview').src = bannerData.img;
+        }
 
         const checkboxesContainer = document.getElementById('prodCategoriesCheckboxes');
         checkboxesContainer.innerHTML = '';
@@ -330,8 +387,13 @@
                                     <input type="text" id="edit-offer-${originalIndex}" class="form-control" value="${p.offer || ''}">
                                 </div>
                                 <div class="form-group">
-                                    <label>رابط الصورة</label>
-                                    <input type="text" id="edit-img-${originalIndex}" class="form-control" value="${p.img || ''}">
+                                    <label>تغيير صورة المنتج (كاميرا / استوديو)</label>
+                                    <div class="file-upload-box">
+                                        <label class="camera-btn" for="editFile-${originalIndex}">📸 اختر صورة جديدة</label>
+                                        <input type="file" id="editFile-${originalIndex}" accept="image/*" onchange="compressAndSetImage(event, 'edit-imgData-${originalIndex}', 'editPreview-${originalIndex}')">
+                                        <img id="editPreview-${originalIndex}" class="preview-thumb" src="${p.img}">
+                                    </div>
+                                    <input type="hidden" id="edit-imgData-${originalIndex}" value="${p.img}">
                                 </div>
                                 <div style="display: flex; gap: 5px; margin-top: 5px;">
                                     <button class="btn-main" style="margin-top:0; background: #3b82f6;" onclick="saveInlineEdit(${originalIndex})">حفظ التعديلات ✅</button>
@@ -379,7 +441,7 @@
         const price = document.getElementById(`edit-price-${index}`).value;
         const oldPrice = document.getElementById(`edit-oldprice-${index}`).value;
         const offer = document.getElementById(`edit-offer-${index}`).value;
-        const img = document.getElementById(`edit-img-${index}`).value;
+        const img = document.getElementById(`edit-imgData-${index}`).value;
 
         let selectedCategories = [];
         document.querySelectorAll(`.edit-cat-check-${index}:checked`).forEach(chk => {
@@ -411,7 +473,7 @@
             alert("تم تحديث المنتج بنجاح!");
             renderAdmin();
         } catch (err) {
-            alert("مساحة التخزين ممتلئة! يرجى استخدام روابط صور قصيرة بدلاً من رفع صور ضخمة.");
+            alert("مساحة الذاكرة ممتلئة. يرجى حذف بعض المنتجات القديمة.");
         }
     }
 
@@ -431,7 +493,7 @@
     function saveBannerSettings() {
         bannerData.title = document.getElementById('bannerTitleInput').value;
         bannerData.tag = document.getElementById('bannerTagInput').value;
-        bannerData.img = document.getElementById('bannerImgInput').value;
+        bannerData.img = document.getElementById('bannerImgData').value;
         try {
             localStorage.setItem('aloroba_banner', JSON.stringify(bannerData));
             alert("تم تحديث البانر الرئيسي بنجاح!");
@@ -482,7 +544,8 @@
             const priceInput = document.getElementById('prodPrice');
             const oldPriceInput = document.getElementById('prodOldPrice');
             const offerInput = document.getElementById('prodOffer');
-            const imgInput = document.getElementById('prodImg');
+            const imgInput = document.getElementById('prodImgData');
+            const fileInput = document.getElementById('prodFile');
 
             if (!nameInput || !priceInput) {
                 alert("حقول المدخلات غير موجودة.");
@@ -494,7 +557,7 @@
             const price = priceInput.value.trim();
             const oldPrice = oldPriceInput.value.trim();
             const offer = offerInput.value.trim();
-            const img = imgInput.value.trim();
+            let img = imgInput.value.trim();
 
             let selectedCategories = [];
             document.querySelectorAll('input[name="productCategoryCheck"]:checked').forEach(chk => {
@@ -511,6 +574,10 @@
                 return;
             }
 
+            if(!img) {
+                img = "https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
+            }
+
             let products = getStoredProducts();
 
             const newProd = {
@@ -521,20 +588,22 @@
                 price: Number(price),
                 oldPrice: oldPrice ? Number(oldPrice) : null,
                 offer: offer,
-                img: img !== "" ? img : "https://cdn-icons-png.flaticon.com/512/3081/3081986.png"
+                img: img
             };
 
             products.unshift(newProd);
 
-            // محاولة الحفظ في الذاكرة المحلية مع التقاط الخطأ في حال امتلاء المساحة
             localStorage.setItem('aloroba_products', JSON.stringify(products));
             
+            // إعادة ضبط الحقول والصورة
             nameInput.value = '';
             weightInput.value = '';
             priceInput.value = '';
             oldPriceInput.value = '';
             offerInput.value = '';
             imgInput.value = '';
+            if(fileInput) fileInput.value = '';
+            document.getElementById('prodPreview').src = "https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
             document.querySelectorAll('input[name="productCategoryCheck"]').forEach(chk => chk.checked = false);
 
             alert("تمت إضافة ونشر المنتج بنجاح وظهر في لوحة التحكم! 🚀");
@@ -542,7 +611,7 @@
 
         } catch (error) {
             console.error("خطأ في التخزين:", error);
-            alert("خطأ: امتلاء مساحة التخزين المحلية (QuotaExceeded). يرجى استخدام روابط صور مختصرة بدلاً من صور مرفوعة كبيرة الحجم.");
+            alert("خطأ: مساحة الذاكرة المحلية ممتلئة. يرجى حذف بعض المنتجات القديمة لتفريغ مساحة.");
         }
     }
 
