@@ -29,18 +29,17 @@
         .top-cart-btn { position: relative; background: none; border: none; cursor: pointer; display: flex; align-items: center; font-size: 1.2rem; }
         .top-cart-count { position: absolute; top: -5px; right: -6px; background: #2e6930; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 0.55rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
 
-        /* البانر الرئيسي المحدث */
-        .main-banner { background: #1b4d2e; border-radius: 16px; overflow: hidden; color: white; margin-bottom: 10px; box-shadow: var(--shadow-card); }
-        .banner-img-container { width: 100%; height: 150px; background: #143822; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .banner-img-container img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .banner-body { padding: 12px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #0d381c 0%, #1a5c30 100%); }
-        .banner-text-side { max-width: 70%; z-index: 2; }
+        /* البانر الرئيسي */
+        .main-banner { background: linear-gradient(135deg, #0d381c 0%, #1a5c30 100%); border-radius: 16px; padding: 12px; color: white; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-card); position: relative; overflow: hidden; }
+        .banner-text-side { max-width: 55%; z-index: 2; }
         .banner-tag { background: #134e24; color: #a3e635; font-size: 0.5rem; padding: 2px 6px; border-radius: 15px; display: inline-block; margin-bottom: 4px; font-weight: 700; }
         .banner-title { font-size: 0.9rem; font-weight: 900; line-height: 1.2; margin-bottom: 6px; }
         .banner-features { display: flex; gap: 4px; margin-bottom: 8px; font-size: 0.45rem; color: #e2e8f0; }
         .banner-btn { background: #84cc16; color: #064e1b; border: none; padding: 4px 10px; border-radius: 15px; font-weight: 800; font-size: 0.6rem; cursor: pointer; }
+        .banner-img-side { width: 42%; text-align: left; display: flex; align-items: center; justify-content: center; }
+        .banner-img-side img { width: 100%; height: 110px; object-fit: cover; border-radius: 10px; }
 
-        /* شريط الفئات الأفقي (سحب يمين ويسار) */
+        /* شريط الفئات الأفقي */
         .categories-slider { 
             display: flex; 
             gap: 8px; 
@@ -71,24 +70,24 @@
         .section-title { font-size: 0.85rem; font-weight: 900; color: #111; }
         .section-all { font-size: 0.65rem; font-weight: 700; color: #16a34a; cursor: pointer; text-decoration: none; }
 
-        /* شبكة المنتجات (3 منتجات في العرض) */
+        /* شبكة المنتجات (3 منتجات في العرض تماماً) */
         .products-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
-        .product-card { background: #ffffff; border-radius: 12px; padding: 8px; box-shadow: var(--shadow-card); display: flex; flex-direction: column; justify-content: space-between; position: relative; border: 1px solid #f1f5f9; }
+        .product-card { background: #ffffff; border-radius: 12px; padding: 6px; box-shadow: var(--shadow-card); display: flex; flex-direction: column; justify-content: space-between; position: relative; border: 1px solid #f1f5f9; }
         
-        .badge-offer { position: absolute; top: 6px; right: 6px; background: #fee2e2; color: #dc2626; font-size: 0.45rem; font-weight: 800; padding: 2px 4px; border-radius: 4px; }
-        .badge-red { position: absolute; top: 6px; left: 6px; background: #ef4444; color: white; font-size: 0.45rem; font-weight: 800; padding: 1px 4px; border-radius: 3px; }
+        .badge-offer { position: absolute; top: 4px; right: 4px; background: #fee2e2; color: #dc2626; font-size: 0.4rem; font-weight: 800; padding: 2px 4px; border-radius: 4px; }
+        .badge-red { position: absolute; top: 4px; left: 4px; background: #ef4444; color: white; font-size: 0.4rem; font-weight: 800; padding: 1px 4px; border-radius: 3px; }
 
-        .product-img-box { width: 100%; height: 75px; display: flex; align-items: center; justify-content: center; margin: 8px 0 4px 0; }
-        .product-img-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .product-img-box { width: 100%; height: 70px; display: flex; align-items: center; justify-content: center; margin: 10px 0 4px 0; }
+        .product-img-box img { max-width: 100%; max-height: 70px; object-fit: contain; }
 
-        .product-name { font-size: 0.7rem; font-weight: 800; color: #1f2937; text-align: center; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .product-weight { font-size: 0.55rem; color: #9ca3af; text-align: center; margin-bottom: 4px; font-weight: 600; }
+        .product-name { font-size: 0.65rem; font-weight: 800; color: #1f2937; text-align: center; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .product-weight { font-size: 0.5rem; color: #9ca3af; text-align: center; margin-bottom: 4px; font-weight: 600; }
         
-        .product-price-box { text-align: center; margin-bottom: 6px; display: flex; justify-content: center; align-items: center; gap: 8px; }
-        .price-new { font-size: 0.8rem; font-weight: 900; color: #ea580c; }
-        .price-old { font-size: 0.6rem; font-weight: 800; color: #000000; text-decoration: line-through; }
+        .product-price-box { text-align: center; margin-bottom: 6px; display: flex; justify-content: center; align-items: center; gap: 4px; }
+        .price-new { font-size: 0.75rem; font-weight: 900; color: #ea580c; }
+        .price-old { font-size: 0.55rem; font-weight: 800; color: #000000; text-decoration: line-through; }
 
-        .btn-add-cart { width: 100%; background: #68a633; color: white; border: none; border-radius: 8px; padding: 5px 0; font-size: 0.6rem; font-weight: 700; cursor: pointer; text-align: center; }
+        .btn-add-cart { width: 100%; background: #68a633; color: white; border: none; border-radius: 6px; padding: 4px 0; font-size: 0.55rem; font-weight: 700; cursor: pointer; text-align: center; }
 
         /* صندوق السلة */
         .cart-section { background: white; padding: 12px; border-radius: 16px; margin-top: 15px; box-shadow: var(--shadow-card); }
@@ -131,26 +130,22 @@
 
     <!-- البانر الرئيسي -->
     <div class="main-banner">
-        <div class="banner-img-container">
-            <img id="bannerImg" src="" alt="صورة البانر">
-        </div>
-        <div class="banner-body">
-            <div class="banner-text-side">
-                <span class="banner-tag" id="bannerTag">سوبر ماركت العروبة</span>
-                <div class="banner-title" id="bannerTitle">كل احتياجات بيتك في مكان واحد</div>
-                <div class="banner-features">
-                    <div>📦 توصيل سريع</div>
-                    <div>🏷️ أرخص الأسعار</div>
-                </div>
-                <button class="banner-btn" onclick="document.getElementById('productsContainer').scrollIntoView({behavior: 'smooth'})">تسوق الآن ❮</button>
+        <div class="banner-text-side">
+            <span class="banner-tag" id="bannerTag">سوبر ماركت العروبة</span>
+            <div class="banner-title" id="bannerTitle">كل احتياجات بيتك في مكان واحد</div>
+            <div class="banner-features">
+                <div>📦 توصيل سريع</div>
+                <div>🏷️ أرخص الأسعار</div>
             </div>
+            <button class="banner-btn" onclick="document.getElementById('productsContainer').scrollIntoView({behavior: 'smooth'})">تسوق الآن ❮</button>
+        </div>
+        <div class="banner-img-side">
+            <img id="bannerImg" src="https://i.ibb.co/3m1K2wP/basket.png" alt="بانر">
         </div>
     </div>
 
-    <!-- شريط الفئات الأفقي (سحب يمين ويسار) -->
-    <div class="categories-slider" id="categoriesContainer">
-        <!-- يتم جلب الفئات هنا -->
-    </div>
+    <!-- شريط الفئات الأفقي -->
+    <div class="categories-slider" id="categoriesContainer"></div>
 
     <!-- عنوان القسم -->
     <div class="section-header">
@@ -212,12 +207,9 @@
     function renderBanner() {
         document.getElementById('bannerTitle').innerText = bannerData.title || "كل احتياجات بيتك في مكان واحد";
         document.getElementById('bannerTag').innerText = bannerData.tag || "سوبر ماركت العروبة";
-        const bannerImgElem = document.getElementById('bannerImg');
+        const bannerImg = document.getElementById('bannerImg');
         if(bannerData.img) {
-            bannerImgElem.src = bannerData.img;
-            bannerImgElem.style.display = 'block';
-        } else {
-            bannerImgElem.src = "https://i.ibb.co/3m1K2wP/basket.png";
+            bannerImg.src = bannerData.img;
         }
     }
 
