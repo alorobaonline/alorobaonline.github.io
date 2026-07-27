@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>العروبة - لوحة التحكم الشاملة</title>
+    <!-- استدعاء خط Cairo الحديث من جوجل -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
@@ -15,14 +17,14 @@
             --radius-md: 10px;
             --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
         body { background-color: var(--bg-color); color: #1f2937; padding: 15px; }
         .admin-container { max-width: 600px; margin: 0 auto; }
         .admin-header { background: white; padding: 16px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-top: 4px solid var(--primary-green); }
         .card-box { background: white; padding: 18px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 15px; border: 1px solid #e5e7eb; }
         .form-group { margin-bottom: 12px; }
         .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: var(--radius-md); font-size: 0.9rem; outline: none; background: #fff; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: var(--radius-md); font-size: 0.9rem; outline: none; background: #fff; font-family: 'Cairo', sans-serif; }
         .row-2 { display: flex; gap: 10px; }
         .row-2 .form-group { flex: 1; }
         
@@ -54,13 +56,15 @@
         .btn-change-img { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; }
         .btn-remove-img { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
 
-        /* تنسيق خاص لقسم العرض بلون أحمر */
         .offer-section-box { background: #fff5f5; border: 1px solid #fecaca; padding: 12px; border-radius: var(--radius-md); margin-top: 8px; display: none; }
         
-        /* تنسيق قسم الحزم الجديد */
         .products-select-box { border: 1px solid #d1d5db; border-radius: var(--radius-md); max-height: 200px; overflow-y: auto; padding: 8px; background: #fff; }
         .product-select-item { display: flex; align-items: center; justify-content: space-between; padding: 6px; border-bottom: 1px solid #f3f4f6; font-size: 0.85rem; }
         .product-select-item:last-child { border-bottom: none; }
+
+        /* تنسيق خاص بقسم البانرات في لوحة التحكم */
+        .banner-admin-card { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; margin-bottom: 8px; gap: 10px; }
+        .banner-admin-thumb { width: 80px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; background: #fff; flex-shrink: 0; }
     </style>
 </head>
 <body>
@@ -68,6 +72,46 @@
         <div class="admin-header">
             <h2>العروبة - لوحة التحكم</h2>
             <a href="index.html" style="background:#e3f2fd; color:#1976d2; padding:6px 12px; border-radius:20px; text-decoration:none; font-size:0.85rem; font-weight:bold;">عرض المتجر ↗</a>
+        </div>
+
+        <!-- قسم إدارة البانرات الإعلانية المتحركة -->
+        <div class="card-box">
+            <h3 style="margin-bottom: 12px; font-size: 1rem; color: var(--primary-green);">🖼️ إدارة البانرات الإعلانية المتحركة</h3>
+            <input type="hidden" id="banner-img-base64">
+            
+            <div class="form-group">
+                <label>صورة البانر الإعلاني (يفضل عرض أفقي)</label>
+                <div class="image-upload-box" id="banner-upload-box-wrapper">
+                    <input type="file" id="banner-file-input" accept="image/*" onchange="handleBannerImagePick(event)">
+                    
+                    <div id="banner-upload-placeholder">
+                        <div style="font-size: 1.6rem; margin-bottom: 2px;">📸</div>
+                        <span style="font-size: 0.85rem; font-weight: bold; color: #334155;">اختر صورة البانر الإعلاني</span>
+                    </div>
+
+                    <div id="banner-preview-container" class="preview-container">
+                        <img id="banner-img-preview" class="preview-img-disp" style="width: 120px; height: 60px; object-fit: cover;" alt="معاينة البانر">
+                        <div class="img-actions-col">
+                            <button type="button" class="btn-img-action btn-change-img" onclick="triggerBannerFileSelect(event)">🔄 تبديل الصورة</button>
+                            <button type="button" class="btn-img-action btn-remove-img" onclick="removeBannerImage(event)">🗑️ حذف الصورة</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>رابط التوجيه عند الضغط على البانر (اختياري)</label>
+                <input type="text" id="banner-link" placeholder="https://example.com أو اتركها فارغة">
+            </div>
+
+            <button class="btn-main" type="button" onclick="saveBanner()">إضافة بانر جديد للمتجر</button>
+
+            <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 12px;">
+                <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; display:block;">البانرات النشطة حالياً في المتجر:</label>
+                <div id="banners-admin-list-container">
+                    <p style="text-align: center; color: #888; font-size: 0.85rem;">جاري تحميل البانرات...</p>
+                </div>
+            </div>
         </div>
 
         <div class="card-box">
@@ -254,6 +298,117 @@
         let allProductsForBundle = [];
         let loadedBundlesMap = {};
 
+        // وظائف إدارة البانرات الإعلانية في لوحة التحكم
+        function handleBannerImagePick(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800;
+                    const MAX_HEIGHT = 400;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    document.getElementById('banner-img-base64').value = compressedBase64;
+                    
+                    document.getElementById('banner-img-preview').src = compressedBase64;
+                    document.getElementById('banner-upload-placeholder').style.display = 'none';
+                    document.getElementById('banner-preview-container').style.display = 'flex';
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        function triggerBannerFileSelect(e) {
+            e.stopPropagation();
+            document.getElementById('banner-file-input').click();
+        }
+
+        function removeBannerImage(e) {
+            e.stopPropagation();
+            document.getElementById('banner-img-base64').value = '';
+            document.getElementById('banner-file-input').value = '';
+            document.getElementById('banner-img-preview').src = '';
+            document.getElementById('banner-preview-container').style.display = 'none';
+            document.getElementById('banner-upload-placeholder').style.display = 'block';
+        }
+
+        function saveBanner() {
+            let imgBase64 = document.getElementById('banner-img-base64').value;
+            let link = document.getElementById('banner-link').value.trim();
+
+            if (!imgBase64) {
+                alert("الرجاء اختيار صورة للبانر الإعلاني.");
+                return;
+            }
+
+            db.collection("banners").add({
+                img: imgBase64,
+                link: link || "",
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                alert("تم إضافة البانر بنجاح ونشره في المتجر!");
+                removeBannerImage(new Event('click'));
+                document.getElementById('banner-link').value = '';
+            }).catch(err => {
+                alert("حدث خطأ أثناء حفظ البانر: " + err.message);
+            });
+        }
+
+        function deleteBanner(bannerId) {
+            if (confirm("هل أنت متأكد من حذف هذا البانر الإعلاني؟")) {
+                db.collection("banners").doc(bannerId).delete().then(() => {
+                    alert("تم حذف البانر بنجاح.");
+                }).catch(err => {
+                    alert("خطأ أثناء الحذف: " + err.message);
+                });
+            }
+        }
+
+        // جلب وعرض البانرات الحالية في لوحة التحكم
+        db.collection("banners").onSnapshot((snapshot) => {
+            let listHtml = '';
+            snapshot.forEach((doc) => {
+                let b = doc.data();
+                let bId = doc.id;
+                listHtml += `
+                    <div class="banner-admin-card">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <img src="${b.img}" class="banner-admin-thumb" alt="بانر">
+                            <div>
+                                <div style="font-size:0.8rem; color:#666;">رابط: ${b.link || 'لا يوجد'}</div>
+                            </div>
+                        </div>
+                        <button class="btn-del-sm" onclick="deleteBanner('${bId}')">حذف</button>
+                    </div>
+                `;
+            });
+            document.getElementById('banners-admin-list-container').innerHTML = listHtml || '<p style="text-align: center; color: #888; font-size: 0.85rem;">لا توجد بانرات مضافة حالياً</p>';
+        });
+
         function startBarcodeScanner() {
             const container = document.getElementById('barcode-scanner-container');
             container.style.display = 'block';
@@ -308,7 +463,6 @@
             document.getElementById('prod-category').innerHTML = selectHtml;
         });
 
-        // جلب المنتجات لقائمة الاختيار الخاصة بالحزم وإدارتها
         db.collection("products").onSnapshot((snapshot) => {
             allProductsForBundle = [];
             let prodHtml = '';
@@ -360,7 +514,6 @@
             renderProductsCheckboxList(allProductsForBundle);
         });
 
-        // جلب الحزم المخزنة لعرضها مع زري التعديل والحذف
         db.collection("bundles").onSnapshot((snapshot) => {
             let listHtml = '';
             loadedBundlesMap = {};
@@ -467,7 +620,6 @@
             document.getElementById('bundle-submit-btn').innerText = 'حفظ التعديلات';
             document.getElementById('bundle-cancel-edit-btn').style.display = 'block';
 
-            // تحديد المنتجات المشاركة المرتبطة بالعرض
             let checkboxes = document.querySelectorAll('.bundle-prod-checkbox');
             checkboxes.forEach(cb => {
                 if (b.productIds && b.productIds.includes(cb.value)) {
@@ -593,61 +745,88 @@
         function editCategory(id, name) {
             document.getElementById('cat-id').value = id;
             document.getElementById('cat-name').value = name;
-            document.getElementById('cat-panel-title').innerText = "✏️ تعديل اسم الفئة";
+            document.getElementById('cat-panel-title').innerText = "✏️ تعديل الفئة";
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function deleteCategory(id) {
             if (confirm("هل أنت متأكد من حذف هذه الفئة؟")) {
-                db.collection("categories").doc(id).delete();
+                db.collection("categories").doc(id).delete().then(() => alert("تم الحذف بنجاح!"));
             }
         }
 
         function openNewProductForm() {
             resetProductForm();
+            document.getElementById('product-form-container').style.display = 'block';
             document.getElementById('open-product-form-btn-wrapper').style.display = 'none';
-            const formBox = document.getElementById('product-form-container');
-            formBox.style.display = 'block';
-            formBox.scrollIntoView({ behavior: 'smooth' });
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        function resetProductForm() {
+            document.getElementById('prod-id').value = '';
+            document.getElementById('prod-title').value = '';
+            document.getElementById('prod-price').value = '';
+            document.getElementById('prod-cost').value = '';
+            document.getElementById('prod-stock').value = '50';
+            document.getElementById('prod-unit').value = 'حبة';
+            document.getElementById('prod-barcode').value = '';
+            document.getElementById('prod-emoji').value = '🛒';
+            document.getElementById('prod-category').value = 'الكل';
+            document.getElementById('prod-is-offer').checked = false;
+            document.getElementById('offer-price-container').style.display = 'none';
+            document.getElementById('prod-offer-price').value = '';
+            
+            removeProductImage(new Event('click'));
+            
+            document.getElementById('product-form-container').style.display = 'none';
+            document.getElementById('open-product-form-btn-wrapper').style.display = 'block';
+            document.getElementById('prod-panel-title').innerText = "🛒 إضافة منتج جديد";
+            document.getElementById('prod-submit-btn').innerText = "💾 حفظ";
         }
 
         function saveProduct() {
             const id = document.getElementById('prod-id').value;
             const title = document.getElementById('prod-title').value.trim();
-            const price = parseFloat(document.getElementById('prod-price').value) || 0;
-            const offerPrice = parseFloat(document.getElementById('prod-offer-price').value) || 0;
+            const price = parseFloat(document.getElementById('prod-price').value);
             const cost = parseFloat(document.getElementById('prod-cost').value) || 0;
             const stock = parseInt(document.getElementById('prod-stock').value) || 0;
             const unit = document.getElementById('prod-unit').value.trim() || 'حبة';
             const barcode = document.getElementById('prod-barcode').value.trim();
-            const category = document.getElementById('prod-category').value;
-            const img = document.getElementById('prod-img-base64').value.trim();
             const emoji = document.getElementById('prod-emoji').value.trim() || '🛒';
+            const category = document.getElementById('prod-category').value;
+            const img = document.getElementById('prod-img-base64').value;
             const isOffer = document.getElementById('prod-is-offer').checked;
+            const offerPrice = parseFloat(document.getElementById('prod-offer-price').value) || 0;
 
-            if (!title) { alert("الرجاء إدخال اسم المنتج بالعربية!"); return; }
-            if (isOffer && (!offerPrice || offerPrice <= 0)) { alert("الرجاء إدخال سعر العرض الجديد!"); return; }
+            if (!title || isNaN(price)) {
+                alert("الرجاء إدخال اسم المنتج والسعر بشكل صحيح!");
+                return;
+            }
 
-            const prodData = { title, price, offerPrice: isOffer ? offerPrice : 0, cost, stock, unit, barcode, category, img, emoji, isOffer };
+            if (isOffer && (isNaN(offerPrice) || offerPrice <= 0)) {
+                alert("الرجاء إدخال سعر العرض الصحيح للمنتج.");
+                return;
+            }
 
-            let request = id ? db.collection("products").doc(id).update(prodData) : db.collection("products").add(prodData);
+            const productData = {
+                title, price, cost, stock, unit, barcode, emoji, category, img, isOffer, offerPrice,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            let request = id ? db.collection("products").doc(id).update(productData) : db.collection("products").add({
+                ...productData,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
 
             request.then(() => {
-                resetProductForm();
                 alert("تم حفظ المنتج بنجاح!");
-            }).catch(err => alert("خطأ: " + err.message));
+                resetProductForm();
+            }).catch(err => alert("خطأ أثناء الحفظ: " + err.message));
         }
 
         function editProduct(encodedData) {
-            stopBarcodeScanner();
             let p = JSON.parse(decodeURIComponent(encodedData));
-
-            document.getElementById('open-product-form-btn-wrapper').style.display = 'none';
-            const formBox = document.getElementById('product-form-container');
-            formBox.style.display = 'block';
-            formBox.scrollIntoView({ behavior: 'smooth' });
-
-            document.getElementById('prod-panel-title').innerText = "✏️ تعديل المنتج: " + p.title;
+            
             document.getElementById('prod-id').value = p.id;
             document.getElementById('prod-title').value = p.title;
             document.getElementById('prod-price').value = p.price;
@@ -655,43 +834,28 @@
             document.getElementById('prod-stock').value = p.stock;
             document.getElementById('prod-unit').value = p.unit;
             document.getElementById('prod-barcode').value = p.barcode;
-            document.getElementById('prod-category').value = p.category;
             document.getElementById('prod-emoji').value = p.emoji;
-            document.getElementById('prod-img-base64').value = p.img;
+            document.getElementById('prod-category').value = p.category;
             
-            document.getElementById('prod-is-offer').checked = p.isOffer;
-            document.getElementById('prod-offer-price').value = p.offerPrice || '';
-            document.getElementById('offer-price-container').style.display = p.isOffer ? 'block' : 'none';
-
+            document.getElementById('prod-img-base64').value = p.img;
             updateImageDisplayState(p.img);
+
+            document.getElementById('prod-is-offer').checked = p.isOffer;
+            document.getElementById('offer-price-container').style.display = p.isOffer ? 'block' : 'none';
+            document.getElementById('prod-offer-price').value = p.offerPrice || '';
+
+            document.getElementById('product-form-container').style.display = 'block';
+            document.getElementById('open-product-form-btn-wrapper').style.display = 'none';
+            document.getElementById('prod-panel-title').innerText = "✏️ تعديل المنتج";
+            document.getElementById('prod-submit-btn').innerText = "💾 حفظ التعديلات";
+            
+            window.scrollTo({ top: document.getElementById('product-form-container').offsetTop, behavior: 'smooth' });
         }
 
         function deleteProduct(id) {
             if (confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
-                db.collection("products").doc(id).delete();
+                db.collection("products").doc(id).delete().then(() => alert("تم حذف المنتج بنجاح!"));
             }
-        }
-
-        function resetProductForm() {
-            stopBarcodeScanner();
-            document.getElementById('prod-id').value = '';
-            document.getElementById('prod-title').value = '';
-            document.getElementById('prod-price').value = '';
-            document.getElementById('prod-offer-price').value = '';
-            document.getElementById('prod-cost').value = '';
-            document.getElementById('prod-stock').value = '50';
-            document.getElementById('prod-unit').value = 'حبة';
-            document.getElementById('prod-barcode').value = '';
-            document.getElementById('prod-emoji').value = '🛒';
-            document.getElementById('prod-img-base64').value = '';
-            document.getElementById('prod-file-input').value = '';
-            document.getElementById('prod-is-offer').checked = false;
-            document.getElementById('offer-price-container').style.display = 'none';
-            
-            updateImageDisplayState('');
-            document.getElementById('prod-panel-title').innerText = "🛒 إضافة منتج جديد";
-            document.getElementById('product-form-container').style.display = 'none';
-            document.getElementById('open-product-form-btn-wrapper').style.display = 'block';
         }
     </script>
 </body>
