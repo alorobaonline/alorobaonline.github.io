@@ -57,12 +57,12 @@
 
         .btn-add-cart { background: var(--primary-green); color: white; border: none; width: 100%; padding: 8px; border-radius: var(--radius-md); font-weight: 700; font-size: 0.85rem; cursor: pointer; text-align: center; }
 
-        /* أزرار عداد المنتجات بتصميم عصري (دائري وأنيق) */
+        /* أزرار عداد المنتجات في الكارد الرئيسي */
         .cart-counter-box { display: flex; align-items: center; justify-content: space-between; background: var(--primary-green); border-radius: var(--radius-md); overflow: hidden; width: 100%; }
         .cart-counter-btn { background: rgba(0,0,0,0.15); color: white; border: none; padding: 8px 14px; font-size: 1rem; font-weight: 700; cursor: pointer; }
         .cart-counter-value { color: white; font-weight: 700; font-size: 0.95rem; }
 
-        /* تصميم عصري حصري لأزرار العداد داخل نافذة السلة (دائرية ومنفصلة) */
+        /* تصميم عصري لأزرار العداد (دائرية ومنفصلة) */
         .modern-qty-control { display: flex; align-items: center; background: #f3f4f6; border-radius: 30px; padding: 3px; border: 1px solid #e5e7eb; }
         .modern-qty-btn { width: 28px; height: 28px; border-radius: 50%; background: white; border: 1px solid #d1d5db; color: #374151; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s; }
         .modern-qty-btn:active { background: #e5e7eb; transform: scale(0.95); }
@@ -88,10 +88,12 @@
         .bundle-item-row.active-row { border-color: #fca5a5; background: #fef2f2; }
         .bundle-item-img { width: 45px; height: 45px; object-fit: contain; border-radius: 6px; background: #fff; flex-shrink: 0; }
         
-        .bundle-progress-banner { background: #fee2e2; color: #dc2626; padding: 10px; border-radius: 10px; font-weight: 700; text-align: center; margin-bottom: 12px; font-size: 0.85rem; }
-        .bundle-progress-banner.completed { background: #dcfce7; color: #16a34a; }
+        .bundle-progress-banner { background: #fee2e2; color: #dc2626; padding: 12px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #fca5a5; }
+        .bundle-banner-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 700; font-size: 0.95rem; }
+        .bundle-banner-text { font-size: 0.85rem; font-weight: 700; }
         .progress-bar-container { background: #fca5a5; height: 6px; border-radius: 3px; margin-top: 6px; overflow: hidden; }
         .progress-bar-fill { background: #dc2626; height: 100%; width: 0%; transition: width 0.3s; }
+        .bundle-progress-banner.completed { background: #dcfce7; border-color: #86efac; color: #16a34a; }
         .bundle-progress-banner.completed .progress-bar-fill { background: #16a34a; }
 
         .floating-dashboard-btn { position: fixed; bottom: 20px; right: 20px; background: #374151; color: white; padding: 10px 16px; border-radius: 30px; text-decoration: none; font-size: 0.85rem; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 100; display: flex; align-items: center; gap: 6px; }
@@ -129,9 +131,12 @@
                 <button onclick="closeBundleModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; font-weight: bold;">✕</button>
             </div>
 
-            <!-- شريط التقدم للحزمة -->
+            <!-- شريط التقدم للحزمة مع السعر على الجهة الشمال والنص المطلوب في المنتصف -->
             <div id="bundle-banner" class="bundle-progress-banner">
-                <div id="bundle-banner-text">أضف منتجات للحصول على العرض</div>
+                <div class="bundle-banner-top">
+                    <span id="bundle-banner-text" class="bundle-banner-text">أضف 3 منتجات أخرى للحصول العرض</span>
+                    <span id="bundle-price-tag" style="font-weight: 700; direction: ltr; unicode-bidi: isolate;"></span>
+                </div>
                 <div class="progress-bar-container">
                     <div id="bundle-progress-fill" class="progress-bar-fill"></div>
                 </div>
@@ -311,18 +316,22 @@
             let reqQty = bundle.quantity;
             let banner = document.getElementById('bundle-banner');
             let bannerText = document.getElementById('bundle-banner-text');
+            let priceTag = document.getElementById('bundle-price-tag');
             let progressFill = document.getElementById('bundle-progress-fill');
+
+            // عرض السعر المحطوط في لوحة التحكم على الجهة الشمال (اليسار)
+            priceTag.innerText = `${bundle.quantity} بـ ${bundle.price} ₪`;
 
             let percent = Math.min(100, (totalInBundle / reqQty) * 100);
             progressFill.style.width = percent + '%';
 
             if (totalInBundle >= reqQty) {
                 banner.className = "bundle-progress-banner completed";
-                bannerText.innerHTML = `🎉 تم تفعيل العرض! (أضفت ${totalInBundle} منتجات)`;
+                bannerText.innerHTML = `🎉 تم تفعيل العرض بنجاح! (أضفت ${totalInBundle} منتجات)`;
             } else {
                 banner.className = "bundle-progress-banner";
                 let needed = reqQty - totalInBundle;
-                bannerText.innerHTML = `أضف ${needed} أخرى للحصول على ${reqQty} بـ ${bundle.price} ₪`;
+                bannerText.innerHTML = `أضف ${needed} منتجات أخرى للحصول العرض`;
             }
 
             let container = document.getElementById('bundle-items-container');
