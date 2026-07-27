@@ -58,14 +58,20 @@
         .price-offer-new { font-weight: 700; color: #dc2626; font-size: 1.05rem; }
         .price-offer-old { text-decoration: line-through; color: #1f2937; font-size: 0.8rem; font-weight: 600; }
 
-        /* زر الإضافة الأولي */
         .btn-add-cart { background: var(--primary-green); color: white; border: none; width: 100%; padding: 8px; border-radius: var(--radius-md); font-weight: 700; font-size: 0.85rem; cursor: pointer; text-align: center; }
 
-        /* العداد الالكتروني (+ و -) على الكرت */
         .cart-counter-box { display: flex; align-items: center; justify-content: space-between; background: var(--primary-green); border-radius: var(--radius-md); overflow: hidden; width: 100%; }
-        .cart-counter-btn { background: rgba(0,0,0,0.15); color: white; border: none; padding: 8px 14px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
-        .cart-counter-btn:active { background: rgba(0,0,0,0.3); }
+        .cart-counter-btn { background: rgba(0,0,0,0.15); color: white; border: none; padding: 8px 14px; font-size: 1rem; font-weight: 700; cursor: pointer; }
         .cart-counter-value { color: white; font-weight: 700; font-size: 0.95rem; }
+
+        /* نافذة السلة المتقدمة */
+        #cart-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-end; }
+        .cart-modal-content { background: white; width: 100%; max-width: 600px; max-height: 85vh; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; display: flex; flex-direction: column; }
+        .cart-items-list { overflow-y: auto; max-height: 45vh; flex-grow: 1; margin-bottom: 12px; }
+        .cart-item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
+        .cart-summary-box { background: #f8fafc; padding: 12px; border-radius: 10px; margin-bottom: 12px; font-size: 0.9rem; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+        .summary-row.total { font-weight: 700; font-size: 1.1rem; color: var(--primary-green); border-top: 1px solid #e2e8f0; padding-top: 6px; }
 
         .floating-dashboard-btn { position: fixed; bottom: 20px; right: 20px; background: #374151; color: white; padding: 10px 16px; border-radius: 30px; text-decoration: none; font-size: 0.85rem; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 100; display: flex; align-items: center; gap: 6px; }
     </style>
@@ -77,7 +83,8 @@
                 <div class="store-title">العروبة أون لاين</div>
                 <div class="store-sub">توصيل سريع • رهط</div>
             </div>
-            <button class="cart-badge-btn" onclick="alert('السلة قيد التطوير')">
+            <!-- تم ربط زر السلة بفتح نافذة تفاصيل السلة المتقدمة -->
+            <button class="cart-badge-btn" onclick="openCartModal()">
                 🛒 <span id="cart-count">0</span>
             </button>
         </div>
@@ -91,6 +98,37 @@
         <!-- شبكة المنتجات -->
         <div id="store-products-grid" class="products-grid">
             <p style="text-align: center; color: #888; grid-column: span 2;">جاري تحميل المنتجات...</p>
+        </div>
+    </div>
+
+    <!-- نافذة السلة المتقدمة -->
+    <div id="cart-modal">
+        <div class="cart-modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h3 style="font-size: 1.1rem; color: var(--primary-green);">🛒 سلة المشتريات</h3>
+                <button onclick="closeCartModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; font-weight: bold;">✕</button>
+            </div>
+            
+            <div class="cart-items-list" id="cart-items-container">
+                <p style="text-align: center; color: #888;">السلة فارغة حالياً</p>
+            </div>
+
+            <div class="cart-summary-box" id="cart-summary-box" style="display: none;">
+                <div class="summary-row">
+                    <span>مجموع المنتجات:</span>
+                    <span id="subtotal-price">0 ₪</span>
+                </div>
+                <div class="summary-row" style="color: #dc2626;" id="discount-row">
+                    <span>إجمالي التوفير والعروض:</span>
+                    <span id="discount-price">0 ₪</span>
+                </div>
+                <div class="summary-row total">
+                    <span>المجموع الإجمالي النهائي:</span>
+                    <span id="final-total-price">0 ₪</span>
+                </div>
+            </div>
+
+            <button class="btn-add-cart" id="checkout-btn" onclick="alert('تم إرسال الطلب بنجاح!')" style="padding: 12px; font-size: 1rem; display: none;">إتمام الطلب الآن</button>
         </div>
     </div>
 
@@ -111,9 +149,10 @@
 
         let currentCategory = "الكل";
         let allProducts = [];
+        let allProductsMap = {};
         let dbCategories = [];
         let productBundlesMap = {}; 
-        let cartItems = {}; // تخزين كميات المنتجات في السلة
+        let cartItems = {};
 
         db.collection("categories").onSnapshot((snapshot) => {
             dbCategories = [];
@@ -139,14 +178,16 @@
 
         db.collection("products").onSnapshot((snapshot) => {
             allProducts = [];
+            allProductsMap = {};
             snapshot.forEach((doc) => {
-                allProducts.push({ id: doc.id, ...doc.data() });
+                let p = doc.data();
+                allProducts.push({ id: doc.id, ...p });
+                allProductsMap[doc.id] = p;
             });
             updateCategoriesBar();
             renderProducts();
         });
 
-        // زيادة الكمية
         function increaseQuantity(productId) {
             if (!cartItems[productId]) {
                 cartItems[productId] = 1;
@@ -157,7 +198,6 @@
             renderProducts();
         }
 
-        // نقصان الكمية
         function decreaseQuantity(productId) {
             if (cartItems[productId] && cartItems[productId] > 0) {
                 cartItems[productId]--;
@@ -169,13 +209,73 @@
             renderProducts();
         }
 
-        // تحديث الرقم الظاهر في أيقونة السلة العلوي
         function updateCartCounter() {
             let totalCount = 0;
             for (let id in cartItems) {
                 totalCount += cartItems[id];
             }
             document.getElementById('cart-count').innerText = totalCount;
+        }
+
+        function openCartModal() {
+            let container = document.getElementById('cart-items-container');
+            let summaryBox = document.getElementById('cart-summary-box');
+            let checkoutBtn = document.getElementById('checkout-btn');
+            
+            let html = '';
+            let subtotal = 0;
+            let totalDiscount = 0;
+            let hasItems = false;
+
+            for (let id in cartItems) {
+                let p = allProductsMap[id];
+                let qty = cartItems[id];
+                if (p) {
+                    hasItems = true;
+                    let regularPrice = Number(p.price) || 0;
+                    let hasOffer = p.isOffer && p.offerPrice && Number(p.offerPrice) > 0;
+                    let activePrice = hasOffer ? Number(p.offerPrice) : regularPrice;
+                    
+                    let itemTotal = activePrice * qty;
+                    subtotal += regularPrice * qty;
+                    totalDiscount += (regularPrice - activePrice) * qty;
+
+                    html += `
+                        <div class="cart-item-row">
+                            <div>
+                                <div style="font-weight: 700; font-size: 0.9rem;">${p.title}</div>
+                                <div style="font-size: 0.8rem; color: #e11d48; direction: ltr; unicode-bidi: isolate;">${activePrice} ₪ × ${qty} = ${itemTotal.toFixed(2)} ₪</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <button class="cart-counter-btn" style="padding: 2px 8px; font-size: 0.8rem;" onclick="decreaseQuantity('${id}'); openCartModal();">-</button>
+                                <span style="font-weight: 700; font-size: 0.9rem;">${qty}</span>
+                                <button class="cart-counter-btn" style="padding: 2px 8px; font-size: 0.8rem;" onclick="increaseQuantity('${id}'); openCartModal();">+</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            if (hasItems) {
+                container.innerHTML = html;
+                summaryBox.style.display = 'block';
+                checkoutBtn.style.display = 'block';
+
+                let finalTotal = subtotal - totalDiscount;
+                document.getElementById('subtotal-price').innerText = subtotal.toFixed(2) + ' ₪';
+                document.getElementById('discount-price').innerText = '-' + totalDiscount.toFixed(2) + ' ₪';
+                document.getElementById('final-total-price').innerText = finalTotal.toFixed(2) + ' ₪';
+            } else {
+                container.innerHTML = '<p style="text-align: center; color: #888;">السلة فارغة حالياً</p>';
+                summaryBox.style.display = 'none';
+                checkoutBtn.style.display = 'none';
+            }
+
+            document.getElementById('cart-modal').style.display = 'flex';
+        }
+
+        function closeCartModal() {
+            document.getElementById('cart-modal').style.display = 'none';
         }
 
         function updateCategoriesBar() {
@@ -244,7 +344,6 @@
                     `;
                 }
 
-                // تحديد شكل الزر بناءً على ما إذا كانت الكمية في السلة أكبر من الصفر
                 let quantityInCart = cartItems[p.id] || 0;
                 let actionButtonHtml = '';
 
