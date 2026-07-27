@@ -151,7 +151,7 @@
         .cart-input { width: 100%; padding: 8px; margin-bottom: 6px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.75rem; outline: none; }
         .whatsapp-btn { width: 100%; background: #25d366; color: white; border: none; padding: 10px; border-radius: 20px; font-weight: bold; font-size: 0.75rem; cursor: pointer; margin-top: 6px; }
 
-        /* نافذة تكبير صورة المنتج (Zoom Modal) */
+        /* نافذة تكبير صورة المنتج (Zoom Modal) المعدلة والمكبرة */
         .image-zoom-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -160,55 +160,60 @@
             justify-content: center;
             align-items: center;
             z-index: 3000;
-            padding: 20px;
+            padding: 15px;
         }
         .image-zoom-container {
             position: relative;
             background: white;
-            padding: 20px;
-            border-radius: 16px;
-            max-width: 90%;
-            max-height: 80vh;
+            padding: 25px 20px 20px 20px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
         .image-zoom-container img {
-            max-width: 100%;
-            max-height: 55vh;
+            width: 100%;
+            max-height: 350px;
             object-fit: contain;
-            border-radius: 8px;
-            margin-bottom: 10px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            background: #fff;
         }
         .zoom-product-title {
-            font-size: 0.95rem;
+            font-size: 1.1rem;
             font-weight: 900;
             color: #1b4d2e;
             text-align: center;
-            margin-bottom: 4px;
+            margin-bottom: 5px;
         }
         .zoom-product-weight {
-            font-size: 0.7rem;
+            font-size: 0.8rem;
             color: #6b7280;
             font-weight: 700;
         }
         .close-zoom-btn {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            background: #ef4444;
-            color: white;
+            top: 12px;
+            left: 12px;
+            background: #fee2e2;
+            color: #dc2626;
             border: none;
-            width: 30px;
-            height: 30px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             font-weight: bold;
-            font-size: 0.9rem;
+            font-size: 1rem;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: background 0.2s;
+        }
+        .close-zoom-btn:hover {
+            background: #fecaca;
         }
 
         /* شريط التنقل السفلي والزر العائم */
@@ -316,7 +321,7 @@
     </div>
 </div>
 
-<!-- نافذة تكبير صورة المنتج (Zoom Modal) -->
+<!-- نافذة تكبير صورة المنتج (Zoom Modal) المعدلة -->
 <div class="image-zoom-overlay" id="imageZoomOverlay" onclick="handleZoomOverlayClick(event)">
     <div class="image-zoom-container">
         <button class="close-zoom-btn" onclick="closeZoomModal()">✕</button>
