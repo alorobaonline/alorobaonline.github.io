@@ -23,9 +23,8 @@
 
         .section-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
         
-        /* عناوين الأقسام القابلة للطي والتوسيع (تبدأ مغلقة) */
         .section-header-toggle { font-size: 0.85rem; color: var(--primary-green); font-weight: 800; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
-        .section-content { margin-top: 10px; display: none; } /* مغلق افتراضياً */
+        .section-content { margin-top: 10px; display: none; }
 
         .form-group { margin-bottom: 8px; }
         .form-group label { display: block; font-size: 0.7rem; font-weight: 700; margin-bottom: 3px; color: #4b5563; }
@@ -83,14 +82,32 @@
         .preview-thumb { width: 45px; height: 45px; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 6px; background: white; padding: 2px; }
         
         .toggle-arrow { font-size: 0.75rem; transition: transform 0.2s; }
+        
+        .order-card { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 0.75rem; }
+        .order-header { display: flex; justify-content: space-between; font-weight: bold; color: var(--primary-green); border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; }
     </style>
 </head>
-<body>
+<body onload="renderAdmin()">
 
 <div class="dashboard-container">
     <div class="dash-header">
         <h1>⚙️ لوحة تحكم سوبر ماركت العروبة</h1>
         <a href="index.html" class="back-btn">← عودة للمتجر</a>
+    </div>
+
+    <!-- نظام إدارة الطلبات الحية -->
+    <div class="section-box" style="border-color: #3b82f6; background: #eff6ff;">
+        <div class="section-header-toggle" onclick="toggleMainSection('liveOrdersSection', 'ordersArrow')">
+            <span>🔔 إدارة الطلبات الحية للزبائن (<span id="ordersCountBadge">0</span>)</span>
+            <span id="ordersArrow" class="toggle-arrow">▼</span>
+        </div>
+        <div id="liveOrdersSection" class="section-content">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-size: 0.7rem; color: #555;">الطلبات الواردة من الزبائن تسجل هنا تلقائياً:</span>
+                <button class="btn-delete" style="padding: 3px 8px; font-size: 0.6rem;" onclick="clearAllOrders()">تفريغ السجل 🗑️</button>
+            </div>
+            <div id="liveOrdersListContainer"></div>
+        </div>
     </div>
 
     <!-- 1. إعدادات البانر الرئيسي -->
@@ -151,7 +168,7 @@
         </div>
     </div>
 
-    <!-- القسم الأول: إضافة منتج جديد (مستقل) -->
+    <!-- القسم الأول: إضافة منتج جديد -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleMainSection('addProductSection', 'prodArrow')">
             <span>📦 إضافة منتج جديد</span>
@@ -181,7 +198,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>صورة المنتج (من كاميرا الهاتف أو الاستوديو) *</label>
+                <label>صورة المنتج *</label>
                 <div class="file-upload-box">
                     <label class="camera-btn" for="prodFile">📸 التقاط أو اختيار صورة</label>
                     <input type="file" id="prodFile" accept="image/*" onchange="compressAndSetImage(event, 'prodImgData', 'prodPreview')">
@@ -193,7 +210,7 @@
         </div>
     </div>
 
-    <!-- القسم الثاني: حملات العروبة (مستقل) -->
+    <!-- القسم الثاني: حملات العروبة -->
     <div class="section-box" style="border-color: #68a633; background: #f4fbf0;">
         <div class="section-header-toggle" onclick="toggleMainSection('campaignsSection', 'campArrow')">
             <span>🔥 حملات العروبة وعروضها الخاصة</span>
@@ -282,7 +299,6 @@
                 ctx.drawImage(img, 0, 0, width, height);
 
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                
                 document.getElementById(hiddenInputId).value = dataUrl;
                 document.getElementById(previewImgId).src = dataUrl;
             };
@@ -318,9 +334,7 @@
         ];
         try {
             localStorage.setItem('aloroba_products', JSON.stringify(defaultProducts));
-        } catch (err) {
-            console.error("فشل الحفظ الافتراضي:", err);
-        }
+        } catch (err) {}
         return defaultProducts;
     }
 
@@ -345,11 +359,9 @@
         bannerData = JSON.parse(localStorage.getItem('aloroba_banner')) || {
             title: "كل احتياجات بيتك في مكان واحد",
             tag: "سوبر ماركت العروبة",
-            img: "https://i.ibb.co/3m1K2wP/basket.png"
+            img: ""
         };
-    } catch(e) {
-        bannerData = { title: "كل احتياجات بيتك", tag: "سوبر ماركت العروبة", img: "" };
-    }
+    } catch(e) {}
 
     function renderAdmin() {
         let products = getStoredProducts();
@@ -360,6 +372,8 @@
         if(bannerData.img) {
             document.getElementById('bannerPreview').src = bannerData.img;
         }
+
+        renderLiveOrders();
 
         const checkboxesContainer = document.getElementById('prodCategoriesCheckboxes');
         checkboxesContainer.innerHTML = '';
@@ -449,7 +463,7 @@
                                     <input type="text" id="edit-offer-${originalIndex}" class="form-control" value="${p.offer || ''}">
                                 </div>
                                 <div class="form-group">
-                                    <label>تغيير صورة المنتج (كاميرا / استوديو)</label>
+                                    <label>تغيير صورة المنتج</label>
                                     <div class="file-upload-box">
                                         <label class="camera-btn" for="editFile-${originalIndex}">📸 اختر صورة جديدة</label>
                                         <input type="file" id="editFile-${originalIndex}" accept="image/*" onchange="compressAndSetImage(event, 'edit-imgData-${originalIndex}', 'editPreview-${originalIndex}')">
@@ -485,6 +499,57 @@
         });
     }
 
+    function renderLiveOrders() {
+        let orders = [];
+        try {
+            orders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
+        } catch(e) { orders = []; }
+
+        document.getElementById('ordersCountBadge').innerText = orders.length;
+        const container = document.getElementById('liveOrdersListContainer');
+        container.innerHTML = '';
+
+        if (orders.length === 0) {
+            container.innerHTML = '<div style="text-align: center; color: #6b7280; font-size: 0.7rem; padding: 10px;">لا توجد طلبات جديدة حالياً</div>';
+            return;
+        }
+
+        orders.forEach((ord, idx) => {
+            let itemsHtml = ord.items.map(i => `• ${i.name} (×${i.quantity}) - ${i.price * i.quantity} ₪`).join('<br>');
+            container.innerHTML += `
+                <div class="order-card">
+                    <div class="order-header">
+                        <span>👤 الزبون: ${ord.customerName}</span>
+                        <span>${ord.date || ''}</span>
+                    </div>
+                    <div style="margin-bottom: 5px;">📞 الهاتف: <a href="tel:${ord.customerPhone}" style="color: #2563eb; font-weight: bold;">${ord.customerPhone}</a></div>
+                    <div style="margin-bottom: 5px;">📍 العنوان: ${ord.customerAddress || 'غير محدد'}</div>
+                    <div style="background: #f8fafc; padding: 5px; border-radius: 4px; margin-bottom: 5px;">${itemsHtml}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: var(--accent-green);">
+                        <span>المجموع: ${ord.totalAmount} ₪</span>
+                        <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteOrder(${idx})">حذف الطلب</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function deleteOrder(index) {
+        if(confirm("هل تريد حذف هذا الطلب من السجل؟")) {
+            let orders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
+            orders.splice(index, 1);
+            localStorage.setItem('aloroba_orders', JSON.stringify(orders));
+            renderLiveOrders();
+        }
+    }
+
+    function clearAllOrders() {
+        if(confirm("هل أنت متأكد من تفريغ سجل الطلبات بالكامل؟")) {
+            localStorage.removeItem('aloroba_orders');
+            renderLiveOrders();
+        }
+    }
+
     function toggleInlineEdit(index) {
         const editBox = document.getElementById(`inline-edit-${index}`);
         if (editBox.style.display === "block") {
@@ -497,7 +562,6 @@
 
     function saveInlineEdit(index) {
         let products = getStoredProducts();
-        
         const name = document.getElementById(`edit-name-${index}`).value;
         const weight = document.getElementById(`edit-weight-${index}`).value;
         const price = document.getElementById(`edit-price-${index}`).value;
@@ -515,27 +579,20 @@
             return;
         }
 
-        if(selectedCategories.length === 0) {
-            alert("الرجاء اختيار فئة واحدة على الأقل للمنتج");
-            return;
-        }
-
         products[index].name = name;
         products[index].weight = weight;
         products[index].categories = selectedCategories;
         products[index].price = Number(price);
         products[index].oldPrice = oldPrice ? Number(oldPrice) : null;
         products[index].offer = offer;
-        if(img) {
-            products[index].img = img;
-        }
+        if(img) products[index].img = img;
 
         try {
             localStorage.setItem('aloroba_products', JSON.stringify(products));
             alert("تم تحديث المنتج بنجاح!");
             renderAdmin();
         } catch (err) {
-            alert("مساحة الذاكرة ممتلئة. يرجى حذف بعض المنتجات القديمة.");
+            alert("مساحة الذاكرة ممتلئة.");
         }
     }
 
@@ -551,7 +608,6 @@
     function toggleCategorySection(catIdx) {
         const contentBox = document.getElementById(`category-content-${catIdx}`);
         const arrowIcon = document.getElementById(`arrow-icon-${catIdx}`);
-        
         if (contentBox.style.display === "none") {
             contentBox.style.display = "block";
             arrowIcon.innerText = "▼";
@@ -602,20 +658,17 @@
             try {
                 localStorage.setItem('aloroba_categories', JSON.stringify(categories));
                 renderAdmin();
-            } catch(e) {
-                alert("خطأ في الحذف.");
-            }
+            } catch(e) {}
         }
     }
 
-    // حفظ منتج جديد (القسم الأول)
     function saveProduct() {
         try {
             const name = document.getElementById('prodName').value.trim();
             const weight = document.getElementById('prodWeight').value.trim();
             const price = document.getElementById('prodPrice').value.trim();
             const oldPrice = document.getElementById('prodOldPrice').value.trim();
-            let img = document.getElementById('prodImgData').value.trim();
+            let img = document.getElementById('prodImgData').value;
 
             let selectedCategories = [];
             document.querySelectorAll('input[name="productCategoryCheck"]:checked').forEach(chk => {
@@ -623,12 +676,12 @@
             });
 
             if(!name || !price) {
-                alert("الرجاء إدخال اسم المنتج والسعر الحالي على الأقل!");
+                alert("الرجاء إدخال اسم المنتج والسعر الحالي");
                 return;
             }
 
             if(selectedCategories.length === 0) {
-                alert("الرجاء اختيار فئة واحدة على الأقل للمنتج!");
+                alert("الرجاء اختيار فئة واحدة على الأقل للمنتج");
                 return;
             }
 
@@ -637,21 +690,20 @@
             }
 
             let products = getStoredProducts();
-
-            const newProd = {
+            let newProduct = {
                 id: Date.now(),
                 name: name,
-                weight: weight,
-                categories: selectedCategories,
+                weight: weight || "حبة",
                 price: Number(price),
                 oldPrice: oldPrice ? Number(oldPrice) : null,
-                offer: "", // منتج عادي بدون حملة
-                img: img
+                offer: "",
+                img: img,
+                categories: selectedCategories
             };
 
-            products.unshift(newProd);
+            products.unshift(newProduct);
             localStorage.setItem('aloroba_products', JSON.stringify(products));
-            
+
             document.getElementById('prodName').value = '';
             document.getElementById('prodWeight').value = '';
             document.getElementById('prodPrice').value = '';
@@ -663,20 +715,19 @@
             renderAdmin();
             alert("تم إضافة ونشر المنتج بنجاح! 🚀");
         } catch(e) {
-            alert("حدث خطأ أثناء الحفظ. تأكد من مساحة التخزين.");
+            alert("حدث خطأ، ربما حجم الصورة كبير جداً.");
         }
     }
 
-    // حفظ حملة العروبة (القسم الثاني)
     function saveCampaign() {
         try {
             const name = document.getElementById('campName').value.trim();
             const offer = document.getElementById('campOffer').value.trim();
             const price = document.getElementById('campPrice').value.trim();
-            let img = document.getElementById('campImgData').value.trim();
+            let img = document.getElementById('campImgData').value;
 
             if(!name || !offer || !price) {
-                alert("الرجاء إدخال اسم الحملة، رزمة العرض، والسعر الترويجي!");
+                alert("الرجاء تعبئة حقول الحملة الأساسية");
                 return;
             }
 
@@ -685,21 +736,20 @@
             }
 
             let products = getStoredProducts();
-
-            const newCampaign = {
+            let newCampaign = {
                 id: Date.now(),
                 name: name,
                 weight: "عرض خاص",
-                categories: ["عروض"], // يتم إضافتها تلقائياً لقسم العروض
                 price: Number(price),
                 oldPrice: null,
                 offer: offer,
-                img: img
+                img: img,
+                categories: ["عروض"]
             };
 
             products.unshift(newCampaign);
             localStorage.setItem('aloroba_products', JSON.stringify(products));
-            
+
             document.getElementById('campName').value = '';
             document.getElementById('campOffer').value = '';
             document.getElementById('campPrice').value = '';
@@ -707,15 +757,11 @@
             document.getElementById('campPreview').src = "https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
 
             renderAdmin();
-            alert("تم إطلاق ونشر الحملة بنجاح! 🎯");
+            alert("تم إطلاق الحملة ونشرها بنجاح! 🎯");
         } catch(e) {
             alert("حدث خطأ أثناء حفظ الحملة.");
         }
     }
-
-    window.onload = () => {
-        renderAdmin();
-    };
 </script>
 </body>
 </html>
