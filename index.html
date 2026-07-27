@@ -3,225 +3,325 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سوبر ماركت العروبة</title>
+    <title>سوبر ماركت العروبة - Aloroba Online</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-green: #1b4d2e;
             --accent-green: #68a633;
-            --light-bg: #f8fafc;
-            --card-bg: #ffffff;
-            --text-main: #1f2937;
-            --text-muted: #6b7280;
-            --danger-red: #ef4444;
+            --light-bg: #f3f4f6;
+            --shadow-card: 0 2px 10px rgba(0,0,0,0.03);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
-        body { background-color: var(--light-bg); color: var(--text-main); padding-bottom: 80px; }
-
-        .app-header { background: white; padding: 12px 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 10px rgba(0,0,0,0.03); position: sticky; top: 0; z-index: 100; }
-        .logo-area { display: flex; align-items: center; gap: 8px; }
-        .logo-icon { width: 32px; height: 32px; background: var(--primary-green); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 900; }
-        .logo-text h1 { font-size: 0.9rem; color: var(--primary-green); font-weight: 900; line-height: 1.1; }
-        .logo-text span { font-size: 0.6rem; color: var(--accent-green); font-weight: 700; }
-
-        .search-container { padding: 10px 15px; background: white; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 10px; }
-        .search-bar { flex: 1; background: #f1f5f9; border-radius: 12px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; }
-        .search-bar input { border: none; background: none; width: 100%; outline: none; font-size: 0.75rem; color: var(--text-main); }
-        .cart-icon-btn { position: relative; background: #f1f5f9; width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .cart-badge { position: absolute; top: -5px; right: -5px; background: var(--accent-green); color: white; font-size: 0.6rem; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-
-        .main-container { padding: 12px 15px; max-width: 600px; margin: 0 auto; }
-
-        .banner { background: var(--primary-green); border-radius: 16px; padding: 15px; color: white; display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; position: relative; overflow: hidden; min-height: 130px; box-shadow: 0 4px 15px rgba(27, 77, 46, 0.2); }
-        .banner-content { z-index: 2; flex: 1; }
-        .banner-tag { background: rgba(255, 255, 255, 0.2); font-size: 0.6rem; padding: 3px 8px; border-radius: 20px; display: inline-block; margin-bottom: 5px; font-weight: 700; }
-        .banner h2 { font-size: 1rem; font-weight: 900; margin-bottom: 8px; line-height: 1.2; }
-        .banner-btn { background: var(--accent-green); color: white; border: none; padding: 6px 14px; border-radius: 8px; font-size: 0.7rem; font-weight: 800; cursor: pointer; }
-        .banner-img { width: 90px; height: 90px; object-fit: contain; z-index: 2; border-radius: 8px; }
-
-        .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .section-title h3 { font-size: 0.85rem; font-weight: 800; color: var(--text-main); }
-        .section-title a { font-size: 0.7rem; color: var(--accent-green); text-decoration: none; font-weight: 700; }
-
-        .categories-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 15px; scrollbar-width: none; }
-        .categories-scroll::-webkit-scrollbar { display: none; }
-        .category-pill { background: white; padding: 6px 12px; border-radius: 12px; display: flex; align-items: center; gap: 5px; font-size: 0.7rem; font-weight: 700; white-space: nowrap; border: 1px solid #e5e7eb; cursor: pointer; }
-        .category-pill.active { background: #eaf3df; border-color: var(--accent-green); color: var(--primary-green); }
-
-        .products-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
-        .product-card { background: white; border-radius: 14px; padding: 10px; border: 1px solid #e5e7eb; position: relative; display: flex; flex-direction: column; justify-content: space-between; }
-        .product-tag { position: absolute; top: 8px; right: 8px; background: var(--danger-red); color: white; font-size: 0.55rem; padding: 2px 6px; border-radius: 6px; font-weight: bold; }
-        .offer-tag { position: absolute; top: 8px; left: 8px; background: #fee2e2; color: #dc2626; font-size: 0.55rem; padding: 2px 6px; border-radius: 6px; font-weight: bold; }
+        body { background-color: var(--light-bg); color: #1f2937; padding-bottom: 80px; }
         
-        .product-img-container { width: 100%; height: 100px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
-        .product-img { max-width: 100%; max-height: 100px; object-fit: contain; }
-        
-        .product-name { font-size: 0.75rem; font-weight: 800; margin-bottom: 2px; }
-        .product-weight { font-size: 0.65rem; color: var(--text-muted); margin-bottom: 6px; }
-        
-        .product-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; }
-        .price-box .current-price { font-size: 0.85rem; font-weight: 900; color: var(--primary-green); }
-        .price-box .old-price { font-size: 0.6rem; color: var(--text-muted); text-decoration: line-through; margin-right: 4px; }
-        
-        .add-to-cart-btn { background: #eaf3df; color: var(--primary-green); border: none; width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
+        .store-container { max-width: 480px; margin: 0 auto; background: var(--light-bg); min-height: 100vh; position: relative; padding: 10px; }
 
-        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 8px 0; border-top: 1px solid #e5e7eb; z-index: 100; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: var(--text-muted); font-size: 0.6rem; font-weight: 700; gap: 2px; }
-        .nav-item.active { color: var(--primary-green); }
-        .nav-item span.icon { font-size: 1.1rem; }
+        /* الهيدر العلوي */
+        .app-header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 8px 12px; border-radius: 14px; margin-bottom: 10px; box-shadow: var(--shadow-card); }
+        .menu-icon { font-size: 1.2rem; cursor: pointer; color: #333; }
+        .search-box-top { flex-grow: 1; margin: 0 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px; display: flex; align-items: center; padding: 0 10px; height: 36px; }
+        .search-box-top input { border: none; background: transparent; outline: none; width: 100%; text-align: right; font-size: 0.75rem; }
+        .header-logo-area { text-align: left; }
+        .header-logo-main { color: #1b4d2e; font-weight: 900; font-size: 0.85rem; line-height: 1; }
+        .header-logo-sub { color: #68a633; font-size: 0.5rem; font-weight: 700; }
+        
+        .top-cart-btn { position: relative; background: none; border: none; cursor: pointer; display: flex; align-items: center; font-size: 1.2rem; }
+        .top-cart-count { position: absolute; top: -5px; right: -6px; background: #2e6930; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 0.55rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
 
-        .admin-float-btn { position: fixed; bottom: 70px; left: 15px; background: var(--primary-green); color: white; padding: 8px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: bold; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 101; display: flex; align-items: center; gap: 5px; }
+        /* البانر الرئيسي المحدث */
+        .main-banner { background: #1b4d2e; border-radius: 16px; overflow: hidden; color: white; margin-bottom: 10px; box-shadow: var(--shadow-card); }
+        .banner-img-container { width: 100%; height: 150px; background: #143822; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .banner-img-container img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .banner-body { padding: 12px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #0d381c 0%, #1a5c30 100%); }
+        .banner-text-side { max-width: 70%; z-index: 2; }
+        .banner-tag { background: #134e24; color: #a3e635; font-size: 0.5rem; padding: 2px 6px; border-radius: 15px; display: inline-block; margin-bottom: 4px; font-weight: 700; }
+        .banner-title { font-size: 0.9rem; font-weight: 900; line-height: 1.2; margin-bottom: 6px; }
+        .banner-features { display: flex; gap: 4px; margin-bottom: 8px; font-size: 0.45rem; color: #e2e8f0; }
+        .banner-btn { background: #84cc16; color: #064e1b; border: none; padding: 4px 10px; border-radius: 15px; font-weight: 800; font-size: 0.6rem; cursor: pointer; }
+
+        /* شريط الفئات الأفقي (سحب يمين ويسار) */
+        .categories-slider { 
+            display: flex; 
+            gap: 8px; 
+            overflow-x: auto; 
+            margin-bottom: 12px; 
+            padding-bottom: 4px; 
+            scroll-behavior: smooth;
+        }
+        .categories-slider::-webkit-scrollbar { display: none; }
+        .cat-item { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            cursor: pointer; 
+            background: white; 
+            padding: 6px 10px; 
+            border-radius: 12px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02); 
+            text-align: center; 
+            flex: 0 0 auto; 
+            min-width: 65px; 
+        }
+        .cat-circle { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 3px; font-size: 0.9rem; }
+        .cat-name { font-size: 0.55rem; font-weight: 700; color: #4b5563; white-space: nowrap; }
+
+        /* عناوين الأقسام */
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 2px; }
+        .section-title { font-size: 0.85rem; font-weight: 900; color: #111; }
+        .section-all { font-size: 0.65rem; font-weight: 700; color: #16a34a; cursor: pointer; text-decoration: none; }
+
+        /* شبكة المنتجات (3 منتجات في العرض) */
+        .products-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+        .product-card { background: #ffffff; border-radius: 12px; padding: 8px; box-shadow: var(--shadow-card); display: flex; flex-direction: column; justify-content: space-between; position: relative; border: 1px solid #f1f5f9; }
+        
+        .badge-offer { position: absolute; top: 6px; right: 6px; background: #fee2e2; color: #dc2626; font-size: 0.45rem; font-weight: 800; padding: 2px 4px; border-radius: 4px; }
+        .badge-red { position: absolute; top: 6px; left: 6px; background: #ef4444; color: white; font-size: 0.45rem; font-weight: 800; padding: 1px 4px; border-radius: 3px; }
+
+        .product-img-box { width: 100%; height: 75px; display: flex; align-items: center; justify-content: center; margin: 8px 0 4px 0; }
+        .product-img-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+        .product-name { font-size: 0.7rem; font-weight: 800; color: #1f2937; text-align: center; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .product-weight { font-size: 0.55rem; color: #9ca3af; text-align: center; margin-bottom: 4px; font-weight: 600; }
+        
+        .product-price-box { text-align: center; margin-bottom: 6px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .price-new { font-size: 0.8rem; font-weight: 900; color: #ea580c; }
+        .price-old { font-size: 0.6rem; font-weight: 800; color: #000000; text-decoration: line-through; }
+
+        .btn-add-cart { width: 100%; background: #68a633; color: white; border: none; border-radius: 8px; padding: 5px 0; font-size: 0.6rem; font-weight: 700; cursor: pointer; text-align: center; }
+
+        /* صندوق السلة */
+        .cart-section { background: white; padding: 12px; border-radius: 16px; margin-top: 15px; box-shadow: var(--shadow-card); }
+        .cart-section h2 { font-size: 0.85rem; color: #1b4d2e; margin-bottom: 8px; }
+        .cart-input { width: 100%; padding: 8px; margin-bottom: 6px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.75rem; outline: none; }
+        .whatsapp-btn { width: 100%; background: #25d366; color: white; border: none; padding: 10px; border-radius: 20px; font-weight: bold; font-size: 0.75rem; cursor: pointer; margin-top: 6px; }
+
+        /* شريط التنقل السفلي والزر العائم */
+        .bottom-nav-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: white; display: flex; justify-content: space-around; align-items: center; padding: 6px 0 10px 0; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); z-index: 1000; max-width: 480px; margin: 0 auto; right: 0; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #9ca3af; font-size: 0.6rem; font-weight: 700; cursor: pointer; }
+        .nav-item.active { color: #68a633; }
+        .nav-item span.icon { font-size: 1.1rem; margin-bottom: 1px; }
+
+        .floating-dashboard-btn { position: fixed; bottom: 65px; right: 12px; background: #1b4d2e; color: white; padding: 6px 10px; border-radius: 16px; text-decoration: none; font-size: 0.65rem; font-weight: 800; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 1100; display: flex; align-items: center; gap: 3px; border: 2px solid #84cc16; }
+
+        footer { text-align: center; padding: 10px; font-size: 0.6rem; color: #6b7280; margin-top: 15px; }
     </style>
 </head>
 <body>
 
+<div class="store-container">
+    <!-- الهيدر -->
     <header class="app-header">
-        <div class="logo-area">
-            <div class="logo-icon">ع</div>
-            <div class="logo-text">
-                <h1>العروبة</h1>
-                <span>اون لاين</span>
-            </div>
+        <button class="top-cart-btn" onclick="document.querySelector('.cart-section').scrollIntoView({behavior: 'smooth'})">
+            🛒
+            <span class="top-cart-count" id="cart-count">0</span>
+        </button>
+        <div class="search-box-top">
+            <input type="text" id="searchInput" placeholder="ابحث عن منتجات..." onkeyup="filterProducts()">
+            <span>🔍</span>
         </div>
-        <div style="font-size: 0.75rem; font-weight: bold; color: var(--primary-green);">📍 التوصيل: رام الله والبيرة</div>
+        <div style="display: flex; align-items: center; gap: 4px;">
+            <div class="header-logo-area">
+                <div class="header-logo-main">العروبة</div>
+                <div class="header-logo-sub">اون لاين</div>
+            </div>
+            <span class="menu-icon">☰</span>
+        </div>
     </header>
 
-    <div class="search-container">
-        <div class="search-bar">
-            <span>🔍</span>
-            <input type="text" placeholder="ابحث عن منتجات...">
+    <!-- البانر الرئيسي -->
+    <div class="main-banner">
+        <div class="banner-img-container">
+            <img id="bannerImg" src="" alt="صورة البانر">
         </div>
-        <div class="cart-icon-btn">
-            🛒
-            <span class="cart-badge" id="cartCount">0</span>
+        <div class="banner-body">
+            <div class="banner-text-side">
+                <span class="banner-tag" id="bannerTag">سوبر ماركت العروبة</span>
+                <div class="banner-title" id="bannerTitle">كل احتياجات بيتك في مكان واحد</div>
+                <div class="banner-features">
+                    <div>📦 توصيل سريع</div>
+                    <div>🏷️ أرخص الأسعار</div>
+                </div>
+                <button class="banner-btn" onclick="document.getElementById('productsContainer').scrollIntoView({behavior: 'smooth'})">تسوق الآن ❮</button>
+            </div>
         </div>
     </div>
 
-    <main class="main-container">
-        <!-- البانر الرئيسي -->
-        <div class="banner" id="mainBanner">
-            <div class="banner-content">
-                <span class="banner-tag" id="bannerTagText">سوبر ماركت العروبة</span>
-                <h2 id="bannerTitleText">كل احتياجات بيتك في مكان واحد</h2>
-                <button class="banner-btn">تسوق الآن ❮</button>
-            </div>
-            <img id="bannerImageElem" src="" class="banner-img" alt="Banner">
-        </div>
+    <!-- شريط الفئات الأفقي (سحب يمين ويسار) -->
+    <div class="categories-slider" id="categoriesContainer">
+        <!-- يتم جلب الفئات هنا -->
+    </div>
 
-        <!-- الأقسام -->
-        <div class="section-title">
-            <h3>التصنيفات</h3>
-        </div>
-        <div class="categories-scroll" id="categoriesContainer">
-            <!-- يتم تعبئتها ديناميكياً -->
-        </div>
+    <!-- عنوان القسم -->
+    <div class="section-header">
+        <a class="section-all">عرض الكل ❮</a>
+        <div class="section-title">🏷️ عروض حصرية</div>
+    </div>
 
-        <!-- المنتجات -->
-        <div class="section-title">
-            <h3>عروض حصرية 🏷️</h3>
-            <a href="#">عرض الكل ❯</a>
-        </div>
-        <div class="products-grid" id="productsContainer">
-            <!-- يتم تعبئتها ديناميكياً -->
-        </div>
-    </main>
+    <!-- شبكة المنتجات (3 منتجات في العرض) -->
+    <div class="products-grid" id="productsContainer"></div>
 
-    <a href="dashboard.html" class="admin-float-btn">⚙️ لوحة التحكم</a>
+    <!-- قسم السلة -->
+    <div class="cart-section">
+        <h2>🛒 سلة المشتريات</h2>
+        <div id="cartItemsList" style="font-size: 0.75rem; color: #666; margin-bottom: 8px;">السلة فارغة حالياً</div>
+        <div style="font-size: 0.8rem; font-weight: bold; margin-bottom: 8px;">المجموع الكلي: <span id="cartTotal">0</span> ₪</div>
+        <input type="text" id="customerName" class="cart-input" placeholder="اسم الزبون الكريم">
+        <input type="text" id="customerAddress" class="cart-input" placeholder="العنوان (رهط والمحيط)">
+        <button class="whatsapp-btn" onclick="sendWhatsAppOrder()">إرسال الطلب عبر الواتساب 💬</button>
+    </div>
 
-    <nav class="nav-bar">
-        <a href="index.html" class="nav-item active">
-            <span class="icon">🏠</span>
-            الرئيسية
-        </a>
-        <a href="#" class="nav-item">
-            <span class="icon">📁</span>
-            التصنيفات
-        </a>
-        <a href="#" class="nav-item">
-            <span class="icon">🏷️</span>
-            العروض
-        </a>
-        <a href="#" class="nav-item">
-            <span class="icon">🤍</span>
-            المفضلة
-        </a>
-        <a href="#" class="nav-item">
-            <span class="icon">👤</span>
-            حسابي
-        </a>
+    <a href="dashboard.html" class="floating-dashboard-btn">⚙️ لوحة التحكم</a>
+
+    <footer>سوبر ماركت العروبة © 2026 - رهط</footer>
+
+    <!-- شريط التنقل السفلي -->
+    <nav class="bottom-nav-bar">
+        <a class="nav-item active"><span class="icon">🏠</span><span>الرئيسية</span></a>
+        <a class="nav-item"><span class="icon">🗂️</span><span>التصنيفات</span></a>
+        <a class="nav-item"><span class="icon">🏷️</span><span>العروض</span></a>
+        <a class="nav-item"><span class="icon">🤍</span><span>المفضلة</span></a>
+        <a class="nav-item"><span class="icon">👤</span><span>حسابي</span></a>
     </nav>
+</div>
 
-    <script>
-        // تحميل البيانات المحفوظة من لوحة التحكم أو استخدام القيم الافتراضية
-        let bannerData = JSON.parse(localStorage.getItem('aloroba_banner')) || {
-            title: "كل احتياجات بيتك في مكان واحد",
-            tag: "سوبر ماركت العروبة",
-            img: "https://i.ibb.co/3m1K2wP/basket.png"
-        };
+<script>
+    let products = JSON.parse(localStorage.getItem('aloroba_products')) || [
+        { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png" },
+        { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png" },
+        { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png" }
+    ];
 
-        let categories = JSON.parse(localStorage.getItem('aloroba_categories')) || [
-            { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
-            { name: "عروض", icon: "🔥", bg: "#fee2e2", color: "#dc2626" },
-            { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
-            { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
-            { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
-            { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" }
-        ];
+    let categories = JSON.parse(localStorage.getItem('aloroba_categories')) || [
+        { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
+        { name: "عروض", icon: "🔥", bg: "#fee2e2", color: "#dc2626" },
+        { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
+        { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
+        { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
+        { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" }
+    ];
 
-        let products = JSON.parse(localStorage.getItem('aloroba_products')) || [
-            { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png" },
-            { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png" },
-            { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png" }
-        ];
+    let bannerData = JSON.parse(localStorage.getItem('aloroba_banner')) || {
+        title: "كل احتياجات بيتك في مكان واحد",
+        tag: "سوبر ماركت العروبة",
+        img: "https://i.ibb.co/3m1K2wP/basket.png"
+    };
 
-        // عرض بيانات البانر
-        document.getElementById('bannerTitleText').innerText = bannerData.title || "";
-        document.getElementById('bannerTagText').innerText = bannerData.tag || "";
-        const bannerImgElem = document.getElementById('bannerImageElem');
+    let cart = [];
+
+    function renderBanner() {
+        document.getElementById('bannerTitle').innerText = bannerData.title || "كل احتياجات بيتك في مكان واحد";
+        document.getElementById('bannerTag').innerText = bannerData.tag || "سوبر ماركت العروبة";
+        const bannerImgElem = document.getElementById('bannerImg');
         if(bannerData.img) {
             bannerImgElem.src = bannerData.img;
             bannerImgElem.style.display = 'block';
         } else {
-            bannerImgElem.style.display = 'none';
+            bannerImgElem.src = "https://i.ibb.co/3m1K2wP/basket.png";
         }
+    }
 
-        // عرض الأقسام
-        const catContainer = document.getElementById('categoriesContainer');
-        catContainer.innerHTML = '';
+    function renderCategories() {
+        const container = document.getElementById('categoriesContainer');
+        container.innerHTML = '';
         categories.forEach((cat, index) => {
-            catContainer.innerHTML += `
-                <div class="category-pill ${index === 0 ? 'active' : ''}">
-                    <span>${cat.icon}</span>
-                    <span>${cat.name}</span>
+            const isActive = index === 0;
+            container.innerHTML += `
+                <div class="cat-item" ${isActive ? 'style="border: 1px solid #68a633; background: #f4fbf0;"' : ''}>
+                    <div class="cat-circle" style="background: ${cat.bg}; color: ${cat.color};">${cat.icon}</div>
+                    <div class="cat-name" ${isActive ? 'style="color: #2e6930;"' : ''}>${cat.name}</div>
                 </div>
             `;
         });
+    }
 
-        // عرض المنتجات
-        const prodContainer = document.getElementById('productsContainer');
-        prodContainer.innerHTML = '';
-        products.forEach(p => {
-            prodContainer.innerHTML += `
+    function renderProducts(list = products) {
+        const container = document.getElementById('productsContainer');
+        container.innerHTML = '';
+        if(list.length === 0) {
+            container.innerHTML = '<p style="grid-column: span 3; text-align: center; color: #888; padding: 15px; font-size: 0.75rem;">لا توجد منتجات</p>';
+            return;
+        }
+        list.forEach(p => {
+            container.innerHTML += `
                 <div class="product-card">
-                    ${p.oldPrice ? '<span class="product-tag">عرض</span>' : ''}
-                    ${p.offer ? `<span class="offer-tag">${p.offer}</span>` : ''}
-                    <div class="product-img-container">
-                        <img src="${p.img}" class="product-img" alt="${p.name}">
+                    ${p.offer ? `<div class="badge-offer">${p.offer}</div>` : ''}
+                    <div class="badge-red">عرض</div>
+                    <div class="product-img-box">
+                        <img src="${p.img}" alt="${p.name}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                     </div>
-                    <div>
-                        <div class="product-name">${p.name}</div>
-                        <div class="product-weight">${p.weight || ''}</div>
+                    <div class="product-name" title="${p.name}">${p.name}</div>
+                    <div class="product-weight">${p.weight || 'حبة'}</div>
+                    <div class="product-price-box">
+                        <span class="price-new">${p.price}₪</span>
+                        ${p.oldPrice ? `<span class="price-old">${p.oldPrice}₪</span>` : ''}
                     </div>
-                    <div class="product-footer">
-                        <div class="price-box">
-                            <span class="current-price">${p.price}₪</span>
-                            ${p.oldPrice ? `<span class="old-price">${p.oldPrice}₪</span>` : ''}
-                        </div>
-                        <button class="add-to-cart-btn">🛒</button>
-                    </div>
+                    <button class="btn-add-cart" onclick="addToCart(${p.id})">أضف 🛒</button>
                 </div>
             `;
         });
-    </script>
+    }
+
+    function addToCart(id) {
+        const product = products.find(p => p.id === id);
+        if(!product) return;
+        cart.push(product);
+        updateCartUI();
+    }
+
+    function updateCartUI() {
+        document.getElementById('cart-count').innerText = cart.length;
+        const listDiv = document.getElementById('cartItemsList');
+        let total = 0;
+        if(cart.length === 0) {
+            listDiv.innerHTML = "السلة فارغة حالياً";
+            document.getElementById('cartTotal').innerText = "0";
+            return;
+        }
+        let html = "";
+        cart.forEach((item) => {
+            total += Number(item.price);
+            html += `<div style="margin-bottom:2px;">▪️ ${item.name} - ${item.price}₪</div>`;
+        });
+        listDiv.innerHTML = html;
+        document.getElementById('cartTotal').innerText = total;
+    }
+
+    function sendWhatsAppOrder() {
+        const name = document.getElementById('customerName').value;
+        const address = document.getElementById('customerAddress').value;
+        if(!name || !address) {
+            alert("الرجاء إدخال الاسم والعنوان");
+            return;
+        }
+        if(cart.length === 0) {
+            alert("السلة فارغة");
+            return;
+        }
+        let total = 0;
+        let orderText = "طلب جديد من تطبيق العروبة أون لاين:%0A%0A";
+        cart.forEach(item => {
+            orderText += `▪️ ${item.name} (${item.price}₪)%0A`;
+            total += Number(item.price);
+        });
+        orderText += `%0A💰 المجموع: ${total} ₪`;
+        orderText += `%0A👤 الاسم: ${name}`;
+        orderText += `%0A📍 العنوان: ${address}`;
+
+        window.open(`https://wa.me/972546288791?text=${orderText}`);
+    }
+
+    function filterProducts() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = products.filter(p => p.name.toLowerCase().includes(query));
+        renderProducts(filtered);
+    }
+
+    window.onload = () => {
+        renderBanner();
+        renderCategories();
+        renderProducts();
+    };
+</script>
 </body>
 </html>
