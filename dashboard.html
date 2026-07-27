@@ -43,7 +43,6 @@
         #barcode-scanner-container { display: none; margin-top: 10px; width: 100%; border-radius: 8px; overflow: hidden; border: 2px solid var(--primary-green); background: #000; position: relative; }
         #barcode-video { width: 100%; max-height: 220px; object-fit: cover; display: block; }
         
-        /* تصميم صندوق رفع وتعديل الصورة الجديد */
         .image-upload-box { border: 2px dashed #cbd5e1; border-radius: var(--radius-md); padding: 16px; text-align: center; background: #f8fafc; cursor: pointer; position: relative; transition: all 0.2s ease; }
         .image-upload-box:hover { border-color: var(--primary-green); background: #f0fdf4; }
         .image-upload-box input[type="file"] { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer; z-index: 2; }
@@ -78,8 +77,14 @@
             </div>
         </div>
 
+        <!-- زر إضافة منتج جديد (يظهر افتراضياً كمستطيل أخضر) -->
+        <div id="open-product-form-btn-wrapper" class="card-box" style="text-align: center; padding: 0;">
+            <button class="btn-main" type="button" onclick="openNewProductForm()" style="padding: 16px; font-size: 1.05rem;">➕ إضافة منتج جديد</button>
+        </div>
+
         <div id="form-original-parent">
-            <div class="card-box" id="product-form-container">
+            <!-- نموذج إدخال المنتج (مخفي افتراضياً حتى الضغط على زر الإضافة أو التعديل) -->
+            <div class="card-box" id="product-form-container" style="display: none;">
                 <h3 id="prod-panel-title" style="margin-bottom: 12px; font-size: 1rem;">🛒 إضافة منتج جديد</h3>
                 <input type="hidden" id="prod-id">
                 <input type="hidden" id="prod-img-base64">
@@ -128,13 +133,11 @@
                     <div class="image-upload-box" id="upload-box-wrapper">
                         <input type="file" id="prod-file-input" accept="image/*" onchange="handleImagePick(event)">
                         
-                        <!-- الحالة الأولى: لم يتم اختيار صورة -->
                         <div id="upload-placeholder">
                             <div style="font-size: 1.6rem; margin-bottom: 2px;">📸</div>
                             <span style="font-size: 0.85rem; font-weight: bold; color: #334155;">تصوير / اختيار من المعرض</span>
                         </div>
 
-                        <!-- الحالة الثانية: تم اختيار صورة (صورة مصغرة + أزرار تبديل وحذف) -->
                         <div id="preview-container" class="preview-container">
                             <img id="img-preview" class="preview-img-disp" alt="معاينة">
                             <div class="img-actions-col">
@@ -163,7 +166,7 @@
                 </div>
 
                 <button class="btn-main" id="prod-submit-btn" type="button" onclick="saveProduct()">💾 حفظ</button>
-                <button class="btn-cancel" id="prod-cancel-btn" type="button" onclick="resetProductForm()" style="display:none;">إلغاء</button>
+                <button class="btn-cancel" id="prod-cancel-btn" type="button" onclick="resetProductForm()">إلغاء</button>
             </div>
         </div>
 
@@ -309,7 +312,6 @@
                     const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
                     document.getElementById('prod-img-base64').value = compressedBase64;
                     
-                    // إظهار المعاينة وأزرار التحكم الجديدة وإخفاء نص الرفع الافتراضي
                     document.getElementById('img-preview').src = compressedBase64;
                     document.getElementById('upload-placeholder').style.display = 'none';
                     document.getElementById('preview-container').style.display = 'flex';
@@ -377,6 +379,14 @@
             }
         }
 
+        function openNewProductForm() {
+            resetProductForm();
+            document.getElementById('open-product-form-btn-wrapper').style.display = 'none';
+            const formBox = document.getElementById('product-form-container');
+            formBox.style.display = 'block';
+            formBox.scrollIntoView({ behavior: 'smooth' });
+        }
+
         function saveProduct() {
             const id = document.getElementById('prod-id').value;
             const title = document.getElementById('prod-title').value.trim();
@@ -406,7 +416,9 @@
             stopBarcodeScanner();
             let p = JSON.parse(decodeURIComponent(encodedData));
 
+            document.getElementById('open-product-form-btn-wrapper').style.display = 'none';
             const formBox = document.getElementById('product-form-container');
+            formBox.style.display = 'block';
             const slot = document.getElementById(`edit-slot-${p.id}`);
             slot.appendChild(formBox);
 
@@ -427,7 +439,6 @@
 
             document.getElementById('prod-panel-title').innerText = `✏️ تعديل المنتج: ${p.title}`;
             document.getElementById('prod-submit-btn').innerText = "💾 تحديث المنتج";
-            document.getElementById('prod-cancel-btn').style.display = "block";
             formBox.scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -436,6 +447,8 @@
             const formBox = document.getElementById('product-form-container');
             const originalParent = document.getElementById('form-original-parent');
             originalParent.appendChild(formBox);
+            formBox.style.display = 'none';
+            document.getElementById('open-product-form-btn-wrapper').style.display = 'block';
 
             document.getElementById('prod-id').value = '';
             document.getElementById('prod-title').value = '';
@@ -453,7 +466,6 @@
 
             document.getElementById('prod-panel-title').innerText = "🛒 إضافة منتج جديد";
             document.getElementById('prod-submit-btn').innerText = "💾 حفظ";
-            document.getElementById('prod-cancel-btn').style.display = "none";
         }
 
         function deleteProduct(id) {
