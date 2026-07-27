@@ -106,7 +106,7 @@
         .summary-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
         .summary-row.total { font-weight: 700; font-size: 1.1rem; color: var(--primary-green); border-top: 1px solid #e2e8f0; padding-top: 6px; }
 
-        /* نافذة العرض التفاعلية (Bundle Modal) مع تثبيت القالب لمنع الاهتزاز */
+        /* نافذة العرض التفاعلية (Bundle Modal) */
         #bundle-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1100; justify-content: center; align-items: flex-end; }
         .bundle-modal-content { background: white; width: 100%; max-width: 600px; max-height: 85vh; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; display: flex; flex-direction: column; }
         .bundle-items-list { overflow-y: auto; max-height: 45vh; flex-grow: 1; margin-bottom: 12px; }
@@ -114,7 +114,6 @@
         .bundle-item-row.active-row { border-color: #fca5a5; background: #fef2f2; }
         .bundle-item-img { width: 45px; height: 45px; object-fit: contain; border-radius: 6px; background: #fff; flex-shrink: 0; }
         
-        /* شريط التقدم بتصميم ثابت لا يهتز */
         .bundle-progress-banner { background: #fee2e2; color: #dc2626; padding: 12px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #fca5a5; width: 100%; }
         .bundle-banner-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 700; font-size: 0.9rem; direction: rtl; unicode-bidi: plaintext; }
         .bundle-banner-text { flex-grow: 1; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -160,10 +159,10 @@
                 <button onclick="closeBundleModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; font-weight: bold;">✕</button>
             </div>
 
-            <!-- شريط التقدم للحزمة الثابت لمنع الاهتزاز -->
+            <!-- شريط التقدم للحزمة الثابت -->
             <div id="bundle-banner" class="bundle-progress-banner">
                 <div class="bundle-banner-top">
-                    <span id="bundle-banner-text" class="bundle-banner-text">أضف 3 منتجات أخرى للحصول العرض</span>
+                    <span id="bundle-banner-text" class="bundle-banner-text">أضف منتجات للحصول العرض</span>
                     <span id="bundle-price-tag" class="bundle-price-tag"></span>
                 </div>
                 <div class="progress-bar-container">
@@ -369,6 +368,9 @@
                 let p = allProductsMap[pId];
                 if (!p) return;
                 let qty = cartItems[pId] || 0;
+                let regularPrice = Number(p.price) || 0;
+                let itemTotalPrice = regularPrice * qty;
+
                 let imgSrc = (p.img && p.img.length > 5) ? p.img : '';
                 let mediaHtml = imgSrc ? `<img src="${imgSrc}" class="bundle-item-img" alt="صورة">` : `<div class="bundle-item-img" style="display:flex;align-items:center;justify-content:center;font-size:18px;">${p.emoji || '🛒'}</div>`;
                 let rowActive = qty > 0 ? 'active-row' : '';
@@ -379,6 +381,7 @@
                         <div style="flex-grow:1;">
                             <div style="font-weight:700; font-size:0.85rem;">${p.title}</div>
                             <div style="font-size:0.8rem; color:#f97316; font-weight:700; direction:rtl; unicode-bidi:plaintext;">${p.price}₪ · حبة</div>
+                            <div style="font-size:0.85rem; color:#dc2626; font-weight:700; direction:rtl; unicode-bidi:plaintext; margin-top:2px;">المجموع: ${itemTotalPrice}₪</div>
                         </div>
                         <div class="modern-qty-control">
                             <button class="modern-qty-btn" onclick="decreaseQuantity('${pId}')">-</button>
