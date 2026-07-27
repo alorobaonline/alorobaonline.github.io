@@ -45,10 +45,16 @@
         .product-name { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; text-align: center; }
         .product-stock { font-size: 0.75rem; color: #6b7280; text-align: center; margin-bottom: 6px; font-weight: 600; }
         
-        .product-price-row { text-align: center; margin-bottom: 10px; font-size: 0.9rem; }
-        .price-normal { font-weight: 700; color: #1f2937; }
+        .product-price-row { text-align: center; margin-bottom: 10px; font-size: 0.9rem; direction: ltr; unicode-bidi: isolate; }
+        
+        /* السعر العادي للمنتجات التي لا تحتوي على عروض (برتقالي جذاب وبنفس حجم سعر العرض) */
+        .price-normal { font-weight: 700; color: #f97316; font-size: 1.05rem; }
+        
+        /* سعر العرض الجديد (أحمر كبير) */
         .price-offer-new { font-weight: 700; color: #dc2626; font-size: 1.05rem; }
-        .price-offer-old { text-decoration: line-through; color: #9ca3af; font-size: 0.8rem; margin-right: 4px; font-weight: 600; }
+        
+        /* السعر القديم المشطوب (أسود غامق وبحجمه الأصغر) */
+        .price-offer-old { text-decoration: line-through; color: #1f2937; font-size: 0.8rem; margin-right: 6px; font-weight: 600; }
 
         .btn-add-cart { background: var(--primary-green); color: white; border: none; width: 100%; padding: 8px; border-radius: var(--radius-md); font-weight: 700; font-size: 0.85rem; cursor: pointer; text-align: center; }
 
@@ -156,16 +162,18 @@
                 let badgeHtml = p.isOffer ? `<div class="offer-badge">عرض</div>` : '';
 
                 let priceHtml = '';
+                let unitText = p.unit || 'حبة';
+                
                 if (p.isOffer && p.offerPrice && p.offerPrice > 0) {
                     priceHtml = `
-                        <span class="price-offer-new">₪${p.offerPrice}</span>
-                        <span class="price-offer-old">₪${p.price}</span>
-                        <span style="font-size:0.75rem; color:#4b5563; font-weight:600;"> / ${p.unit || 'حبة'}</span>
+                        <span class="price-offer-new">${p.offerPrice} ₪</span>
+                        <span class="price-offer-old">${p.price} ₪</span>
+                        <span style="font-size:0.75rem; color:#4b5563; font-weight:600;">/ ${unitText}</span>
                     `;
                 } else {
                     priceHtml = `
-                        <span class="price-normal">₪${p.price}</span>
-                        <span style="font-size:0.75rem; color:#4b5563; font-weight:600;"> / ${p.unit || 'حبة'}</span>
+                        <span class="price-normal">${p.price} ₪</span>
+                        <span style="font-size:0.75rem; color:#4b5563; font-weight:600;">/ ${unitText}</span>
                     `;
                 }
 
@@ -177,7 +185,7 @@
                         </div>
                         <div>
                             <div class="product-name">${p.title}</div>
-                            <div class="product-stock">المتوفر: ${p.stock} ${p.unit || 'حبة'}</div>
+                            <div class="product-stock">المتوفر: ${p.stock} ${unitText}</div>
                             <div class="product-price-row">
                                 ${priceHtml}
                             </div>
