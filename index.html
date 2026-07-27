@@ -681,6 +681,13 @@
             let whatsappUrl = `https://wa.me/${storePhoneNumber}?text=${encodedMessage}`;
 
             window.open(whatsappUrl, '_blank');
+
+            // تفريغ السلة وتحديث الواجهة تلقائياً بعد إتمام الطلب
+            cartItems = {};
+            localStorage.removeItem('aloroba_cart');
+            updateCartCounter();
+            closeCartModal();
+            renderProducts();
         }
 
         function updateCategoriesBar() {
