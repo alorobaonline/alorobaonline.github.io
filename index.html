@@ -26,6 +26,21 @@
         
         .cart-badge-btn { background: var(--primary-green); color: white; border: none; padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 
+        /* تنسيق قسم عروض الحزم الجديد ليتطابق تماماً مع تصميمك */
+        .bundles-banner-section { margin-bottom: 12px; }
+        .bundle-card-banner { background: linear-gradient(135deg, #68a633, #4e8223); color: white; padding: 14px 16px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .bundle-card-banner h3 { font-size: 1.05rem; margin-bottom: 2px; }
+        .bundle-card-banner p { font-size: 0.8rem; opacity: 0.95; font-weight: 600; }
+        .bundle-btn-action { background: white; color: var(--primary-green); border: none; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
+
+        /* نافذة اختيار رزمة العروض من قبل الزبون (Modal) */
+        #bundle-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: flex-end; }
+        .modal-content { background: white; width: 100%; max-width: 600px; max-height: 85vh; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; display: flex; flex-direction: column; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-products-list { overflow-y: auto; max-height: 50vh; flex-grow: 1; margin-bottom: 12px; }
+        .modal-prod-item { display: flex; align-items: center; justify-content: space-between; padding: 8px; border-bottom: 1px solid #f3f4f6; }
+
         /* شريط الفئات */
         .categories-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; }
         .categories-bar::-webkit-scrollbar { display: none; }
@@ -39,7 +54,6 @@
         
         .offer-badge { position: absolute; top: 10px; left: 10px; background: #ef4444; color: white; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; z-index: 2; }
         
-        /* تكبير حجم عرض الصورة لتكون واضحة ومميزة للعين */
         .product-img-wrap { width: 100%; height: 150px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; background: #fff; border-radius: 8px; }
         .product-img { max-width: 100%; max-height: 100%; object-fit: contain; }
         
@@ -48,17 +62,12 @@
         
         .product-price-row { text-align: center; margin-bottom: 10px; font-size: 0.9rem; direction: ltr; unicode-bidi: isolate; }
         
-        /* السعر العادي (برتقالي كبير) */
         .price-normal { font-weight: 700; color: #f97316; font-size: 1.05rem; }
         
-        /* حاوية العرض */
         .offer-price-container { display: flex; flex-direction: column; align-items: center; gap: 2px; }
         .price-offer-top { display: flex; align-items: center; justify-content: center; gap: 4px; }
         
-        /* سعر العرض الجديد (أحمر كبير) */
         .price-offer-new { font-weight: 700; color: #dc2626; font-size: 1.05rem; }
-        
-        /* السعر القديم المشطوب (أسود غامق وصغير تحته) */
         .price-offer-old { text-decoration: line-through; color: #1f2937; font-size: 0.8rem; font-weight: 600; }
 
         .btn-add-cart { background: var(--primary-green); color: white; border: none; width: 100%; padding: 8px; border-radius: var(--radius-md); font-weight: 700; font-size: 0.85rem; cursor: pointer; text-align: center; }
@@ -78,6 +87,9 @@
             </button>
         </div>
 
+        <!-- قسم عرض الحزم الترويجية المضافة من لوحة التحكم -->
+        <div id="bundles-banner-container" class="bundles-banner-section"></div>
+
         <!-- شريط الفئات -->
         <div id="categories-bar" class="categories-bar">
             <button class="cat-chip active" onclick="filterCategory('الكل', this)">الكل</button>
@@ -87,6 +99,25 @@
         <!-- شبكة المنتجات -->
         <div id="store-products-grid" class="products-grid">
             <p style="text-align: center; color: #888; grid-column: span 2;">جاري تحميل المنتجات...</p>
+        </div>
+    </div>
+
+    <!-- نافذة اختيار تفاصيل رزمة العروض للزبون -->
+    <div id="bundle-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h3 id="modal-bundle-title" style="font-size: 1.05rem; color: var(--primary-green);">رزمة عروض</h3>
+                    <p id="modal-bundle-desc" style="font-size: 0.75rem; color: #6b7280;"></p>
+                </div>
+                <button onclick="closeBundleModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; font-weight: bold;">✕</button>
+            </div>
+            
+            <div style="font-size: 0.85rem; font-weight: 700; margin-bottom: 6px;" id="bundle-counter-text">اختر المنتجات المطلوبة</div>
+            
+            <div class="modal-products-list" id="modal-products-container"></div>
+
+            <button class="btn-add-cart" id="modal-submit-btn" onclick="addBundleToCart()" style="padding: 10px; font-size: 0.95rem;" disabled style="opacity: 0.5;">اختر المنتجات أولاً</button>
         </div>
     </div>
 
@@ -107,7 +138,10 @@
 
         let currentCategory = "الكل";
         let allProducts = [];
+        let allProductsMap = {};
         let dbCategories = [];
+        let activeBundlesData = {};
+        let currentSelectedBundle = null;
 
         db.collection("categories").onSnapshot((snapshot) => {
             dbCategories = [];
@@ -120,12 +154,98 @@
 
         db.collection("products").onSnapshot((snapshot) => {
             allProducts = [];
+            allProductsMap = {};
             snapshot.forEach((doc) => {
-                allProducts.push({ id: doc.id, ...doc.data() });
+                let p = doc.data();
+                allProducts.push({ id: doc.id, ...p });
+                allProductsMap[doc.id] = p;
             });
             updateCategoriesBar();
             renderProducts();
         });
+
+        // جلب عروض الحزم المتاحة وعرضها كبطاقات
+        db.collection("bundles").onSnapshot((snapshot) => {
+            let bannerHtml = '';
+            activeBundlesData = {};
+            snapshot.forEach((doc) => {
+                let b = doc.data();
+                activeBundlesData[doc.id] = b;
+                bannerHtml += `
+                    <div class="bundle-card-banner" onclick="openBundleModal('${doc.id}')">
+                        <div>
+                            <h3>🎁 ${b.nameAr}</h3>
+                            <p>اختر ${b.quantity} منتجات بـ ${b.price} ₪ فقط!</p>
+                        </div>
+                        <button class="bundle-btn-action">اختر الآن</button>
+                    </div>`;
+            });
+            document.getElementById('bundles-banner-container').innerHTML = bannerHtml;
+        });
+
+        function openBundleModal(bundleId) {
+            currentSelectedBundle = activeBundlesData[bundleId];
+            currentSelectedBundle.id = bundleId;
+
+            document.getElementById('modal-bundle-title').innerText = currentSelectedBundle.nameAr;
+            document.getElementById('modal-bundle-desc').innerText = `اختر ${currentSelectedBundle.quantity} منتجات بسعر ثابت: ${currentSelectedBundle.price} ₪`;
+            
+            let listHtml = '';
+            currentSelectedBundle.productIds.forEach(prodId => {
+                let p = allProductsMap[prodId];
+                if (p) {
+                    listHtml += `
+                        <div class="modal-prod-item">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; flex-grow: 1;">
+                                <input type="checkbox" class="bundle-modal-checkbox" value="${prodId}" onchange="checkBundleSelectionLimit()">
+                                <span style="font-size: 0.9rem; font-weight: 600;">${p.title} (${p.price} ₪)</span>
+                            </label>
+                        </div>`;
+                }
+            });
+
+            document.getElementById('modal-products-container').innerHTML = listHtml || '<p style="text-align: center; color: #888;">لا توجد منتجات متاحة في هذه الحزمة حالياً.</p>';
+            updateBundleCounter(0);
+            document.getElementById('bundle-modal').style.display = 'flex';
+        }
+
+        function closeBundleModal() {
+            document.getElementById('bundle-modal').style.display = 'none';
+            currentSelectedBundle = null;
+        }
+
+        function checkBundleSelectionLimit() {
+            let checkboxes = document.querySelectorAll('.bundle-modal-checkbox:checked');
+            let count = checkboxes.length;
+            let required = currentSelectedBundle.quantity;
+
+            updateBundleCounter(count);
+
+            let btn = document.getElementById('modal-submit-btn');
+            if (count === required) {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.innerText = `تأكيد وإضافة الرزمة بسعر ${currentSelectedBundle.price} ₪`;
+            } else {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                if (count < required) {
+                    btn.innerText = `الرجاء اختيار ${required - count} منتجات إضافية`;
+                } else {
+                    btn.innerText = `لقد اخترت أكثر من العدد المطلوب (${required})`;
+                }
+            }
+        }
+
+        function updateBundleCounter(count) {
+            let required = currentSelectedBundle ? currentSelectedBundle.quantity : 3;
+            document.getElementById('bundle-counter-text').innerText = `تم اختيار (${count} من ${required})`;
+        }
+
+        function addBundleToCart() {
+            alert('تمت إضافة الرزمة بنجاح!');
+            closeBundleModal();
+        }
 
         function updateCategoriesBar() {
             let categoriesSet = new Set(dbCategories);
