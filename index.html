@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>العروبة أون لاين</title>
+    <!-- استدعاء خط Cairo الحديث من جوجل -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
     <style>
@@ -14,20 +16,20 @@
             --radius-md: 10px;
             --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
         body { background-color: var(--bg-color); color: #1f2937; padding: 10px; }
         .store-container { max-width: 600px; margin: 0 auto; padding-bottom: 80px; }
         
         .store-header { background: white; padding: 16px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-top: 4px solid var(--primary-green); }
-        .store-title { font-size: 1.2rem; font-weight: bold; }
-        .store-sub { font-size: 0.8rem; color: #6b7280; }
+        .store-title { font-size: 1.25rem; font-weight: 700; }
+        .store-sub { font-size: 0.8rem; color: #6b7280; font-weight: 600; }
         
-        .cart-badge-btn { background: var(--primary-green); color: white; border: none; padding: 8px 14px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .cart-badge-btn { background: var(--primary-green); color: white; border: none; padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 
         /* شريط الفئات */
         .categories-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; }
         .categories-bar::-webkit-scrollbar { display: none; }
-        .cat-chip { background: white; border: 1px solid #d1d5db; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; white-space: nowrap; cursor: pointer; color: #4b5563; transition: all 0.2s; }
+        .cat-chip { background: white; border: 1px solid #d1d5db; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; white-space: nowrap; cursor: pointer; color: #4b5563; transition: all 0.2s; }
         .cat-chip.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
         .cat-chip.offer-chip { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
         .cat-chip.offer-chip.active { background: #dc2626; color: white; border-color: #dc2626; }
@@ -35,22 +37,22 @@
         .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .product-card { background: white; border-radius: var(--radius-lg); padding: 12px; box-shadow: var(--shadow-sm); border: 1px solid #e5e7eb; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
         
-        .offer-badge { position: absolute; top: 10px; left: 10px; background: #ef4444; color: white; font-size: 0.7rem; font-weight: bold; padding: 3px 8px; border-radius: 6px; z-index: 2; }
+        .offer-badge { position: absolute; top: 10px; left: 10px; background: #ef4444; color: white; font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; z-index: 2; }
         
         .product-img-wrap { width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; background: #fff; border-radius: 8px; }
         .product-img { max-width: 100%; max-height: 100%; object-fit: contain; }
         
-        .product-name { font-size: 0.95rem; font-weight: bold; margin-bottom: 4px; text-align: center; }
-        .product-stock { font-size: 0.75rem; color: #6b7280; text-align: center; margin-bottom: 6px; }
+        .product-name { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; text-align: center; }
+        .product-stock { font-size: 0.75rem; color: #6b7280; text-align: center; margin-bottom: 6px; font-weight: 600; }
         
         .product-price-row { text-align: center; margin-bottom: 10px; font-size: 0.9rem; }
-        .price-normal { font-weight: bold; color: #1f2937; }
-        .price-offer-new { font-weight: bold; color: #dc2626; font-size: 1rem; }
-        .price-offer-old { text-decoration: line-through; color: #9ca3af; font-size: 0.8rem; margin-right: 4px; }
+        .price-normal { font-weight: 700; color: #1f2937; }
+        .price-offer-new { font-weight: 700; color: #dc2626; font-size: 1.05rem; }
+        .price-offer-old { text-decoration: line-through; color: #9ca3af; font-size: 0.8rem; margin-right: 4px; font-weight: 600; }
 
-        .btn-add-cart { background: var(--primary-green); color: white; border: none; width: 100%; padding: 8px; border-radius: var(--radius-md); font-weight: bold; font-size: 0.85rem; cursor: pointer; text-align: center; }
+        .btn-add-cart { background: var(--primary-green); color: white; border: none; width: 100%; padding: 8px; border-radius: var(--radius-md); font-weight: 700; font-size: 0.85rem; cursor: pointer; text-align: center; }
 
-        .floating-dashboard-btn { position: fixed; bottom: 20px; right: 20px; background: #374151; color: white; padding: 10px 16px; border-radius: 30px; text-decoration: none; font-size: 0.85rem; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 100; display: flex; align-items: center; gap: 6px; }
+        .floating-dashboard-btn { position: fixed; bottom: 20px; right: 20px; background: #374151; color: white; padding: 10px 16px; border-radius: 30px; text-decoration: none; font-size: 0.85rem; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 100; display: flex; align-items: center; gap: 6px; }
     </style>
 </head>
 <body>
@@ -96,7 +98,6 @@
         let allProducts = [];
         let dbCategories = [];
 
-        // جلب الفئات من جدول categories
         db.collection("categories").onSnapshot((snapshot) => {
             dbCategories = [];
             snapshot.forEach((doc) => {
@@ -106,7 +107,6 @@
             updateCategoriesBar();
         });
 
-        // جلب المنتجات وتحديث القائمة
         db.collection("products").onSnapshot((snapshot) => {
             allProducts = [];
             snapshot.forEach((doc) => {
@@ -117,7 +117,6 @@
         });
 
         function updateCategoriesBar() {
-            // جمع الفئات من قاعدة البيانات ومن المنتجات نفسها لضمان ظهورها دائماً
             let categoriesSet = new Set(dbCategories);
             allProducts.forEach(p => {
                 if (p.category) categoriesSet.add(p.category);
@@ -161,12 +160,12 @@
                     priceHtml = `
                         <span class="price-offer-new">₪${p.offerPrice}</span>
                         <span class="price-offer-old">₪${p.price}</span>
-                        <span style="font-size:0.75rem; color:#4b5563;"> / ${p.unit || 'حبة'}</span>
+                        <span style="font-size:0.75rem; color:#4b5563; font-weight:600;"> / ${p.unit || 'حبة'}</span>
                     `;
                 } else {
                     priceHtml = `
                         <span class="price-normal">₪${p.price}</span>
-                        <span style="font-size:0.75rem; color:#4b5563;"> / ${p.unit || 'حبة'}</span>
+                        <span style="font-size:0.75rem; color:#4b5563; font-weight:600;"> / ${p.unit || 'حبة'}</span>
                     `;
                 }
 
