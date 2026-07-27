@@ -105,7 +105,6 @@
         .summary-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
         .summary-row.total { font-weight: 700; font-size: 1.1rem; color: var(--primary-green); border-top: 1px solid #e2e8f0; padding-top: 6px; }
 
-        /* نموذج بيانات الزبون */
         .customer-form-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 10px; margin-bottom: 12px; display: none; flex-direction: column; gap: 8px; }
         .customer-form-box input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; font-family: 'Cairo', sans-serif; outline: none; }
         .customer-form-box input:focus { border-color: var(--primary-green); }
@@ -154,7 +153,6 @@
         </div>
     </div>
 
-    <!-- نافذة العرض التفاعلية -->
     <div id="bundle-modal">
         <div class="bundle-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
@@ -183,7 +181,6 @@
         </div>
     </div>
 
-    <!-- نافذة السلة المتقدمة مع بيانات الزبون -->
     <div id="cart-modal">
         <div class="cart-modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
@@ -210,7 +207,6 @@
                 </div>
             </div>
 
-            <!-- إدخال معلومات الزبون -->
             <div class="customer-form-box" id="customer-form-box">
                 <div style="font-weight: 700; font-size: 0.85rem; color: #374151;">معلومات التوصيل:</div>
                 <input type="text" id="cust-name" placeholder="اسم الزبون الكريم">
@@ -224,7 +220,7 @@
 
     <a href="dashboard.html" class="floating-dashboard-btn">⚙️ لوحة التحكم</a>
 
-    <script[cite: 1]>
+    <script>
         const firebaseConfig = {
             apiKey: "AIzaSyAFk8EX7--EMt--ZU395",
             authDomain: "alorobaonline.firebaseapp.com",
@@ -237,7 +233,6 @@
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.firestore();
 
-        // 🟢 ضع هنا رقم الواتساب الخاص بك الذي ستصل إليه الطلبات (مثلاً: 972500000000+)
         const STORE_WHATSAPP_NUMBER = "972500000000"; 
 
         let currentCategory = "الكل";
@@ -469,7 +464,6 @@
             document.getElementById('bundle-modal').style.display = 'none';
         }
 
-        // متغير عالمي لحفظ إجمالي السعر النهائي عند فتح السلة
         let lastCalculatedFinalTotal = 0;
         let lastCartLinesSummary = [];
 
@@ -644,13 +638,11 @@
             let encodedMessage = encodeURIComponent(message);
             let whatsappUrl = `https://wa.me/${STORE_WHATSAPP_NUMBER}?text=${encodedMessage}`;
 
-            // تفريغ السلة وتخزين البيانات
             cartItems = {};
             saveCartToLocalStorage();
             updateCartCounter();
             closeCartModal();
 
-            // فتح واتساب لإرسال الرسالة
             window.open(whatsappUrl, '_blank');
         }
 
