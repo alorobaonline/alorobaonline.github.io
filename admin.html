@@ -78,9 +78,9 @@
         .product-card-container { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
         .product-mini-row { display: flex; justify-content: space-between; align-items: center; padding: 8px; font-size: 0.7rem; gap: 8px; }
         .product-mini-info { display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; }
-        .product-mini-thumb { width: 32px; height: 32px; object-fit: contain; background: white; border-radius: 4px; border: 1px solid #ddd; padding: 2px; flex-shrink: 0; }
+        .product-mini-thumb { width: 32px; height: 32px; object-fit: contain; background: white; border-radius: 4px; border: 1px solid #ddd; padding: 2px; flex-shrink: 0; cursor: pointer; }
         .inline-edit-form { background: #eff6ff; border-top: 1px dashed #bfdbfe; padding: 10px; display: none; }
-        .preview-thumb { width: 45px; height: 45px; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 6px; background: white; padding: 2px; }
+        .preview-thumb { width: 45px; height: 45px; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 6px; background: white; padding: 2px; cursor: pointer; }
         .toggle-arrow { font-size: 0.75rem; transition: transform 0.2s; }
         
         .order-card { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 0.75rem; }
@@ -224,7 +224,7 @@
                         <input type="file" accept="image/*" onchange="handleImageUpload(event, 'newProdImg', 'newProdPreview')">
                     </label>
                 </div>
-                <img id="newProdPreview" class="preview-thumb" src="" alt="معاينة" style="display: none; margin-top: 5px;">
+                <img id="newProdPreview" class="preview-thumb" src="" alt="معاينة" style="display: none; margin-top: 5px;" onclick="openModal(this)">
             </div>
             <button class="btn-main" onclick="addNewProduct()">حفظ وإضافة المنتج 🚀</button>
         </div>
@@ -303,6 +303,16 @@
             <button class="btn-main" style="background: #059669; margin-bottom: 8px;" onclick="addNewBannerSlide()">➕ إضافة شريحة بانر جديدة</button>
             <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث شرائح البانر ✨</button>
         </div>
+    </div>
+</div>
+
+<!-- نافذة عرض الصورة بالحجم الكامل مع زر إغلاق (X) واضح -->
+<div id="imageModal" style="display: none; position: fixed; z-index: 9999; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); justify-content: center; align-items: center;">
+    <div style="position: relative; max-width: 90%; max-height: 90%;">
+        <!-- زر علامة X للإغلاق -->
+        <span onclick="closeModal()" style="position: absolute; top: -12px; right: -12px; background-color: #ff4d4d; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.4); z-index: 10000;">&times;</span>
+        <!-- الصورة المكبرة -->
+        <img id="modalImg" style="max-width: 100%; max-height: 85vh; border-radius: 8px; display: block; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" />
     </div>
 </div>
 
@@ -639,7 +649,7 @@
                     <div class="product-card-container">
                         <div class="product-mini-row">
                             <div class="product-mini-info">
-                                <img src="${p.img}" class="product-mini-thumb" onerror="this.src='https://i.ibb.co/3m1K2wP/basket.png'">
+                                <img src="${p.img}" class="product-mini-thumb" onclick="openModal(this)" onerror="this.src='https://i.ibb.co/3m1K2wP/basket.png'">
                                 <div>
                                     <div style="font-weight: 800;">${p.name}</div>
                                     <div style="color: #6b7280; font-size: 0.65rem;">السعر: ${activePrice} | ${p.weight || 'حبة'}</div>
@@ -679,7 +689,7 @@
                                         <input type="file" accept="image/*" onchange="handleImageUpload(event, 'edit_img_${p.id}', 'editPreview_${p.id}')">
                                     </label>
                                 </div>
-                                <img id="editPreview_${p.id}" class="preview-thumb" src="${p.img || ''}" alt="معاينة" style="${p.img ? 'display: block;' : 'display: none;'} margin-top: 5px;">
+                                <img id="editPreview_${p.id}" class="preview-thumb" src="${p.img || ''}" alt="معاينة" style="${p.img ? 'display: block;' : 'display: none;'} margin-top: 5px;" onclick="openModal(this)">
                             </div>
                             <div class="form-group">
                                 <label>أقسام المنتج</label>
@@ -1047,6 +1057,32 @@
         orders.forEach(o => { if(o.status === "مكتمل" || !o.status) total += parseFloat(o.total || 0); });
         const elem = document.getElementById('totalSalesAmount');
         if(elem) elem.innerText = total.toFixed(2) + " ₪";
+    }
+
+    // دوال نافذة عرض الصورة بالحجم الكامل
+    function openModal(imgElement) {
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImg');
+        if(modal && modalImg) {
+            modal.style.display = 'flex';
+            modalImg.src = imgElement.src;
+        }
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('imageModal');
+        if(modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    const modalElem = document.getElementById('imageModal');
+    if(modalElem) {
+        modalElem.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
     }
 </script>
 </body>
