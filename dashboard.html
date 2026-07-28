@@ -5,6 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة التحكم الشاملة - سوبر ماركت العروبة</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- ربط مكتبات Firebase (SDK v9) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+        import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+        // ضع إعدادات مشروعك في Firebase هنا
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // جعل الأدوات متاحة للعامة في النطاق (Global Scope)
+        window.db = db;
+        window.firebaseModules = { collection, getDocs, setDoc, doc, deleteDoc, updateDoc, onSnapshot };
+        
+        // تشغيل اللوحة بعد تحميل الفايربيس
+        window.dispatchEvent(new Event('firebase-ready'));
+    </script>
+
     <style>
         :root {
             --primary-green: #1b4d2e;
@@ -115,7 +142,7 @@
         .banner-slide-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 10px; position: relative; }
     </style>
 </head>
-<body onload="initDashboard()">
+<body>
 
 <div class="dashboard-container">
     <div class="dash-header">
@@ -143,7 +170,7 @@
         </div>
         <div class="section-content" id="ordersSectionContent">
             <div id="adminOrdersList" style="margin-top: 8px; max-height: 300px; overflow-y: auto;">
-                <p style="color: #666; text-align: center; font-size: 0.75rem;">لا توجد طلبات واردة حالياً.</p>
+                <p style="color: #666; text-align: center; font-size: 0.75rem;">جاري جلب الطلبات...</p>
             </div>
         </div>
     </div>
@@ -255,8 +282,8 @@
 </div>
 
 <script>
-    let products = JSON.parse(localStorage.getItem('aloroba_products')) || [];
-    let categories = JSON.parse(localStorage.getItem('aloroba_categories')) || [
+    let products = [];
+    let categories = [
         { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
         { name: "عروض", icon: "🔥", bg: "#fee2e2", color: "#dc2626" },
         { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
@@ -264,41 +291,86 @@
         { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
         { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" }
     ];
-    
-    // دعم عدد غير محدود من شرائح البانر المتحرك
-    let bannerSlides = JSON.parse(localStorage.getItem('aloroba_banner_slides')) || [
-        {
-            tag: "سوبر ماركت العروبة",
-            title: "كل احتياجات بيتك في مكان واحد",
-            img: "https://i.ibb.co/3m1K2wP/basket.png"
-        },
-        {
-            tag: "عروض مميزة",
-            title: "تخفيضات الكبرى على كافة المنتجات",
-            img: "https://i.ibb.co/3m1K2wP/basket.png"
-        },
-        {
-            tag: "توصيل سريع",
-            title: "أرخص الأسعار لخدمة أهالينا",
-            img: "https://i.ibb.co/3m1K2wP/basket.png"
-        }
+    let bannerSlides = [
+        { tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "https://i.ibb.co/3m1K2wP/basket.png" },
+        { tag: "عروض مميزة", title: "تخفيضات الكبرى على كافة المنتجات", img: "https://i.ibb.co/3m1K2wP/basket.png" },
+        { tag: "توصيل سريع", title: "أرخص الأسعار لخدمة أهالينا", img: "https://i.ibb.co/3m1K2wP/basket.png" }
     ];
+    let layoutData = { firstSection: "عروض", secondSection: "ألبان", thirdSection: "معلبات" };
+    let orders = [];
 
-    let layoutData = JSON.parse(localStorage.getItem('aloroba_layout')) || {
-        firstSection: "عروض",
-        secondSection: "ألبان",
-        thirdSection: "معلبات"
-    };
-    let orders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
+    window.addEventListener('firebase-ready', () => {
+        initFirebaseListeners();
+    });
 
-    function initDashboard() {
-        renderNewProdCategoriesCheckboxes();
-        renderAdminGroupedProducts();
-        renderAdminCategoriesList();
-        renderAdminOrders();
-        initBannerForm();
-        initLayoutDropdowns();
-        updateSalesSummary();
+    // جلب البيانات ومزامنتها لحظياً من Firebase Firestore
+    function initFirebaseListeners() {
+        const { collection, onSnapshot } = window.firebaseModules;
+        const db = window.db;
+
+        // 1. الاستماع للمنتجات
+        onSnapshot(collection(db, "products"), (snapshot) => {
+            products = [];
+            snapshot.forEach((docSnap) => {
+                products.push({ firestoreId: docSnap.id, ...docSnap.data() });
+            });
+            renderNewProdCategoriesCheckboxes();
+            renderAdminGroupedProducts();
+            updateSalesSummary();
+        });
+
+        // 2. الاستماع للأقسام
+        onSnapshot(collection(db, "categories"), (snapshot) => {
+            if (!snapshot.empty) {
+                categories = [];
+                snapshot.forEach((docSnap) => {
+                    categories.push(docSnap.data());
+                });
+            } else {
+                // رفع الأقسام الافتراضية إذا كانت قاعدة البيانات فارغة
+                categories.forEach(async (cat) => {
+                    await window.firebaseModules.setDoc(window.firebaseModules.doc(db, "categories", cat.name), cat);
+                });
+            }
+            renderNewProdCategoriesCheckboxes();
+            renderAdminCategoriesList();
+            initLayoutDropdowns();
+            renderAdminGroupedProducts();
+        });
+
+        // 3. الاستماع للطلبات
+        onSnapshot(collection(db, "orders"), (snapshot) => {
+            orders = [];
+            snapshot.forEach((docSnap) => {
+                orders.push({ firestoreId: docSnap.id, ...docSnap.data() });
+            });
+            renderAdminOrders();
+            updateSalesSummary();
+        });
+
+        // 4. جلب إعدادات البانر والتخطيط لمرة واحدة أو الاستماع لها
+        loadSettingsFromFirebase();
+    }
+
+    async function loadSettingsFromFirebase() {
+        const { getDocs, collection } = window.firebaseModules;
+        const db = window.db;
+        
+        try {
+            const settingsSnap = await getDocs(collection(db, "settings"));
+            settingsSnap.forEach(docSnap => {
+                if(docSnap.id === "bannerSlides") {
+                    bannerSlides = docSnap.data().slides || bannerSlides;
+                }
+                if(docSnap.id === "layoutData") {
+                    layoutData = docSnap.data() || layoutData;
+                }
+            });
+            initBannerForm();
+            initLayoutDropdowns();
+        } catch(e) {
+            console.log("خطأ في جلب الإعدادات:", e);
+        }
     }
 
     function toggleSection(contentId, headerElem) {
@@ -330,6 +402,7 @@
 
     function renderNewProdCategoriesCheckboxes(selectedCategories = []) {
         const container = document.getElementById('newProdCategoriesContainer');
+        if(!container) return;
         container.innerHTML = '';
         categories.forEach(cat => {
             if(cat.name === "الكل") return;
@@ -343,7 +416,7 @@
         });
     }
 
-    function addNewProduct() {
+    async function addNewProduct() {
         const name = document.getElementById('newProdName').value.trim();
         const price = parseFloat(document.getElementById('newProdPrice').value);
         let salePrice = document.getElementById('newProdSalePrice').value.trim();
@@ -360,8 +433,9 @@
             return;
         }
 
+        const prodId = String(Date.now());
         let newProd = {
-            id: Date.now(),
+            id: prodId,
             name,
             price,
             salePrice: salePrice !== "" ? parseFloat(salePrice) : "",
@@ -370,8 +444,8 @@
             categories: selectedCats.length > 0 ? selectedCats : ["عام"]
         };
 
-        products.unshift(newProd);
-        saveProductsToStorage();
+        const { setDoc, doc } = window.firebaseModules;
+        await setDoc(doc(window.db, "products", prodId), newProd);
         
         document.getElementById('newProdName').value = '';
         document.getElementById('newProdPrice').value = '';
@@ -381,17 +455,12 @@
         document.getElementById('newProdPreview').style.display = 'none';
         renderNewProdCategoriesCheckboxes();
 
-        alert("تم إضافة المنتج بنجاح وتحديث المتجر فوريًا! ✨");
-    }
-
-    function saveProductsToStorage() {
-        localStorage.setItem('aloroba_products', JSON.stringify(products));
-        renderAdminGroupedProducts();
-        updateSalesSummary();
+        alert("تم حفظ وإضافة المنتج إلى Firebase بنجاح! 🚀");
     }
 
     function renderAdminGroupedProducts() {
         const container = document.getElementById('adminGroupedProductsContainer');
+        if(!container) return;
         container.innerHTML = '';
 
         if(products.length === 0) {
@@ -449,8 +518,8 @@
                                 </div>
                             </div>
                             <div class="product-actions">
-                                <button class="btn-edit" onclick="toggleEditForm(${p.id})">تعديل ✏️</button>
-                                <button class="btn-delete" onclick="deleteProduct(${p.id})">حذف 🗑️</button>
+                                <button class="btn-edit" onclick="toggleEditForm('${p.id}')">تعديل ✏️</button>
+                                <button class="btn-delete" onclick="deleteProduct('${p.firestoreId || p.id}')">حذف 🗑️</button>
                             </div>
                         </div>
                         <div class="inline-edit-form" id="editForm_${p.id}">
@@ -480,7 +549,7 @@
                                 <label>أقسام المنتج</label>
                                 <div class="categories-checkbox-container" id="editCatsContainer_${p.id}"></div>
                             </div>
-                            <button class="btn-main" style="background: #3b82f6; padding: 6px; font-size: 0.7rem;" onclick="saveEditedProduct(${p.id})">حفظ التعديلات ✓</button>
+                            <button class="btn-main" style="background: #3b82f6; padding: 6px; font-size: 0.7rem;" onclick="saveEditedProduct('${p.firestoreId || p.id}', '${p.id}')">حفظ التعديلات ✓</button>
                         </div>
                     </div>
                 `;
@@ -493,11 +562,7 @@
 
     function toggleCategoryGroup(headerElem) {
         const items = headerElem.nextElementSibling;
-        if(items.style.display === 'block') {
-            items.style.display = 'none';
-        } else {
-            items.style.display = 'block';
-        }
+        items.style.display = items.style.display === 'block' ? 'none' : 'block';
     }
 
     function toggleEditForm(id) {
@@ -506,7 +571,7 @@
             form.style.display = 'none';
         } else {
             form.style.display = 'block';
-            let p = products.find(prod => prod.id === id);
+            let p = products.find(prod => prod.id == id);
             if(p) {
                 renderEditCategoriesCheckboxes(id, p.categories || []);
             }
@@ -529,48 +594,50 @@
         });
     }
 
-    function saveEditedProduct(id) {
-        let p = products.find(prod => prod.id === id);
+    async function saveEditedProduct(firestoreId, localId) {
+        let p = products.find(prod => prod.id == localId);
         if(!p) return;
 
-        p.name = document.getElementById(`edit_name_${id}`).value.trim();
-        p.price = parseFloat(document.getElementById(`edit_price_${id}`).value);
-        let sp = document.getElementById(`edit_saleprice_${id}`).value.trim();
+        p.name = document.getElementById(`edit_name_${localId}`).value.trim();
+        p.price = parseFloat(document.getElementById(`edit_price_${localId}`).value);
+        let sp = document.getElementById(`edit_saleprice_${localId}`).value.trim();
         p.salePrice = sp !== "" ? parseFloat(sp) : "";
-        p.weight = document.getElementById(`edit_weight_${id}`).value.trim();
-        p.img = document.getElementById(`edit_img_${id}`).value.trim();
+        p.weight = document.getElementById(`edit_weight_${localId}`).value.trim();
+        p.img = document.getElementById(`edit_img_${localId}`).value.trim();
 
         let selectedCats = [];
-        document.querySelectorAll(`input[name="editCat_${id}"]:checked`).forEach(cb => {
+        document.querySelectorAll(`input[name="editCat_${localId}"]:checked`).forEach(cb => {
             selectedCats.push(cb.value);
         });
         p.categories = selectedCats.length > 0 ? selectedCats : ["عام"];
 
-        saveProductsToStorage();
-        alert("تم تحديث المنتج بنجاح!");
+        const { setDoc, doc } = window.firebaseModules;
+        await setDoc(doc(window.db, "products", String(firestoreId)), p);
+        alert("تم تحديث المنتج في Firebase بنجاح!");
     }
 
-    function deleteProduct(id) {
+    async function deleteProduct(firestoreId) {
         if(confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
-            products = products.filter(p => p.id !== id);
-            saveProductsToStorage();
+            const { deleteDoc, doc } = window.firebaseModules;
+            await deleteDoc(doc(window.db, "products", String(firestoreId)));
         }
     }
 
     function renderAdminCategoriesList() {
         const container = document.getElementById('adminCategoriesList');
+        if(!container) return;
         container.innerHTML = '';
-        categories.forEach((cat, index) => {
+        categories.forEach((cat) => {
             container.innerHTML += `
                 <div class="list-item">
                     <div><b>${cat.icon}</b> ${cat.name}</div>
-                    ${cat.name !== "الكل" && cat.name !== "عروض" ? `<button class="btn-delete" onclick="deleteCategory(${index})">حذف</button>` : '<span style="font-size:0.6rem; color:#888;">أساسي</span>'}
+                    ${cat.name !== "الكل" && cat.name !== "عروض" ? `<button class="btn-delete" onclick="deleteCategory('${cat.name}')">حذف</button>` : '<span style="font-size:0.6rem; color:#888;">أساسي</span>'}
                 </div>
             `;
         });
     }
 
-    function addNewCategory() {
+    async function addNewCategory() {
         const name = document.getElementById('newCatName').value.trim();
         const icon = document.getElementById('newCatIcon').value.trim() || "📦";
 
@@ -584,26 +651,25 @@
             return;
         }
 
-        categories.push({ name, icon, bg: "#f3f4f6", color: "#1b4d2e" });
-        localStorage.setItem('aloroba_categories', JSON.stringify(categories));
+        let newCat = { name, icon, bg: "#f3f4f6", color: "#1b4d2e" };
+        const { setDoc, doc } = window.firebaseModules;
+        await setDoc(doc(window.db, "categories", name), newCat);
         
         document.getElementById('newCatName').value = '';
         document.getElementById('newCatIcon').value = '';
-
-        initDashboard();
-        alert("تم إضافة القسم بنجاح!");
+        alert("تم إضافة القسم إلى Firebase بنجاح!");
     }
 
-    function deleteCategory(index) {
+    async function deleteCategory(catName) {
         if(confirm("هل أنت متأكد من حذف هذا القسم؟")) {
-            categories.splice(index, 1);
-            localStorage.setItem('aloroba_categories', JSON.stringify(categories));
-            initDashboard();
+            const { deleteDoc, doc } = window.firebaseModules;
+            await deleteDoc(doc(window.db, "categories", catName));
         }
     }
 
     function initBannerForm() {
         const container = document.getElementById('bannerSlidesContainer');
+        if(!container) return;
         container.innerHTML = '';
         
         bannerSlides.forEach((slide, index) => {
@@ -638,7 +704,6 @@
     }
 
     function addNewBannerSlide() {
-        // جمع البيانات الحالية أولاً لكي لا تضيع عند الإضافة
         collectCurrentBannerData();
         bannerSlides.push({
             tag: "عروض جديدة",
@@ -666,7 +731,7 @@
             let titleInput = document.getElementById(`bannerTitle_${index}`);
             let imgInput = document.getElementById(`bannerImg_${index}`);
             
-            if(!tagInput) break; // توقف إذا انتهت الحقول
+            if(!tagInput) break;
             
             bannerSlides.push({
                 tag: tagInput.value.trim(),
@@ -677,10 +742,11 @@
         }
     }
 
-    function saveBannerSettings() {
+    async function saveBannerSettings() {
         collectCurrentBannerData();
-        localStorage.setItem('aloroba_banner_slides', JSON.stringify(bannerSlides));
-        alert("تم حفظ وتحديث شرائح البانر بنجاح وتطبيقها على المتجر فورياً! ✨");
+        const { setDoc, doc } = window.firebaseModules;
+        await setDoc(doc(window.db, "settings", "bannerSlides"), { slides: bannerSlides });
+        alert("تم حفظ وتحديث شرائح البانر في Firebase وتطبيقها على المتجر فورياً! ✨");
     }
 
     function initLayoutDropdowns() {
@@ -688,6 +754,7 @@
         const sel2 = document.getElementById('layoutSecondSection');
         const sel3 = document.getElementById('layoutThirdSection');
         
+        if(!sel1) return;
         sel1.innerHTML = '';
         sel2.innerHTML = '';
         sel3.innerHTML = '';
@@ -704,18 +771,19 @@
         });
     }
 
-    function saveLayoutPreferences() {
+    async function saveLayoutPreferences() {
         layoutData.firstSection = document.getElementById('layoutFirstSection').value;
         layoutData.secondSection = document.getElementById('layoutSecondSection').value;
         layoutData.thirdSection = document.getElementById('layoutThirdSection').value;
         
-        localStorage.setItem('aloroba_layout', JSON.stringify(layoutData));
-        alert("تم حفظ ترتيب العرض الأفقي للمتجر بنجاح! 💾");
+        const { setDoc, doc } = window.firebaseModules;
+        await setDoc(doc(window.db, "settings", "layoutData"), layoutData);
+        alert("تم حفظ ترتيب العرض الأفقي للمتجر في Firebase بنجاح! 💾");
     }
 
     function renderAdminOrders() {
-        orders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
         const container = document.getElementById('adminOrdersList');
+        if(!container) return;
         document.getElementById('ordersCountTitle').innerText = orders.length;
 
         let newOrdersCount = orders.filter(o => o.status === "جديد").length;
@@ -751,9 +819,9 @@
                     <div style="font-weight: bold; color: var(--primary-green);">المجموع الكلي: ${ord.totalAmount || ord.total} ₪</div>
                     <div class="order-action-btns">
                         <a href="tel:${ord.customerPhone}" class="btn-call">📞 اتصال بالزبون</a>
-                        <button class="btn-status" style="background:#d97706;" onclick="updateOrderStatus(${index}, 'قيد التحضير')">قيد التحضير ⏳</button>
-                        <button class="btn-status" style="background:#16a34a;" onclick="updateOrderStatus(${index}, 'مكتمل')">تم التوصيل ✓</button>
-                        <button class="btn-delete" onclick="deleteOrder(${index})">حذف الطلب ✕</button>
+                        <button class="btn-status" style="background:#d97706;" onclick="updateOrderStatus('${ord.firestoreId}', 'قيد التحضير')">قيد التحضير ⏳</button>
+                        <button class="btn-status" style="background:#16a34a;" onclick="updateOrderStatus('${ord.firestoreId}', 'مكتمل')">تم التوصيل ✓</button>
+                        <button class="btn-delete" onclick="deleteOrder('${ord.firestoreId}')">حذف الطلب ✕</button>
                     </div>
                 </div>
             `;
@@ -761,31 +829,27 @@
         container.innerHTML = html;
     }
 
-    function updateOrderStatus(index, newStatus) {
-        orders[index].status = newStatus;
-        localStorage.setItem('aloroba_orders', JSON.stringify(orders));
-        renderAdminOrders();
-        updateSalesSummary();
+    async function updateOrderStatus(firestoreId, newStatus) {
+        const { updateDoc, doc } = window.firebaseModules;
+        await updateDoc(doc(window.db, "orders", String(firestoreId)), { status: newStatus });
     }
 
-    function deleteOrder(index) {
+    async function deleteOrder(firestoreId) {
         if(confirm("هل أنت متأكد من حذف هذا الطلب؟")) {
-            orders.splice(index, 1);
-            localStorage.setItem('aloroba_orders', JSON.stringify(orders));
-            renderAdminOrders();
-            updateSalesSummary();
+            const { deleteDoc, doc } = window.firebaseModules;
+            await deleteDoc(doc(window.db, "orders", String(firestoreId)));
         }
     }
 
     function updateSalesSummary() {
-        orders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
         let totalSales = 0;
         orders.forEach(o => {
             if(o.status === "مكتمل" || o.status === "جديد" || o.status === "قيد التحضير") {
                 totalSales += parseFloat(o.totalAmount || o.total || 0);
             }
         });
-        document.getElementById('totalSalesAmount').innerText = totalSales.toFixed(2) + " ₪";
+        const salesElem = document.getElementById('totalSalesAmount');
+        if(salesElem) salesElem.innerText = totalSales.toFixed(2) + " ₪";
     }
 </script>
 </body>
