@@ -366,7 +366,6 @@
     let selectedCategory = "الكل";
 
     function initStoreData() {
-        // 1. جلب المتاجر والمنتجات سحابياً متزامناً مع لوحة التحكم
         db.ref('aloroba/products').on('value', (snapshot) => {
             let data = snapshot.val();
             if (data) {
@@ -377,7 +376,6 @@
             renderProducts(products);
         });
 
-        // 2. جلب التصنيفات والفئات سحابياً
         db.ref('aloroba/categories').on('value', (snapshot) => {
             let data = snapshot.val();
             if (data) {
@@ -392,7 +390,6 @@
             renderCategories();
         });
 
-        // 3. جلب بيانات البانر الرئيسي سحابياً
         db.ref('aloroba/banner').on('value', (snapshot) => {
             let data = snapshot.val();
             if (data) {
@@ -609,7 +606,6 @@
         container.innerHTML = html;
     }
 
-    // --- إرسال الطلب وحفظه في سحابة Firebase مباشرة لتظهر في لوحة التحكم ---
     function submitOrderToCloud() {
         const name = document.getElementById('customerName').value.trim();
         const address = document.getElementById('customerAddress').value.trim();
@@ -630,7 +626,6 @@
             date: new Date().toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'}) + ' - ' + new Date().toLocaleDateString()
         };
 
-        // إرسال الطلب إلى جدول الطلبات الحية في قاعدة البيانات السحابية لكي يستقبله صاحب المتجر فوراً في لوحة التحكم
         db.ref('aloroba/orders').once('value', (snapshot) => {
             let orders = snapshot.val() || [];
             orders = Array.isArray(orders) ? orders : Object.values(orders);
