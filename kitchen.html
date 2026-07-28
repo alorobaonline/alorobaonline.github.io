@@ -83,7 +83,7 @@
     
     <div class="header">
         <h1>🍳 شاشة المطبخ والطلبات</h1>
-        <div class="status-badge">🟢 متصل بالساحة (تحديث مباشر)</div>
+        <div class="status-badge">🟢 متصل بالسحابة (تحديث مباشر)</div>
     </div>
 
     <div id="kitchenOrdersList">
@@ -93,11 +93,25 @@
 
 <script>
     let orders = [];
+    let productsList = [];
 
     window.addEventListener('firebase-ready', async function() {
+        await loadProductsList();
         await loadKitchenOrders();
         setInterval(loadKitchenOrders, 10000);
     });
+
+    async function loadProductsList() {
+        try {
+            const querySnapshot = await window.getDocs(window.collection(window.db, "products"));
+            productsList = [];
+            querySnapshot.forEach(docSnap => {
+                productsList.push(docSnap.data());
+            });
+        } catch (e) {
+            console.error("خطأ في جلب المنتجات:", e);
+        }
+    }
 
     async function loadKitchenOrders() {
         try {
@@ -128,7 +142,18 @@
             let itemsHtml = "";
             if(ord.items && Array.isArray(ord.items)) {
                 ord.items.forEach((item, itemIdx) => {
-                    let imgSrc = item.img || "https://i.ibb.co/3m1K2wP/basket.png";
+                    // جلب الصورة إما من بيانات الطلب أو مطابقة الاسم مع جدول المنتجات
+                    let imgSrc = item.img;
+                    if(!imgSrc || imgSrc === "") {
+                        let foundProd = productsList.find(p => p.name === item.name);
+                        if(foundProd && foundProd.img) {
+                            imgSrc = foundProd.img;
+                        }
+                    }
+                    if(!imgSrc) {
+                        imgSrc = "https://i.ibb.co/3m1K2wP/basket.png";
+                    }
+
                     let checkboxId = `chk_${ord.id}_${itemIdx}`;
                     itemsHtml += `
                         <div class="kitchen-item-row" id="row_${checkboxId}">
