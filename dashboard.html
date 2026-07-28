@@ -172,7 +172,7 @@
                 <input type="text" id="newProdWeight" class="form-control" placeholder="مثال: 5 كجم أو حبة">
             </div>
             <div class="form-group">
-                <label>أقسام المنتج (اختر قسم واحد أو أكثر)</label>
+                <label>أقسام المنتج (اختر قسم واحد أو أكثر لظهوره في العرض الأفقي)</label>
                 <div class="categories-checkbox-container" id="newProdCategoriesContainer"></div>
             </div>
             <div class="form-group">
@@ -201,25 +201,29 @@
         </div>
     </div>
 
-    <!-- 4. إدارة التصنيفات والأقسام وعرضها أفقياً -->
+    <!-- 4. إدارة التصنيفات والأقسام والتحكم بالصفوف الأفقية -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('categoriesSectionContent', this)">
-            <span>🗂️ إدارة الأقسام وواجهة العرض الأفقي</span>
+            <span>🗂️ إدارة الأقسام وعرض الصفوف الأفقية (يمين ويسار)</span>
             <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="categoriesSectionContent">
             <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px; margin-bottom: 10px; font-size: 0.7rem; color: #1e40af;">
-                💡 <b>ترتيب عرض الأقسام في الصفحة الرئيسية:</b> المنتجات تظهر أفقياً لكل قسم (سحب يمين ويسار). اختر الأقسام التي تظهر في الواجهة الأولى:
+                💡 <b>تخصيص العرض الأفقي بالمتجر:</b> المنتجات الآن تظهر مقسمة بشكل عرضي (سحب يمين ويسار لكل قسم). حدد الأقسام التي تود عرضها وترتيبها في واجهة المتجر الرئيسية:
             </div>
             <div class="form-group">
-                <label>القسم الرئيسي الأول (أعلى الصفحة)</label>
+                <label>القسم الأفقي الأول في الواجهة الرئيسية</label>
                 <select id="layoutFirstSection" class="form-control"></select>
             </div>
             <div class="form-group">
-                <label>القسم الرئيسي الثاني</label>
+                <label>القسم الأفقي الثاني في الواجهة الرئيسية</label>
                 <select id="layoutSecondSection" class="form-control"></select>
             </div>
-            <button class="btn-main" style="background: #2563eb; margin-bottom: 12px;" onclick="saveLayoutPreferences()">حفظ ترتيب العرض الأفقي 💾</button>
+            <div class="form-group">
+                <label>القسم الأفقي الثالث في الواجهة الرئيسية</label>
+                <select id="layoutThirdSection" class="form-control"></select>
+            </div>
+            <button class="btn-main" style="background: #2563eb; margin-bottom: 12px;" onclick="saveLayoutPreferences()">حفظ إعدادات العرض الأفقي 💾</button>
 
             <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 10px 0;">
 
@@ -279,9 +283,11 @@
         tag: "سوبر ماركت العروبة",
         img: "https://i.ibb.co/3m1K2wP/basket.png"
     };
+    // تحديث إعدادات التخطيط لدعم 3 أقسام أفقية رئيسية
     let layoutData = JSON.parse(localStorage.getItem('aloroba_layout')) || {
         firstSection: "عروض",
-        secondSection: "الأكثر مبيعا"
+        secondSection: "ألبان",
+        thirdSection: "معلبات"
     };
     let orders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
 
@@ -365,7 +371,6 @@
         products.unshift(newProd);
         saveProductsToStorage();
         
-        // تفريغ الحقول
         document.getElementById('newProdName').value = '';
         document.getElementById('newProdPrice').value = '';
         document.getElementById('newProdSalePrice').value = '';
@@ -392,7 +397,6 @@
             return;
         }
 
-        // تجميع المنتجات حسب التصنيفات
         let catGroups = {};
         categories.forEach(c => {
             if(c.name !== "الكل") catGroups[c.name] = [];
@@ -614,23 +618,31 @@
     function initLayoutDropdowns() {
         const sel1 = document.getElementById('layoutFirstSection');
         const sel2 = document.getElementById('layoutSecondSection');
+        const sel3 = document.getElementById('layoutThirdSection');
+        
         sel1.innerHTML = '';
         sel2.innerHTML = '';
+        sel3.innerHTML = '';
 
         categories.forEach(cat => {
             if(cat.name === "الكل") return;
             let opt1 = `<option value="${cat.name}" ${layoutData.firstSection === cat.name ? 'selected' : ''}>${cat.icon} ${cat.name}</option>`;
             let opt2 = `<option value="${cat.name}" ${layoutData.secondSection === cat.name ? 'selected' : ''}>${cat.icon} ${cat.name}</option>`;
+            let opt3 = `<option value="${cat.name}" ${layoutData.thirdSection === cat.name ? 'selected' : ''}>${cat.icon} ${cat.name}</option>`;
+            
             sel1.innerHTML += opt1;
             sel2.innerHTML += opt2;
+            sel3.innerHTML += opt3;
         });
     }
 
     function saveLayoutPreferences() {
         layoutData.firstSection = document.getElementById('layoutFirstSection').value;
         layoutData.secondSection = document.getElementById('layoutSecondSection').value;
+        layoutData.thirdSection = document.getElementById('layoutThirdSection').value;
+        
         localStorage.setItem('aloroba_layout', JSON.stringify(layoutData));
-        alert("تم حفظ ترتيب العرض الأفقي بنجاح!");
+        alert("تم حفظ ترتيب العرض الأفقي للمتجر بنجاح! 💾");
     }
 
     function renderAdminOrders() {
