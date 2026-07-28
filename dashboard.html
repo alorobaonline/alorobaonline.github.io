@@ -38,41 +38,6 @@
         .form-control { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; outline: none; background: white; }
         .form-control:focus { border-color: var(--accent-green); }
 
-        .categories-checkbox-container {
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            padding: 8px;
-            background: white;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 5px;
-        }
-        .checkbox-item {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 4px;
-            font-size: 0.65rem;
-            padding: 5px 6px;
-            cursor: pointer;
-            font-weight: 600;
-            color: #374151;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-        }
-        .checkbox-item input {
-            accent-color: var(--primary-green);
-            width: 13px;
-            height: 13px;
-            cursor: pointer;
-            flex-shrink: 0;
-            margin-left: 2px;
-        }
-
         .file-upload-box { display: flex; align-items: center; gap: 8px; }
         .file-upload-box input[type="file"] { display: none; }
         .camera-btn { background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; flex: 1; justify-content: center; }
@@ -84,12 +49,6 @@
         .btn-delete { background: #ef4444; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; white-space: nowrap; }
         .btn-edit { background: #3b82f6; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; white-space: nowrap; }
 
-        .list-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 0.7rem; }
-        
-        .category-group-box { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
-        .category-group-title { font-size: 0.8rem; font-weight: 900; color: var(--primary-green); border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
-        .category-toggle-badge { margin-right: auto; font-size: 0.7rem; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; color: #334155; display: flex; align-items: center; gap: 5px; font-weight: bold; }
-        
         .product-card-container { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
         .product-mini-row { display: flex; justify-content: space-between; align-items: center; padding: 8px; font-size: 0.7rem; gap: 8px; }
         .product-mini-info { display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; }
@@ -184,36 +143,6 @@
         </div>
     </div>
 
-    <!-- 2. إدارة الفئات والأقسام -->
-    <div class="section-box">
-        <div class="section-header-toggle" onclick="toggleMainSection('categoriesSection', 'catArrow')">
-            <span>📁 إدارة الفئات (الأقسام)</span>
-            <span id="catArrow" class="toggle-arrow">▼</span>
-        </div>
-        <div id="categoriesSection" class="section-content">
-            <div class="form-group">
-                <label>اسم الفئة</label>
-                <input type="text" id="catName" class="form-control" placeholder="مثال: لحوم، ألبان...">
-            </div>
-            <div class="form-group">
-                <label>الأيقونة (إيموجي)</label>
-                <input type="text" id="catIcon" class="form-control" placeholder="مثال: 🥩">
-            </div>
-            <div style="display: flex; gap: 8px;">
-                <div class="form-group" style="flex: 1;">
-                    <label>خلفية الأيقونة</label>
-                    <input type="text" id="catBg" class="form-control" value="#eaf3df">
-                </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>لون الأيقونة</label>
-                    <input type="text" id="catColor" class="form-control" value="#2e6930">
-                </div>
-            </div>
-            <button class="btn-main" onclick="addCategory()">إضافة فئة جديدة ➕</button>
-            <div style="margin-top: 10px;" id="adminCategoriesList"></div>
-        </div>
-    </div>
-
     <!-- القسم الأول: إضافة منتج جديد -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleMainSection('addProductSection', 'prodArrow')">
@@ -257,23 +186,18 @@
                 <input type="hidden" id="prodImgData">
             </div>
 
-            <div class="form-group">
-                <label>الأقسام والفئات المطلوبة *</label>
-                <div id="prodCategoriesCheckboxes" class="categories-checkbox-container"></div>
-            </div>
-
             <button class="btn-main" onclick="saveProduct()">إضافة ونشر المنتج فوراً 🚀</button>
         </div>
     </div>
 
-    <!-- 3. خانة المنتجات المقسمة حسب الفئات -->
+    <!-- 3. خانة المنتجات العامة -->
     <div class="section-box" style="background: #edf2f7; border-color: #cbd5e1;">
         <div class="section-header-toggle" onclick="toggleMainSection('manageProductsSection', 'manageArrow')">
-            <span>🛒 إدارة وعرض المنتجات (مقسمة حسب الأقسام)</span>
+            <span>🛒 إدارة وعرض المنتجات</span>
             <span id="manageArrow" class="toggle-arrow">▼</span>
         </div>
         <div id="manageProductsSection" class="section-content" style="margin-top: 12px;">
-            <div id="categorizedProductsAdminList"></div>
+            <div id="productsAdminList"></div>
         </div>
     </div>
 </div>
@@ -294,7 +218,6 @@
     const db = firebase.database();
 
     let cachedProducts = [];
-    let categories = [];
     let bannerData = {};
     let lastOrdersCount = 0;
 
@@ -307,18 +230,6 @@
         } else {
             section.style.display = "none";
             arrow.innerText = "▼";
-        }
-    }
-
-    function toggleCategorySection(catIdx) {
-        const content = document.getElementById(`category-content-${catIdx}`);
-        const arrow = document.getElementById(`arrow-icon-${catIdx}`);
-        if (content.style.display === "none" || content.style.display === "") {
-            content.style.display = "block";
-            arrow.innerText = "▼";
-        } else {
-            content.style.display = "none";
-            arrow.innerText = "▲";
         }
     }
 
@@ -367,31 +278,13 @@
             let products = snapshot.val();
             if (!products) {
                 products = [
-                    { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 18, oldPrice: 22, img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات"], inStock: true, stockQty: 15 },
-                    { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: "", img: "https://i.ibb.co/1q20K0v/maggi.png", categories: ["معلبات"], inStock: true, stockQty: 30 },
-                    { id: 3, name: "حليب نيدو", weight: "2500جم", price: 55, oldPrice: 59, img: "https://i.ibb.co/7Xv8L9p/nido.png", categories: ["ألبان"], inStock: true, stockQty: 10 }
+                    { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 18, oldPrice: 22, img: "https://i.ibb.co/6y40H69/tat-rice.png", inStock: true, stockQty: 15 },
+                    { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: "", img: "https://i.ibb.co/1q20K0v/maggi.png", inStock: true, stockQty: 30 },
+                    { id: 3, name: "حليب نيدو", weight: "2500جم", price: 55, oldPrice: 59, img: "https://i.ibb.co/7Xv8L9p/nido.png", inStock: true, stockQty: 10 }
                 ];
                 db.ref('aloroba/products').set(products);
             }
             cachedProducts = Array.isArray(products) ? products : Object.values(products);
-            renderAdmin();
-        });
-
-        db.ref('aloroba/categories').on('value', (snapshot) => {
-            let cats = snapshot.val();
-            if (!cats) {
-                cats = [
-                    { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
-                    { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
-                    { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
-                    { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
-                    { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" },
-                    { name: "عصير", icon: "🧃", bg: "#fdf2f8", color: "#db2777" },
-                    { name: "نساء", icon: "👩", bg: "#fce7f3", color: "#be185d" }
-                ];
-                db.ref('aloroba/categories').set(cats);
-            }
-            categories = Array.isArray(cats) ? cats : Object.values(cats);
             renderAdmin();
         });
 
@@ -448,136 +341,77 @@
             document.getElementById('bannerPreview').src = bannerData.img;
         }
 
-        const checkboxesContainer = document.getElementById('prodCategoriesCheckboxes');
-        checkboxesContainer.innerHTML = '';
-        categories.forEach(cat => {
-            if(cat.name !== "الكل") {
-                checkboxesContainer.innerHTML += `
-                    <label class="checkbox-item" title="${cat.name}">
-                        <input type="checkbox" name="productCategoryCheck" value="${cat.name.trim()}">
-                        <span>${cat.icon || ''} ${cat.name}</span>
-                    </label>
-                `;
-            }
-        });
+        const productsContainer = document.getElementById('productsAdminList');
+        productsContainer.innerHTML = '';
 
-        const catList = document.getElementById('adminCategoriesList');
-        catList.innerHTML = '';
-        categories.forEach((cat, index) => {
-            catList.innerHTML += `
-                <div class="list-item">
-                    <span>${cat.icon} <b>${cat.name}</b></span>
-                    ${index > 0 ? `<button class="btn-delete" onclick="deleteCategory(${index})">حذف</button>` : '<span style="font-size:0.6rem; color:#888;">الأساسية</span>'}
-                </div>
-            `;
-        });
+        if (products.length === 0) {
+            productsContainer.innerHTML = '<div style="color: #9ca3af; font-size: 0.65rem; padding: 4px; text-align: center;">لا توجد منتجات مضافة</div>';
+            return;
+        }
 
-        const categorizedContainer = document.getElementById('categorizedProductsAdminList');
-        categorizedContainer.innerHTML = '';
-
-        let activeCategories = categories.filter(cat => cat.name !== "الكل");
-
-        activeCategories.forEach((cat, catIdx) => {
-            let catProducts = products.filter(p => p.categories && p.categories.some(c => c.trim() === cat.name.trim()));
+        products.forEach((p, originalIndex) => {
+            let isAvailable = p.inStock !== false && (p.stockQty === undefined || p.stockQty > 0);
             
-            let productsHtml = '';
-            if (catProducts.length === 0) {
-                productsHtml = '<div style="color: #9ca3af; font-size: 0.65rem; padding: 4px; text-align: center;">لا توجد منتجات في هذا القسم</div>';
-            } else {
-                catProducts.forEach(p => {
-                    let originalIndex = products.findIndex(item => item.id === p.id);
-                    let isAvailable = p.inStock !== false && (p.stockQty === undefined || p.stockQty > 0);
-                    
-                    productsHtml += `
-                        <div class="product-card-container" style="${!isAvailable ? 'opacity: 0.7; background: #fffbeb;' : ''}">
-                            <div class="product-mini-row">
-                                <div class="product-mini-info">
-                                    <img src="${p.img}" class="product-mini-thumb" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
-                                    <div style="overflow: hidden;">
-                                        <div style="font-weight: 800; color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                            ${p.name} ${!isAvailable ? '<span style="color:#d97706; font-size:0.6rem;">(نفد من المخزن ⚠️)</span>' : ''}
-                                        </div>
-                                        <div style="font-size: 0.6rem; color: #6b7280;">
-                                            السعر: ${p.price} ₪ ${p.oldPrice ? `<span style="text-decoration: line-through; color: #9ca3af;">(${p.oldPrice} ₪)</span>` : ''} | الكمية: <b>${p.stockQty ?? 'غير محدد'}</b>
-                                        </div>
-                                    </div>
+            productsContainer.innerHTML += `
+                <div class="product-card-container" style="${!isAvailable ? 'opacity: 0.7; background: #fffbeb;' : ''}">
+                    <div class="product-mini-row">
+                        <div class="product-mini-info">
+                            <img src="${p.img}" class="product-mini-thumb" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
+                            <div style="overflow: hidden;">
+                                <div style="font-weight: 800; color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    ${p.name} ${!isAvailable ? '<span style="color:#d97706; font-size:0.6rem;">(نفد من المخزن ⚠️)</span>' : ''}
                                 </div>
-                                <div class="product-actions">
-                                    <button class="btn-edit" onclick="toggleInlineEdit(${originalIndex})">تعديل ✏️</button>
-                                    <button class="btn-delete" onclick="deleteProduct(${originalIndex})">حذف</button>
-                                </div>
-                            </div>
-                            
-                            <div id="inline-edit-${originalIndex}" class="inline-edit-form">
-                                <div class="form-group">
-                                    <label>اسم المنتج *</label>
-                                    <input type="text" id="edit-name-${originalIndex}" class="form-control" value="${p.name}">
-                                </div>
-
-                                <div style="display: flex; gap: 6px;">
-                                    <div class="form-group" style="flex: 1;">
-                                        <label>سعر العرض (₪) *</label>
-                                        <input type="number" id="edit-price-${originalIndex}" class="form-control" value="${p.price}">
-                                    </div>
-                                    <div class="form-group" style="flex: 1;">
-                                        <label>السعر القديم</label>
-                                        <input type="number" id="edit-oldPrice-${originalIndex}" class="form-control" value="${p.oldPrice || ''}">
-                                    </div>
-                                    <div class="form-group" style="flex: 1;">
-                                        <label>الكمية المتاحة *</label>
-                                        <input type="number" id="edit-stock-${originalIndex}" class="form-control" value="${p.stockQty ?? 0}">
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label>الوزن / الحجم</label>
-                                    <input type="text" id="edit-weight-${originalIndex}" class="form-control" value="${p.weight || ''}">
-                                </div>
-
-                                <div class="form-group">
-                                    <label>صورة المنتج *</label>
-                                    <div class="file-upload-box">
-                                        <label class="camera-btn" for="editFile-${originalIndex}">📸 التقاط أو اختيار صورة</label>
-                                        <input type="file" id="editFile-${originalIndex}" accept="image/*" onchange="compressAndSetImage(event, 'edit-imgData-${originalIndex}', 'editPreview-${originalIndex}')">
-                                        <img id="editPreview-${originalIndex}" class="preview-thumb" src="${p.img}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
-                                    </div>
-                                    <input type="hidden" id="edit-imgData-${originalIndex}" value="${p.img}">
-                                </div>
-
-                                <div class="form-group">
-                                    <label>الأقسام والفئات المطلوبة *</label>
-                                    <div class="categories-checkbox-container">
-                                        ${categories.filter(c => c.name !== "الكل").map(c => `
-                                            <label class="checkbox-item" title="${c.name}">
-                                                <input type="checkbox" class="edit-cat-check-${originalIndex}" value="${c.name}" ${p.categories && p.categories.includes(c.name) ? 'checked' : ''}>
-                                                <span>${c.icon || ''} ${c.name}</span>
-                                            </label>
-                                        `).join('')}
-                                    </div>
-                                </div>
-
-                                <div style="display: flex; gap: 5px; margin-top: 5px;">
-                                    <button class="btn-main" style="margin-top:0; background: #3b82f6; flex: 2;" onclick="saveInlineEdit(${originalIndex})">حفظ التعديلات ✅</button>
-                                    <button class="btn-main" style="margin-top:0; background: #64748b; flex: 1;" onclick="toggleInlineEdit(${originalIndex})">إلغاء ❌</button>
+                                <div style="font-size: 0.6rem; color: #6b7280;">
+                                    السعر: ${p.price} ₪ ${p.oldPrice ? `<span style="text-decoration: line-through; color: #9ca3af;">(${p.oldPrice} ₪)</span>` : ''} | الكمية: <b>${p.stockQty ?? 'غير محدد'}</b>
                                 </div>
                             </div>
                         </div>
-                    `;
-                });
-            }
-
-            categorizedContainer.innerHTML += `
-                <div class="category-group-box">
-                    <div class="category-group-title" onclick="toggleCategorySection(${catIdx})">
-                        <span>${cat.icon}</span>
-                        <span>${cat.name}</span>
-                        <div class="category-toggle-badge">
-                            <span>${catProducts.length}</span>
-                            <span id="arrow-icon-${catIdx}">▲</span>
+                        <div class="product-actions">
+                            <button class="btn-edit" onclick="toggleInlineEdit(${originalIndex})">تعديل ✏️</button>
+                            <button class="btn-delete" onclick="deleteProduct(${originalIndex})">حذف</button>
                         </div>
                     </div>
-                    <div id="category-content-${catIdx}" style="display: none;">
-                        ${productsHtml}
+                    
+                    <div id="inline-edit-${originalIndex}" class="inline-edit-form">
+                        <div class="form-group">
+                            <label>اسم المنتج *</label>
+                            <input type="text" id="edit-name-${originalIndex}" class="form-control" value="${p.name}">
+                        </div>
+
+                        <div style="display: flex; gap: 6px;">
+                            <div class="form-group" style="flex: 1;">
+                                <label>سعر العرض (₪) *</label>
+                                <input type="number" id="edit-price-${originalIndex}" class="form-control" value="${p.price}">
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label>السعر القديم</label>
+                                <input type="number" id="edit-oldPrice-${originalIndex}" class="form-control" value="${p.oldPrice || ''}">
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label>الكمية المتاحة *</label>
+                                <input type="number" id="edit-stock-${originalIndex}" class="form-control" value="${p.stockQty ?? 0}">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>الوزن / الحجم</label>
+                            <input type="text" id="edit-weight-${originalIndex}" class="form-control" value="${p.weight || ''}">
+                        </div>
+
+                        <div class="form-group">
+                            <label>صورة المنتج *</label>
+                            <div class="file-upload-box">
+                                <label class="camera-btn" for="editFile-${originalIndex}">📸 التقاط أو اختيار صورة</label>
+                                <input type="file" id="editFile-${originalIndex}" accept="image/*" onchange="compressAndSetImage(event, 'edit-imgData-${originalIndex}', 'editPreview-${originalIndex}')">
+                                <img id="editPreview-${originalIndex}" class="preview-thumb" src="${p.img}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
+                            </div>
+                            <input type="hidden" id="edit-imgData-${originalIndex}" value="${p.img}">
+                        </div>
+
+                        <div style="display: flex; gap: 5px; margin-top: 5px;">
+                            <button class="btn-main" style="margin-top:0; background: #3b82f6; flex: 2;" onclick="saveInlineEdit(${originalIndex})">حفظ التعديلات ✅</button>
+                            <button class="btn-main" style="margin-top:0; background: #64748b; flex: 1;" onclick="toggleInlineEdit(${originalIndex})">إلغاء ❌</button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -786,11 +620,6 @@
         const oldPrice = oldPriceVal ? parseFloat(oldPriceVal) : "";
         const img = document.getElementById(`edit-imgData-${index}`).value;
 
-        let selectedCategories = [];
-        document.querySelectorAll(`.edit-cat-check-${index}:checked`).forEach(chk => {
-            selectedCategories.push(chk.value);
-        });
-
         if (!name || isNaN(price) || isNaN(stockQty)) {
             alert("الرجاء إدخال اسم المنتج، سعر العرض، والكمية المتاحة.");
             return;
@@ -803,8 +632,7 @@
             stockQty: isNaN(stockQty) ? 0 : stockQty,
             price,
             oldPrice,
-            img,
-            categories: selectedCategories.length > 0 ? selectedCategories : ['معلبات']
+            img
         };
 
         db.ref('aloroba/products').set(products, (error) => {
@@ -835,42 +663,6 @@
         });
     }
 
-    function addCategory() {
-        const name = document.getElementById('catName').value.trim();
-        const icon = document.getElementById('catIcon').value.trim();
-        const bg = document.getElementById('catBg').value.trim();
-        const color = document.getElementById('catColor').value.trim();
-
-        if(!name) {
-            alert("الرجاء إدخال اسم الفئة.");
-            return;
-        }
-
-        if(name === "عروض") {
-            alert("فئة العروض ملغاة ولا يمكن إضافة قسم بهذا الاسم.");
-            return;
-        }
-
-        let cats = [...categories];
-        cats.push({ name, icon: icon || '📦', bg: bg || '#eaf3df', color: color || '#2e6930' });
-        db.ref('aloroba/categories').set(cats, (error) => {
-            if(!error) {
-                document.getElementById('catName').value = '';
-                document.getElementById('catIcon').value = '';
-                alert("تمت إضافة الفئة سحابياً بنجاح!");
-            }
-        });
-    }
-
-    function deleteCategory(index) {
-        if(index === 0) return;
-        if(confirm("هل تريد حذف هذه الفئة؟")) {
-            let cats = [...categories];
-            cats.splice(index, 1);
-            db.ref('aloroba/categories').set(cats);
-        }
-    }
-
     function saveProduct() {
         const name = document.getElementById('prodName').value.trim();
         const weight = document.getElementById('prodWeight').value.trim();
@@ -879,11 +671,6 @@
         const oldPriceVal = document.getElementById('prodOldPrice').value;
         const oldPrice = oldPriceVal ? parseFloat(oldPriceVal) : "";
         const img = document.getElementById('prodImgData').value;
-
-        let selectedCategories = [];
-        document.querySelectorAll('input[name="productCategoryCheck"]:checked').forEach(chk => {
-            selectedCategories.push(chk.value);
-        });
 
         if(!name || isNaN(price) || !img || isNaN(stockQty)) {
             alert("الرجاء ملء اسم المنتج، الكمية، سعر العرض، واختيار الصورة.");
@@ -899,7 +686,6 @@
             price,
             oldPrice,
             img,
-            categories: selectedCategories.length > 0 ? selectedCategories : ['معلبات'],
             inStock: stockQty > 0
         };
 
@@ -915,7 +701,6 @@
                 document.getElementById('prodOldPrice').value = '';
                 document.getElementById('prodImgData').value = '';
                 document.getElementById('prodPreview').src = 'https://cdn-icons-png.flaticon.com/512/3081/3081986.png';
-                document.querySelectorAll('input[name="productCategoryCheck"]').forEach(chk => chk.checked = false);
             }
         });
     }
