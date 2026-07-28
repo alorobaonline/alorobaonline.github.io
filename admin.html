@@ -324,47 +324,58 @@
         }
     }
 
-    function handleImageUpload(event, inputId, previewId) {
-        const file = event.target.files[0];
-        if(!file) return;
+    // دالة المعالجة والتوسيط التلقائي للصور (مربع 1:1 بخلفية بيضاء وهامش أمان)
+    function processImageToSquare(file, callback) {
         const reader = new FileReader();
         reader.onload = function(e) {
             const img = new Image();
             img.onload = function() {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800;
-                const MAX_HEIGHT = 800;
-                let width = img.width;
-                let height = img.height;
-
-                if (width > height) {
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                } else {
-                    if (height > MAX_HEIGHT) {
-                        width *= MAX_HEIGHT / height;
-                        height = MAX_HEIGHT;
-                    }
-                }
-
-                canvas.width = width;
-                canvas.height = height;
+                const targetSize = 800; // المقاس الثابت 800×800 بكسل
+                canvas.width = targetSize;
+                canvas.height = targetSize;
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                document.getElementById(inputId).value = dataUrl;
-                const preview = document.getElementById(previewId);
-                if(preview) {
-                    preview.src = dataUrl;
-                    preview.style.display = 'block';
-                }
+                
+                // 1. تعبئة الخلفية باللون الأبيض الصافي
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, targetSize, targetSize);
+                
+                // 2. الحفاظ على نسبة العرض للاستطالة وتوسيط الصورة مع هامش أمان 15%
+                let imgWidth = img.width;
+                let imgHeight = img.height;
+                let maxAllowedDim = targetSize * 0.85; 
+                
+                let scale = Math.min(maxAllowedDim / imgWidth, maxAllowedDim / imgHeight);
+                let scaledWidth = imgWidth * scale;
+                let scaledHeight = imgHeight * scale;
+                
+                let x = (targetSize - scaledWidth) / 2;
+                let y = (targetSize - scaledHeight) / 2;
+                
+                // 3. رسم الصورة في منتصف المربع تماماً
+                ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+                
+                // 4. استخراج الصورة الناتجة
+                const processedDataUrl = canvas.toDataURL('image/jpeg', 0.90);
+                callback(processedDataUrl);
             }
             img.src = e.target.result;
-        };
+        }
         reader.readAsDataURL(file);
+    }
+
+    function handleImageUpload(event, inputId, previewId) {
+        const file = event.target.files[0];
+        if(!file) return;
+        
+        processImageToSquare(file, function(processedImageUrl) {
+            document.getElementById(inputId).value = processedImageUrl;
+            const preview = document.getElementById(previewId);
+            if(preview) {
+                preview.src = processedImageUrl;
+                preview.style.display = 'block';
+            }
+        });
     }
 
     function renderNewProdCategoriesCheckboxes(selectedCategories = []) {
@@ -399,8 +410,6 @@
         document.querySelectorAll('input[name="prodCatCheckbox"]:checked').forEach(cb => {
             selectedCats.push(cb.value);
         });
-
-        // تم إلغاء أي قيود إجبارية على الحقول
 
         const newProd = {
             name,
@@ -736,7 +745,6 @@
         }
     }
 
-    // عرض الطلبات الواردة وأرشيف الإكسل المكتمل
     function renderAdminOrders() {
         const container = document.getElementById('adminOrdersList');
         const archiveContainer = document.getElementById('adminArchiveList');
@@ -749,7 +757,6 @@
         document.getElementById('archiveCountTitle').innerText = archivedOrders.length;
         document.getElementById('newOrdersCountBadge').innerText = activeOrders.filter(o => !o.status || o.status === "جديد").length;
 
-        // 1. عرض الطلبات الواردة النشطة
         if(activeOrders.length === 0) {
             container.innerHTML = '<p style="color: #666; text-align: center; font-size: 0.75rem;">لا توجد طلبات واردة حالياً.</p>';
         } else {
@@ -783,7 +790,6 @@
             container.innerHTML = html;
         }
 
-        // 2. عرض أرشيف الطلبات المكتملة على شكل جدول إكسل مرتب
         if(archivedOrders.length === 0) {
             archiveContainer.innerHTML = '<p style="color: #666; text-align: center; font-size: 0.75rem; padding: 10px;">الأرشيف فارغ.</p>';
         } else {
@@ -828,7 +834,6 @@
         }
     }
 
-    // دالة لتنزيل الأرشيف كملف إكسل CSV متوافق تماماً
     function exportArchiveToExcel() {
         const archivedOrders = orders.filter(o => o.status === "مكتمل");
         if(archivedOrders.length === 0) {
