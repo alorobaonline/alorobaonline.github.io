@@ -220,6 +220,39 @@
         </div>
     </div>
 
+    <!-- قسم جديد: التحكم في تخطيط وعرض الأقسام بالصفحة الرئيسية -->
+    <div class="section-box" style="border-color: var(--accent-green); background: #f4fbf0;">
+        <div class="section-header-toggle" onclick="toggleMainSection('layoutSection', 'layoutArrow')">
+            <span>📱 ترتيب وعرض أقسام الصفحة الرئيسية (العرض الأفقي)</span>
+            <span id="layoutArrow" class="toggle-arrow">▼</span>
+        </div>
+        <div id="layoutSection" class="section-content">
+            <div class="form-group">
+                <label>القسم الأول المُميز (مثال: العروض)</label>
+                <select id="firstSectionSelect" class="form-control">
+                    <option value="عروض">🔥 عروض وتخفيضات</option>
+                    <option value="الأكثر مبيعا">⭐ الأكثر مبيعاً</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>القسم الثاني بالصفحة الرئيسية (مثال: الأكثر مبيعا)</label>
+                <select id="secondSectionSelect" class="form-control">
+                    <option value="الأكثر مبيعا">⭐ الأكثر مبيعاً</option>
+                    <option value="عروض">🔥 عروض وتخفيضات</option>
+                    <option value="ألبان">🥛 ألبان</option>
+                    <option value="معلبات">🥫 معلبات</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input type="checkbox" id="enableHorizontalScroll" checked style="accent-color: var(--primary-green); width:15px; height:15px;">
+                    <span>تفعيل التمرير الأفقي (سحب يمين ويسار) للأقسام الرئيسية</span>
+                </label>
+            </div>
+            <button class="btn-main" style="background: var(--accent-green);" onclick="saveLayoutSettings()">حفظ إعدادات التخطيط والعرض 💾</button>
+        </div>
+    </div>
+
     <!-- القسم الأول: إضافة منتج جديد -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleMainSection('addProductSection', 'prodArrow')">
@@ -432,12 +465,12 @@
         categories = JSON.parse(localStorage.getItem('aloroba_categories')) || [
             { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
             { name: "عروض", icon: "🔥", bg: "#fee2e2", color: "#dc2626" },
+            { name: "الأكثر مبيعا", icon: "⭐", bg: "#fef3c7", color: "#d97706" },
             { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
             { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
             { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
             { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" },
-            { name: "عصير", icon: "🧃", bg: "#fdf2f8", color: "#db2777" },
-            { name: "نساء", icon: "👩", bg: "#fce7f3", color: "#be185d" }
+            { name: "عصير", icon: "🧃", bg: "#fdf2f8", color: "#db2777" }
         ];
     } catch(e) {
         categories = [{ name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" }];
@@ -451,6 +484,17 @@
             img: ""
         };
     } catch(e) {}
+
+    let layoutData = {};
+    try {
+        layoutData = JSON.parse(localStorage.getItem('aloroba_layout')) || {
+            firstSection: "عروض",
+            secondSection: "الأكثر مبيعا",
+            horizontalScroll: true
+        };
+    } catch(e) {
+        layoutData = { firstSection: "عروض", secondSection: "الأكثر مبيعا", horizontalScroll: true };
+    }
 
     let lastOrdersCount = 0;
 
@@ -497,6 +541,10 @@
         if(bannerData.img) {
             document.getElementById('bannerPreview').src = bannerData.img;
         }
+
+        document.getElementById('firstSectionSelect').value = layoutData.firstSection || "عروض";
+        document.getElementById('secondSectionSelect').value = layoutData.secondSection || "الأكثر مبيعا";
+        document.getElementById('enableHorizontalScroll').checked = layoutData.horizontalScroll !== false;
 
         renderLiveOrders();
         renderArchiveOrders();
@@ -886,6 +934,16 @@
         bannerData = { title, tag, img: img || bannerData.img };
         localStorage.setItem('aloroba_banner', JSON.stringify(bannerData));
         alert("تم تحديث البانر الرئيسي بنجاح! 📢");
+    }
+
+    function saveLayoutSettings() {
+        const firstSection = document.getElementById('firstSectionSelect').value;
+        const secondSection = document.getElementById('secondSectionSelect').value;
+        const horizontalScroll = document.getElementById('enableHorizontalScroll').checked;
+
+        layoutData = { firstSection, secondSection, horizontalScroll };
+        localStorage.setItem('aloroba_layout', JSON.stringify(layoutData));
+        alert("تم حفظ إعدادات تخطيط وعرض الأقسام بنجاح! 📱✨");
     }
 
     function addCategory() {
