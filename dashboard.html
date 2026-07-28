@@ -163,7 +163,7 @@
                 <input type="text" id="bannerTitleInput" class="form-control">
             </div>
             <div class="form-group">
-                <label>نص العرض / التاج</label>
+                <label>نص التاج / التوصيلة</label>
                 <input type="text" id="bannerTagInput" class="form-control">
             </div>
             <div class="form-group">
@@ -222,10 +222,10 @@
                 <input type="text" id="prodName" class="form-control" placeholder="مثال: أرز تات بسمتي">
             </div>
 
-            <!-- السعر الحالي، الكمية المتاحة، والوزن / الحجم في صف واحد متناسق -->
+            <!-- السعر، الكمية المتاحة، والوزن / الحجم في صف واحد متناسق -->
             <div style="display: flex; gap: 6px;">
                 <div class="form-group" style="flex: 1;">
-                    <label>السعر الحالي (₪) *</label>
+                    <label>السعر (₪) *</label>
                     <input type="number" id="prodPrice" class="form-control" placeholder="22">
                 </div>
                 <div class="form-group" style="flex: 1;">
@@ -248,56 +248,12 @@
                 <input type="hidden" id="prodImgData">
             </div>
 
-            <!-- خانة العرض المضافة حديثاً -->
-            <div class="form-group" style="background: #f8fff9; border: 1px dashed #28a745; padding: 8px; border-radius: 8px;">
-                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #1b4d2e; font-weight: bold;">
-                    <input type="checkbox" id="prodHasOffer" style="width: 15px; height: 15px; accent-color: var(--primary-green);" onchange="toggleAddOfferInput(this)">
-                    🔥 عرض خاص على هذا المنتج؟
-                </label>
-                <div id="prodOfferPriceContainer" style="display: none; margin-top: 6px;">
-                    <label style="font-size: 0.65rem;">سعر العرض الجديد (₪):</label>
-                    <input type="number" id="prodOfferPrice" class="form-control" placeholder="مثال: 18">
-                </div>
-            </div>
-
             <div class="form-group">
                 <label>الأقسام والفئات المطلوبة *</label>
                 <div id="prodCategoriesCheckboxes" class="categories-checkbox-container"></div>
             </div>
 
             <button class="btn-main" onclick="saveProduct()">إضافة ونشر المنتج فوراً 🚀</button>
-        </div>
-    </div>
-
-    <!-- القسم الثاني: حملات العروبة -->
-    <div class="section-box" style="border-color: #68a633; background: #f4fbf0;">
-        <div class="section-header-toggle" onclick="toggleMainSection('campaignsSection', 'campArrow')">
-            <span>🔥 حملات العروبة وعروضها الخاصة</span>
-            <span id="campArrow" class="toggle-arrow">▼</span>
-        </div>
-        <div id="campaignsSection" class="section-content">
-            <div class="form-group">
-                <label>عنوان الحملة أو العرض *</label>
-                <input type="text" id="campName" class="form-control" placeholder="مثال: حملة الأسبوع الكبرى">
-            </div>
-            <div class="form-group">
-                <label>رزمة الحملة أو شارة العرض *</label>
-                <input type="text" id="campOffer" class="form-control" placeholder="مثال: 3 بـ22 أو خصم 20%">
-            </div>
-            <div class="form-group">
-                <label>السعر الترويجي للحملة (₪) *</label>
-                <input type="number" id="campPrice" class="form-control" placeholder="22">
-            </div>
-            <div class="form-group">
-                <label>صورة الحملة أو العرض *</label>
-                <div class="file-upload-box">
-                    <label class="camera-btn" for="campFile">📸 التقاط أو اختيار صورة الحملة</label>
-                    <input type="file" id="campFile" accept="image/*" onchange="compressAndSetImage(event, 'campImgData', 'campPreview')">
-                    <img id="campPreview" class="preview-thumb" src="https://cdn-icons-png.flaticon.com/512/3081/3081986.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
-                </div>
-                <input type="hidden" id="campImgData">
-            </div>
-            <button class="btn-main" style="background: #68a633;" onclick="saveCampaign()">إطلاق ونشر الحملة فوراً 🎯</button>
         </div>
     </div>
 
@@ -335,23 +291,6 @@
         } else {
             content.style.display = "none";
             arrow.innerText = "▲";
-        }
-    }
-
-    function toggleAddOfferInput(checkbox) {
-        const container = document.getElementById('prodOfferPriceContainer');
-        container.style.display = checkbox.checked ? 'block' : 'none';
-        if (!checkbox.checked) {
-            document.getElementById('prodOfferPrice').value = '';
-        }
-    }
-
-    function toggleEditOfferInput(index) {
-        const checkbox = document.getElementById(`edit-hasOffer-${index}`);
-        const container = document.getElementById(`edit-offerPriceContainer-${index}`);
-        container.style.display = checkbox.checked ? 'block' : 'none';
-        if (!checkbox.checked) {
-            document.getElementById(`edit-offerPrice-${index}`).value = '';
         }
     }
 
@@ -402,11 +341,25 @@
                 let parsed = JSON.parse(saved);
                 if (Array.isArray(parsed)) {
                     return parsed.map(p => {
-                        if (!p.categories && p.category) {
-                            p.categories = [p.category];
-                        } else if (!Array.isArray(p.categories)) {
+                        // إزالة خانة العرض القديمة وتصفية الفئات التي تحمل اسم "عروض"
+                        delete p.offerPrice;
+                        delete p.offer;
+                        if (p.categories && Array.isArray(p.categories)) {
+                            p.categories = p.categories.filter(c => c.trim() !== "عروض");
+                        } else if (!p.categories && p.category) {
+                            if (p.category.trim() !== "عروض") {
+                                p.categories = [p.category];
+                            } else {
+                                p.categories = [];
+                            }
+                        } else {
                             p.categories = [];
                         }
+
+                        if (!p.categories.length) {
+                            p.categories = ["معلبات"];
+                        }
+
                         if (p.inStock === undefined) {
                             p.inStock = true;
                         }
@@ -422,7 +375,7 @@
         }
         
         const defaultProducts = [
-            { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات", "عروض"], inStock: true, stockQty: 15 },
+            { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات"], inStock: true, stockQty: 15 },
             { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, img: "https://i.ibb.co/1q20K0v/maggi.png", categories: ["معلبات"], inStock: true, stockQty: 30 },
             { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, img: "https://i.ibb.co/7Xv8L9p/nido.png", categories: ["ألبان"], inStock: true, stockQty: 10 }
         ];
@@ -436,7 +389,6 @@
     try {
         categories = JSON.parse(localStorage.getItem('aloroba_categories')) || [
             { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
-            { name: "عروض", icon: "🔥", bg: "#fee2e2", color: "#dc2626" },
             { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
             { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
             { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
@@ -444,6 +396,8 @@
             { name: "عصير", icon: "🧃", bg: "#fdf2f8", color: "#db2777" },
             { name: "نساء", icon: "👩", bg: "#fce7f3", color: "#be185d" }
         ];
+        // التأكد من عدم وجود فئة "عروض" في المخزن المحفوظ مسبقاً
+        categories = categories.filter(cat => cat.name !== "عروض");
     } catch(e) {
         categories = [{ name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" }];
     }
@@ -525,7 +479,7 @@
             catList.innerHTML += `
                 <div class="list-item">
                     <span>${cat.icon} <b>${cat.name}</b></span>
-                    ${index > 1 ? `<button class="btn-delete" onclick="deleteCategory(${index})">حذف</button>` : '<span style="font-size:0.6rem; color:#888;">الأساسية</span>'}
+                    ${index > 0 ? `<button class="btn-delete" onclick="deleteCategory(${index})">حذف</button>` : '<span style="font-size:0.6rem; color:#888;">الأساسية</span>'}
                 </div>
             `;
         });
@@ -545,7 +499,6 @@
                 catProducts.forEach(p => {
                     let originalIndex = products.findIndex(item => item.id === p.id);
                     let isAvailable = p.inStock !== false && (p.stockQty === undefined || p.stockQty > 0);
-                    let hasOffer = p.offerPrice !== undefined && p.offerPrice !== null && p.offerPrice !== '';
                     
                     productsHtml += `
                         <div class="product-card-container" style="${!isAvailable ? 'opacity: 0.7; background: #fffbeb;' : ''}">
@@ -557,7 +510,7 @@
                                             ${p.name} ${!isAvailable ? '<span style="color:#d97706; font-size:0.6rem;">(نفد من المخزن ⚠️)</span>' : ''}
                                         </div>
                                         <div style="font-size: 0.6rem; color: #6b7280;">
-                                            السعر: ${hasOffer ? `<span style="text-decoration:line-through;">${p.price}</span> <b style="color:#dc2626;">${p.offerPrice}₪</b>` : `${p.price} ₪`} | الكمية: <b>${p.stockQty ?? 'غير محدد'}</b>
+                                            السعر: ${p.price} ₪ | الكمية: <b>${p.stockQty ?? 'غير محدد'}</b>
                                         </div>
                                     </div>
                                 </div>
@@ -576,7 +529,7 @@
 
                                 <div style="display: flex; gap: 6px;">
                                     <div class="form-group" style="flex: 1;">
-                                        <label>السعر الحالي (₪) *</label>
+                                        <label>السعر (₪) *</label>
                                         <input type="number" id="edit-price-${originalIndex}" class="form-control" value="${p.price}">
                                     </div>
                                     <div class="form-group" style="flex: 1;">
@@ -597,18 +550,6 @@
                                         <img id="editPreview-${originalIndex}" class="preview-thumb" src="${p.img}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                                     </div>
                                     <input type="hidden" id="edit-imgData-${originalIndex}" value="${p.img}">
-                                </div>
-
-                                <!-- خانة العرض في التعديل -->
-                                <div class="form-group" style="background: #f8fff9; border: 1px dashed #28a745; padding: 8px; border-radius: 8px;">
-                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #1b4d2e; font-weight: bold;">
-                                        <input type="checkbox" id="edit-hasOffer-${originalIndex}" style="width: 15px; height: 15px; accent-color: var(--primary-green);" onchange="toggleEditOfferInput(${originalIndex})" ${hasOffer ? 'checked' : ''}>
-                                        🔥 عرض خاص على هذا المنتج؟
-                                    </label>
-                                    <div id="edit-offerPriceContainer-${originalIndex}" style="display: ${hasOffer ? 'block' : 'none'}; margin-top: 6px;">
-                                        <label style="font-size: 0.65rem;">سعر العرض الجديد (₪):</label>
-                                        <input type="number" id="edit-offerPrice-${originalIndex}" class="form-control" value="${p.offerPrice || ''}" placeholder="مثال: 18">
-                                    </div>
                                 </div>
 
                                 <div class="form-group">
@@ -847,9 +788,6 @@
         const stockQty = parseInt(document.getElementById(`edit-stock-${index}`).value);
         const price = parseFloat(document.getElementById(`edit-price-${index}`).value);
         const img = document.getElementById(`edit-imgData-${index}`).value;
-        
-        const hasOffer = document.getElementById(`edit-hasOffer-${index}`).checked;
-        const offerPrice = hasOffer ? parseFloat(document.getElementById(`edit-offerPrice-${index}`).value) : "";
 
         let selectedCategories = [];
         document.querySelectorAll(`.edit-cat-check-${index}:checked`).forEach(chk => {
@@ -857,7 +795,7 @@
         });
 
         if (!name || isNaN(price) || isNaN(stockQty)) {
-            alert("الرجاء إدخال اسم المنتج، السعر الحالي، والكمية المتاحة.");
+            alert("الرجاء إدخال اسم المنتج، السعر، والكمية المتاحة.");
             return;
         }
 
@@ -867,10 +805,13 @@
             weight,
             stockQty: isNaN(stockQty) ? 0 : stockQty,
             price,
-            offerPrice: isNaN(offerPrice) ? "" : offerPrice,
             img,
-            categories: selectedCategories.length > 0 ? selectedCategories : ['عروض']
+            categories: selectedCategories.length > 0 ? selectedCategories : ['معلبات']
         };
+        
+        // إزالة الحقول القديمة إن وجدت
+        delete products[index].offerPrice;
+        delete products[index].offer;
 
         localStorage.setItem('aloroba_products', JSON.stringify(products));
         alert("تم تحديث المنتج بنجاح! ✅");
@@ -907,6 +848,11 @@
             return;
         }
 
+        if(name === "عروض") {
+            alert("فئة العروض ملغاة ولا يمكن إضافة قسم بهذا الاسم.");
+            return;
+        }
+
         categories.push({ name, icon: icon || '📦', bg: bg || '#eaf3df', color: color || '#2e6930' });
         localStorage.setItem('aloroba_categories', JSON.stringify(categories));
         document.getElementById('catName').value = '';
@@ -916,6 +862,7 @@
     }
 
     function deleteCategory(index) {
+        if(index === 0) return;
         if(confirm("هل تريد حذف هذه الفئة؟")) {
             categories.splice(index, 1);
             localStorage.setItem('aloroba_categories', JSON.stringify(categories));
@@ -930,16 +877,13 @@
         const price = parseFloat(document.getElementById('prodPrice').value);
         const img = document.getElementById('prodImgData').value;
 
-        const hasOffer = document.getElementById('prodHasOffer').checked;
-        const offerPrice = hasOffer ? parseFloat(document.getElementById('prodOfferPrice').value) : "";
-
         let selectedCategories = [];
         document.querySelectorAll('input[name="productCategoryCheck"]:checked').forEach(chk => {
             selectedCategories.push(chk.value);
         });
 
         if(!name || isNaN(price) || !img || isNaN(stockQty)) {
-            alert("الرجاء ملء اسم المنتج، الكمية، السعر الحالي، واختيار الصورة.");
+            alert("الرجاء ملء اسم المنتج، الكمية، السعر، واختيار الصورة.");
             return;
         }
 
@@ -950,9 +894,8 @@
             weight,
             stockQty,
             price,
-            offerPrice: isNaN(offerPrice) ? "" : offerPrice,
             img,
-            categories: selectedCategories.length > 0 ? selectedCategories : ['عروض'],
+            categories: selectedCategories.length > 0 ? selectedCategories : ['معلبات'],
             inStock: stockQty > 0
         };
 
@@ -965,48 +908,8 @@
         document.getElementById('prodStockQty').value = '';
         document.getElementById('prodPrice').value = '';
         document.getElementById('prodImgData').value = '';
-        document.getElementById('prodHasOffer').checked = false;
-        document.getElementById('prodOfferPrice').value = '';
-        document.getElementById('prodOfferPriceContainer').style.display = 'none';
         document.getElementById('prodPreview').src = 'https://cdn-icons-png.flaticon.com/512/3081/3081986.png';
         document.querySelectorAll('input[name="productCategoryCheck"]').forEach(chk => chk.checked = false);
-
-        renderAdmin();
-    }
-
-    function saveCampaign() {
-        const name = document.getElementById('campName').value.trim();
-        const offer = document.getElementById('campOffer').value.trim();
-        const price = parseFloat(document.getElementById('campPrice').value);
-        const img = document.getElementById('campImgData').value;
-
-        if(!name || !offer || isNaN(price) || !img) {
-            alert("الرجاء ملء جميع حقول الحملة واختيار الصورة.");
-            return;
-        }
-
-        let products = getStoredProducts();
-        const newCampProd = {
-            id: Date.now(),
-            name,
-            weight: 'عرض خاص',
-            stockQty: 50,
-            price,
-            offer,
-            img,
-            categories: ['عروض'],
-            inStock: true
-        };
-
-        products.unshift(newCampProd);
-        localStorage.setItem('aloroba_products', JSON.stringify(products));
-        alert("تم إطلاق الحملة ونشرها في قسم العروض بنجاح 🎯");
-        
-        document.getElementById('campName').value = '';
-        document.getElementById('campOffer').value = '';
-        document.getElementById('campPrice').value = '';
-        document.getElementById('campImgData').value = '';
-        document.getElementById('campPreview').src = 'https://cdn-icons-png.flaticon.com/512/3081/3081986.png';
 
         renderAdmin();
     }
