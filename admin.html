@@ -89,7 +89,6 @@
         .btn-call { background: #2563eb; color: white; text-decoration: none; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; display: inline-flex; align-items: center; gap: 3px; }
         .btn-status { background: #16a34a; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; cursor: pointer; }
         
-        /* جدول الأرشيف الإكسل */
         .archive-table-wrapper { width: 100%; overflow-x: auto; margin-top: 8px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; }
         .archive-table { width: 100%; border-collapse: collapse; font-size: 0.65rem; text-align: right; white-space: nowrap; }
         .archive-table th, .archive-table td { border-bottom: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; padding: 6px 8px; }
@@ -166,7 +165,7 @@
         </div>
     </div>
 
-    <!-- أرشيف الطلبات المكتملة (بشكل جدول إكسل) -->
+    <!-- أرشيف الطلبات المكتملة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('archiveSectionContent', this)">
             <span>📂 أرشيف الطلبات المكتملة (<span id="archiveCountTitle">0</span>)</span>
@@ -219,6 +218,31 @@
                 <img id="newProdPreview" class="preview-thumb" src="" alt="معاينة" style="display: none; margin-top: 5px;">
             </div>
             <button class="btn-main" onclick="addNewProduct()">حفظ وإضافة المنتج 🚀</button>
+        </div>
+    </div>
+
+    <!-- 2.5 الرفع الجماعي للمنتجات (CSV / Excel) -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('bulkUploadSectionContent', this)">
+            <span>📁 الرفع الجماعي للمنتجات (ملف CSV)</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="bulkUploadSectionContent">
+            <div style="font-size: 0.7rem; color: #4b5563; margin-bottom: 8px; line-height: 1.4;">
+                قم برفع ملف CSV يحتوي على المنتجات دفعة واحدة. أعمدة الملف بالترتيب: <br>
+                <b>اسم المنتج, السعر الأساسي, سعر العرض, الوزن, الأقسام (مفصولة بفاصلة), رابط الصورة</b>
+            </div>
+            <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+                <button class="btn-main" style="background: #0284c7; font-size: 0.7rem; padding: 6px;" onclick="downloadCsvTemplate()">📥 تحميل نموذج ملف CSV جاهز</button>
+            </div>
+            <div class="form-group">
+                <label>اختر ملف CSV للرفع الجماعي</label>
+                <div class="file-upload-box">
+                    <input type="file" id="bulkCsvFile" accept=".csv" class="form-control" style="font-size: 0.7rem; padding: 5px;">
+                </div>
+            </div>
+            <button class="btn-main" style="background: #16a34a;" onclick="processBulkUpload()">بدء الرفع الجماعي للسحابة 🚀</button>
+            <div id="bulkUploadProgress" style="font-size: 0.7rem; margin-top: 6px; font-weight: bold; color: var(--primary-green);"></div>
         </div>
     </div>
 
@@ -400,8 +424,6 @@
             selectedCats.push(cb.value);
         });
 
-        // تم إلغاء أي قيود إجبارية على الحقول
-
         const newProd = {
             name,
             price,
@@ -431,6 +453,112 @@
             alert("حدث خطأ أثناء الحفظ بالسحابة");
         }
     }
+
+    // --- دوال الرفع الجماعي (Bulk Upload) ---
+    function downloadCsvTemplate() {
+        const csvHeader = "\uFEFFاسم المنتج,السعر الأساسي,سعر العرض,الوزن,الأقسام,رابط الصورة\n";
+        const csvSample = "أرز بسمتي فاخر,25,,5 كجم,حبوب وبقوليات,https://i.ibb.co/3m1K2wP/basket.png\nزيت عافية ذرة,18,15,1 لتر,زيوت ومواد تموينية,https://i.ibb.co/3m1K2wP/basket.png";
+        let blob = new Blob([csvHeader + csvSample], { type: 'text/csv;charset=utf-8;' });
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement('a');
+        a.href = url;
+        a.download = 'Aloroba_Products_Template.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    async function processBulkUpload() {
+        const fileInput = document.getElementById('bulkCsvFile');
+        const progressDiv = document.getElementById('bulkUploadProgress');
+        
+        if (!fileInput.files || fileInput.files.length === 0) {
+            alert("الرجاء اختيار ملف CSV أولاً.");
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        progressDiv.innerText = "جاري قراءة الملف ومعالجة البيانات...";
+
+        reader.onload = async function(e) {
+            const text = e.target.result;
+            const lines = text.split(/\r\n|\n/);
+            let successCount = 0;
+            let failCount = 0;
+
+            let startIndex = 0;
+            if (lines.length > 0 && (lines[0].includes('اسم المنتج') || lines[0].includes('name'))) {
+                startIndex = 1;
+            }
+
+            for (let i = startIndex; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (!line) continue;
+
+                let cols = parseCSVLine(line);
+                if (cols.length >= 1) {
+                    let name = cols[0] ? cols[0].trim() : '';
+                    let price = cols[1] ? parseFloat(cols[1]) || 0 : 0;
+                    let salePrice = (cols[2] && cols[2].trim() !== '') ? parseFloat(cols[2]) : "";
+                    let weight = cols[3] ? cols[3].trim() : 'حبة';
+                    let catsStr = cols[4] ? cols[4].trim() : 'عام';
+                    let img = cols[5] ? cols[5].trim() : 'https://i.ibb.co/3m1K2wP/basket.png';
+
+                    let categoriesArr = catsStr.split(',').map(c => c.trim()).filter(c => c !== '');
+                    if (categoriesArr.length === 0) categoriesArr = ["عام"];
+
+                    let newProd = {
+                        name,
+                        price,
+                        salePrice,
+                        weight,
+                        img,
+                        categories: categoriesArr
+                    };
+
+                    try {
+                        const docRef = await window.addDoc(window.collection(window.db, "products"), newProd);
+                        newProd.id = docRef.id;
+                        products.push(newProd);
+                        successCount++;
+                        progressDiv.innerText = `تم رفع ${successCount} منتج بنجاح للسحابة...`;
+                    } catch (err) {
+                        console.error("خطأ في رفع المنتج:", err);
+                        failCount++;
+                    }
+                }
+            }
+
+            renderAdminGroupedProducts();
+            progressDiv.innerText = `تم الانتهاء! نجاح: ${successCount} | فشل: ${failCount} 🚀`;
+            alert(`تم الرفع الجماعي بنجاح! تم إضافة ${successCount} منتج للسحابة.`);
+            fileInput.value = '';
+        };
+
+        reader.readAsText(file, 'UTF-8');
+    }
+
+    function parseCSVLine(text) {
+        let result = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < text.length; i++) {
+            let c = text[i];
+            if (c === '"') {
+                inQuotes = !inQuotes;
+            } else if (c === ',' && !inQuotes) {
+                result.push(cur);
+                cur = '';
+            } else {
+                cur += c;
+            }
+        }
+        result.push(cur);
+        return result.map(s => s.trim().replace(/^"|"$/g, ''));
+    }
+    // --- نهاية دوال الرفع الجماعي ---
 
     function renderAdminGroupedProducts() {
         const container = document.getElementById('adminGroupedProductsContainer');
@@ -736,7 +864,6 @@
         }
     }
 
-    // عرض الطلبات الواردة وأرشيف الإكسل المكتمل
     function renderAdminOrders() {
         const container = document.getElementById('adminOrdersList');
         const archiveContainer = document.getElementById('adminArchiveList');
@@ -749,7 +876,6 @@
         document.getElementById('archiveCountTitle').innerText = archivedOrders.length;
         document.getElementById('newOrdersCountBadge').innerText = activeOrders.filter(o => !o.status || o.status === "جديد").length;
 
-        // 1. عرض الطلبات الواردة النشطة
         if(activeOrders.length === 0) {
             container.innerHTML = '<p style="color: #666; text-align: center; font-size: 0.75rem;">لا توجد طلبات واردة حالياً.</p>';
         } else {
@@ -783,7 +909,6 @@
             container.innerHTML = html;
         }
 
-        // 2. عرض أرشيف الطلبات المكتملة على شكل جدول إكسل مرتب
         if(archivedOrders.length === 0) {
             archiveContainer.innerHTML = '<p style="color: #666; text-align: center; font-size: 0.75rem; padding: 10px;">الأرشيف فارغ.</p>';
         } else {
@@ -828,7 +953,6 @@
         }
     }
 
-    // دالة لتنزيل الأرشيف كملف إكسل CSV متوافق تماماً
     function exportArchiveToExcel() {
         const archivedOrders = orders.filter(o => o.status === "مكتمل");
         if(archivedOrders.length === 0) {
