@@ -221,28 +221,24 @@
         </div>
     </div>
 
-    <!-- 2.5 الرفع الجماعي للمنتجات (CSV / Excel) -->
+    <!-- 2.5 رفع صور المنتجات دفعة واحدة -->
     <div class="section-box">
-        <div class="section-header-toggle" onclick="toggleSection('bulkUploadSectionContent', this)">
-            <span>📁 الرفع الجماعي للمنتجات (ملف CSV)</span>
+        <div class="section-header-toggle" onclick="toggleSection('bulkImagesSectionContent', this)">
+            <span>📸 رفع صور المنتجات دفعة واحدة</span>
             <span class="toggle-arrow">▼</span>
         </div>
-        <div class="section-content" id="bulkUploadSectionContent">
+        <div class="section-content" id="bulkImagesSectionContent">
             <div style="font-size: 0.7rem; color: #4b5563; margin-bottom: 8px; line-height: 1.4;">
-                قم برفع ملف CSV يحتوي على المنتجات دفعة واحدة. أعمدة الملف بالترتيب: <br>
-                <b>اسم المنتج, السعر الأساسي, سعر العرض, الوزن, الأقسام (مفصولة بفاصلة), رابط الصورة</b>
-            </div>
-            <div style="display: flex; gap: 5px; margin-bottom: 8px;">
-                <button class="btn-main" style="background: #0284c7; font-size: 0.7rem; padding: 6px;" onclick="downloadCsvTemplate()">📥 تحميل نموذج ملف CSV جاهز</button>
+                اختر عدة صور دفعة واحدة من جهازك. سيتم إنشاء منتج جديد لكل صورة تلقائياً (بعنوان افتراضي وسعر 0)، ويمكنك تعديل بياناتها لاحقاً من قسم إدارة المنتجات بكل سهولة!
             </div>
             <div class="form-group">
-                <label>اختر ملف CSV للرفع الجماعي</label>
+                <label>اختر صور المنتجات (يمكنك اختيار صور متعددة معاً)</label>
                 <div class="file-upload-box">
-                    <input type="file" id="bulkCsvFile" accept=".csv" class="form-control" style="font-size: 0.7rem; padding: 5px;">
+                    <input type="file" id="bulkImagesFile" accept="image/*" multiple class="form-control" style="font-size: 0.7rem; padding: 5px;">
                 </div>
             </div>
-            <button class="btn-main" style="background: #16a34a;" onclick="processBulkUpload()">بدء الرفع الجماعي للسحابة 🚀</button>
-            <div id="bulkUploadProgress" style="font-size: 0.7rem; margin-top: 6px; font-weight: bold; color: var(--primary-green);"></div>
+            <button class="btn-main" style="background: #16a34a;" onclick="processBulkImagesUpload()">رفع وإنشاء المنتجات دفعة واحدة 🚀</button>
+            <div id="bulkImagesProgress" style="font-size: 0.7rem; margin-top: 6px; font-weight: bold; color: var(--primary-green);"></div>
         </div>
     </div>
 
@@ -454,111 +450,96 @@
         }
     }
 
-    // --- دوال الرفع الجماعي (Bulk Upload) ---
-    function downloadCsvTemplate() {
-        const csvHeader = "\uFEFFاسم المنتج,السعر الأساسي,سعر العرض,الوزن,الأقسام,رابط الصورة\n";
-        const csvSample = "أرز بسمتي فاخر,25,,5 كجم,حبوب وبقوليات,https://i.ibb.co/3m1K2wP/basket.png\nزيت عافية ذرة,18,15,1 لتر,زيوت ومواد تموينية,https://i.ibb.co/3m1K2wP/basket.png";
-        let blob = new Blob([csvHeader + csvSample], { type: 'text/csv;charset=utf-8;' });
-        let url = URL.createObjectURL(blob);
-        let a = document.createElement('a');
-        a.href = url;
-        a.download = 'Aloroba_Products_Template.csv';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    }
-
-    async function processBulkUpload() {
-        const fileInput = document.getElementById('bulkCsvFile');
-        const progressDiv = document.getElementById('bulkUploadProgress');
+    // --- دوال الرفع الجماعي للصور مباشرة ---
+    async function processBulkImagesUpload() {
+        const fileInput = document.getElementById('bulkImagesFile');
+        const progressDiv = document.getElementById('bulkImagesProgress');
         
         if (!fileInput.files || fileInput.files.length === 0) {
-            alert("الرجاء اختيار ملف CSV أولاً.");
+            alert("الرجاء اختيار صورة واحدة على الأقل.");
             return;
         }
 
-        const file = fileInput.files[0];
-        const reader = new FileReader();
+        const files = Array.from(fileInput.files);
+        let successCount = 0;
+        let failCount = 0;
 
-        progressDiv.innerText = "جاري قراءة الملف ومعالجة البيانات...";
+        progressDiv.innerText = `جاري معالجة ورفع 0 من ${files.length} صورة...`;
 
-        reader.onload = async function(e) {
-            const text = e.target.result;
-            const lines = text.split(/\r\n|\n/);
-            let successCount = 0;
-            let failCount = 0;
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            try {
+                let dataUrl = await resizeAndConvertImage(file);
+                
+                let baseName = file.name.substring(0, file.name.lastIndexOf('.')) || "منتج جديد";
+                baseName = baseName.replace(/[-_]/g, ' ');
 
-            let startIndex = 0;
-            if (lines.length > 0 && (lines[0].includes('اسم المنتج') || lines[0].includes('name'))) {
-                startIndex = 1;
-            }
+                const newProd = {
+                    name: baseName,
+                    price: 0,
+                    salePrice: "",
+                    weight: "حبة",
+                    img: dataUrl,
+                    categories: ["عام"]
+                };
 
-            for (let i = startIndex; i < lines.length; i++) {
-                let line = lines[i].trim();
-                if (!line) continue;
-
-                let cols = parseCSVLine(line);
-                if (cols.length >= 1) {
-                    let name = cols[0] ? cols[0].trim() : '';
-                    let price = cols[1] ? parseFloat(cols[1]) || 0 : 0;
-                    let salePrice = (cols[2] && cols[2].trim() !== '') ? parseFloat(cols[2]) : "";
-                    let weight = cols[3] ? cols[3].trim() : 'حبة';
-                    let catsStr = cols[4] ? cols[4].trim() : 'عام';
-                    let img = cols[5] ? cols[5].trim() : 'https://i.ibb.co/3m1K2wP/basket.png';
-
-                    let categoriesArr = catsStr.split(',').map(c => c.trim()).filter(c => c !== '');
-                    if (categoriesArr.length === 0) categoriesArr = ["عام"];
-
-                    let newProd = {
-                        name,
-                        price,
-                        salePrice,
-                        weight,
-                        img,
-                        categories: categoriesArr
-                    };
-
-                    try {
-                        const docRef = await window.addDoc(window.collection(window.db, "products"), newProd);
-                        newProd.id = docRef.id;
-                        products.push(newProd);
-                        successCount++;
-                        progressDiv.innerText = `تم رفع ${successCount} منتج بنجاح للسحابة...`;
-                    } catch (err) {
-                        console.error("خطأ في رفع المنتج:", err);
-                        failCount++;
-                    }
-                }
-            }
-
-            renderAdminGroupedProducts();
-            progressDiv.innerText = `تم الانتهاء! نجاح: ${successCount} | فشل: ${failCount} 🚀`;
-            alert(`تم الرفع الجماعي بنجاح! تم إضافة ${successCount} منتج للسحابة.`);
-            fileInput.value = '';
-        };
-
-        reader.readAsText(file, 'UTF-8');
-    }
-
-    function parseCSVLine(text) {
-        let result = [];
-        let cur = '';
-        let inQuotes = false;
-        for (let i = 0; i < text.length; i++) {
-            let c = text[i];
-            if (c === '"') {
-                inQuotes = !inQuotes;
-            } else if (c === ',' && !inQuotes) {
-                result.push(cur);
-                cur = '';
-            } else {
-                cur += c;
+                const docRef = await window.addDoc(window.collection(window.db, "products"), newProd);
+                newProd.id = docRef.id;
+                products.push(newProd);
+                successCount++;
+                progressDiv.innerText = `جاري الرفع: تم رفع ${successCount} من ${files.length} صورة...`;
+            } catch (err) {
+                console.error("خطأ في رفع الصورة:", err);
+                failCount++;
             }
         }
-        result.push(cur);
-        return result.map(s => s.trim().replace(/^"|"$/g, ''));
+
+        renderAdminGroupedProducts();
+        progressDiv.innerText = `تم الانتهاء! نجاح: ${successCount} | فشل: ${failCount} 🚀`;
+        alert(`تم رفع وإنشاء ${successCount} منتج بنجاح! يمكنك الآن تعديل بياناتها من قسم "إدارة وتعديل المنتجات".`);
+        fileInput.value = '';
     }
-    // --- نهاية دوال الرفع الجماعي ---
+
+    function resizeAndConvertImage(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800;
+                    const MAX_HEIGHT = 800;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                    resolve(dataUrl);
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+    // --- نهاية دوال الرفع الجماعي للصور ---
 
     function renderAdminGroupedProducts() {
         const container = document.getElementById('adminGroupedProductsContainer');
