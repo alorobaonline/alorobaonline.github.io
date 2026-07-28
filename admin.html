@@ -138,6 +138,11 @@
         <a href="index.html" class="back-btn">← المتجر الرئيسي</a>
     </div>
 
+    <!-- زر الانتقال السريع لشاشة المطبخ والطلبات الواردة -->
+    <a href="kitchen.html" target="_blank" style="display: block; text-align: center; background: var(--accent-green); color: white; padding: 10px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 0.85rem; margin-bottom: 12px; box-shadow: var(--shadow-card);">
+        🍳 فتح شاشة المطبخ والطلبات الواردة (مباشر)
+    </a>
+
     <!-- ملخص المبيعات -->
     <div class="sales-summary-box">
         <div>
@@ -261,21 +266,9 @@
 
 <script>
     let products = [];
-    let defaultCategories = [
-        { name: "الخضار والفواكه الطازجة", icon: "🍎" },
-        { name: "الألبان والأجبان", icon: "🧀" },
-        { name: "اللحوم، الدجاج والأسماك", icon: "🥩" },
-        { name: "المخبوزات والحلويات", icon: "🍞" },
-        { name: "المعلبات والبقوليات", icon: "🥫" },
-        { name: "المشروبات والعصائر", icon: "🧃" },
-        { name: "المكسرات والوجبات الخفيفة", icon: "🥜" },
-        { name: "الأغذية المجمدة", icon: "🧊" },
-        { name: "البهارات والتوابل", icon: "🌿" },
-        { name: "مستلزمات وأغذية الأطفال", icon: "👶" },
-        { name: "المنظفات والمستلزمات المنزلية", icon: "🧼" },
-        { name: "العناية الشخصية والجمال", icon: "🧴" }
+    let categories = [
+        { name: "الكل", icon: "🛍️" }
     ];
-    let categories = [{ name: "الكل", icon: "🛍️" }];
     let bannerSlides = [];
     let orders = [];
 
@@ -291,21 +284,16 @@
                 products.push({ id: docSnap.id, ...docSnap.data() });
             });
 
-            // التأكد من وجود الفئات الافتراضية ودمجها في السحابة
-            for(let cat of defaultCategories) {
-                await window.setDoc(window.doc(window.db, "categories", cat.name), cat, { merge: true });
-            }
-
             const catSnap = await window.getDocs(window.collection(window.db, "categories"));
-            categories = [{ name: "الكل", icon: "🛍️" }];
-            catSnap.forEach(docSnap => {
-                let catData = docSnap.data();
-                if(catData.name && catData.name !== "الكل") {
-                    if(!categories.some(c => c.name === catData.name)) {
+            if(!catSnap.empty) {
+                categories = [{ name: "الكل", icon: "🛍️" }];
+                catSnap.forEach(docSnap => {
+                    let catData = docSnap.data();
+                    if(catData.name && catData.name !== "الكل") {
                         categories.push(catData);
                     }
-                }
-            });
+                });
+            }
 
             const ordSnap = await window.getDocs(window.collection(window.db, "orders"));
             orders = [];
