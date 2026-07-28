@@ -450,7 +450,6 @@
         }
     }
 
-    // --- دوال الرفع الجماعي للصور مباشرة ---
     async function processBulkImagesUpload() {
         const fileInput = document.getElementById('bulkImagesFile');
         const progressDiv = document.getElementById('bulkImagesProgress');
@@ -539,7 +538,6 @@
             reader.readAsDataURL(file);
         });
     }
-    // --- نهاية دوال الرفع الجماعي للصور ---
 
     function renderAdminGroupedProducts() {
         const container = document.getElementById('adminGroupedProductsContainer');
@@ -623,8 +621,15 @@
                                 <input type="text" id="edit_weight_${p.id}" class="form-control" value="${p.weight || ''}">
                             </div>
                             <div class="form-group">
-                                <label>رابط الصورة</label>
-                                <input type="text" id="edit_img_${p.id}" class="form-control" value="${p.img}">
+                                <label>صورة المنتج (رابط أو رفع من الجهاز)</label>
+                                <div class="file-upload-box">
+                                    <input type="text" id="edit_img_${p.id}" class="form-control" value="${p.img}" style="flex: 2;">
+                                    <label class="camera-btn">
+                                        📁 تغيير الصورة
+                                        <input type="file" accept="image/*" onchange="handleImageUpload(event, 'edit_img_${p.id}', 'editPreview_${p.id}')">
+                                    </label>
+                                </div>
+                                <img id="editPreview_${p.id}" class="preview-thumb" src="${p.img || ''}" alt="معاينة" style="${p.img ? 'display: block;' : 'display: none;'} margin-top: 5px;">
                             </div>
                             <div class="form-group">
                                 <label>أقسام المنتج</label>
