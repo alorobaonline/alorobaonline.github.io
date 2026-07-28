@@ -389,20 +389,18 @@
 
     async function addNewProduct() {
         const name = document.getElementById('newProdName').value.trim();
-        const price = parseFloat(document.getElementById('newProdPrice').value);
+        const priceInput = document.getElementById('newProdPrice').value.trim();
+        const price = priceInput !== "" ? parseFloat(priceInput) : 0;
         let salePrice = document.getElementById('newProdSalePrice').value.trim();
-        const weight = document.getElementById('newProdWeight').value.trim() || "حبة";
-        const img = document.getElementById('newProdImg').value.trim() || "https://i.ibb.co/3m1K2wP/basket.png";
+        const weight = document.getElementById('newProdWeight').value.trim();
+        const img = document.getElementById('newProdImg').value.trim();
 
         let selectedCats = [];
         document.querySelectorAll('input[name="prodCatCheckbox"]:checked').forEach(cb => {
             selectedCats.push(cb.value);
         });
 
-        if(!name || isNaN(price)) {
-            alert("الرجاء إدخال اسم المنتج والسعر الأساسي بشكل صحيح");
-            return;
-        }
+        // تم إلغاء أي قيود إجبارية على الحقول
 
         const newProd = {
             name,
@@ -571,7 +569,7 @@
         if(!p) return;
 
         p.name = document.getElementById(`edit_name_${localId}`).value.trim();
-        p.price = parseFloat(document.getElementById(`edit_price_${localId}`).value);
+        p.price = parseFloat(document.getElementById(`edit_price_${localId}`).value) || 0;
         let sp = document.getElementById(`edit_saleprice_${localId}`).value.trim();
         p.salePrice = sp !== "" ? parseFloat(sp) : "";
         p.weight = document.getElementById(`edit_weight_${localId}`).value.trim();
