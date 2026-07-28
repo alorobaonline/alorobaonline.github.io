@@ -222,7 +222,6 @@
                 <input type="text" id="prodName" class="form-control" placeholder="مثال: أرز تات بسمتي">
             </div>
 
-            <!-- السعر الحالي، الكمية المتاحة، والوزن / الحجم في صف واحد متناسق -->
             <div style="display: flex; gap: 6px;">
                 <div class="form-group" style="flex: 1;">
                     <label>السعر الحالي (₪) *</label>
@@ -373,6 +372,7 @@
                 let parsed = JSON.parse(saved);
                 if (Array.isArray(parsed)) {
                     return parsed.map(p => {
+                        if (!p.id) p.id = Date.now() + Math.random();
                         if (!p.categories && p.category) {
                             p.categories = [p.category];
                         } else if (!Array.isArray(p.categories)) {
@@ -514,7 +514,7 @@
                 productsHtml = '<div style="color: #9ca3af; font-size: 0.65rem; padding: 4px; text-align: center;">لا توجد منتجات في هذا القسم</div>';
             } else {
                 catProducts.forEach(p => {
-                    let originalIndex = products.findIndex(item => item.id === p.id);
+                    let uniqueKey = `${catIdx}_${p.id}`;
                     let isAvailable = p.inStock !== false && (p.stockQty === undefined || p.stockQty > 0);
                     productsHtml += `
                         <div class="product-card-container" style="${!isAvailable ? 'opacity: 0.7; background: #fffbeb;' : ''}">
@@ -529,31 +529,29 @@
                                     </div>
                                 </div>
                                 <div class="product-actions">
-                                    <button class="btn-edit" onclick="toggleInlineEdit(${originalIndex})">تعديل ✏️</button>
-                                    <button class="btn-delete" onclick="deleteProduct(${originalIndex})">حذف</button>
+                                    <button class="btn-edit" onclick="toggleInlineEdit('${uniqueKey}')">تعديل ✏️</button>
+                                    <button class="btn-delete" onclick="deleteProductById('${p.id}')">حذف</button>
                                 </div>
                             </div>
                             
-                            <!-- نموذج التعديل المدمج والمرتب (بدون زر إيقاف وبدون رزمة العرض) -->
-                            <div id="inline-edit-${originalIndex}" class="inline-edit-form">
+                            <div id="inline-edit-${uniqueKey}" class="inline-edit-form">
                                 <div class="form-group">
                                     <label>اسم المنتج *</label>
-                                    <input type="text" id="edit-name-${originalIndex}" class="form-control" value="${p.name}">
+                                    <input type="text" id="edit-name-${uniqueKey}" class="form-control" value="${p.name}">
                                 </div>
 
-                                <!-- السعر الحالي، الكمية المتاحة، والوزن في صف واحد منظم تماماً -->
                                 <div style="display: flex; gap: 6px;">
                                     <div class="form-group" style="flex: 1;">
                                         <label>السعر الحالي (₪) *</label>
-                                        <input type="number" id="edit-price-${originalIndex}" class="form-control" value="${p.price}">
+                                        <input type="number" id="edit-price-${uniqueKey}" class="form-control" value="${p.price}">
                                     </div>
                                     <div class="form-group" style="flex: 1;">
                                         <label>الكمية المتاحة *</label>
-                                        <input type="number" id="edit-stock-${originalIndex}" class="form-control" value="${p.stockQty ?? 0}">
+                                        <input type="number" id="edit-stock-${uniqueKey}" class="form-control" value="${p.stockQty ?? 0}">
                                     </div>
                                     <div class="form-group" style="flex: 1;">
                                         <label>الوزن / الحجم</label>
-                                        <input type="text" id="edit-weight-${originalIndex}" class="form-control" value="${p.weight || ''}">
+                                        <input type="text" id="edit-weight-${uniqueKey}" class="form-control" value="${p.weight || ''}">
                                     </div>
                                 </div>
 
@@ -562,7 +560,7 @@
                                     <div class="categories-checkbox-container">
                                         ${categories.filter(c => c.name !== "الكل").map(c => `
                                             <label class="checkbox-item" title="${c.name}">
-                                                <input type="checkbox" class="edit-cat-check-${originalIndex}" value="${c.name}" ${p.categories && p.categories.includes(c.name) ? 'checked' : ''}>
+                                                <input type="checkbox" class="edit-cat-check-${uniqueKey}" value="${c.name}" ${p.categories && p.categories.includes(c.name) ? 'checked' : ''}>
                                                 <span>${c.icon || ''} ${c.name}</span>
                                             </label>
                                         `).join('')}
@@ -572,17 +570,16 @@
                                 <div class="form-group">
                                     <label>صورة المنتج *</label>
                                     <div class="file-upload-box">
-                                        <label class="camera-btn" for="editFile-${originalIndex}">📸 التقاط أو اختيار صورة</label>
-                                        <input type="file" id="editFile-${originalIndex}" accept="image/*" onchange="compressAndSetImage(event, 'edit-imgData-${originalIndex}', 'editPreview-${originalIndex}')">
-                                        <img id="editPreview-${originalIndex}" class="preview-thumb" src="${p.img}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
+                                        <label class="camera-btn" for="editFile-${uniqueKey}">📸 التقاط أو اختيار صورة</label>
+                                        <input type="file" id="editFile-${uniqueKey}" accept="image/*" onchange="compressAndSetImage(event, 'edit-imgData-${uniqueKey}', 'editPreview-${uniqueKey}')">
+                                        <img id="editPreview-${uniqueKey}" class="preview-thumb" src="${p.img}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                                     </div>
-                                    <input type="hidden" id="edit-imgData-${originalIndex}" value="${p.img}">
+                                    <input type="hidden" id="edit-imgData-${uniqueKey}" value="${p.img}">
                                 </div>
 
-                                <!-- تصحيح ترتيب الأزرار: زر الحفظ أولاً في اليمين، ثم الإلغاء في اليسار -->
                                 <div style="display: flex; gap: 5px; margin-top: 5px;">
-                                    <button class="btn-main" style="margin-top:0; background: #3b82f6; flex: 2;" onclick="saveInlineEdit(${originalIndex})">حفظ التعديلات ✅</button>
-                                    <button class="btn-main" style="margin-top:0; background: #64748b; flex: 1;" onclick="toggleInlineEdit(${originalIndex})">إلغاء ❌</button>
+                                    <button class="btn-main" style="margin-top:0; background: #3b82f6; flex: 2;" onclick="saveInlineEdit('${p.id}', '${uniqueKey}')">حفظ التعديلات ✅</button>
+                                    <button class="btn-main" style="margin-top:0; background: #64748b; flex: 1;" onclick="toggleInlineEdit('${uniqueKey}')">إلغاء ❌</button>
                                 </div>
                             </div>
                         </div>
@@ -787,8 +784,8 @@
         }
     }
 
-    function toggleInlineEdit(index) {
-        const editBox = document.getElementById(`inline-edit-${index}`);
+    function toggleInlineEdit(uniqueKey) {
+        const editBox = document.getElementById(`inline-edit-${uniqueKey}`);
         if (editBox.style.display === "block") {
             editBox.style.display = "none";
         } else {
@@ -797,16 +794,16 @@
         }
     }
 
-    function saveInlineEdit(index) {
+    function saveInlineEdit(productId, uniqueKey) {
         let products = getStoredProducts();
-        const name = document.getElementById(`edit-name-${index}`).value;
-        const weight = document.getElementById(`edit-weight-${index}`).value;
-        const stockQty = parseInt(document.getElementById(`edit-stock-${index}`).value);
-        const price = parseFloat(document.getElementById(`edit-price-${index}`).value);
-        const img = document.getElementById(`edit-imgData-${index}`).value;
+        const name = document.getElementById(`edit-name-${uniqueKey}`).value;
+        const weight = document.getElementById(`edit-weight-${uniqueKey}`).value;
+        const stockQty = parseInt(document.getElementById(`edit-stock-${uniqueKey}`).value);
+        const price = parseFloat(document.getElementById(`edit-price-${uniqueKey}`).value);
+        const img = document.getElementById(`edit-imgData-${uniqueKey}`).value;
         
         let selectedCategories = [];
-        document.querySelectorAll(`.edit-cat-check-${index}:checked`).forEach(chk => {
+        document.querySelectorAll(`.edit-cat-check-${uniqueKey}:checked`).forEach(chk => {
             selectedCategories.push(chk.value);
         });
 
@@ -815,25 +812,28 @@
             return;
         }
 
-        products[index] = {
-            ...products[index],
-            name,
-            weight,
-            stockQty: isNaN(stockQty) ? 0 : stockQty,
-            price,
-            img,
-            categories: selectedCategories.length > 0 ? selectedCategories : ['عروض']
-        };
+        let index = products.findIndex(p => String(p.id) === String(productId));
+        if (index !== -1) {
+            products[index] = {
+                ...products[index],
+                name,
+                weight,
+                stockQty: isNaN(stockQty) ? 0 : stockQty,
+                price,
+                img,
+                categories: selectedCategories.length > 0 ? selectedCategories : ['عروض']
+            };
 
-        localStorage.setItem('aloroba_products', JSON.stringify(products));
-        alert("تم تحديث المنتج بنجاح! ✅");
-        renderAdmin();
+            localStorage.setItem('aloroba_products', JSON.stringify(products));
+            alert("تم تحديث المنتج بنجاح! ✅");
+            renderAdmin();
+        }
     }
 
-    function deleteProduct(index) {
+    function deleteProductById(productId) {
         if(confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
             let products = getStoredProducts();
-            products.splice(index, 1);
+            products = products.filter(p => String(p.id) !== String(productId));
             localStorage.setItem('aloroba_products', JSON.stringify(products));
             renderAdmin();
         }
