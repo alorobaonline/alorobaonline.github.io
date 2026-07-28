@@ -3,35 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم الشاملة - سوبر ماركت العروبة</title>
+    <title>لوحة التحكم - العروبة أونلاين</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    
-    <!-- ربط مكتبات Firebase (SDK v9) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-        import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
-
-        // ضع إعدادات مشروعك في Firebase هنا
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // جعل الأدوات متاحة للعامة في النطاق (Global Scope)
-        window.db = db;
-        window.firebaseModules = { collection, getDocs, setDoc, doc, deleteDoc, updateDoc, onSnapshot };
-        
-        // تشغيل اللوحة بعد تحميل الفايربيس
-        window.dispatchEvent(new Event('firebase-ready'));
-    </script>
-
     <style>
         :root {
             --primary-green: #1b4d2e;
@@ -51,7 +24,6 @@
         .sales-summary-box { background: linear-gradient(135deg, #1b4d2e, #2e6930); color: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: bold; }
         
         .section-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
-        
         .section-header-toggle { font-size: 0.85rem; color: var(--primary-green); font-weight: 800; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
         .section-content { margin-top: 10px; display: none; }
 
@@ -82,65 +54,73 @@
             background: #f8fafc;
             border: 1px solid #e2e8f0;
             border-radius: 6px;
-            overflow: hidden;
             white-space: nowrap;
+            overflow: hidden;
             text-overflow: ellipsis;
         }
-        .checkbox-item input {
-            accent-color: var(--primary-green);
-            width: 13px;
-            height: 13px;
-            cursor: pointer;
-            flex-shrink: 0;
-            margin-left: 2px;
-        }
+        .checkbox-item input { accent-color: var(--primary-green); width: 13px; height: 13px; cursor: pointer; flex-shrink: 0; }
 
         .file-upload-box { display: flex; align-items: center; gap: 8px; }
-        .file-upload-box input[type="file"] { display: none; }
-        .camera-btn { background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; flex: 1; justify-content: center; }
-        .camera-btn:hover { background: #cbd5e1; }
+        .camera-btn { background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; flex: 1; }
 
         .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 9px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; margin-top: 5px; }
-        
         .product-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
-        .btn-delete { background: #ef4444; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; white-space: nowrap; }
-        .btn-edit { background: #3b82f6; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; white-space: nowrap; }
+        .btn-delete { background: #ef4444; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; }
+        .btn-edit { background: #3b82f6; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; }
 
         .list-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 0.7rem; }
-        
-        #adminCategoriesList {
-            max-height: 220px;
-            overflow-y: auto;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            padding: 6px;
-            background: #fff;
-            margin-top: 10px;
-        }
+        #adminCategoriesList { max-height: 220px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px; background: #fff; margin-top: 10px; }
 
         .category-group-box { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
-        .category-group-title { font-size: 0.8rem; font-weight: 900; color: var(--primary-green); border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
-        .category-toggle-badge { margin-right: auto; font-size: 0.7rem; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; color: #334155; display: flex; align-items: center; gap: 5px; font-weight: bold; }
+        .category-group-title { font-size: 0.8rem; font-weight: 900; color: var(--primary-green); border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 8px; display: flex; align-items: center; cursor: pointer; user-select: none; }
+        .category-toggle-badge { margin-right: auto; font-size: 0.7rem; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; color: #334155; font-weight: bold; }
         
         .product-card-container { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
         .product-mini-row { display: flex; justify-content: space-between; align-items: center; padding: 8px; font-size: 0.7rem; gap: 8px; }
         .product-mini-info { display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; }
         .product-mini-thumb { width: 32px; height: 32px; object-fit: contain; background: white; border-radius: 4px; border: 1px solid #ddd; padding: 2px; flex-shrink: 0; }
-        
         .inline-edit-form { background: #eff6ff; border-top: 1px dashed #bfdbfe; padding: 10px; display: none; }
         .preview-thumb { width: 45px; height: 45px; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 6px; background: white; padding: 2px; }
-        
         .toggle-arrow { font-size: 0.75rem; transition: transform 0.2s; }
         
-        .order-card { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 0.75rem; animation: fadeIn 0.5s; position: relative; }
+        .order-card { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 0.75rem; }
         .order-header { display: flex; justify-content: space-between; font-weight: bold; color: var(--primary-green); border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; }
-        
         .order-action-btns { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
         .btn-call { background: #2563eb; color: white; text-decoration: none; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; display: inline-flex; align-items: center; gap: 3px; }
         .btn-status { background: #16a34a; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; cursor: pointer; }
-        
-        .banner-slide-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 10px; position: relative; }
+        .banner-slide-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
     </style>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
+            authDomain: "alorobaonline.firebaseapp.com",
+            projectId: "alorobaonline",
+            storageBucket: "alorobaonline.firebasestorage.app",
+            messagingSenderId: "880642361344",
+            appId: "1:880642361344:web:9dddec05f81125f0fc30e5",
+            measurementId: "G-NL9CS2135V"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.collection = collection;
+        window.getDocs = getDocs;
+        window.addDoc = addDoc;
+        window.updateDoc = updateDoc;
+        window.deleteDoc = deleteDoc;
+        window.doc = doc;
+        window.setDoc = setDoc;
+
+        // تشغيل دوال الجلب فور التحميل
+        window.dispatchEvent(new Event('firebase-ready'));
+    </script>
 </head>
 <body>
 
@@ -169,9 +149,7 @@
             <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="ordersSectionContent">
-            <div id="adminOrdersList" style="margin-top: 8px; max-height: 300px; overflow-y: auto;">
-                <p style="color: #666; text-align: center; font-size: 0.75rem;">جاري جلب الطلبات...</p>
-            </div>
+            <div id="adminOrdersList" style="margin-top: 8px; max-height: 300px; overflow-y: auto;"></div>
         </div>
     </div>
 
@@ -193,7 +171,7 @@
                 </div>
                 <div class="form-group">
                     <label>سعر العرض (اختياري)</label>
-                    <input type="number" id="newProdSalePrice" class="form-control" placeholder="فارغ إذا لم يوجد عرض">
+                    <input type="number" id="newProdSalePrice" class="form-control" placeholder="فارغ إذا لم يوجد">
                 </div>
             </div>
             <div class="form-group">
@@ -201,7 +179,7 @@
                 <input type="text" id="newProdWeight" class="form-control" placeholder="مثال: 5 كجم أو حبة">
             </div>
             <div class="form-group">
-                <label>أقسام المنتج (اختر قسم واحد أو أكثر لظهوره في العرض الأفقي)</label>
+                <label>أقسام المنتج (اختر قسم واحد أو أكثر)</label>
                 <div class="categories-checkbox-container" id="newProdCategoriesContainer"></div>
             </div>
             <div class="form-group">
@@ -230,32 +208,28 @@
         </div>
     </div>
 
-    <!-- 4. إدارة التصنيفات والأقسام والتحكم بالصفوف الأفقية -->
+    <!-- 4. إدارة التصنيفات والأقسام -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('categoriesSectionContent', this)">
-            <span>🗂️ إدارة الأقسام وعرض الصفوف الأفقية (يمين ويسار)</span>
+            <span>🗂️ إدارة الأقسام وعرض الصفوف الأفقية</span>
             <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="categoriesSectionContent">
-            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px; margin-bottom: 10px; font-size: 0.7rem; color: #1e40af;">
-                💡 <b>تخصيص العرض الأفقي بالمتجر:</b> المنتجات الآن تظهر مقسمة بشكل عرضي (سحب يمين ويسار لكل قسم). حدد الأقسام التي تود عرضها وترتيبها في واجهة المتجر الرئيسية:
-            </div>
             <div class="form-group">
-                <label>القسم الأفقي الأول في الواجهة الرئيسية</label>
+                <label>القسم الأفقي الأول في الواجهة</label>
                 <select id="layoutFirstSection" class="form-control"></select>
             </div>
             <div class="form-group">
-                <label>القسم الأفقي الثاني في الواجهة الرئيسية</label>
+                <label>القسم الأفقي الثاني في الواجهة</label>
                 <select id="layoutSecondSection" class="form-control"></select>
             </div>
             <div class="form-group">
-                <label>القسم الأفقي الثالث في الواجهة الرئيسية</label>
+                <label>القسم الأفقي الثالث في الواجهة</label>
                 <select id="layoutThirdSection" class="form-control"></select>
             </div>
             <button class="btn-main" style="background: #2563eb; margin-bottom: 12px;" onclick="saveLayoutPreferences()">حفظ إعدادات العرض الأفقي 💾</button>
 
             <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 10px 0;">
-
             <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">إضافة قسم جديد للمتجر:</div>
             <div style="display: flex; gap: 5px; margin-bottom: 8px;">
                 <input type="text" id="newCatName" class="form-control" placeholder="اسم القسم الجديد" style="flex: 2;">
@@ -266,17 +240,16 @@
         </div>
     </div>
 
-    <!-- 5. تخصيص شرائح البانر المتحركة (Slider) -->
+    <!-- 5. تخصيص شرائح البانر المتحركة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('bannerSectionContent', this)">
             <span>🎨 تخصيص شرائح البانر المتحركة (Slider)</span>
             <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="bannerSectionContent">
-            <div style="font-size: 0.7rem; color: #666; margin-bottom: 8px;">يمكنك تعديل الشرائح الحالية، حذف شريحة، أو إضافة شريحة جديدة لمتجرك:</div>
             <div id="bannerSlidesContainer"></div>
             <button class="btn-main" style="background: #059669; margin-bottom: 8px;" onclick="addNewBannerSlide()">➕ إضافة شريحة بانر جديدة</button>
-            <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث شرائح البانر في المتجر ✨</button>
+            <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث شرائح البانر ✨</button>
         </div>
     </div>
 </div>
@@ -284,92 +257,56 @@
 <script>
     let products = [];
     let categories = [
-        { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
-        { name: "عروض", icon: "🔥", bg: "#fee2e2", color: "#dc2626" },
-        { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
-        { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
-        { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
-        { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" }
+        { name: "الكل", icon: "🛍️" },
+        { name: "عروض", icon: "🔥" },
+        { name: "ألبان", icon: "🥛" },
+        { name: "معلبات", icon: "🥫" },
+        { name: "خضار", icon: "🥦" },
+        { name: "منظفات", icon: "🧴" }
     ];
-    let bannerSlides = [
-        { tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "https://i.ibb.co/3m1K2wP/basket.png" },
-        { tag: "عروض مميزة", title: "تخفيضات الكبرى على كافة المنتجات", img: "https://i.ibb.co/3m1K2wP/basket.png" },
-        { tag: "توصيل سريع", title: "أرخص الأسعار لخدمة أهالينا", img: "https://i.ibb.co/3m1K2wP/basket.png" }
-    ];
+    let bannerSlides = [];
     let layoutData = { firstSection: "عروض", secondSection: "ألبان", thirdSection: "معلبات" };
     let orders = [];
 
-    window.addEventListener('firebase-ready', () => {
-        initFirebaseListeners();
+    window.addEventListener('firebase-ready', async function() {
+        await loadDataFromCloud();
     });
 
-    // جلب البيانات ومزامنتها لحظياً من Firebase Firestore
-    function initFirebaseListeners() {
-        const { collection, onSnapshot } = window.firebaseModules;
-        const db = window.db;
-
-        // 1. الاستماع للمنتجات
-        onSnapshot(collection(db, "products"), (snapshot) => {
+    async function loadDataFromCloud() {
+        try {
+            // جلب المنتجات
+            const prodSnap = await window.getDocs(window.collection(window.db, "products"));
             products = [];
-            snapshot.forEach((docSnap) => {
-                products.push({ firestoreId: docSnap.id, ...docSnap.data() });
+            prodSnap.forEach(docSnap => {
+                products.push({ id: docSnap.id, ...docSnap.data() });
             });
-            renderNewProdCategoriesCheckboxes();
-            renderAdminGroupedProducts();
-            updateSalesSummary();
-        });
 
-        // 2. الاستماع للأقسام
-        onSnapshot(collection(db, "categories"), (snapshot) => {
-            if (!snapshot.empty) {
+            // جلب الأقسام
+            const catSnap = await window.getDocs(window.collection(window.db, "categories"));
+            if(!catSnap.empty) {
                 categories = [];
-                snapshot.forEach((docSnap) => {
+                catSnap.forEach(docSnap => {
                     categories.push(docSnap.data());
                 });
-            } else {
-                // رفع الأقسام الافتراضية إذا كانت قاعدة البيانات فارغة
-                categories.forEach(async (cat) => {
-                    await window.firebaseModules.setDoc(window.firebaseModules.doc(db, "categories", cat.name), cat);
-                });
             }
+
+            // جلب الطلبات
+            const ordSnap = await window.getDocs(window.collection(window.db, "orders"));
+            orders = [];
+            ordSnap.forEach(docSnap => {
+                orders.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
+            // تحديث العرض بالواجهة
             renderNewProdCategoriesCheckboxes();
+            renderAdminGroupedProducts();
             renderAdminCategoriesList();
             initLayoutDropdowns();
-            renderAdminGroupedProducts();
-        });
-
-        // 3. الاستماع للطلبات
-        onSnapshot(collection(db, "orders"), (snapshot) => {
-            orders = [];
-            snapshot.forEach((docSnap) => {
-                orders.push({ firestoreId: docSnap.id, ...docSnap.data() });
-            });
+            initBannerForm();
             renderAdminOrders();
             updateSalesSummary();
-        });
-
-        // 4. جلب إعدادات البانر والتخطيط لمرة واحدة أو الاستماع لها
-        loadSettingsFromFirebase();
-    }
-
-    async function loadSettingsFromFirebase() {
-        const { getDocs, collection } = window.firebaseModules;
-        const db = window.db;
-        
-        try {
-            const settingsSnap = await getDocs(collection(db, "settings"));
-            settingsSnap.forEach(docSnap => {
-                if(docSnap.id === "bannerSlides") {
-                    bannerSlides = docSnap.data().slides || bannerSlides;
-                }
-                if(docSnap.id === "layoutData") {
-                    layoutData = docSnap.data() || layoutData;
-                }
-            });
-            initBannerForm();
-            initLayoutDropdowns();
-        } catch(e) {
-            console.log("خطأ في جلب الإعدادات:", e);
+        } catch (e) {
+            console.error("خطأ في جلب البيانات من السحابة: ", e);
         }
     }
 
@@ -421,7 +358,7 @@
         const price = parseFloat(document.getElementById('newProdPrice').value);
         let salePrice = document.getElementById('newProdSalePrice').value.trim();
         const weight = document.getElementById('newProdWeight').value.trim() || "حبة";
-        const img = document.getElementById('newProdImg').value.trim() || "https://cdn-icons-png.flaticon.com/512/3081/3081986.png";
+        const img = document.getElementById('newProdImg').value.trim() || "https://i.ibb.co/3m1K2wP/basket.png";
 
         let selectedCats = [];
         document.querySelectorAll('input[name="prodCatCheckbox"]:checked').forEach(cb => {
@@ -433,9 +370,7 @@
             return;
         }
 
-        const prodId = String(Date.now());
-        let newProd = {
-            id: prodId,
+        const newProd = {
             name,
             price,
             salePrice: salePrice !== "" ? parseFloat(salePrice) : "",
@@ -444,18 +379,24 @@
             categories: selectedCats.length > 0 ? selectedCats : ["عام"]
         };
 
-        const { setDoc, doc } = window.firebaseModules;
-        await setDoc(doc(window.db, "products", prodId), newProd);
-        
-        document.getElementById('newProdName').value = '';
-        document.getElementById('newProdPrice').value = '';
-        document.getElementById('newProdSalePrice').value = '';
-        document.getElementById('newProdWeight').value = '';
-        document.getElementById('newProdImg').value = '';
-        document.getElementById('newProdPreview').style.display = 'none';
-        renderNewProdCategoriesCheckboxes();
+        try {
+            const docRef = await window.addDoc(window.collection(window.db, "products"), newProd);
+            newProd.id = docRef.id;
+            products.push(newProd);
+            renderAdminGroupedProducts();
 
-        alert("تم حفظ وإضافة المنتج إلى Firebase بنجاح! 🚀");
+            document.getElementById('newProdName').value = '';
+            document.getElementById('newProdPrice').value = '';
+            document.getElementById('newProdSalePrice').value = '';
+            document.getElementById('newProdWeight').value = '';
+            document.getElementById('newProdImg').value = '';
+            document.getElementById('newProdPreview').style.display = 'none';
+            renderNewProdCategoriesCheckboxes();
+
+            alert("تم إضافة المنتج بنجاح للسحابة! 🚀");
+        } catch (e) {
+            alert("حدث خطأ أثناء الحفظ بالسحابة");
+        }
     }
 
     function renderAdminGroupedProducts() {
@@ -484,9 +425,7 @@
                     }
                 });
             }
-            if(!placed) {
-                catGroups["أخرى غير مصنفة"].push(p);
-            }
+            if(!placed) catGroups["أخرى غير مصنفة"].push(p);
         });
 
         Object.keys(catGroups).forEach(catName => {
@@ -510,7 +449,7 @@
                     <div class="product-card-container">
                         <div class="product-mini-row">
                             <div class="product-mini-info">
-                                <img src="${p.img}" class="product-mini-thumb" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
+                                <img src="${p.img}" class="product-mini-thumb" onerror="this.src='https://i.ibb.co/3m1K2wP/basket.png'">
                                 <div>
                                     <div style="font-weight: 800;">${p.name}</div>
                                     <div style="color: #6b7280; font-size: 0.65rem;">السعر: ${activePrice} | ${p.weight || 'حبة'}</div>
@@ -519,7 +458,7 @@
                             </div>
                             <div class="product-actions">
                                 <button class="btn-edit" onclick="toggleEditForm('${p.id}')">تعديل ✏️</button>
-                                <button class="btn-delete" onclick="deleteProduct('${p.firestoreId || p.id}')">حذف 🗑️</button>
+                                <button class="btn-delete" onclick="deleteProduct('${p.id}')">حذف 🗑️</button>
                             </div>
                         </div>
                         <div class="inline-edit-form" id="editForm_${p.id}">
@@ -549,7 +488,7 @@
                                 <label>أقسام المنتج</label>
                                 <div class="categories-checkbox-container" id="editCatsContainer_${p.id}"></div>
                             </div>
-                            <button class="btn-main" style="background: #3b82f6; padding: 6px; font-size: 0.7rem;" onclick="saveEditedProduct('${p.firestoreId || p.id}', '${p.id}')">حفظ التعديلات ✓</button>
+                            <button class="btn-main" style="background: #3b82f6; padding: 6px; font-size: 0.7rem;" onclick="saveEditedProduct('${p.id}')">حفظ التعديلات ✓</button>
                         </div>
                     </div>
                 `;
@@ -572,9 +511,7 @@
         } else {
             form.style.display = 'block';
             let p = products.find(prod => prod.id == id);
-            if(p) {
-                renderEditCategoriesCheckboxes(id, p.categories || []);
-            }
+            if(p) renderEditCategoriesCheckboxes(id, p.categories || []);
         }
     }
 
@@ -594,7 +531,7 @@
         });
     }
 
-    async function saveEditedProduct(firestoreId, localId) {
+    async function saveEditedProduct(localId) {
         let p = products.find(prod => prod.id == localId);
         if(!p) return;
 
@@ -611,15 +548,31 @@
         });
         p.categories = selectedCats.length > 0 ? selectedCats : ["عام"];
 
-        const { setDoc, doc } = window.firebaseModules;
-        await setDoc(doc(window.db, "products", String(firestoreId)), p);
-        alert("تم تحديث المنتج في Firebase بنجاح!");
+        try {
+            await window.updateDoc(window.doc(window.db, "products", localId), {
+                name: p.name,
+                price: p.price,
+                salePrice: p.salePrice,
+                weight: p.weight,
+                img: p.img,
+                categories: p.categories
+            });
+            renderAdminGroupedProducts();
+            alert("تم تحديث المنتج بنجاح في السحابة!");
+        } catch(e) {
+            alert("خطأ أثناء التحديث");
+        }
     }
 
-    async function deleteProduct(firestoreId) {
+    async function deleteProduct(id) {
         if(confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
-            const { deleteDoc, doc } = window.firebaseModules;
-            await deleteDoc(doc(window.db, "products", String(firestoreId)));
+            try {
+                await window.deleteDoc(window.doc(window.db, "products", id));
+                products = products.filter(p => p.id != id);
+                renderAdminGroupedProducts();
+            } catch(e) {
+                alert("خطأ أثناء الحذف");
+            }
         }
     }
 
@@ -631,7 +584,7 @@
             container.innerHTML += `
                 <div class="list-item">
                     <div><b>${cat.icon}</b> ${cat.name}</div>
-                    ${cat.name !== "الكل" && cat.name !== "عروض" ? `<button class="btn-delete" onclick="deleteCategory('${cat.name}')">حذف</button>` : '<span style="font-size:0.6rem; color:#888;">أساسي</span>'}
+                    ${cat.name !== "الكل" ? `<button class="btn-delete" onclick="deleteCategory('${cat.name}')">حذف</button>` : '<span style="font-size:0.6rem; color:#888;">أساسي</span>'}
                 </div>
             `;
         });
@@ -651,19 +604,30 @@
             return;
         }
 
-        let newCat = { name, icon, bg: "#f3f4f6", color: "#1b4d2e" };
-        const { setDoc, doc } = window.firebaseModules;
-        await setDoc(doc(window.db, "categories", name), newCat);
+        const newCat = { name, icon };
+        categories.push(newCat);
         
-        document.getElementById('newCatName').value = '';
-        document.getElementById('newCatIcon').value = '';
-        alert("تم إضافة القسم إلى Firebase بنجاح!");
+        try {
+            await window.setDoc(window.doc(window.db, "categories", name), newCat);
+            renderAdminCategoriesList();
+            renderNewProdCategoriesCheckboxes();
+            initLayoutDropdowns();
+
+            document.getElementById('newCatName').value = '';
+            document.getElementById('newCatIcon').value = '';
+            alert("تم إضافة القسم بنجاح للسحابة!");
+        } catch(e) {
+            alert("خطأ في حفظ القسم");
+        }
     }
 
-    async function deleteCategory(catName) {
+    function deleteCategory(catName) {
         if(confirm("هل أنت متأكد من حذف هذا القسم؟")) {
-            const { deleteDoc, doc } = window.firebaseModules;
-            await deleteDoc(doc(window.db, "categories", catName));
+            categories = categories.filter(c => c.name !== catName);
+            renderAdminCategoriesList();
+            renderNewProdCategoriesCheckboxes();
+            initLayoutDropdowns();
+            renderAdminGroupedProducts();
         }
     }
 
@@ -671,32 +635,24 @@
         const container = document.getElementById('bannerSlidesContainer');
         if(!container) return;
         container.innerHTML = '';
-        
         bannerSlides.forEach((slide, index) => {
             container.innerHTML += `
                 <div class="banner-slide-box">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                         <span style="font-weight: bold; font-size: 0.75rem; color: var(--primary-green);">الشريحة رقم ${index + 1}</span>
-                        <button class="btn-delete" type="button" onclick="removeBannerSlide(${index})">حذف الشريحة ✕</button>
+                        <button class="btn-delete" type="button" onclick="removeBannerSlide(${index})">حذف ✕</button>
                     </div>
                     <div class="form-group">
-                        <label>نص الشارة العلوية</label>
+                        <label>نص الشارة</label>
                         <input type="text" id="bannerTag_${index}" class="form-control" value="${slide.tag || ''}">
                     </div>
                     <div class="form-group">
-                        <label>عنوان البانر</label>
+                        <label>العنوان</label>
                         <input type="text" id="bannerTitle_${index}" class="form-control" value="${slide.title || ''}">
                     </div>
                     <div class="form-group">
-                        <label>صورة البانر (رابط أو رفع ملف)</label>
-                        <div class="file-upload-box">
-                            <input type="text" id="bannerImg_${index}" class="form-control" value="${slide.img || ''}" style="flex: 2;">
-                            <label class="camera-btn">
-                                📁 اختر صورة
-                                <input type="file" accept="image/*" onchange="handleImageUpload(event, 'bannerImg_${index}', 'bannerPreview_${index}')">
-                            </label>
-                        </div>
-                        <img id="bannerPreview_${index}" class="preview-thumb" src="${slide.img || ''}" alt="معاينة" style="display: ${slide.img ? 'block' : 'none'}; margin-top: 5px;">
+                        <label>صورة البانر</label>
+                        <input type="text" id="bannerImg_${index}" class="form-control" value="${slide.img || ''}">
                     </div>
                 </div>
             `;
@@ -705,19 +661,11 @@
 
     function addNewBannerSlide() {
         collectCurrentBannerData();
-        bannerSlides.push({
-            tag: "عروض جديدة",
-            title: "تسوق أفضل المنتجات الآن",
-            img: "https://i.ibb.co/3m1K2wP/basket.png"
-        });
+        bannerSlides.push({ tag: "عروض جديدة", title: "تسوق أفضل المنتجات", img: "https://i.ibb.co/3m1K2wP/basket.png" });
         initBannerForm();
     }
 
     function removeBannerSlide(index) {
-        if(bannerSlides.length <= 1) {
-            alert("يجب أن تبقى شريحة بانر واحدة على الأقل في المتجر!");
-            return;
-        }
         collectCurrentBannerData();
         bannerSlides.splice(index, 1);
         initBannerForm();
@@ -730,44 +678,34 @@
             let tagInput = document.getElementById(`bannerTag_${index}`);
             let titleInput = document.getElementById(`bannerTitle_${index}`);
             let imgInput = document.getElementById(`bannerImg_${index}`);
-            
             if(!tagInput) break;
-            
-            bannerSlides.push({
-                tag: tagInput.value.trim(),
-                title: titleInput.value.trim(),
-                img: imgInput.value.trim()
-            });
+            bannerSlides.push({ tag: tagInput.value.trim(), title: titleInput.value.trim(), img: imgInput.value.trim() });
             index++;
         }
     }
 
     async function saveBannerSettings() {
         collectCurrentBannerData();
-        const { setDoc, doc } = window.firebaseModules;
-        await setDoc(doc(window.db, "settings", "bannerSlides"), { slides: bannerSlides });
-        alert("تم حفظ وتحديث شرائح البانر في Firebase وتطبيقها على المتجر فورياً! ✨");
+        try {
+            await window.setDoc(window.doc(window.db, "settings", "banner"), { slides: bannerSlides });
+            alert("تم حفظ شرائح البانر في السحابة بنجاح! ✨");
+        } catch(e) {
+            alert("خطأ في حفظ البانر");
+        }
     }
 
     function initLayoutDropdowns() {
         const sel1 = document.getElementById('layoutFirstSection');
         const sel2 = document.getElementById('layoutSecondSection');
         const sel3 = document.getElementById('layoutThirdSection');
-        
         if(!sel1) return;
-        sel1.innerHTML = '';
-        sel2.innerHTML = '';
-        sel3.innerHTML = '';
+        sel1.innerHTML = ''; sel2.innerHTML = ''; sel3.innerHTML = '';
 
         categories.forEach(cat => {
             if(cat.name === "الكل") return;
-            let opt1 = `<option value="${cat.name}" ${layoutData.firstSection === cat.name ? 'selected' : ''}>${cat.icon} ${cat.name}</option>`;
-            let opt2 = `<option value="${cat.name}" ${layoutData.secondSection === cat.name ? 'selected' : ''}>${cat.icon} ${cat.name}</option>`;
-            let opt3 = `<option value="${cat.name}" ${layoutData.thirdSection === cat.name ? 'selected' : ''}>${cat.icon} ${cat.name}</option>`;
-            
-            sel1.innerHTML += opt1;
-            sel2.innerHTML += opt2;
-            sel3.innerHTML += opt3;
+            sel1.innerHTML += `<option value="${cat.name}" ${layoutData.firstSection === cat.name ? 'selected' : ''}>${cat.icon} ${cat.name}</option>`;
+            sel2.innerHTML += `<option value="${cat.name}" ${layoutData.secondSection === cat.name ? 'selected' : ''}>${cat.icon} ${cat.name}</option>`;
+            sel3.innerHTML += `<option value="${cat.name}" ${layoutData.thirdSection === cat.name ? 'selected' : ''}>${cat.icon} ${cat.name}</option>`;
         });
     }
 
@@ -775,19 +713,19 @@
         layoutData.firstSection = document.getElementById('layoutFirstSection').value;
         layoutData.secondSection = document.getElementById('layoutSecondSection').value;
         layoutData.thirdSection = document.getElementById('layoutThirdSection').value;
-        
-        const { setDoc, doc } = window.firebaseModules;
-        await setDoc(doc(window.db, "settings", "layoutData"), layoutData);
-        alert("تم حفظ ترتيب العرض الأفقي للمتجر في Firebase بنجاح! 💾");
+        try {
+            await window.setDoc(window.doc(window.db, "settings", "layout"), layoutData);
+            alert("تم حفظ ترتيب العرض الأفقي في السحابة بنجاح! 💾");
+        } catch(e) {
+            alert("خطأ في الحفظ");
+        }
     }
 
     function renderAdminOrders() {
         const container = document.getElementById('adminOrdersList');
         if(!container) return;
         document.getElementById('ordersCountTitle').innerText = orders.length;
-
-        let newOrdersCount = orders.filter(o => o.status === "جديد").length;
-        document.getElementById('newOrdersCountBadge').innerText = newOrdersCount;
+        document.getElementById('newOrdersCountBadge').innerText = orders.filter(o => o.status === "جديد").length;
 
         if(orders.length === 0) {
             container.innerHTML = '<p style="color: #666; text-align: center; font-size: 0.75rem;">لا توجد طلبات واردة حالياً.</p>';
@@ -796,32 +734,27 @@
 
         let html = "";
         orders.forEach((ord, index) => {
-            let itemsListStr = "";
+            let itemsStr = "";
             if(ord.items) {
                 ord.items.forEach(it => {
-                    let price = it.effectivePrice !== undefined ? it.effectivePrice : ((it.salePrice !== undefined && it.salePrice !== "") ? it.salePrice : it.price);
-                    itemsListStr += `▪️ ${it.name} (${price} ₪)<br>`;
+                    itemsStr += `▪️ ${it.name} (${it.price} ₪)<br>`;
                 });
             }
-
-            let statusColor = ord.status === "مكتمل" ? "#16a34a" : (ord.status === "قيد التحضير" ? "#d97706" : "#2563eb");
-
             html += `
                 <div class="order-card">
                     <div class="order-header">
-                        <span>طلب #${ord.id || (index+1)} (${ord.date || ''})</span>
-                        <span style="color: ${statusColor}; font-weight:900;">${ord.status || 'جديد'}</span>
+                        <span>طلب #${ord.id || (index+1)}</span>
+                        <span>${ord.status || 'جديد'}</span>
                     </div>
-                    <div><b>اسم الزبون:</b> ${ord.customerName}</div>
-                    <div><b>رقم الهاتف:</b> ${ord.customerPhone}</div>
+                    <div><b>الزبون:</b> ${ord.customerName}</div>
+                    <div><b>الهاتف:</b> ${ord.customerPhone}</div>
                     <div><b>العنوان:</b> ${ord.customerAddress}</div>
-                    <div style="margin: 4px 0; background: #f8fafc; padding: 4px; border-radius: 4px;"><b>المنتجات:<br></b> ${itemsListStr}</div>
-                    <div style="font-weight: bold; color: var(--primary-green);">المجموع الكلي: ${ord.totalAmount || ord.total} ₪</div>
+                    <div style="margin: 4px 0;"><b>المنتجات:<br></b> ${itemsStr}</div>
+                    <div style="font-weight: bold;">المجموع: ${ord.total || 0} ₪</div>
                     <div class="order-action-btns">
-                        <a href="tel:${ord.customerPhone}" class="btn-call">📞 اتصال بالزبون</a>
-                        <button class="btn-status" style="background:#d97706;" onclick="updateOrderStatus('${ord.firestoreId}', 'قيد التحضير')">قيد التحضير ⏳</button>
-                        <button class="btn-status" style="background:#16a34a;" onclick="updateOrderStatus('${ord.firestoreId}', 'مكتمل')">تم التوصيل ✓</button>
-                        <button class="btn-delete" onclick="deleteOrder('${ord.firestoreId}')">حذف الطلب ✕</button>
+                        <a href="tel:${ord.customerPhone}" class="btn-call">📞 اتصال</a>
+                        <button class="btn-status" onclick="updateOrderStatus('${ord.id}', 'مكتمل')">تم ✓</button>
+                        <button class="btn-delete" onclick="deleteOrder('${ord.id}')">حذف ✕</button>
                     </div>
                 </div>
             `;
@@ -829,27 +762,38 @@
         container.innerHTML = html;
     }
 
-    async function updateOrderStatus(firestoreId, newStatus) {
-        const { updateDoc, doc } = window.firebaseModules;
-        await updateDoc(doc(window.db, "orders", String(firestoreId)), { status: newStatus });
+    async function updateOrderStatus(id, status) {
+        let o = orders.find(ord => ord.id == id);
+        if(o) {
+            o.status = status;
+            try {
+                await window.updateDoc(window.doc(window.db, "orders", id), { status: status });
+                renderAdminOrders();
+                updateSalesSummary();
+            } catch(e) {
+                alert("خطأ في تحديث الحالة");
+            }
+        }
     }
 
-    async function deleteOrder(firestoreId) {
+    async function deleteOrder(id) {
         if(confirm("هل أنت متأكد من حذف هذا الطلب؟")) {
-            const { deleteDoc, doc } = window.firebaseModules;
-            await deleteDoc(doc(window.db, "orders", String(firestoreId)));
+            try {
+                await window.deleteDoc(window.doc(window.db, "orders", id));
+                orders = orders.filter(ord => ord.id != id);
+                renderAdminOrders();
+                updateSalesSummary();
+            } catch(e) {
+                alert("خطأ في الحذف");
+            }
         }
     }
 
     function updateSalesSummary() {
-        let totalSales = 0;
-        orders.forEach(o => {
-            if(o.status === "مكتمل" || o.status === "جديد" || o.status === "قيد التحضير") {
-                totalSales += parseFloat(o.totalAmount || o.total || 0);
-            }
-        });
-        const salesElem = document.getElementById('totalSalesAmount');
-        if(salesElem) salesElem.innerText = totalSales.toFixed(2) + " ₪";
+        let total = 0;
+        orders.forEach(o => { if(o.status === "مكتمل" || !o.status) total += parseFloat(o.total || 0); });
+        const elem = document.getElementById('totalSalesAmount');
+        if(elem) elem.innerText = total.toFixed(2) + " ₪";
     }
 </script>
 </body>
