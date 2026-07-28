@@ -29,8 +29,10 @@
         .top-cart-btn { position: relative; background: none; border: none; cursor: pointer; display: flex; align-items: center; font-size: 1.2rem; }
         .top-cart-count { position: absolute; top: -5px; right: -6px; background: #2e6930; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 0.55rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
 
-        /* البانر الرئيسي */
-        .main-banner { background: linear-gradient(135deg, #0d381c 0%, #1a5c30 100%); border-radius: 16px; padding: 12px; color: white; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-card); position: relative; overflow: hidden; }
+        /* حاوية البانر المتحرك (Slider Banners) */
+        .banner-slider-container { position: relative; margin-bottom: 10px; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-card); }
+        .banner-slides-track { display: flex; transition: transform 0.4s ease-in-out; width: 100%; }
+        .main-banner { min-width: 100%; background: linear-gradient(135deg, #0d381c 0%, #1a5c30 100%); padding: 12px; color: white; display: flex; justify-content: space-between; align-items: center; position: relative; box-sizing: border-box; }
         .banner-text-side { max-width: 55%; z-index: 2; }
         .banner-tag { background: #134e24; color: #a3e635; font-size: 0.5rem; padding: 2px 6px; border-radius: 15px; display: inline-block; margin-bottom: 4px; font-weight: 700; }
         .banner-title { font-size: 0.9rem; font-weight: 900; line-height: 1.2; margin-bottom: 6px; }
@@ -39,19 +41,34 @@
         .banner-img-side { width: 42%; text-align: left; display: flex; align-items: center; justify-content: center; }
         .banner-img-side img { width: 100%; height: 110px; object-fit: cover; border-radius: 10px; }
 
+        /* مؤشرات النقاط للبانر (Dots) */
+        .banner-dots { display: flex; justify-content: center; gap: 5px; position: absolute; bottom: 6px; left: 0; right: 0; z-index: 5; }
+        .banner-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.4); cursor: pointer; transition: background 0.3s; }
+        .banner-dot.active { background: #84cc16; width: 16px; border-radius: 4px; }
+
         /* شريط الفئات الأفقي */
         .categories-slider { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 4px; scroll-behavior: smooth; }
         .categories-slider::-webkit-scrollbar { display: none; }
-        .cat-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; background: white; padding: 6px 10px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); text-align: center; flex: 0 0 auto; min-width: 65px; border: 1px solid transparent; }
+        .cat-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; background: white; padding: 6px 10px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); text-align: center; flex: 0 0 auto; min-width: 65px; border: 1px solid transparent; transition: all 0.2s; }
         .cat-circle { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 3px; font-size: 0.9rem; }
         .cat-name { font-size: 0.55rem; font-weight: 700; color: #4b5563; white-space: nowrap; }
+
+        /* تمييز أيقونة عروض بنبض خفيف */
+        .cat-item.pulse-offer .cat-circle {
+            animation: pulseOfferAnim 1.8s infinite;
+        }
+        @keyframes pulseOfferAnim {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+            70% { transform: scale(1.08); box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+        }
 
         /* عناوين الأقسام */
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; margin-top: 10px; padding: 0 2px; }
         .section-title { font-size: 0.85rem; font-weight: 900; color: #111; }
         .section-all { font-size: 0.65rem; font-weight: 700; color: #16a34a; cursor: pointer; text-decoration: none; }
 
-        /* عرض المنتجات أفقياً (سحب يمين ويسار لكل قسم) */
+        /* عرض المنتجات أفقياً (تمرير يمين ويسار لكل قسم) */
         .horizontal-products-slider {
             display: flex;
             gap: 8px;
@@ -227,29 +244,70 @@
         </div>
     </header>
 
-    <!-- البانر الرئيسي -->
-    <div class="main-banner">
-        <div class="banner-text-side">
-            <span class="banner-tag" id="bannerTag">سوبر ماركت العروبة</span>
-            <div class="banner-title" id="bannerTitle">كل احتياجات بيتك في مكان واحد</div>
-            <div class="banner-features">
-                <div>📦 توصيل سريع</div>
-                <div>🏷️ أرخص الأسعار</div>
+    <!-- البانر المتحرك مع مؤشرات النقاط (Banner Slider with Dots) -->
+    <div class="banner-slider-container">
+        <div class="banner-slides-track" id="bannerSlidesTrack">
+            <!-- الشريحة 1 -->
+            <div class="main-banner">
+                <div class="banner-text-side">
+                    <span class="banner-tag" id="bannerTag1">سوبر ماركت العروبة</span>
+                    <div class="banner-title" id="bannerTitle1">كل احتياجات بيتك في مكان واحد</div>
+                    <div class="banner-features">
+                        <div>📦 توصيل سريع</div>
+                        <div>🏷️ أرخص الأسعار</div>
+                    </div>
+                    <button class="banner-btn" onclick="document.getElementById('mainContentArea').scrollIntoView({behavior: 'smooth'})">تسوق الآن ❮</button>
+                </div>
+                <div class="banner-img-side">
+                    <img id="bannerImg1" src="https://i.ibb.co/3m1K2wP/basket.png" alt="بانر">
+                </div>
             </div>
-            <button class="banner-btn" onclick="document.getElementById('mainContentArea').scrollIntoView({behavior: 'smooth'})">تسوق الآن ❮</button>
+            <!-- الشريحة 2 -->
+            <div class="main-banner" style="background: linear-gradient(135deg, #2b100d 0%, #5c1a1a 100%);">
+                <div class="banner-text-side">
+                    <span class="banner-tag" style="background:#5c1a1a; color:#fca5a5;">عروض مميزة</span>
+                    <div class="banner-title">تخفيضات كبرى على المواد الغذائية والتموين</div>
+                    <div class="banner-features">
+                        <div>🔥 خصومات حصرية</div>
+                        <div>⭐ جودة عالية</div>
+                    </div>
+                    <button class="banner-btn" style="background:#ef4444; color:white;" onclick="filterByCategory('عروض')">تصفح العروض ❮</button>
+                </div>
+                <div class="banner-img-side">
+                    <img src="https://i.ibb.co/6y40H69/tat-rice.png" alt="بانر عروض">
+                </div>
+            </div>
+            <!-- الشريحة 3 -->
+            <div class="main-banner" style="background: linear-gradient(135deg, #0f2b3d 0%, #1e40af 100%);">
+                <div class="banner-text-side">
+                    <span class="banner-tag" style="background:#1e3a8a; color:#93c5fd;">توصيل لبيتك</span>
+                    <div class="banner-title">اطلب عبر التطبيق واستلم طلبيتك فوراً</div>
+                    <div class="banner-features">
+                        <div>🚚 خدمة سريعة</div>
+                        <div>📍 رهط والمحيط</div>
+                    </div>
+                    <button class="banner-btn" style="background:#3b82f6; color:white;" onclick="scrollToCategories()">اكتشف الأقسام ❮</button>
+                </div>
+                <div class="banner-img-side">
+                    <img src="https://i.ibb.co/7Xv8L9p/nido.png" alt="بانر توصيل">
+                </div>
+            </div>
         </div>
-        <div class="banner-img-side">
-            <img id="bannerImg" src="https://i.ibb.co/3m1K2wP/basket.png" alt="بانر">
+        <!-- نقاط مؤشر البانر -->
+        <div class="banner-dots" id="bannerDotsContainer">
+            <div class="banner-dot active" onclick="currentSlide(0)"></div>
+            <div class="banner-dot" onclick="currentSlide(1)"></div>
+            <div class="banner-dot" onclick="currentSlide(2)"></div>
         </div>
     </div>
 
-    <!-- شريط الفئات الأفقي -->
+    <!-- شريط الفئات الأفقي (مع تمييز وتمرير نابض لأيقونة عروض) -->
     <div class="categories-slider" id="categoriesContainer"></div>
 
     <!-- منطقة عرض المنتجات (تدعم التمرير الأفقي للأقسام أو الشبكة حسب الاختيار) -->
     <div id="mainContentArea"></div>
 
-    <!-- الشريط العائم السفلي للدفع -->
+    <!-- الشريط العائم السفلي للدفع السريع -->
     <div class="floating-checkout-bar" id="floatingCheckoutBar">
         <button class="checkout-btn-main" onclick="openModal('cartModal')">
             إتمام الدفع ←
@@ -373,6 +431,10 @@
     let orderHistory = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
     let selectedCategory = "الكل";
 
+    // المتغيرات الخاصة بالبانر المتحرك
+    let currentBannerIndex = 0;
+    let bannerInterval;
+
     function initStoreData() {
         products = JSON.parse(localStorage.getItem('aloroba_products')) || products;
         categories = JSON.parse(localStorage.getItem('aloroba_categories')) || categories;
@@ -385,6 +447,7 @@
         } catch(e) {}
         
         renderBanner();
+        startBannerSlider();
         renderCategories();
         
         if(selectedCategory === "الكل") {
@@ -401,12 +464,42 @@
     });
 
     function renderBanner() {
-        document.getElementById('bannerTitle').innerText = bannerData.title || "كل احتياجات بيتك في مكان واحد";
-        document.getElementById('bannerTag').innerText = bannerData.tag || "سوبر ماركت العروبة";
-        const bannerImg = document.getElementById('bannerImg');
+        document.getElementById('bannerTitle1').innerText = bannerData.title || "كل احتياجات بيتك في مكان واحد";
+        document.getElementById('bannerTag1').innerText = bannerData.tag || "سوبر ماركت العروبة";
+        const bannerImg1 = document.getElementById('bannerImg1');
         if(bannerData.img) {
-            bannerImg.src = bannerData.img;
+            bannerImg1.src = bannerData.img;
         }
+    }
+
+    // دوال البانر المتحرك التلقائي والسحب
+    function startBannerSlider() {
+        if(bannerInterval) clearInterval(bannerInterval);
+        bannerInterval = setInterval(() => {
+            currentBannerIndex = (currentBannerIndex + 1) % 3;
+            updateBannerSlide();
+        }, 4000);
+    }
+
+    function currentSlide(index) {
+        currentBannerIndex = index;
+        updateBannerSlide();
+        startBannerSlider(); // إعادة ضبط المؤقت عند الضغط اليدوي
+    }
+
+    function updateBannerSlide() {
+        const track = document.getElementById('bannerSlidesTrack');
+        const dots = document.querySelectorAll('.banner-dot');
+        if(track) {
+            track.style.transform = `translateX(${currentBannerIndex * 100}%)`;
+        }
+        dots.forEach((dot, idx) => {
+            if(idx === currentBannerIndex) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
     }
 
     function renderCategories() {
@@ -414,8 +507,9 @@
         container.innerHTML = '';
         categories.forEach((cat) => {
             const isActive = cat.name === selectedCategory;
+            const isOffer = cat.name === "عروض";
             container.innerHTML += `
-                <div class="cat-item" onclick="filterByCategory('${cat.name}')" ${isActive ? 'style="border: 1px solid #68a633; background: #f4fbf0;"' : ''}>
+                <div class="cat-item ${isOffer ? 'pulse-offer' : ''}" onclick="filterByCategory('${cat.name}')" ${isActive ? 'style="border: 1px solid #68a633; background: #f4fbf0;"' : ''}>
                     <div class="cat-circle" style="background: ${cat.bg || '#eaf3df'}; color: ${cat.color || '#2e6930'};">${cat.icon || '📦'}</div>
                     <div class="cat-name" ${isActive ? 'style="color: #2e6930;"' : ''}>${cat.name}</div>
                 </div>
@@ -473,13 +567,11 @@
         container.innerHTML = '';
         products = JSON.parse(localStorage.getItem('aloroba_products')) || products;
 
-        // الأقسام الرئيسية المعروضة أفقياً (سحب يمين ويسار كما طلب المستخدم)
         let sectionsToDisplay = [
             layoutData.firstSection || "عروض",
             layoutData.secondSection || "الأكثر مبيعا"
         ];
 
-        // إضافة باقي الأقسام النشطة
         categories.forEach(cat => {
             if(cat.name !== "الكل" && !sectionsToDisplay.includes(cat.name)) {
                 sectionsToDisplay.push(cat.name);
