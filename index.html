@@ -74,7 +74,34 @@
         .product-price-row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
         .price-text { font-size: 0.8rem; font-weight: 900; color: var(--primary-green); }
         .old-price { font-size: 0.65rem; color: #9ca3af; text-decoration: line-through; margin-left: 4px; }
+        
+        /* أزرار السلة والتحكم بالكمية التفاعلية */
+        .cart-action-container { display: flex; align-items: center; }
         .add-to-cart-btn { background: var(--accent-green); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 1rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            background-color: var(--accent-green);
+            border-radius: 20px;
+            padding: 2px 6px;
+            color: white;
+        }
+        .qty-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0 4px;
+            font-weight: bold;
+        }
+        .qty-display {
+            margin: 0 6px;
+            font-weight: bold;
+            font-size: 0.75rem;
+            min-width: 14px;
+            text-align: center;
+        }
 
         /* شبكة المنتجات العادية (عند البحث أو اختيار قسم معين) */
         .products-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 15px; }
@@ -184,7 +211,7 @@
     let categories = [{ name: "الكل", icon: "🛍️" }];
     let bannerSlides = [{ tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "https://cdn-icons-png.flaticon.com/512/3081/3081840.png" }];
     let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
-    let cart = [];
+    let cart = []; // مصفوفة لتخزين المنتجات مع الكميات
     let currentCategory = "الكل";
 
     window.addEventListener('firebase-ready', async function() {
@@ -257,7 +284,7 @@
         renderMainStoreContent();
     }
 
-    // دالة مساعدة للتحقق من انتماء المنتج للقسم (تدعم المصفوفات والنصوص)
+    // دالة مساعدة للتحقق من انتماء المنتج للقسم
     function productBelongsToCategory(p, catName) {
         if (!p.categories) return false;
         if (Array.isArray(p.categories)) {
@@ -274,7 +301,6 @@
 
         let query = document.getElementById('searchInput').value.trim().toLowerCase();
 
-        // لو المستخدم يبحث أو اخترق قسماً محدداً، اعرض شبكة منتجات
         if(query !== "" || currentCategory !== "الكل") {
             let filtered = products.filter(p => {
                 let matchesQuery = p.name.toLowerCase().includes(query);
@@ -295,11 +321,9 @@
             return;
         }
 
-        // العرض الافتراضي: عرض الأقسام بشكل أفقي
         let sectionsToShow = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection].filter(Boolean);
         let displayedCount = 0;
 
-        // أولاً: محاولة عرض الأقسام المحددة في لوحة التحكم
         sectionsToShow.forEach(secName => {
             let secProds = products.filter(p => productBelongsToCategory(p, secName));
             if(secProds.length === 0) return;
@@ -325,7 +349,6 @@
             container.innerHTML += secHtml;
         });
 
-        // ثانياً: نظام احتياطي (Fallback) - إذا لم يتم تحديد أقسام أفقية أو لم تظهر، اعرض جميع الفئات التي تحتوي على منتجات تلقائياً
         if(displayedCount === 0 && products.length > 0) {
             categories.forEach(cat => {
                 if(cat.name === "الكل") return;
@@ -357,8 +380,13 @@
             oldPriceDisplay = `<span class="old-price">${p.price} ₪</span>`;
         }
 
+        let cartItem = cart.find(item => item.id == p.id);
+        let qty = cartItem ? cartItem.quantity : 0;
+        let addBtnDisplay = qty > 0 ? 'none' : 'flex';
+        let qtyControlDisplay = qty > 0 ? 'flex' : 'none';
+
         return `
-            <div class="product-card">
+            <div class="product-card" data-product-id="${p.id}">
                 <div>
                     <div class="product-img-box">
                         <img src="${p.img}" class="product-img" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081840.png'">
@@ -371,7 +399,14 @@
                         <span class="price-text">${priceDisplay}</span>
                         ${oldPriceDisplay}
                     </div>
-                    <button class="add-to-cart-btn" onclick='addToCart("${p.id}")'>+</button>
+                    <div class="cart-action-container">
+                        <button class="add-to-cart-btn" style="display: ${addBtnDisplay};" onclick='increaseCartQty("${p.id}")'>+</button>
+                        <div class="quantity-control" style="display: ${qtyControlDisplay};">
+                            <button class="qty-btn" onclick='decreaseCartQty("${p.id}")'>-</button>
+                            <span class="qty-display">${qty}</span>
+                            <button class="qty-btn" onclick='increaseCartQty("${p.id}")'>+</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
@@ -381,19 +416,61 @@
         renderMainStoreContent();
     }
 
-    function addToCart(prodId) {
+    function increaseCartQty(prodId) {
         let p = products.find(item => item.id == prodId);
         if(!p) return;
-        let finalPrice = (p.salePrice !== undefined && p.salePrice !== "") ? p.salePrice : p.price;
-        cart.push({ id: p.id, name: p.name, price: finalPrice });
-        updateCartUI();
+        let finalPrice = (p.salePrice !== undefined && p.salePrice !== "") ? Number(p.salePrice) : Number(p.price);
+        
+        let existing = cart.find(item => item.id == prodId);
+        if(existing) {
+            existing.quantity += 1;
+        } else {
+            cart.push({ id: p.id, name: p.name, price: finalPrice, quantity: 1, img: p.img });
+        }
+        updateCartStateUI();
+        updateProductCardDOM(prodId);
     }
 
-    function updateCartUI() {
-        let total = 0;
-        cart.forEach(item => total += item.price);
-        document.getElementById('cartTotalText').innerText = total.toFixed(2) + " ₪";
-        document.getElementById('cartCountBadge').innerText = cart.length;
+    function decreaseCartQty(prodId) {
+        let existingIndex = cart.findIndex(item => item.id == prodId);
+        if(existingIndex > -1) {
+            if(cart[existingIndex].quantity > 1) {
+                cart[existingIndex].quantity -= 1;
+            } else {
+                cart.splice(existingIndex, 1);
+            }
+        }
+        updateCartStateUI();
+        updateProductCardDOM(prodId);
+    }
+
+    function updateProductCardDOM(prodId) {
+        let cartItem = cart.find(item => item.id == prodId);
+        let qty = cartItem ? cartItem.quantity : 0;
+        let addBtnDisplay = qty > 0 ? 'none' : 'flex';
+        let qtyControlDisplay = qty > 0 ? 'flex' : 'none';
+
+        let cards = document.querySelectorAll(`.product-card[data-product-id="${prodId}"]`);
+        cards.forEach(card => {
+            let addBtn = card.querySelector('.add-to-cart-btn');
+            let qtyControl = card.querySelector('.quantity-control');
+            let qtyDisplay = card.querySelector('.qty-display');
+
+            if(addBtn) addBtn.style.display = addBtnDisplay;
+            if(qtyControl) qtyControl.style.display = qtyControlDisplay;
+            if(qtyDisplay) qtyDisplay.innerText = qty;
+        });
+    }
+
+    function updateCartStateUI() {
+        let totalCount = 0;
+        let totalPrice = 0;
+        cart.forEach(item => {
+            totalCount += item.quantity;
+            totalPrice += item.price * item.quantity;
+        });
+        document.getElementById('cartTotalText').innerText = totalPrice.toFixed(2) + " ₪";
+        document.getElementById('cartCountBadge').innerText = totalCount;
     }
 
     function openCartModal() {
@@ -403,11 +480,12 @@
         }
         let listContainer = document.getElementById('cartItemsList');
         listContainer.innerHTML = '';
-        cart.forEach((item, index) => {
+        cart.forEach((item) => {
+            let itemTotal = item.price * item.quantity;
             listContainer.innerHTML += `
-                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 6px; background: #f8fafc; padding: 5px; border-radius: 6px;">
-                    <span>${item.name}</span>
-                    <span><b>${item.price} ₪</b></span>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; margin-bottom: 6px; background: #f8fafc; padding: 6px; border-radius: 6px;">
+                    <span>${item.name} (${item.quantity})</span>
+                    <span><b>${itemTotal.toFixed(2)} ₪</b></span>
                 </div>
             `;
         });
@@ -429,13 +507,13 @@
         }
 
         let total = 0;
-        cart.forEach(i => total += i.price);
+        cart.forEach(i => total += (i.price * i.quantity));
 
         const newOrder = {
             customerName: name,
             customerPhone: phone,
             customerAddress: address,
-            items: cart,
+            items: cart.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
             total: total,
             status: "جديد",
             timestamp: new Date().toISOString()
@@ -445,7 +523,8 @@
             await window.addDoc(window.collection(window.db, "orders"), newOrder);
             alert("تم إرسال طلبك بنجاح! سيتم التواصل معك قريباً 🚀");
             cart = [];
-            updateCartUI();
+            updateCartStateUI();
+            products.forEach(p => updateProductCardDOM(p.id));
             closeCartModal();
         } catch(e) {
             alert("حدث خطأ أثناء إرسال الطلب، حاول مرة أخرى.");
