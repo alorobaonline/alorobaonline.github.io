@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -396,8 +395,8 @@
         if(catName === "الكل") {
             renderProducts(products);
         } else if(catName === "عروض") {
-            // التعديل هنا: فحص القسم أو العرض أو الأسعار لتحديث قسم العروض بشكل فوري
-            const filtered = products.filter(p => p.category === "عروض" || p.offer || (p.oldPrice && Number(p.oldPrice) > Number(p.price)));
+            // التعديل: تظهر فقط المنتجات التي تحتوي على عرض حقيقي (سعر قديم أكبر من الحالي أو نص عرض مسجل)
+            const filtered = products.filter(p => (p.offer && p.offer.trim() !== "") || (p.oldPrice && Number(p.oldPrice) > Number(p.price)));
             renderProducts(filtered);
         } else {
             const filtered = products.filter(p => (p.categories && p.categories.includes(catName)) || p.category === catName);
@@ -423,7 +422,8 @@
     function filterByOffers() {
         selectedCategory = "عروض";
         renderCategories();
-        const filtered = products.filter(p => p.category === "عروض" || p.offer || (p.oldPrice && Number(p.oldPrice) > Number(p.price)));
+        // التعديل هنا أيضاً ليطابق شروط العروض الحقيقية فقط
+        const filtered = products.filter(p => (p.offer && p.offer.trim() !== "") || (p.oldPrice && Number(p.oldPrice) > Number(p.price)));
         renderProducts(filtered);
     }
 
