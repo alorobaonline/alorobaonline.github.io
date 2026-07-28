@@ -56,7 +56,6 @@
         .product-card { background: #ffffff; border-radius: 12px; padding: 6px; box-shadow: var(--shadow-card); display: flex; flex-direction: column; justify-content: space-between; position: relative; border: 1px solid #f1f5f9; }
         
         .badge-offer { position: absolute; top: 4px; right: 4px; background: #fee2e2; color: #dc2626; font-size: 0.4rem; font-weight: 800; padding: 2px 4px; border-radius: 4px; z-index: 2; }
-        .badge-red { position: absolute; top: 4px; left: 4px; background: #ef4444; color: white; font-size: 0.4rem; font-weight: 800; padding: 1px 4px; border-radius: 3px; z-index: 2; }
         .fav-heart-btn { position: absolute; top: 22px; left: 4px; background: rgba(255,255,255,0.8); border: none; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.7rem; z-index: 2; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
 
         .product-img-box { width: 100%; height: 70px; display: flex; align-items: center; justify-content: center; margin: 10px 0 4px 0; cursor: pointer; }
@@ -184,7 +183,6 @@
 
         footer { text-align: center; padding: 10px; font-size: 0.6rem; color: #6b7280; margin-top: 15px; }
         
-        /* تصميم كروت لوحة تحكم الزبون (حسابي) */
         .account-card-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; margin-bottom: 10px; font-size: 0.75rem; }
         .account-card-title { font-weight: 800; color: var(--primary-green); margin-bottom: 6px; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
         .order-history-item { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
@@ -334,13 +332,14 @@
 
 <script>
     let products = JSON.parse(localStorage.getItem('aloroba_products')) || [
-        { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", category: "معلبات" },
-        { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png", category: "معلبات" },
-        { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png", category: "ألبان" }
+        { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, salePrice: 18, img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات", "عروض"] },
+        { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, salePrice: "", img: "https://i.ibb.co/1q20K0v/maggi.png", categories: ["معلبات"] },
+        { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, salePrice: "", img: "https://i.ibb.co/7Xv8L9p/nido.png", categories: ["ألبان"] }
     ];
 
     let categories = JSON.parse(localStorage.getItem('aloroba_categories')) || [
         { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
+        { name: "عروض", icon: "🔥", bg: "#fee2e2", color: "#dc2626" },
         { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
         { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
         { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
@@ -359,7 +358,6 @@
     let selectedCategory = "الكل";
 
     function initStoreData() {
-        // تحديث المنتجات والتصنيفات من التخزين المحلي مباشرة لضمان مزامنتها مع لوحة التحكم
         products = JSON.parse(localStorage.getItem('aloroba_products')) || products;
         categories = JSON.parse(localStorage.getItem('aloroba_categories')) || categories;
         
@@ -395,16 +393,14 @@
         selectedCategory = catName;
         renderCategories();
         
-        // إعادة جلب المنتجات لضمان قراءة أحدث التعديلات من لوحة التحكم
         products = JSON.parse(localStorage.getItem('aloroba_products')) || products;
 
         if(catName === "الكل") {
             renderProducts(products);
         } else {
             const filtered = products.filter(p => {
-                // دعم مطابقة التصنيف سواء كان مفرد (p.category) أو مصفوفة تصنيفات (p.categories) أو مطابقة مرنة للنص
                 if (p.categories && Array.isArray(p.categories)) {
-                    return p.categories.includes(catName);
+                    return p.categories.some(c => c.trim() === catName.trim());
                 }
                 return p.category === catName;
             });
@@ -431,11 +427,11 @@
     function filterProducts() {
         products = JSON.parse(localStorage.getItem('aloroba_products')) || products;
         const query = document.getElementById('searchInput').value.toLowerCase().trim();
+        let baseList = selectedCategory === "الكل" ? products : products.filter(p => (p.categories && p.categories.some(c => c.trim() === selectedCategory.trim())) || p.category === selectedCategory);
         if(!query) {
-            renderProducts(selectedCategory === "الكل" ? products : products.filter(p => (p.categories && p.categories.includes(selectedCategory)) || p.category === selectedCategory));
+            renderProducts(baseList);
             return;
         }
-        const baseList = selectedCategory === "الكل" ? products : products.filter(p => (p.categories && p.categories.includes(selectedCategory)) || p.category === selectedCategory);
         const filtered = baseList.filter(p => p.name.toLowerCase().includes(query));
         renderProducts(filtered);
     }
@@ -449,10 +445,25 @@
         }
         list.forEach(p => {
             const isFav = favorites.some(f => f.id === p.id);
+            
+            // قراءة السعر الترويجي أو سعر العرض بشكل آمن
+            let currentSalePrice = p.salePrice !== undefined && p.salePrice !== "" ? p.salePrice : (p.promoPrice !== undefined ? p.promoPrice : "");
+            let hasDiscount = currentSalePrice !== "" && !isNaN(currentSalePrice) && parseFloat(currentSalePrice) < parseFloat(p.price);
+
+            let priceHtml = '';
+            if (hasDiscount) {
+                priceHtml = `
+                    <span class="price-new">${currentSalePrice}₪</span>
+                    <span class="price-old">${p.price}₪</span>
+                `;
+            } else {
+                priceHtml = `<span class="price-new" style="color: var(--primary-green);">${p.price}₪</span>`;
+            }
+
             container.innerHTML += `
                 <div class="product-card">
+                    ${hasDiscount ? `<div class="badge-offer">عرض</div>` : ''}
                     ${p.offer ? `<div class="badge-offer">${p.offer}</div>` : ''}
-                    ${p.hasRedBadge ? `<div class="badge-red">عرض</div>` : ''}
                     <button class="fav-heart-btn" onclick="toggleFavorite(${p.id})">${isFav ? '❤️' : '🤍'}</button>
                     <div class="product-img-box" onclick="openZoomModal('${p.img}', '${p.name}', '${p.weight || 'حبة'}')">
                         <img src="${p.img}" alt="${p.name}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
@@ -460,8 +471,7 @@
                     <div class="product-name" title="${p.name}">${p.name}</div>
                     <div class="product-weight">${p.weight || 'حبة'}</div>
                     <div class="product-price-box">
-                        <span class="price-new">${p.price}₪</span>
-                        ${p.oldPrice ? `<span class="price-old">${p.oldPrice}₪</span>` : ''}
+                        ${priceHtml}
                     </div>
                     <button class="btn-add-cart" onclick="addToCart(${p.id})">أضف 🛒</button>
                 </div>
@@ -480,7 +490,7 @@
             favorites.push(product);
         }
         localStorage.setItem('aloroba_favorites', JSON.stringify(favorites));
-        renderProducts(selectedCategory === "الكل" ? products : products.filter(p => (p.categories && p.categories.includes(selectedCategory)) || p.category === selectedCategory));
+        renderProducts(selectedCategory === "الكل" ? products : products.filter(p => (p.categories && p.categories.some(c => c.trim() === selectedCategory.trim())) || p.category === selectedCategory));
         renderFavoritesUI();
     }
 
@@ -492,13 +502,14 @@
         }
         let html = "";
         favorites.forEach(f => {
+            let activePrice = (f.salePrice !== undefined && f.salePrice !== "") ? f.salePrice : f.price;
             html += `
                 <div class="order-history-item">
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <img src="${f.img}" style="width: 30px; height: 30px; object-fit: contain;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                         <div>
                             <div style="font-weight: 800;">${f.name}</div>
-                            <div style="color: #68a633; font-weight: bold;">${f.price} ₪</div>
+                            <div style="color: #68a633; font-weight: bold;">${activePrice} ₪</div>
                         </div>
                     </div>
                     <button class="btn-reorder" onclick="addToCart(${f.id}); closeModal('favoritesModal'); openModal('cartModal');">إضافة للسلة 🛒</button>
@@ -529,7 +540,11 @@
         products = JSON.parse(localStorage.getItem('aloroba_products')) || products;
         const product = products.find(p => p.id === id);
         if(!product) return;
-        cart.push(product);
+        
+        let finalPrice = (product.salePrice !== undefined && product.salePrice !== "") ? product.salePrice : product.price;
+        let cartItem = { ...product, effectivePrice: parseFloat(finalPrice) };
+        
+        cart.push(cartItem);
         updateCartUI();
     }
 
@@ -550,8 +565,9 @@
 
         let html = "";
         cart.forEach((item) => {
-            total += Number(item.price);
-            html += `<div style="margin-bottom:2px;">▪️ ${item.name} - ${item.price}₪</div>`;
+            let itemPrice = item.effectivePrice !== undefined ? item.effectivePrice : ((item.salePrice !== undefined && item.salePrice !== "") ? item.salePrice : item.price);
+            total += Number(itemPrice);
+            html += `<div style="margin-bottom:2px;">▪️ ${item.name} - ${itemPrice}₪</div>`;
         });
         
         listDiv.innerHTML = html;
@@ -640,7 +656,7 @@
     function submitOrderToDashboard() {
         const name = document.getElementById('customerName').value.trim();
         const address = document.getElementById('customerAddress').value.trim();
-        const phone = document.getElementById('customerPhone').value.temp || document.getElementById('customerPhone').value.trim();
+        const phone = document.getElementById('customerPhone').value.trim();
 
         if(!name || !address || !phone) {
             alert("الرجاء إدخال الاسم، العنوان، ورقم الهاتف لإتمام الطلب");
@@ -651,7 +667,10 @@
             return;
         }
         
-        let total = cart.reduce((sum, item) => sum + Number(item.price), 0);
+        let total = cart.reduce((sum, item) => {
+            let p = item.effectivePrice !== undefined ? item.effectivePrice : ((item.salePrice !== undefined && item.salePrice !== "") ? item.salePrice : item.price);
+            return sum + Number(p);
+        }, 0);
         
         let newOrder = {
             id: 'ORD-' + Date.now().toString().slice(-6),
@@ -665,14 +684,10 @@
             fullDate: new Date().toLocaleDateString()
         };
 
-        let liveOrders = JSON.parse(localStorage.getItem('aloroba_live_orders')) || [];
-        let allOrders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
-
+        let liveOrders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
         liveOrders.unshift(newOrder);
-        allOrders.unshift(newOrder);
 
-        localStorage.setItem('aloroba_live_orders', JSON.stringify(liveOrders));
-        localStorage.setItem('aloroba_orders', JSON.stringify(allOrders));
+        localStorage.setItem('aloroba_orders', JSON.stringify(liveOrders));
 
         cart = [];
         updateCartUI();
