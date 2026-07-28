@@ -67,7 +67,7 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.02); 
             flex-shrink: 0; 
         }
-        .product-img-box { width: 100%; height: 90px; position: relative; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 8px; margin-bottom: 6px; }
+        .product-img-box { width: 100%; height: 90px; position: relative; display: flex; align-items: center; justify-content: center; background: #ffffff; border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
         .product-img { max-width: 100%; max-height: 100%; object-fit: contain; }
         .product-name { font-size: 0.75rem; font-weight: 800; color: #1f2937; margin-bottom: 4px; height: 26px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         .product-weight { font-size: 0.65rem; color: #6b7280; margin-bottom: 4px; }
@@ -104,6 +104,12 @@
         /* النوافذ العائمة (Modals) */
         .cart-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; max-width: 480px; margin: 0 auto; }
         .cart-modal-content { background: white; width: 100%; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; max-height: 85vh; overflow-y: auto; }
+        
+        /* نافذة تكبير الصورة */
+        .image-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 300; max-width: 480px; margin: 0 auto; padding: 20px; }
+        .image-modal-content { background: white; width: 100%; border-radius: 16px; padding: 15px; text-align: center; position: relative; }
+        .image-modal-content img { max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 8px; margin-bottom: 10px; }
+
         .form-control { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; margin-bottom: 8px; outline: none; }
         .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 800; cursor: pointer; margin-top: 5px; }
         
@@ -187,6 +193,17 @@
     </div>
     <div style="background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 10px; font-size: 0.75rem; font-weight: bold;">
         عرض السلة (<span id="cartCountBadge">0</span>) 🛍️
+    </div>
+</div>
+
+<!-- نافذة تكبير الصورة -->
+<div class="image-modal" id="imageModal" onclick="closeImageModal()">
+    <div class="image-modal-content" onclick="event.stopPropagation()">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 id="zoomImageTitle" style="font-size: 0.85rem; color: var(--primary-green);"></h3>
+            <button onclick="closeImageModal()" style="background:none; border:none; font-size: 1rem; cursor:pointer;">✕</button>
+        </div>
+        <img id="zoomImageSrc" src="" alt="صورة المنتج">
     </div>
 </div>
 
@@ -298,6 +315,16 @@
 
     function closeProfileModal() {
         document.getElementById('profileModal').style.display = 'none';
+    }
+
+    function openImageModal(imgUrl, title) {
+        document.getElementById('zoomImageSrc').src = imgUrl;
+        document.getElementById('zoomImageTitle').innerText = title;
+        document.getElementById('imageModal').style.display = 'flex';
+    }
+
+    function closeImageModal() {
+        document.getElementById('imageModal').style.display = 'none';
     }
 
     function switchProfileTab(tab) {
@@ -547,7 +574,7 @@
         return `
             <div class="product-card" data-product-id="${p.id}">
                 <div>
-                    <div class="product-img-box">
+                    <div class="product-img-box" onclick='openImageModal("${p.img}", "${p.name}")'>
                         <img src="${p.img}" class="product-img" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081840.png'">
                     </div>
                     <div class="product-name">${p.name}</div>
@@ -673,7 +700,6 @@
         let total = 0;
         cart.forEach(i => total += (i.price * i.quantity));
 
-        // تم إزالة تخزين صور المنتجات الضخمة في الطلب لتجنب تجاوز الحد الأقصى لفايربيس (1MB)
         const newOrder = {
             customerName: name,
             customerPhone: phone,
