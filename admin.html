@@ -118,7 +118,6 @@
         window.doc = doc;
         window.setDoc = setDoc;
 
-        // تشغيل دوال الجلب فور التحميل
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
 </head>
@@ -208,29 +207,14 @@
         </div>
     </div>
 
-    <!-- 4. إدارة التصنيفات والأقسام -->
+    <!-- 4. إضافة وإدارة فئات الأقسام الجديدة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('categoriesSectionContent', this)">
-            <span>🗂️ إدارة الأقسام وعرض الصفوف الأفقية</span>
+            <span>🗂️ إضافة وإدارة الفئات والأقسام الجديدة</span>
             <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="categoriesSectionContent">
-            <div class="form-group">
-                <label>القسم الأفقي الأول في الواجهة</label>
-                <select id="layoutFirstSection" class="form-control"></select>
-            </div>
-            <div class="form-group">
-                <label>القسم الأفقي الثاني في الواجهة</label>
-                <select id="layoutSecondSection" class="form-control"></select>
-            </div>
-            <div class="form-group">
-                <label>القسم الأفقي الثالث في الواجهة</label>
-                <select id="layoutThirdSection" class="form-control"></select>
-            </div>
-            <button class="btn-main" style="background: #2563eb; margin-bottom: 12px;" onclick="saveLayoutPreferences()">حفظ إعدادات العرض الأفقي 💾</button>
-
-            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 10px 0;">
-            <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">إضافة قسم جديد للمتجر:</div>
+            <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">إضافة قسم جديد مع إيموجي:</div>
             <div style="display: flex; gap: 5px; margin-bottom: 8px;">
                 <input type="text" id="newCatName" class="form-control" placeholder="اسم القسم الجديد" style="flex: 2;">
                 <input type="text" id="newCatIcon" class="form-control" placeholder="إيموجي 🏷️" style="flex: 1; text-align: center;">
@@ -257,15 +241,9 @@
 <script>
     let products = [];
     let categories = [
-        { name: "الكل", icon: "🛍️" },
-        { name: "عروض", icon: "🔥" },
-        { name: "ألبان", icon: "🥛" },
-        { name: "معلبات", icon: "🥫" },
-        { name: "خضار", icon: "🥦" },
-        { name: "منظفات", icon: "🧴" }
+        { name: "الكل", icon: "🛍️" }
     ];
     let bannerSlides = [];
-    let layoutData = { firstSection: "عروض", secondSection: "ألبان", thirdSection: "معلبات" };
     let orders = [];
 
     window.addEventListener('firebase-ready', async function() {
@@ -281,12 +259,15 @@
                 products.push({ id: docSnap.id, ...docSnap.data() });
             });
 
-            // جلب الأقسام
+            // جلب الأقسام من السحابة
             const catSnap = await window.getDocs(window.collection(window.db, "categories"));
             if(!catSnap.empty) {
-                categories = [];
+                categories = [{ name: "الكل", icon: "🛍️" }];
                 catSnap.forEach(docSnap => {
-                    categories.push(docSnap.data());
+                    let catData = docSnap.data();
+                    if(catData.name && catData.name !== "الكل") {
+                        categories.push(catData);
+                    }
                 });
             }
 
@@ -301,7 +282,6 @@
             renderNewProdCategoriesCheckboxes();
             renderAdminGroupedProducts();
             renderAdminCategoriesList();
-            initLayoutDropdowns();
             initBannerForm();
             renderAdminOrders();
             updateSalesSummary();
@@ -341,6 +321,10 @@
         const container = document.getElementById('newProdCategoriesContainer');
         if(!container) return;
         container.innerHTML = '';
+        if(categories.length <= 1) {
+            container.innerHTML = '<span style="font-size:0.7rem; color:#888;">لا توجد فئات مضافة بعد، أضف فئات من قسم إدارة الفئات أدناه.</span>';
+            return;
+        }
         categories.forEach(cat => {
             if(cat.name === "الكل") return;
             const isChecked = selectedCategories.includes(cat.name) ? 'checked' : '';
@@ -580,11 +564,16 @@
         const container = document.getElementById('adminCategoriesList');
         if(!container) return;
         container.innerHTML = '';
+        if(categories.length <= 1) {
+            container.innerHTML = '<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 10px;">لا توجد فئات مضافة حالياً</p>';
+            return;
+        }
         categories.forEach((cat) => {
+            if(cat.name === "الكل") return;
             container.innerHTML += `
                 <div class="list-item">
                     <div><b>${cat.icon}</b> ${cat.name}</div>
-                    ${cat.name !== "الكل" ? `<button class="btn-delete" onclick="deleteCategory('${cat.name}')">حذف</button>` : '<span style="font-size:0.6rem; color:#888;">أساسي</span>'}
+                    <button class="btn-delete" onclick="deleteCategory('${cat.name}')">حذف 🗑️</button>
                 </div>
             `;
         });
@@ -605,29 +594,33 @@
         }
 
         const newCat = { name, icon };
-        categories.push(newCat);
         
         try {
             await window.setDoc(window.doc(window.db, "categories", name), newCat);
+            categories.push(newCat);
             renderAdminCategoriesList();
             renderNewProdCategoriesCheckboxes();
-            initLayoutDropdowns();
 
             document.getElementById('newCatName').value = '';
             document.getElementById('newCatIcon').value = '';
-            alert("تم إضافة القسم بنجاح للسحابة!");
+            alert("تم إضافة القسم بنجاح للسحابة! 🚀");
         } catch(e) {
             alert("خطأ في حفظ القسم");
         }
     }
 
-    function deleteCategory(catName) {
-        if(confirm("هل أنت متأكد من حذف هذا القسم؟")) {
-            categories = categories.filter(c => c.name !== catName);
-            renderAdminCategoriesList();
-            renderNewProdCategoriesCheckboxes();
-            initLayoutDropdowns();
-            renderAdminGroupedProducts();
+    async function deleteCategory(catName) {
+        if(confirm(`هل أنت متأكد من حذف القسم "${catName}"؟`)) {
+            try {
+                await window.deleteDoc(window.doc(window.db, "categories", catName));
+                categories = categories.filter(c => c.name !== catName);
+                renderAdminCategoriesList();
+                renderNewProdCategoriesCheckboxes();
+                renderAdminGroupedProducts();
+                alert("تم حذف القسم بنجاح!");
+            } catch(e) {
+                alert("خطأ أثناء حذف القسم من السحابة");
+            }
         }
     }
 
@@ -691,33 +684,6 @@
             alert("تم حفظ شرائح البانر في السحابة بنجاح! ✨");
         } catch(e) {
             alert("خطأ في حفظ البانر");
-        }
-    }
-
-    function initLayoutDropdowns() {
-        const sel1 = document.getElementById('layoutFirstSection');
-        const sel2 = document.getElementById('layoutSecondSection');
-        const sel3 = document.getElementById('layoutThirdSection');
-        if(!sel1) return;
-        sel1.innerHTML = ''; sel2.innerHTML = ''; sel3.innerHTML = '';
-
-        categories.forEach(cat => {
-            if(cat.name === "الكل") return;
-            sel1.innerHTML += `<option value="${cat.name}" ${layoutData.firstSection === cat.name ? 'selected' : ''}>${cat.icon} ${cat.name}</option>`;
-            sel2.innerHTML += `<option value="${cat.name}" ${layoutData.secondSection === cat.name ? 'selected' : ''}>${cat.icon} ${cat.name}</option>`;
-            sel3.innerHTML += `<option value="${cat.name}" ${layoutData.thirdSection === cat.name ? 'selected' : ''}>${cat.icon} ${cat.name}</option>`;
-        });
-    }
-
-    async function saveLayoutPreferences() {
-        layoutData.firstSection = document.getElementById('layoutFirstSection').value;
-        layoutData.secondSection = document.getElementById('layoutSecondSection').value;
-        layoutData.thirdSection = document.getElementById('layoutThirdSection').value;
-        try {
-            await window.setDoc(window.doc(window.db, "settings", "layout"), layoutData);
-            alert("تم حفظ ترتيب العرض الأفقي في السحابة بنجاح! 💾");
-        } catch(e) {
-            alert("خطأ في الحفظ");
         }
     }
 
