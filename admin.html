@@ -337,7 +337,7 @@
     </div>
 </div>
 
-<!-- نافذة التعديل السريع المنبثقة لكل منتج (مع حفظ وانتقال للتالي) -->
+<!-- نافذة التعديل السريع المنبثقة لكل منتج (مع أزرار السابق، التالي، حفظ، إغلاق) -->
 <div id="quickEditModal" class="quick-modal-overlay" style="display: none;">
   <div class="quick-modal-content">
     <div class="quick-modal-header">
@@ -383,9 +383,16 @@
       </form>
     </div>
 
-    <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px;">
-      <button type="button" onclick="closeQuickModal()" style="background: #6c757d; color: #fff; border: none; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: bold;">إلغاء</button>
-      <button type="button" onclick="saveAndNextQuick()" style="background: #16a34a; color: #fff; border: none; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: bold;">حفظ وانتقال للتالي 🚀</button>
+    <!-- أزرار التنقل السريع: السابق، التالي، حفظ، إغلاق -->
+    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; gap: 4px; flex-wrap: wrap;">
+      <div style="display: flex; gap: 4px;">
+        <button type="button" onclick="prevQuickProduct()" style="background: #3b82f6; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">⬅️ السابق</button>
+        <button type="button" onclick="nextQuickProduct()" style="background: #3b82f6; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">التالي ➡️</button>
+      </div>
+      <div style="display: flex; gap: 4px;">
+        <button type="button" onclick="saveCurrentQuick()" style="background: #16a34a; color: #fff; border: none; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">💾 حفظ</button>
+        <button type="button" onclick="closeQuickModal()" style="background: #ef4444; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">إغلاق ✕</button>
+      </div>
     </div>
   </div>
 </div>
@@ -759,7 +766,7 @@
         items.style.display = items.style.display === 'block' ? 'none' : 'block';
     }
 
-    // دوال نافذة التعديل السريع المنبثقة الفردية
+    // دوال نافذة التعديل السريع المنبثقة الفردية والتنقل بين المنتجات
     function openQuickEdit(productId) {
         flatProductsList = [...products];
         const index = flatProductsList.findIndex(p => p.id == productId);
@@ -800,7 +807,7 @@
         });
     }
 
-    async function saveAndNextQuick() {
+    async function collectAndSaveCurrentModalData() {
         const product = flatProductsList[currentProductIndex];
         if(!product) return;
 
@@ -824,20 +831,34 @@
                 weight: product.weight,
                 categories: product.categories
             });
-            
             renderAdminGroupedProducts();
-
-            // الانتقال التلقائي للمنتج التالي
-            if (currentProductIndex + 1 < flatProductsList.length) {
-                currentProductIndex++;
-                renderQuickEditModalData(currentProductIndex);
-            } else {
-                closeQuickModal();
-                alert("تم تحديث جميع المنتجات بنجاح! ✨");
-            }
         } catch(e) {
             console.error(e);
-            alert("خطأ أثناء الحفظ بالسحابة");
+        }
+    }
+
+    async function saveCurrentQuick() {
+        await collectAndSaveCurrentModalData();
+        alert("تم حفظ التعديلات بنجاح! ✨");
+    }
+
+    async function prevQuickProduct() {
+        await collectAndSaveCurrentModalData();
+        if (currentProductIndex > 0) {
+            currentProductIndex--;
+            renderQuickEditModalData(currentProductIndex);
+        } else {
+            alert("هذا هو المنتج الأول.");
+        }
+    }
+
+    async function nextQuickProduct() {
+        await collectAndSaveCurrentModalData();
+        if (currentProductIndex + 1 < flatProductsList.length) {
+            currentProductIndex++;
+            renderQuickEditModalData(currentProductIndex);
+        } else {
+            alert("هذا هو المنتج الأخير.");
         }
     }
 
