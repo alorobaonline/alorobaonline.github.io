@@ -148,45 +148,45 @@
 <div class="store-container">
     <!-- الهيدر مع زر الحساب بجانب لوحة التحكم في الأعلى من جهة الشمال -->
     <div class="store-header">
-        <div class="store-title">🛒 العروبة أونلاين[cite: 3]</div>
+        <div class="store-title">🛒 العروبة أونلاين[cite: 5]</div>
         <div class="header-actions">
-            <button class="admin-link" onclick="openProfileModal()">👤 حسابي[cite: 3]</button>
-            <a href="admin.html" class="admin-link">لوحة التحكم ⚙️[cite: 3]</a>
+            <button class="admin-link" onclick="openProfileModal()">👤 حسابي[cite: 5]</button>
+            <a href="admin.html" class="admin-link">لوحة التحكم ⚙️[cite: 5]</a>
         </div>
     </div>
 
     <!-- شريط البحث -->
     <div class="search-bar-container">
-        <input type="text" id="searchInput" class="search-input" placeholder="ابحث عن أي منتج تريده..." oninput="filterProducts()">[cite: 3]
+        <input type="text" id="searchInput" class="search-input" placeholder="ابحث عن أي منتج تريده..." oninput="filterProducts()">
     </div>
 
     <!-- البانر المتحرك -->
     <div class="banner-slider" id="bannerContainer">
         <div class="banner-card">
             <div class="banner-text">
-                <span style="font-size: 0.65rem; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;" id="bannerTag">سوبر ماركت العروبة[cite: 3]</span>
-                <h2 id="bannerTitle">أهلاً بك في متجرنا[cite: 3]</h2>
-                <p>تسوّق أفضل المنتجات الطازجة[cite: 3]</p>
+                <span style="font-size: 0.65rem; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;" id="bannerTag">سوبر ماركت العروبة[cite: 5]</span>
+                <h2 id="bannerTitle">أهلاً بك في متجرنا[cite: 5]</h2>
+                <p>تسوّق أفضل المنتجات الطازجة[cite: 5]</p>
             </div>
-            <img src="https://cdn-icons-png.flaticon.com/512/3081/3081840.png" class="banner-img" id="bannerImg">[cite: 3]
+            <img src="https://cdn-icons-png.flaticon.com/512/3081/3081840.png" class="banner-img" id="bannerImg">
         </div>
     </div>
 
     <!-- الأقسام الدائرية -->
-    <div class="categories-scroll" id="categoriesScrollContainer"></div>[cite: 3]
+    <div class="categories-scroll" id="categoriesScrollContainer"></div>
 
     <!-- المحتوى الرئيسي -->
-    <div id="storeMainContent"></div>[cite: 3]
+    <div id="storeMainContent"></div>
 </div>
 
 <!-- شريط السلة السفلي -->
 <div class="cart-bar" onclick="openCartModal()">
     <div>
-        <div style="font-size: 0.7rem; opacity: 0.8;">سلة المشتريات[cite: 3]</div>
-        <div style="font-size: 0.95rem; font-weight: bold;" id="cartTotalText">0.00 ₪[cite: 3]</div>
+        <div style="font-size: 0.7rem; opacity: 0.8;">سلة المشتريات[cite: 5]</div>
+        <div style="font-size: 0.95rem; font-weight: bold;" id="cartTotalText">0.00 ₪[cite: 5]</div>
     </div>
     <div style="background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 10px; font-size: 0.75rem; font-weight: bold;">
-        عرض السلة (<span id="cartCountBadge">0</span>) 🛍️[cite: 3]
+        عرض السلة (<span id="cartCountBadge">0</span>) 🛍️[cite: 5]
     </div>
 </div>
 
@@ -194,35 +194,35 @@
 <div class="cart-modal" id="profileModal">
     <div class="cart-modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h3 style="font-size: 0.9rem; color: var(--primary-green);">👤 حسابي الشخصي[cite: 3]</h3>
-            <button onclick="closeProfileModal()" style="background:none; border:none; font-size: 1rem; cursor:pointer;">✕[cite: 3]</button>
+            <h3 style="font-size: 0.9rem; color: var(--primary-green);">👤 حسابي الشخصي[cite: 5]</h3>
+            <button onclick="closeProfileModal()" style="background:none; border:none; font-size: 1rem; cursor:pointer;">✕[cite: 5]</button>
         </div>
         
         <div class="profile-tabs">
-            <div class="profile-tab active" id="tabInfoBtn" onclick="switchProfileTab('info')">بيانات العميل[cite: 3]</div>
-            <div class="profile-tab" id="tabOrdersBtn" onclick="switchProfileTab('orders')">طلباتي السابقة 📦[cite: 3]</div>
+            <div class="profile-tab active" id="tabInfoBtn" onclick="switchProfileTab('info')">بيانات العميل[cite: 5]</div>
+            <div class="profile-tab" id="tabOrdersBtn" onclick="switchProfileTab('orders')">طلباتي السابقة 📦[cite: 5]</div>
         </div>
 
         <!-- قسم بيانات العميل -->
         <div id="profileInfoSection">
-            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">قم بحفظ بياناتك لتسهيل وتسريع عملية الطلب في كل مرة:[cite: 3]</div>
-            <label style="font-size: 0.7rem; font-weight: bold;">الاسم الكريم:[cite: 3]</label>
-            <input type="text" id="userProfileName" class="form-control" placeholder="ادخل اسمك الكامل">[cite: 3]
+            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">قم بحفظ بياناتك لتسهيل وتسريع عملية الطلب في كل مرة:[cite: 5]</div>
+            <label style="font-size: 0.7rem; font-weight: bold;">الاسم الكريم:[cite: 5]</label>
+            <input type="text" id="userProfileName" class="form-control" placeholder="ادخل اسمك الكامل">
             
-            <label style="font-size: 0.7rem; font-weight: bold;">رقم الهاتف:[cite: 3]</label>
-            <input type="tel" id="userProfilePhone" class="form-control" placeholder="05xxxxxxxx">[cite: 3]
+            <label style="font-size: 0.7rem; font-weight: bold;">رقم الهاتف:[cite: 5]</label>
+            <input type="tel" id="userProfilePhone" class="form-control" placeholder="05xxxxxxxx">
             
-            <label style="font-size: 0.7rem; font-weight: bold;">عنوان التوصيل:[cite: 3]</label>
-            <input type="text" id="userProfileAddress" class="form-control" placeholder="المدينة، الحي، الشارع، رقم العمارة">[cite: 3]
+            <label style="font-size: 0.7rem; font-weight: bold;">عنوان التوصيل:[cite: 5]</label>
+            <input type="text" id="userProfileAddress" class="form-control" placeholder="المدينة، الحي، الشارع، رقم العمارة">
             
-            <button class="btn-main" onclick="saveUserProfile()">حفظ البيانات 💾[cite: 3]</button>
+            <button class="btn-main" onclick="saveUserProfile()">حفظ البيانات 💾[cite: 5]</button>
         </div>
 
         <!-- قسم الطلبات السابقة -->
         <div id="profileOrdersSection" style="display: none;">
-            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">الطلبات المرتبطة برقم هاتفك المسجل من السحابة:[cite: 3]</div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">الطلبات المرتبطة برقم هاتفك المسجل من السحابة:[cite: 5]</div>
             <div id="myPreviousOrdersList" style="max-height: 250px; overflow-y: auto;">
-                <p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">الرجاء حفظ رقم هاتفك أولاً أو لا توجد طلبات سابقة.[cite: 3]</p>
+                <p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">الرجاء حفظ رقم هاتفك أولاً أو لا توجد طلبات سابقة.[cite: 5]</p>
             </div>
         </div>
     </div>
@@ -232,210 +232,210 @@
 <div class="cart-modal" id="cartModal">
     <div class="cart-modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h3 style="font-size: 0.9rem; color: var(--primary-green);">🛒 سلة المشتريات[cite: 3]</h3>
-            <button onclick="closeCartModal()" style="background:none; border:none; font-size: 1rem; cursor:pointer;">✕[cite: 3]</button>
+            <h3 style="font-size: 0.9rem; color: var(--primary-green);">🛒 سلة المشتريات[cite: 5]</h3>
+            <button onclick="closeCartModal()" style="background:none; border:none; font-size: 1rem; cursor:pointer;">✕[cite: 5]</button>
         </div>
-        <div id="cartItemsList" style="max-height: 180px; overflow-y: auto; margin-bottom: 10px;"></div>[cite: 3]
-        <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">[cite: 3]
-        <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">معلومات التوصيل: (تعبئة تلقائية من حسابك)[cite: 3]</div>
-        <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم">[cite: 3]
-        <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف">[cite: 3]
-        <input type="text" id="customerAddress" class="form-control" placeholder="العنوان (المدينة، الحي، الشارع)">[cite: 3]
-        <button class="btn-main" onclick="submitOrder()">إتمام وتأكيد الطلب 🚀[cite: 3]</button>
+        <div id="cartItemsList" style="max-height: 180px; overflow-y: auto; margin-bottom: 10px;"></div>
+        <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+        <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">معلومات التوصيل: (تعبئة تلقائية من حسابك)[cite: 5]</div>
+        <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم">
+        <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف">
+        <input type="text" id="customerAddress" class="form-control" placeholder="العنوان (المدينة، الحي، الشارع)">
+        <button class="btn-main" onclick="submitOrder()">إتمام وتأكيد الطلب 🚀[cite: 5]</button>
     </div>
 </div>
 
 <script>
-    let products = [];[cite: 3]
-    let categories = [{ name: "الكل", icon: "🛍️" }];[cite: 3]
-    let bannerSlides = [{ tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "https://cdn-icons-png.flaticon.com/512/3081/3081840.png" }];[cite: 3]
-    let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };[cite: 3]
-    let cart = [];[cite: 3]
-    let currentCategory = "الكل";[cite: 3]
+    let products = [];
+    let categories = [{ name: "الكل", icon: "🛍️" }];
+    let bannerSlides = [{ tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "https://cdn-icons-png.flaticon.com/512/3081/3081840.png" }];
+    let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
+    let cart = [];
+    let currentCategory = "الكل";
 
     window.addEventListener('firebase-ready', async function() {
-        loadUserProfileData();[cite: 3]
-        await loadStoreDataFromCloud();[cite: 3]
+        loadUserProfileData();
+        await loadStoreDataFromCloud();
     });
 
     function loadUserProfileData() {
-        let savedName = localStorage.getItem('aloroba_user_name') || '';[cite: 3]
-        let savedPhone = localStorage.getItem('aloroba_user_phone') || '';[cite: 3]
-        let savedAddress = localStorage.getItem('aloroba_user_address') || '';[cite: 3]
+        let savedName = localStorage.getItem('aloroba_user_name') || '';
+        let savedPhone = localStorage.getItem('aloroba_user_phone') || '';
+        let savedAddress = localStorage.getItem('aloroba_user_address') || '';
 
-        document.getElementById('userProfileName').value = savedName;[cite: 3]
-        document.getElementById('userProfilePhone').value = savedPhone;[cite: 3]
-        document.getElementById('userProfileAddress').value = savedAddress;[cite: 3]
+        document.getElementById('userProfileName').value = savedName;
+        document.getElementById('userProfilePhone').value = savedPhone;
+        document.getElementById('userProfileAddress').value = savedAddress;
 
-        document.getElementById('customerName').value = savedName;[cite: 3]
-        document.getElementById('customerPhone').value = savedPhone;[cite: 3]
-        document.getElementById('customerAddress').value = savedAddress;[cite: 3]
+        document.getElementById('customerName').value = savedName;
+        document.getElementById('customerPhone').value = savedPhone;
+        document.getElementById('customerAddress').value = savedAddress;
     }
 
     function saveUserProfile() {
-        let name = document.getElementById('userProfileName').value.trim();[cite: 3]
-        let phone = document.getElementById('userProfilePhone').value.trim();[cite: 3]
-        let address = document.getElementById('userProfileAddress').value.trim();[cite: 3]
+        let name = document.getElementById('userProfileName').value.trim();
+        let phone = document.getElementById('userProfilePhone').value.trim();
+        let address = document.getElementById('userProfileAddress').value.trim();
 
         if(!name || !phone || !address) {
-            alert("الرجاء تعبئة جميع الحقول بشكل صحيح.");[cite: 3]
+            alert("الرجاء تعبئة جميع الحقول بشكل صحيح.[cite: 5]");
             return;
         }
 
-        localStorage.setItem('aloroba_user_name', name);[cite: 3]
-        localStorage.setItem('aloroba_user_phone', phone);[cite: 3]
-        localStorage.setItem('aloroba_user_address', address);[cite: 3]
+        localStorage.setItem('aloroba_user_name', name);
+        localStorage.setItem('aloroba_user_phone', phone);
+        localStorage.setItem('aloroba_user_address', address);
 
-        loadUserProfileData();[cite: 3]
-        alert("تم حفظ بياناتك بنجاح! 💾");[cite: 3]
-        closeProfileModal();[cite: 3]
+        loadUserProfileData();
+        alert("تم حفظ بياناتك بنجاح! 💾[cite: 5]");
+        closeProfileModal();
     }
 
     function openProfileModal() {
-        document.getElementById('profileModal').style.display = 'flex';[cite: 3]
-        loadUserProfileData();[cite: 3]
+        document.getElementById('profileModal').style.display = 'flex';
+        loadUserProfileData();
     }
 
     function closeProfileModal() {
-        document.getElementById('profileModal').style.display = 'none';[cite: 3]
+        document.getElementById('profileModal').style.display = 'none';
     }
 
     function switchProfileTab(tab) {
         if(tab === 'info') {
-            document.getElementById('tabInfoBtn').classList.add('active');[cite: 3]
-            document.getElementById('tabOrdersBtn').classList.remove('active');[cite: 3]
-            document.getElementById('profileInfoSection').style.display = 'block';[cite: 3]
-            document.getElementById('profileOrdersSection').style.display = 'none';[cite: 3]
+            document.getElementById('tabInfoBtn').classList.add('active');
+            document.getElementById('tabOrdersBtn').classList.remove('active');
+            document.getElementById('profileInfoSection').style.display = 'block';
+            document.getElementById('profileOrdersSection').style.display = 'none';
         } else {
-            document.getElementById('tabOrdersBtn').classList.add('active');[cite: 3]
-            document.getElementById('tabInfoBtn').classList.remove('active');[cite: 3]
-            document.getElementById('profileInfoSection').style.display = 'none';[cite: 3]
-            document.getElementById('profileOrdersSection').style.display = 'block';[cite: 3]
-            fetchUserPreviousOrders();[cite: 3]
+            document.getElementById('tabOrdersBtn').classList.add('active');
+            document.getElementById('tabInfoBtn').classList.remove('active');
+            document.getElementById('profileInfoSection').style.display = 'none';
+            document.getElementById('profileOrdersSection').style.display = 'block';
+            fetchUserPreviousOrders();
         }
     }
 
     async function fetchUserPreviousOrders() {
-        let phone = localStorage.getItem('aloroba_user_phone');[cite: 3]
-        let container = document.getElementById('myPreviousOrdersList');[cite: 3]
+        let phone = localStorage.getItem('aloroba_user_phone');
+        let container = document.getElementById('myPreviousOrdersList');
         
         if(!phone) {
-            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">الرجاء حفظ رقم هاتفك في تبويب "بيانات العميل" أولاً لعرض طلباتك.</p>`;[cite: 3]
+            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">الرجاء حفظ رقم هاتفك في تبويب "بيانات العميل" أولاً لعرض طلباتك.[cite: 5]</p>`;
             return;
         }
 
-        container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">جاري جلب الطلبات من السحابة...</p>`;[cite: 3]
+        container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">جاري جلب الطلبات من السحابة...[cite: 5]</p>`;
 
         try {
-            const q = window.query(window.collection(window.db, "orders"), window.where("customerPhone", "==", phone));[cite: 3]
-            const querySnapshot = await window.getDocs(q);[cite: 3]
+            const q = window.query(window.collection(window.db, "orders"), window.where("customerPhone", "==", phone));
+            const querySnapshot = await window.getDocs(q);
             
             if(querySnapshot.empty) {
-                container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">لا توجد طلبات سابقة مسجلة بهذا الرقم.</p>`;[cite: 3]
+                container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">لا توجد طلبات سابقة مسجلة بهذا الرقم.[cite: 5]</p>`;
                 return;
             }
 
-            container.innerHTML = '';[cite: 3]
+            container.innerHTML = '';
             querySnapshot.forEach(docSnap => {
-                let order = docSnap.data();[cite: 3]
-                let dateStr = order.timestamp ? new Date(order.timestamp).toLocaleDateString('ar-SA') : 'تاريخ غير متوفر';[cite: 3]
-                let itemsListHtml = order.items.map(i => `${i.name} (${i.quantity})`).join('، ');[cite: 3]
+                let order = docSnap.data();
+                let dateStr = order.timestamp ? new Date(order.timestamp).toLocaleDateString('ar-SA') : 'تاريخ غير متوفر[cite: 5]';
+                let itemsListHtml = order.items.map(i => `${i.name} (${i.quantity})`).join('، ');
 
                 container.innerHTML += `
                     <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px; border-radius: 8px; margin-bottom: 8px; font-size: 0.75rem;">
                         <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 4px;">
-                            <span>الحالة: <span style="color: var(--accent-green);">${order.status || 'جديد'}</span></span>
+                            <span>الحالة: <span style="color: var(--accent-green);">${order.status || 'جديد[cite: 5]'}</span></span>
                             <span>${dateStr}</span>
                         </div>
                         <div style="color: #64748b; margin-bottom: 4px;">المنتجات: ${itemsListHtml}</div>
                         <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 4px; font-weight: bold;">
-                            <span>المجموع: ${order.total.toFixed(2)} ₪</span>
-                            <button onclick='reorderPrevious(${JSON.stringify(order.items)})' style="background: var(--accent-green); color: white; border: none; padding: 3px 8px; border-radius: 4px; font-size: 0.65rem; cursor: pointer;">إعادة الطلب 🔄</button>
+                            <span>المجموع: ${order.total.toFixed(2)} ₪[cite: 5]</span>
+                            <button onclick='reorderPrevious(${JSON.stringify(order.items)})' style="background: var(--accent-green); color: white; border: none; padding: 3px 8px; border-radius: 4px; font-size: 0.65rem; cursor: pointer;">إعادة الطلب 🔄[cite: 5]</button>
                         </div>
                     </div>
-                `;[cite: 3]
+                `;
             });
         } catch(e) {
-            console.error(e);[cite: 3]
-            container.innerHTML = `<p style="text-align: center; color: red; font-size: 0.75rem; padding: 15px;">حدث خطأ أثناء جلب الطلبات.</p>`;[cite: 3]
+            console.error(e);
+            container.innerHTML = `<p style="text-align: center; color: red; font-size: 0.75rem; padding: 15px;">حدث خطأ أثناء جلب الطلبات.[cite: 5]</p>`;
         }
     }
 
     function reorderPrevious(items) {
         items.forEach(oldItem => {
-            let p = products.find(prod => prod.id == oldItem.id);[cite: 3]
-            let finalPrice = p ? ((p.salePrice !== undefined && p.salePrice !== "") ? Number(p.salePrice) : Number(p.price)) : oldItem.price;[cite: 3]
+            let p = products.find(prod => prod.id == oldItem.id);
+            let finalPrice = p ? ((p.salePrice !== undefined && p.salePrice !== "") ? Number(p.salePrice) : Number(p.price)) : oldItem.price;
             
-            let existing = cart.find(item => item.id == oldItem.id);[cite: 3]
+            let existing = cart.find(item => item.id == oldItem.id);
             if(existing) {
-                existing.quantity += oldItem.quantity;[cite: 3]
+                existing.quantity += oldItem.quantity;
             } else {
-                cart.push({ id: oldItem.id, name: oldItem.name, price: finalPrice, quantity: oldItem.quantity, img: (p ? p.img : '') });[cite: 3]
+                cart.push({ id: oldItem.id, name: oldItem.name, price: finalPrice, quantity: oldItem.quantity, img: (p ? p.img : '') });
             }
         });
-        updateCartStateUI();[cite: 3]
-        products.forEach(p => updateProductCardDOM(p.id));[cite: 3]
-        closeProfileModal();[cite: 3]
-        alert("تمت إضافة منتجات الطلب السابق إلى السلة بنجاح! 🛒");[cite: 3]
+        updateCartStateUI();
+        products.forEach(p => updateProductCardDOM(p.id));
+        closeProfileModal();
+        alert("تمت إضافة منتجات الطلب السابق إلى السلة بنجاح! 🛒[cite: 5]");
     }
 
     async function loadStoreDataFromCloud() {
         try {
-            const prodSnap = await window.getDocs(window.collection(window.db, "products"));[cite: 3]
-            products = [];[cite: 3]
+            const prodSnap = await window.getDocs(window.collection(window.db, "products"));
+            products = [];
             prodSnap.forEach(docSnap => {
-                products.push({ id: docSnap.id, ...docSnap.data() });[cite: 3]
+                products.push({ id: docSnap.id, ...docSnap.data() });
             });
 
-            const catSnap = await window.getDocs(window.collection(window.db, "categories"));[cite: 3]
+            const catSnap = await window.getDocs(window.collection(window.db, "categories"));
             if(!catSnap.empty) {
-                categories = [{ name: "الكل", icon: "🛍️" }];[cite: 3]
+                categories = [{ name: "الكل", icon: "🛍️" }];
                 catSnap.forEach(docSnap => {
-                    let catData = docSnap.data();[cite: 3]
+                    let catData = docSnap.data();
                     if(catData.name && catData.name !== "الكل") {
-                        categories.push(catData);[cite: 3]
+                        categories.push(catData);
                     }
                 });
             }
 
-            const layoutDoc = await window.getDoc(window.doc(window.db, "settings", "layout"));[cite: 3]
-            if(layoutDoc.exists()) layoutData = layoutDoc.data();[cite: 3]
+            const layoutDoc = await window.getDoc(window.doc(window.db, "settings", "layout"));
+            if(layoutDoc.exists()) layoutData = layoutDoc.data();
 
-            const bannerDoc = await window.getDoc(window.doc(window.db, "settings", "banner"));[cite: 3]
+            const bannerDoc = await window.getDoc(window.doc(window.db, "settings", "banner"));
             if(bannerDoc.exists() && bannerDoc.data().slides) {
-                bannerSlides = bannerDoc.data().slides;[cite: 3]
+                bannerSlides = bannerDoc.data().slides;
             }
 
-            renderStoreUI();[cite: 3]
+            renderStoreUI();
         } catch(e) {
-            console.error("خطأ في جلب بيانات المتجر: ", e);[cite: 3]
+            console.error("خطأ في جلب بيانات المتجر: ", e);
         }
     }
 
     function renderStoreUI() {
-        renderCategoriesScroll();[cite: 3]
-        renderBanner();[cite: 3]
-        renderMainStoreContent();[cite: 3]
+        renderCategoriesScroll();
+        renderBanner();
+        renderMainStoreContent();
     }
 
     function renderBanner() {
-        if(bannerSlides.length === 0) return;[cite: 3]
-        let slide = bannerSlides[0];[cite: 3]
-        document.getElementById('bannerTag').innerText = slide.tag || 'سوبر ماركت العروبة';[cite: 3]
-        document.getElementById('bannerTitle').innerText = slide.title || 'أهلاً بك';[cite: 3]
-        if(slide.img) document.getElementById('bannerImg').src = slide.img;[cite: 3]
+        if(bannerSlides.length === 0) return;
+        let slide = bannerSlides[0];
+        document.getElementById('bannerTag').innerText = slide.tag || 'سوبر ماركت العروبة[cite: 5]';
+        document.getElementById('bannerTitle').innerText = slide.title || 'أهلاً بك[cite: 5]';
+        if(slide.img) document.getElementById('bannerImg').src = slide.img;
     }
 
     function renderCategoriesScroll() {
-        const container = document.getElementById('categoriesScrollContainer');[cite: 3]
-        container.innerHTML = '';[cite: 3]
+        const container = document.getElementById('categoriesScrollContainer');
+        container.innerHTML = '';
         categories.forEach(cat => {
-            let activeClass = currentCategory === cat.name ? 'active' : '';[cite: 3]
+            let activeClass = currentCategory === cat.name ? 'active' : '';
             container.innerHTML += `
                 <div class="cat-chip ${activeClass}" onclick="selectCategory('${cat.name}')">
                     <span>${cat.icon}</span> ${cat.name}
                 </div>
-            `;[cite: 3]
+            `;
         });
     }
 
@@ -443,107 +443,113 @@
         currentCategory = catName;
         renderCategoriesScroll();
         renderMainStoreContent();
-        window.scrollTo({ top: 0, behavior: 'smooth' }); // التمرير التلقائي لأعلى الصفحة بسلاسة عند اختيار الفئة أو النقر على عرض الكل
     }
 
     function productBelongsToCategory(p, catName) {
-        if (!p.categories) return false;[cite: 3]
+        if (catName === "الكل") return true;
+        if (p.category && p.category === catName) return true;
+        if (!p.categories) return false;
         if (Array.isArray(p.categories)) {
-            return p.categories.includes(catName);[cite: 3]
+            return p.categories.includes(catName);
         } else if (typeof p.categories === 'string') {
-            return p.categories.includes(catName);[cite: 3]
+            return p.categories.includes(catName);
         }
         return false;
     }
 
     function renderMainStoreContent() {
-        const container = document.getElementById('storeMainContent');[cite: 3]
-        container.innerHTML = '';[cite: 3]
+        const container = document.getElementById('storeMainContent');
+        container.innerHTML = '';
 
-        let query = document.getElementById('searchInput').value.trim().toLowerCase();[cite: 3]
-
-        if(query !== "" || currentCategory !== "الكل") {
-            let filtered = products.filter(p => {
-                let matchesQuery = p.name.toLowerCase().includes(query);[cite: 3]
-                let matchesCat = currentCategory === "الكل" || productBelongsToCategory(p, currentCategory);[cite: 3]
-                return matchesQuery && matchesCat;[cite: 3]
-            });
-
-            let gridHtml = `<div class="products-grid" style="margin-top: 10px;">`;[cite: 3]
-            if(filtered.length === 0) {
-                gridHtml = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 20px;">لا توجد منتجات مطابقة</p>`;[cite: 3]
-            } else {
-                filtered.forEach(p => {
-                    gridHtml += createProductCardHtml(p);[cite: 3]
-                });
-                gridHtml += `</div>`;[cite: 3]
-            }
-            container.innerHTML = gridHtml;[cite: 3]
+        if (products.length === 0) {
+            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; padding: 30px;">جاري تحميل المنتجات أو أن المتجر فارغ حالياً...[cite: 5]</p>`;
             return;
         }
 
-        let sectionsToShow = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection].filter(Boolean);[cite: 3]
-        let displayedCount = 0;[cite: 3]
+        let query = document.getElementById('searchInput').value.trim().toLowerCase();
+
+        if(query !== "" || currentCategory !== "الكل") {
+            let filtered = products.filter(p => {
+                let matchesQuery = p.name.toLowerCase().includes(query);
+                let matchesCat = currentCategory === "الكل" || productBelongsToCategory(p, currentCategory);
+                return matchesQuery && matchesCat;
+            });
+
+            let gridHtml = `<div class="products-grid" style="margin-top: 10px;">`;
+            if(filtered.length === 0) {
+                gridHtml = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 20px;">لا توجد منتجات مطابقة[cite: 5]</p>`;
+            } else {
+                filtered.forEach(p => {
+                    gridHtml += createProductCardHtml(p);
+                });
+                gridHtml += `</div>`;
+            }
+            container.innerHTML = gridHtml;
+            return;
+        }
+
+        let sectionsToShow = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection].filter(Boolean);
+        let displayedCount = 0;
 
         sectionsToShow.forEach(secName => {
-            let secProds = products.filter(p => productBelongsToCategory(p, secName));[cite: 3]
-            if(secProds.length === 0) return;[cite: 3]
+            let secProds = products.filter(p => productBelongsToCategory(p, secName));
+            if(secProds.length === 0) return;
 
-            displayedCount++;[cite: 3]
-            let catObj = categories.find(c => c.name === secName);[cite: 3]
-            let icon = catObj ? catObj.icon : '🏷️';[cite: 3]
+            displayedCount++;
+            let catObj = categories.find(c => c.name === secName);
+            let icon = catObj ? catObj.icon : '🏷️[cite: 5]';
 
             let secHtml = `
                 <div class="horizontal-section">
                     <div class="horizontal-section-title">
                         <span>${icon} ${secName}</span>
-                        <span style="font-size: 0.65rem; color: #6b7280; cursor: pointer;" onclick="selectCategory('${secName}')">عرض الكل ←</span>
+                        <span style="font-size: 0.65rem; color: #6b7280; cursor: pointer;" onclick="selectCategory('${secName}')">عرض الكل ←[cite: 5]</span>
                     </div>
                     <div class="products-horizontal-scroll">
-            `;[cite: 3]
+            `;
 
             secProds.forEach(p => {
-                secHtml += createProductCardHtml(p);[cite: 3]
+                secHtml += createProductCardHtml(p);
             });
 
-            secHtml += `</div></div>`;[cite: 3]
-            container.innerHTML += secHtml;[cite: 3]
+            secHtml += `</div></div>`;
+            container.innerHTML += secHtml;
         });
 
-        if(displayedCount === 0 && products.length > 0) {
+        if(displayedCount === 0) {
             categories.forEach(cat => {
-                if(cat.name === "الكل") return;[cite: 3]
-                let secProds = products.filter(p => productBelongsToCategory(p, cat.name));[cite: 3]
-                if(secProds.length === 0) return;[cite: 3]
+                if(cat.name === "الكل") return;
+                let secProds = products.filter(p => productBelongsToCategory(p, cat.name));
+                if(secProds.length === 0) return;
 
                 let secHtml = `
                     <div class="horizontal-section">
                         <div class="horizontal-section-title">
-                            <span>${cat.icon || '🏷️'} ${cat.name}</span>
-                            <span style="font-size: 0.65rem; color: #6b7280; cursor: pointer;" onclick="selectCategory('${cat.name}')">عرض الكل ←</span>
+                            <span>${cat.icon || '🏷️[cite: 5]'} ${cat.name}</span>
+                            <span style="font-size: 0.65rem; color: #6b7280; cursor: pointer;" onclick="selectCategory('${cat.name}')">عرض الكل ←[cite: 5]</span>
                         </div>
                         <div class="products-horizontal-scroll">
-                `;[cite: 3]
+                `;
                 secProds.forEach(p => {
-                    secHtml += createProductCardHtml(p);[cite: 3]
+                    secHtml += createProductCardHtml(p);
                 });
-                secHtml += `</div></div>`;[cite: 3]
-                container.innerHTML += secHtml;[cite: 3]
+                secHtml += `</div></div>`;
+                container.innerHTML += secHtml;
             });
         }
     }
 
     function createProductCardHtml(p) {
-        let priceDisplay = `${p.price} ₪`;[cite: 3]
-        let oldPriceDisplay = "";[cite: 3]
+        let priceDisplay = `${p.price} ₪[cite: 5]`;
+        let oldPriceDisplay = "";
         if(p.salePrice !== undefined && p.salePrice !== "") {
-            priceDisplay = `${p.salePrice} ₪`;[cite: 3]
-            oldPriceDisplay = `<span class="old-price">${p.price} ₪</span>`;[cite: 3]
+            priceDisplay = `${p.salePrice} ₪[cite: 5]`;
+            oldPriceDisplay = `<span class="old-price">${p.price} ₪[cite: 5]</span>`;
         }
 
-        let cartItem = cart.find(item => item.id == p.id);[cite: 3]
-        let qty = cartItem ? cartItem.quantity : 0;[cite: 3]
-        let hasQty = qty > 0;[cite: 3]
+        let cartItem = cart.find(item => item.id == p.id);
+        let qty = cartItem ? cartItem.quantity : 0;
+        let hasQty = qty > 0;
 
         return `
             <div class="product-card" data-product-id="${p.id}">
@@ -552,7 +558,7 @@
                         <img src="${p.img}" class="product-img" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081840.png'">
                     </div>
                     <div class="product-name">${p.name}</div>
-                    <div class="product-weight">${p.weight || 'حبة'}</div>
+                    <div class="product-weight">${p.weight || 'حبة[cite: 5]'}</div>
                     <!-- يظهر السعر في الأعلى فقط عند ظهور شريط التحكم (الكمية > 0) -->
                     <div class="product-price-top" style="${hasQty ? 'display: flex;' : 'display: none;'}">
                         <span class="price-text">${priceDisplay}</span>
@@ -566,139 +572,139 @@
                             <span class="price-text">${priceDisplay}</span>
                             ${oldPriceDisplay}
                         </div>
-                        <button class="add-to-cart-btn" onclick='increaseCartQty("${p.id}")'>+</button>
+                        <button class="add-to-cart-btn" onclick='increaseCartQty("${p.id}")'>+[cite: 5]</button>
                     </div>
                     <!-- شريط التحكم الكامل بالأسفل يظهر فقط عند وجود الكمية -->
                     <div class="quantity-control-full" style="${hasQty ? 'display: flex;' : 'display: none;'}">
-                        <button class="qty-btn" onclick='decreaseCartQty("${p.id}")'>-</button>
+                        <button class="qty-btn" onclick='decreaseCartQty("${p.id}")'>-[cite: 5]</button>
                         <span class="qty-display">${qty}</span>
-                        <button class="qty-btn" onclick='increaseCartQty("${p.id}")'>+</button>
+                        <button class="qty-btn" onclick='increaseCartQty("${p.id}")'>+[cite: 5]</button>
                     </div>
                 </div>
             </div>
-        `;[cite: 3]
+        `;
     }
 
     function filterProducts() {
-        renderMainStoreContent();[cite: 3]
+        renderMainStoreContent();
     }
 
     function increaseCartQty(prodId) {
-        let p = products.find(item => item.id == prodId);[cite: 3]
+        let p = products.find(item => item.id == prodId);
         if(!p) return;
-        let finalPrice = (p.salePrice !== undefined && p.salePrice !== "") ? Number(p.salePrice) : Number(p.price);[cite: 3]
+        let finalPrice = (p.salePrice !== undefined && p.salePrice !== "") ? Number(p.salePrice) : Number(p.price);
         
-        let existing = cart.find(item => item.id == prodId);[cite: 3]
+        let existing = cart.find(item => item.id == prodId);
         if(existing) {
-            existing.quantity += 1;[cite: 3]
+            existing.quantity += 1;
         } else {
-            cart.push({ id: p.id, name: p.name, price: finalPrice, quantity: 1, img: p.img || '' });[cite: 3]
+            cart.push({ id: p.id, name: p.name, price: finalPrice, quantity: 1, img: p.img || '' });
         }
-        updateCartStateUI();[cite: 3]
-        updateProductCardDOM(prodId);[cite: 3]
+        updateCartStateUI();
+        updateProductCardDOM(prodId);
     }
 
     function decreaseCartQty(prodId) {
-        let existingIndex = cart.findIndex(item => item.id == prodId);[cite: 3]
+        let existingIndex = cart.findIndex(item => item.id == prodId);
         if(existingIndex > -1) {
             if(cart[existingIndex].quantity > 1) {
-                cart[existingIndex].quantity -= 1;[cite: 3]
+                cart[existingIndex].quantity -= 1;
             } else {
-                cart.splice(existingIndex, 1);[cite: 3]
+                cart.splice(existingIndex, 1);
             }
         }
-        updateCartStateUI();[cite: 3]
-        updateProductCardDOM(prodId);[cite: 3]
+        updateCartStateUI();
+        updateProductCardDOM(prodId);
     }
 
     function updateProductCardDOM(prodId) {
-        let p = products.find(item => item.id == prodId);[cite: 3]
+        let p = products.find(item => item.id == prodId);
         if(!p) return;
-        let cards = document.querySelectorAll(`.product-card[data-product-id="${prodId}"]`);[cite: 3]
+        let cards = document.querySelectorAll(`.product-card[data-product-id="${prodId}"]`);
         cards.forEach(card => {
-            let tempDiv = document.createElement('div');[cite: 3]
-            tempDiv.innerHTML = createProductCardHtml(p);[cite: 3]
-            card.outerHTML = tempDiv.firstElementChild.outerHTML;[cite: 3]
+            let tempDiv = document.createElement('div');
+            tempDiv.innerHTML = createProductCardHtml(p);
+            card.outerHTML = tempDiv.firstElementChild.outerHTML;
         });
     }
 
     function updateCartStateUI() {
-        let totalCount = 0;[cite: 3]
-        let totalPrice = 0;[cite: 3]
+        let totalCount = 0;
+        let totalPrice = 0;
         cart.forEach(item => {
-            totalCount += item.quantity;[cite: 3]
-            totalPrice += item.price * item.quantity;[cite: 3]
+            totalCount += item.quantity;
+            totalPrice += item.price * item.quantity;
         });
-        document.getElementById('cartTotalText').innerText = totalPrice.toFixed(2) + " ₪";[cite: 3]
-        document.getElementById('cartCountBadge').innerText = totalCount;[cite: 3]
+        document.getElementById('cartTotalText').innerText = totalPrice.toFixed(2) + " ₪[cite: 5]";
+        document.getElementById('cartCountBadge').innerText = totalCount;
     }
 
     function openCartModal() {
         if(cart.length === 0) {
-            alert("السلة فارغة حالياً!");[cite: 3]
+            alert("السلة فارغة حالياً![cite: 5]");
             return;
         }
-        loadUserProfileData();[cite: 3]
-        let listContainer = document.getElementById('cartItemsList');[cite: 3]
-        listContainer.innerHTML = '';[cite: 3]
+        loadUserProfileData();
+        let listContainer = document.getElementById('cartItemsList');
+        listContainer.innerHTML = '';
         cart.forEach((item) => {
-            let itemTotal = item.price * item.quantity;[cite: 3]
+            let itemTotal = item.price * item.quantity;
             listContainer.innerHTML += `
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; margin-bottom: 6px; background: #f8fafc; padding: 6px; border-radius: 6px;">
                     <span>${item.name} (${item.quantity})</span>
-                    <span><b>${itemTotal.toFixed(2)} ₪</b></span>
+                    <span><b>${itemTotal.toFixed(2)} ₪[cite: 5]</b></span>
                 </div>
-            `;[cite: 3]
+            `;
         });
-        document.getElementById('cartModal').style.display = 'flex';[cite: 3]
+        document.getElementById('cartModal').style.display = 'flex';
     }
 
     function closeCartModal() {
-        document.getElementById('cartModal').style.display = 'none';[cite: 3]
+        document.getElementById('cartModal').style.display = 'none';
     }
 
     async function submitOrder() {
-        const name = document.getElementById('customerName').value.trim();[cite: 3]
-        const phone = document.getElementById('customerPhone').value.trim();[cite: 3]
-        const address = document.getElementById('customerAddress').value.trim();[cite: 3]
+        const name = document.getElementById('customerName').value.trim();
+        const phone = document.getElementById('customerPhone').value.trim();
+        const address = document.getElementById('customerAddress').value.trim();
 
         if(!name || !phone || !address) {
-            alert("الرجاء إكمال بيانات التوصيل (الاسم، الهاتف، العنوان)");[cite: 3]
+            alert("الرجاء إكمال بيانات التوصيل (الاسم، الهاتف، العنوان)[cite: 5]");
             return;
         }
 
-        localStorage.setItem('aloroba_user_name', name);[cite: 3]
-        localStorage.setItem('aloroba_user_phone', phone);[cite: 3]
-        localStorage.setItem('aloroba_user_address', address);[cite: 3]
+        localStorage.setItem('aloroba_user_name', name);
+        localStorage.setItem('aloroba_user_phone', phone);
+        localStorage.setItem('aloroba_user_address', address);
 
-        let total = 0;[cite: 3]
-        cart.forEach(i => total += (i.price * i.quantity));[cite: 3]
+        let total = 0;
+        cart.forEach(i => total += (i.price * i.quantity));
 
         const newOrder = {
-            customerName: name,[cite: 3]
-            customerPhone: phone,[cite: 3]
-            customerAddress: address,[cite: 3]
+            customerName: name,
+            customerPhone: phone,
+            customerAddress: address,
             items: cart.map(i => ({ 
-                id: i.id || '',[cite: 3]
-                name: i.name || '',[cite: 3]
-                price: Number(i.price) || 0,[cite: 3]
-                quantity: Number(i.quantity) || 1[cite: 3]
+                id: i.id || '', 
+                name: i.name || '', 
+                price: Number(i.price) || 0, 
+                quantity: Number(i.quantity) || 1 
             })),
-            total: Number(total) || 0,[cite: 3]
-            status: "جديد",[cite: 3]
-            timestamp: new Date().toISOString()[cite: 3]
+            total: Number(total) || 0,
+            status: "جديد[cite: 5]",
+            timestamp: new Date().toISOString()
         };
 
         try {
-            await window.addDoc(window.collection(window.db, "orders"), newOrder);[cite: 3]
-            alert("تم إرسال طلبك بنجاح! سيتم التواصل معك قريباً 🚀");[cite: 3]
-            cart = [];[cite: 3]
-            updateCartStateUI();[cite: 3]
-            products.forEach(p => updateProductCardDOM(p.id));[cite: 3]
-            closeCartModal();[cite: 3]
+            await window.addDoc(window.collection(window.db, "orders"), newOrder);
+            alert("تم إرسال طلبك بنجاح! سيتم التواصل معك قريباً 🚀[cite: 5]");
+            cart = [];
+            updateCartStateUI();
+            products.forEach(p => updateProductCardDOM(p.id));
+            closeCartModal();
         } catch(e) {
-            alert("خطأ تفصيلي: " + e.message);[cite: 3]
-            console.error(e);[cite: 3]
+            alert("خطأ تفصيلي: " + e.message);
+            console.error(e);
         }
     }
 </script>
