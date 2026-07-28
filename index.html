@@ -256,7 +256,7 @@
 
     <footer>سوبر ماركت العروبة © 2026 - رهط</footer>
 
-    <!-- شريط التنقل السفلي (تم إزالة زر العروض منه) -->
+    <!-- شريط التنقل السفلي -->
     <nav class="bottom-nav-bar">
         <button class="nav-item active" onclick="goToHome()"><span class="icon">🏠</span><span>الرئيسية</span></button>
         <button class="nav-item" onclick="scrollToCategories()"><span class="icon">🗂️</span><span>التصنيفات</span></button>
@@ -339,7 +339,6 @@
         { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png", category: "ألبان" }
     ];
 
-    // تم إزالة فئة "عروض" من مصفوفة التصنيفات
     let categories = JSON.parse(localStorage.getItem('aloroba_categories')) || [
         { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
         { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
@@ -436,7 +435,7 @@
             container.innerHTML += `
                 <div class="product-card">
                     ${p.offer ? `<div class="badge-offer">${p.offer}</div>` : ''}
-                    <div class="badge-red">عرض</div>
+                    ${p.hasRedBadge ? `<div class="badge-red">عرض</div>` : ''}
                     <button class="fav-heart-btn" onclick="toggleFavorite(${p.id})">${isFav ? '❤️' : '🤍'}</button>
                     <div class="product-img-box" onclick="openZoomModal('${p.img}', '${p.name}', '${p.weight || 'حبة'}')">
                         <img src="${p.img}" alt="${p.name}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
