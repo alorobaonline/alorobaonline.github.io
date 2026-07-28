@@ -289,9 +289,15 @@
                 <label>رزمة الحملة أو شارة العرض *</label>
                 <input type="text" id="campOffer" class="form-control" placeholder="مثال: 3 بـ22 أو خصم 20%">
             </div>
-            <div class="form-group">
-                <label>السعر الترويجي للحملة (₪) *</label>
-                <input type="number" id="campPrice" class="form-control" placeholder="22">
+            <div style="display: flex; gap: 6px;">
+                <div class="form-group" style="flex: 1;">
+                    <label>السعر الأساسي قبل العرض (₪)</label>
+                    <input type="number" id="campOriginalPrice" class="form-control" placeholder="اختياري (مثل: 30)">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>السعر الترويجي للحملة (₪) *</label>
+                    <input type="number" id="campPrice" class="form-control" placeholder="22">
+                </div>
             </div>
             <div class="form-group">
                 <label>صورة الحملة أو العرض *</label>
@@ -976,10 +982,12 @@
     function saveCampaign() {
         const name = document.getElementById('campName').value.trim();
         const offer = document.getElementById('campOffer').value.trim();
-        const price = parseFloat(document.getElementById('campPrice').value);
+        const promoPrice = parseFloat(document.getElementById('campPrice').value);
+        let origPriceInput = document.getElementById('campOriginalPrice').value;
+        const originalPrice = origPriceInput !== "" ? parseFloat(origPriceInput) : (promoPrice + 5);
         const img = document.getElementById('campImgData').value;
 
-        if(!name || !offer || isNaN(price) || !img) {
+        if(!name || !offer || isNaN(promoPrice) || !img) {
             alert("الرجاء ملء جميع حقول الحملة واختيار الصورة.");
             return;
         }
@@ -988,10 +996,10 @@
         const newCampProd = {
             id: Date.now(),
             name,
-            weight: 'عرض خاص',
+            weight: offer,
             stockQty: 50,
-            price,
-            offer,
+            price: originalPrice,
+            salePrice: promoPrice,
             img,
             categories: ['عروض'],
             inStock: true
@@ -1003,6 +1011,7 @@
         
         document.getElementById('campName').value = '';
         document.getElementById('campOffer').value = '';
+        document.getElementById('campOriginalPrice').value = '';
         document.getElementById('campPrice').value = '';
         document.getElementById('campImgData').value = '';
         document.getElementById('campPreview').src = 'https://cdn-icons-png.flaticon.com/512/3081/3081986.png';
