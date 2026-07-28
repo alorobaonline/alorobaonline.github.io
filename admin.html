@@ -262,7 +262,19 @@
 <script>
     let products = [];
     let categories = [
-        { name: "الكل", icon: "🛍️" }
+        { name: "الكل", icon: "🛍️" },
+        { name: "الخضار والفواكه الطازجة", icon: "🍎" },
+        { name: "الألبان والأجبان", icon: "🧀" },
+        { name: "اللحوم، الدجاج والأسماك", icon: "🥩" },
+        { name: "المخبوزات والحلويات", icon: "🍞" },
+        { name: "المعلبات والبقوليات", icon: "🥫" },
+        { name: "المشروبات والعصائر", icon: "🧃" },
+        { name: "المكسرات والوجبات الخفيفة", icon: "🥜" },
+        { name: "الأغذية المجمدة", icon: "🧊" },
+        { name: "البهارات والتوابل", icon: "🌿" },
+        { name: "مستلزمات وأغذية الأطفال", icon: "👶" },
+        { name: "المنظفات والمستلزمات المنزلية", icon: "🧼" },
+        { name: "العناية الشخصية والجمال", icon: "🧴" }
     ];
     let bannerSlides = [];
     let orders = [];
@@ -280,7 +292,14 @@
             });
 
             const catSnap = await window.getDocs(window.collection(window.db, "categories"));
-            if(!catSnap.empty) {
+            if(catSnap.empty) {
+                // إذا كانت قاعدة البيانات فارغة، يتم حفظ الفئات الافتراضية تلقائياً في السحابة
+                for(let cat of categories) {
+                    if(cat.name !== "الكل") {
+                        await window.setDoc(window.doc(window.db, "categories", cat.name), cat);
+                    }
+                }
+            } else {
                 categories = [{ name: "الكل", icon: "🛍️" }];
                 catSnap.forEach(docSnap => {
                     let catData = docSnap.data();
