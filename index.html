@@ -35,30 +35,24 @@
         .banner-tag { background: #134e24; color: #a3e635; font-size: 0.5rem; padding: 2px 6px; border-radius: 15px; display: inline-block; margin-bottom: 4px; font-weight: 700; }
         .banner-title { font-size: 0.9rem; font-weight: 900; line-height: 1.2; margin-bottom: 6px; }
         .banner-features { display: flex; gap: 4px; margin-bottom: 8px; font-size: 0.45rem; color: #e2e8f0; }
-        .banner-btn { background: #84cc16; color: #064e1b; border: none; padding: 4px 10px; border-radius: 15px; font-weight: 800; font-size: 0.6rem; cursor: pointer; text-decoration: none; display: inline-block; }
+        .banner-btn { background: #84cc16; color: #064e1b; border: none; padding: 4px 10px; border-radius: 15px; font-weight: 800; font-size: 0.6rem; cursor: pointer; }
         .banner-img-side { width: 42%; text-align: left; display: flex; align-items: center; justify-content: center; }
         .banner-img-side img { width: 100%; height: 110px; object-fit: cover; border-radius: 10px; }
 
         /* شريط الفئات الأفقي */
-        .categories-slider { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 4px; scroll-behavior: smooth; scrollbar-width: none; }
+        .categories-slider { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 4px; scroll-behavior: smooth; }
         .categories-slider::-webkit-scrollbar { display: none; }
         .cat-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; background: white; padding: 6px 10px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); text-align: center; flex: 0 0 auto; min-width: 65px; border: 1px solid transparent; }
         .cat-circle { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 3px; font-size: 0.9rem; }
         .cat-name { font-size: 0.55rem; font-weight: 700; color: #4b5563; white-space: nowrap; }
 
-        /* حاوية الأقسام الديناميكية الرئيسية */
-        .dynamic-sections-wrapper { margin-bottom: 14px; }
-        .section-block { margin-bottom: 15px; }
+        /* عناوين الأقسام */
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 2px; }
-        .section-title { font-size: 0.85rem; font-weight: 900; color: #111; display: flex; align-items: center; gap: 4px; }
+        .section-title { font-size: 0.85rem; font-weight: 900; color: #111; }
         .section-all { font-size: 0.65rem; font-weight: 700; color: #16a34a; cursor: pointer; text-decoration: none; }
 
-        /* شبكة المنتجات (تتطابق مع الوضع العادي أو الأفقي) */
-        .products-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-        .products-grid.horizontal-mode { display: flex; overflow-x: auto; gap: 6px; padding-bottom: 6px; scrollbar-width: none; }
-        .products-grid.horizontal-mode::-webkit-scrollbar { display: none; }
-        .products-grid.horizontal-mode .product-card { min-width: 120px; max-width: 120px; flex-shrink: 0; }
-
+        /* شبكة المنتجات */
+        .products-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
         .product-card { background: #ffffff; border-radius: 12px; padding: 6px; box-shadow: var(--shadow-card); display: flex; flex-direction: column; justify-content: space-between; position: relative; border: 1px solid #f1f5f9; }
         
         .badge-offer { position: absolute; top: 4px; right: 4px; background: #fee2e2; color: #dc2626; font-size: 0.4rem; font-weight: 800; padding: 2px 4px; border-radius: 4px; z-index: 2; }
@@ -226,7 +220,7 @@
                 <div>📦 توصيل سريع</div>
                 <div>🏷️ أرخص الأسعار</div>
             </div>
-            <a href="#dynamicSectionsWrapper" class="banner-btn">تسوق الآن ❮</a>
+            <button class="banner-btn" onclick="document.getElementById('productsContainer').scrollIntoView({behavior: 'smooth'})">تسوق الآن ❮</button>
         </div>
         <div class="banner-img-side">
             <img id="bannerImg" src="https://i.ibb.co/3m1K2wP/basket.png" alt="بانر">
@@ -236,8 +230,14 @@
     <!-- شريط الفئات الأفقي -->
     <div class="categories-slider" id="categoriesContainer"></div>
 
-    <!-- حاوية الأقسام الرئيسية الديناميكية (تدعم العرض الأفقي المخصص) -->
-    <div id="dynamicSectionsWrapper" class="dynamic-sections-wrapper"></div>
+    <!-- عنوان القسم -->
+    <div class="section-header">
+        <a class="section-all" onclick="resetFilter()">عرض الكل ❮</a>
+        <div class="section-title">🏷️ المنتجات والعروض</div>
+    </div>
+
+    <!-- شبكة المنتجات -->
+    <div class="products-grid" id="productsContainer"></div>
 
     <!-- الشريط العائم السفلي للدفع -->
     <div class="floating-checkout-bar" id="floatingCheckoutBar">
@@ -334,28 +334,22 @@
     let products = JSON.parse(localStorage.getItem('aloroba_products')) || [
         { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, salePrice: 18, img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات", "عروض"] },
         { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, salePrice: "", img: "https://i.ibb.co/1q20K0v/maggi.png", categories: ["معلبات"] },
-        { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, salePrice: "", img: "https://i.ibb.co/7Xv8L9p/nido.png", categories: ["ألبان", "الأكثر مبيعا"] }
+        { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, salePrice: "", img: "https://i.ibb.co/7Xv8L9p/nido.png", categories: ["ألبان"] }
     ];
 
     let categories = JSON.parse(localStorage.getItem('aloroba_categories')) || [
         { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
         { name: "عروض", icon: "🔥", bg: "#fee2e2", color: "#dc2626" },
-        { name: "الأكثر مبيعا", icon: "⭐", bg: "#fef3c7", color: "#d97706" },
         { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
         { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
-        { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" }
+        { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
+        { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" }
     ];
 
     let bannerData = JSON.parse(localStorage.getItem('aloroba_banner')) || {
         title: "كل احتياجات بيتك في مكان واحد",
         tag: "سوبر ماركت العروبة",
         img: "https://i.ibb.co/3m1K2wP/basket.png"
-    };
-
-    let layoutData = JSON.parse(localStorage.getItem('aloroba_layout')) || {
-        firstSection: "عروض",
-        secondSection: "الأكثر مبيعا",
-        horizontalScroll: true
     };
 
     let cart = [];
@@ -368,13 +362,27 @@
         categories = JSON.parse(localStorage.getItem('aloroba_categories')) || categories;
         
         try {
-            layoutData = JSON.parse(localStorage.getItem('aloroba_layout')) || layoutData;
+            let savedBanner = JSON.parse(localStorage.getItem('aloroba_banner'));
+            if(savedBanner) bannerData = savedBanner;
         } catch(e) {}
-
+        
         renderBanner();
         renderCategories();
-        renderMainContent();
+        
+        // جلب المنتجات بحسب القسم الحالي المختار لضمان التحديث المباشر
+        if(selectedCategory === "الكل") {
+            renderProducts(products);
+        } else {
+            filterByCategory(selectedCategory);
+        }
     }
+
+    // تفعيل التحديث التلقائي الفوري (Live Sync) عند حفظ أي تغييرات من لوحة التحكم
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'aloroba_products' || e.key === 'aloroba_categories' || e.key === 'aloroba_banner') {
+            initStoreData();
+        }
+    });
 
     function renderBanner() {
         document.getElementById('bannerTitle').innerText = bannerData.title || "كل احتياجات بيتك في مكان واحد";
@@ -402,14 +410,33 @@
     function filterByCategory(catName) {
         selectedCategory = catName;
         renderCategories();
-        renderMainContent();
+        
+        products = JSON.parse(localStorage.getItem('aloroba_products')) || products;
+
+        if(catName === "الكل") {
+            renderProducts(products);
+        } else if(catName === "عروض") {
+            const offerFiltered = products.filter(p => {
+                let currentSalePrice = p.salePrice !== undefined && p.salePrice !== "" ? p.salePrice : (p.promoPrice !== undefined ? p.promoPrice : "");
+                return currentSalePrice !== "" && !isNaN(currentSalePrice) && parseFloat(currentSalePrice) < parseFloat(p.price);
+            });
+            renderProducts(offerFiltered);
+        } else {
+            const filtered = products.filter(p => {
+                if (p.categories && Array.isArray(p.categories)) {
+                    return p.categories.some(c => c.trim() === catName.trim());
+                }
+                return p.category === catName;
+            });
+            renderProducts(filtered);
+        }
     }
 
     function resetFilter() {
         selectedCategory = "الكل";
         products = JSON.parse(localStorage.getItem('aloroba_products')) || products;
         renderCategories();
-        renderMainContent();
+        renderProducts(products);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -425,124 +452,33 @@
         products = JSON.parse(localStorage.getItem('aloroba_products')) || products;
         const query = document.getElementById('searchInput').value.toLowerCase().trim();
         
-        if (!query) {
-            renderMainContent();
-            return;
-        }
-
-        let baseList = getFilteredList(selectedCategory);
-        const filtered = baseList.filter(p => p.name.toLowerCase().includes(query));
-        
-        const wrapper = document.getElementById('dynamicSectionsWrapper');
-        wrapper.innerHTML = `
-            <div class="section-block">
-                <div class="section-header">
-                    <div class="section-title">🔍 نتائج البحث عن: "${query}"</div>
-                    <a class="section-all" onclick="resetFilter()">إلغاء البحث ❮</a>
-                </div>
-                <div class="products-grid">
-                    ${generateProductsHtml(filtered)}
-                </div>
-            </div>
-        `;
-    }
-
-    function getFilteredList(catName) {
-        products = JSON.parse(localStorage.getItem('aloroba_products')) || products;
-        if(catName === "الكل") {
-            return products;
-        } else if(catName === "عروض") {
-            return products.filter(p => {
+        let baseList = [];
+        if(selectedCategory === "الكل") {
+            baseList = products;
+        } else if(selectedCategory === "عروض") {
+            baseList = products.filter(p => {
                 let currentSalePrice = p.salePrice !== undefined && p.salePrice !== "" ? p.salePrice : (p.promoPrice !== undefined ? p.promoPrice : "");
                 return currentSalePrice !== "" && !isNaN(currentSalePrice) && parseFloat(currentSalePrice) < parseFloat(p.price);
             });
         } else {
-            return products.filter(p => {
-                if (p.categories && Array.isArray(p.categories)) {
-                    return p.categories.some(c => c.trim() === catName.trim());
-                }
-                return p.category === catName;
-            });
+            baseList = products.filter(p => (p.categories && p.categories.some(c => c.trim() === selectedCategory.trim())) || p.category === selectedCategory);
         }
-    }
 
-    function renderMainContent() {
-        const wrapper = document.getElementById('dynamicSectionsWrapper');
-        wrapper.innerHTML = '';
-
-        let isHorizontal = layoutData.horizontalScroll !== false;
-        let modeClass = isHorizontal ? 'horizontal-mode' : '';
-
-        // إذا اختار المستخدم تصنيفاً معيناً من الشريط العلوي (غير "الكل")
-        if (selectedCategory !== "الكل") {
-            let catProducts = getFilteredList(selectedCategory);
-            wrapper.innerHTML = `
-                <div class="section-block">
-                    <div class="section-header">
-                        <div class="section-title">📂 منتجات قسم: ${selectedCategory}</div>
-                        <a class="section-all" onclick="resetFilter()">عرض الكل ❮</a>
-                    </div>
-                    <div class="products-grid">
-                        ${generateProductsHtml(catProducts)}
-                    </div>
-                </div>
-            `;
+        if(!query) {
+            renderProducts(baseList);
             return;
         }
-
-        // عرض القسم الأول (حسب إعدادات لوحة التحكم)
-        let firstSecName = layoutData.firstSection || "عروض";
-        let firstSecProducts = getFilteredList(firstSecName);
-        if (firstSecProducts.length > 0) {
-            wrapper.innerHTML += `
-                <div class="section-block">
-                    <div class="section-header">
-                        <div class="section-title">🔥 ${firstSecName}</div>
-                        <a class="section-all" onclick="filterByCategory('${firstSecName}')">عرض الكل ❮</a>
-                    </div>
-                    <div class="products-grid ${modeClass}">
-                        ${generateProductsHtml(firstSecProducts)}
-                    </div>
-                </div>
-            `;
-        }
-
-        // عرض القسم الثاني (حسب إعدادات لوحة التحكم)
-        let secondSecName = layoutData.secondSection || "الأكثر مبيعا";
-        let secondSecProducts = getFilteredList(secondSecName);
-        if (secondSecProducts.length > 0) {
-            wrapper.innerHTML += `
-                <div class="section-block">
-                    <div class="section-header">
-                        <div class="section-title">⭐ ${secondSecName}</div>
-                        <a class="section-all" onclick="filterByCategory('${secondSecName}')">عرض الكل ❮</a>
-                    </div>
-                    <div class="products-grid ${modeClass}">
-                        ${generateProductsHtml(secondSecProducts)}
-                    </div>
-                </div>
-            `;
-        }
-
-        // عرض جميع المنتجات العامة كقسم افتراضي
-        let allProducts = products;
-        wrapper.innerHTML += `
-            <div class="section-block">
-                <div class="section-header">
-                    <div class="section-title">🏷️ المنتجات والعروض العامة</div>
-                </div>
-                <div class="products-grid">
-                    ${generateProductsHtml(allProducts)}
-                </div>
-            </div>
-        `;
+        const filtered = baseList.filter(p => p.name.toLowerCase().includes(query));
+        renderProducts(filtered);
     }
 
-    function generateProductsHtml(list) {
+    function renderProducts(list) {
+        const container = document.getElementById('productsContainer');
+        container.innerHTML = '';
         if(!list || list.length === 0) {
-            return '<p style="grid-column: span 3; text-align: center; color: #888; padding: 15px; font-size: 0.75rem;">لا توجد منتجات متاحة حالياً</p>';
+            container.innerHTML = '<p style="grid-column: span 3; text-align: center; color: #888; padding: 15px; font-size: 0.75rem;">لا توجد منتجات مطابقة في هذا القسم</p>';
+            return;
         }
-        let html = '';
         list.forEach(p => {
             const isFav = favorites.some(f => f.id === p.id);
             
@@ -559,7 +495,7 @@
                 priceHtml = `<span class="price-new" style="color: var(--primary-green);">${p.price}₪</span>`;
             }
 
-            html += `
+            container.innerHTML += `
                 <div class="product-card">
                     ${hasDiscount ? `<div class="badge-offer">عرض</div>` : ''}
                     ${p.offer ? `<div class="badge-offer">${p.offer}</div>` : ''}
@@ -576,7 +512,6 @@
                 </div>
             `;
         });
-        return html;
     }
 
     function toggleFavorite(id) {
@@ -590,7 +525,17 @@
             favorites.push(product);
         }
         localStorage.setItem('aloroba_favorites', JSON.stringify(favorites));
-        renderMainContent();
+        
+        let currentList = products;
+        if(selectedCategory === "عروض") {
+            currentList = products.filter(p => {
+                let currentSalePrice = p.salePrice !== undefined && p.salePrice !== "" ? p.salePrice : (p.promoPrice !== undefined ? p.promoPrice : "");
+                return currentSalePrice !== "" && !isNaN(currentSalePrice) && parseFloat(currentSalePrice) < parseFloat(p.price);
+            });
+        } else if(selectedCategory !== "الكل") {
+            currentList = products.filter(p => (p.categories && p.categories.some(c => c.trim() === selectedCategory.trim())) || p.category === selectedCategory);
+        }
+        renderProducts(currentList);
         renderFavoritesUI();
     }
 
