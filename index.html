@@ -6,9 +6,9 @@
     <title>سوبر ماركت العروبة - Aloroba Online</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     
-    <!-- مكتبات Firebase السحابية -->
+    <!-- مكتبات Firebase السحابية (Realtime Database متوافقة مع لوحة التحكم) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <style>
         :root {
@@ -341,72 +341,73 @@
 </div>
 
 <script>
-    // --- تهيئة Firebase المأخوذة من إعدادات مشروعك ---
+    // --- إعدادات اتصال Firebase المتوافقة مع لوحة التحكم ---
     const firebaseConfig = {
-        apiKey: "AIzaSyAfK8EX7-EM...", // استبدل بـ مفتاحك الكامل إن لزم الأمر
-        authDomain: "alorobaonline.firebaseapp.com",
-        projectId: "alorobaonline",
-        storageBucket: "alorobaonline.appspot.com",
-        messagingSenderId: "880642361344",
-        appId: "1:880642361344:web:906cd07f00bcb6dafc30e5",
-        measurementId: "G-6VL0PDW..."
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "SENDER_ID",
+        appId: "APP_ID"
     };
 
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
-    const db = firebase.firestore();
+    const db = firebase.database();
 
     let products = [];
-    let categories = [
-        { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
-        { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
-        { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
-        { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
-        { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" }
-    ];
-
-    let bannerData = {
-        title: "كل احتياجات بيتك في مكان واحد سحابياً",
-        tag: "سوبر ماركت العروبة",
-        img: "https://cdn-icons-png.flaticon.com/512/3081/3081986.png"
-    };
-
+    let categories = [];
+    let bannerData = {};
     let cart = [];
     let favorites = JSON.parse(localStorage.getItem('aloroba_favorites')) || [];
     let orderHistory = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
     let selectedCategory = "الكل";
 
     function initStoreData() {
-        renderBanner();
-        renderCategories();
-        loadProductsFromCloud();
-    }
-
-    // --- جلب المنتجات من قاعدة بيانات Firebase سحابياً ---
-    function loadProductsFromCloud() {
-        db.collection("products").onSnapshot((snapshot) => {
-            products = [];
-            snapshot.forEach((doc) => {
-                products.push({ id: doc.id, ...doc.data() });
-            });
-            
-            // إذا كانت قاعدة البيانات فارغة تماماً، نضيف منتجات افتراضية سحابياً
-            if(products.length === 0) {
-                let defaultProds = [
-                    { name: "أرز بسمتي فاخر", weight: "5 كجم", price: 18, oldPrice: 22, img: "https://cdn-icons-png.flaticon.com/512/3081/3081986.png", categories: ["معلبات"] },
-                    { name: "حليب نيدو مجفف", weight: "2500جم", price: 55, oldPrice: 59, img: "https://cdn-icons-png.flaticon.com/512/2738/2738730.png", categories: ["ألبان"] }
-                ];
-                defaultProds.forEach(p => db.collection("products").add(p));
+        // 1. جلب المتاجر والمنتجات سحابياً متزامناً مع لوحة التحكم
+        db.ref('aloroba/products').on('value', (snapshot) => {
+            let data = snapshot.val();
+            if (data) {
+                products = Array.isArray(data) ? data : Object.values(data);
             } else {
-                renderProducts(products);
+                products = [];
+            }
+            renderProducts(products);
+        });
+
+        // 2. جلب التصنيفات والفئات سحابياً
+        db.ref('aloroba/categories').on('value', (snapshot) => {
+            let data = snapshot.val();
+            if (data) {
+                categories = Array.isArray(data) ? data : Object.values(data);
+            } else {
+                categories = [
+                    { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
+                    { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
+                    { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" }
+                ];
+            }
+            renderCategories();
+        });
+
+        // 3. جلب بيانات البانر الرئيسي سحابياً
+        db.ref('aloroba/banner').on('value', (snapshot) => {
+            let data = snapshot.val();
+            if (data) {
+                bannerData = data;
+                renderBanner();
             }
         });
     }
 
     function renderBanner() {
-        document.getElementById('bannerTitle').innerText = bannerData.title;
-        document.getElementById('bannerTag').innerText = bannerData.tag;
+        document.getElementById('bannerTitle').innerText = bannerData.title || "كل احتياجات بيتك في مكان واحد";
+        document.getElementById('bannerTag').innerText = bannerData.tag || "سوبر ماركت العروبة";
+        if(bannerData.img) {
+            document.getElementById('bannerImg').src = bannerData.img;
+        }
     }
 
     function renderCategories() {
@@ -416,7 +417,7 @@
             const isActive = cat.name === selectedCategory;
             container.innerHTML += `
                 <div class="cat-item" onclick="filterByCategory('${cat.name}')" ${isActive ? 'style="border: 1px solid #68a633; background: #f4fbf0;"' : ''}>
-                    <div class="cat-circle" style="background: ${cat.bg}; color: ${cat.color};">${cat.icon}</div>
+                    <div class="cat-circle" style="background: ${cat.bg || '#eaf3df'}; color: ${cat.color || '#2e6930'};">${cat.icon || '📦'}</div>
                     <div class="cat-name" ${isActive ? 'style="color: #2e6930;"' : ''}>${cat.name}</div>
                 </div>
             `;
@@ -429,7 +430,7 @@
         if(catName === "الكل") {
             renderProducts(products);
         } else {
-            const filtered = products.filter(p => (p.categories && p.categories.includes(catName)) || p.category === catName);
+            const filtered = products.filter(p => p.categories && p.categories.some(c => c.trim() === catName.trim()));
             renderProducts(filtered);
         }
     }
@@ -447,7 +448,7 @@
     function filterProducts() {
         const query = document.getElementById('searchInput').value.toLowerCase().trim();
         if(!query) { renderProducts(products); return; }
-        const filtered = products.filter(p => p.name.toLowerCase().includes(query));
+        const filtered = products.filter(p => p.name && p.name.toLowerCase().includes(query));
         renderProducts(filtered);
     }
 
@@ -455,7 +456,7 @@
         const container = document.getElementById('productsContainer');
         container.innerHTML = '';
         if(!list || list.length === 0) {
-            container.innerHTML = '<p style="grid-column: span 3; text-align: center; color: #888; padding: 15px; font-size: 0.75rem;">لا توجد منتجات مطابقة</p>';
+            container.innerHTML = '<p style="grid-column: span 3; text-align: center; color: #888; padding: 15px; font-size: 0.75rem;">لا توجد منتجات متوفرة حالياً</p>';
             return;
         }
         list.forEach(p => {
@@ -465,14 +466,18 @@
                 priceHtml += ` <span class="price-old">${p.oldPrice} ₪</span>`;
             }
 
+            let prodImg = p.img || p.image || 'https://cdn-icons-png.flaticon.com/512/3081/3081986.png';
+            let prodName = p.name || p.title || 'منتج';
+            let prodWeight = p.weight || 'حبة';
+
             container.innerHTML += `
                 <div class="product-card">
                     <button class="fav-heart-btn" onclick="toggleFavorite('${p.id}')">${isFav ? '❤️' : '🤍'}</button>
-                    <div class="product-img-box" onclick="openZoomModal('${p.img}', '${p.name}', '${p.weight || 'حبة'}')">
-                        <img src="${p.img}" alt="${p.name}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
+                    <div class="product-img-box" onclick="openZoomModal('${prodImg}', '${prodName}', '${prodWeight}')">
+                        <img src="${prodImg}" alt="${prodName}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                     </div>
-                    <div class="product-name" title="${p.name}">${p.name}</div>
-                    <div class="product-weight">${p.weight || 'حبة'}</div>
+                    <div class="product-name" title="${prodName}">${prodName}</div>
+                    <div class="product-weight">${prodWeight}</div>
                     <div class="product-price-box">${priceHtml}</div>
                     <button class="btn-add-cart" onclick="addToCart('${p.id}')">أضف 🛒</button>
                 </div>
@@ -481,9 +486,9 @@
     }
 
     function toggleFavorite(id) {
-        const product = products.find(p => p.id === id);
+        const product = products.find(p => p.id == id);
         if(!product) return;
-        const index = favorites.findIndex(f => f.id === id);
+        const index = favorites.findIndex(f => f.id == id);
         if(index > -1) { favorites.splice(index, 1); } else { favorites.push(product); }
         localStorage.setItem('aloroba_favorites', JSON.stringify(favorites));
         renderProducts(products);
@@ -495,10 +500,11 @@
         if(favorites.length === 0) { container.innerHTML = "لم تقم بإضافة أي منتج للمفضلة بعد."; return; }
         let html = "";
         favorites.forEach(f => {
+            let fImg = f.img || f.image || 'https://cdn-icons-png.flaticon.com/512/3081/3081986.png';
             html += `
                 <div class="order-history-item">
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <img src="${f.img}" style="width: 30px; height: 30px; object-fit: contain;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
+                        <img src="${fImg}" style="width: 30px; height: 30px; object-fit: contain;" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                         <div>
                             <div style="font-weight: 800;">${f.name}</div>
                             <div style="color: #68a633; font-weight: bold;">${f.price} ₪</div>
@@ -521,7 +527,7 @@
     function handleZoomOverlayClick(event) { if (event.target === document.getElementById('imageZoomOverlay')) closeZoomModal(); }
 
     function addToCart(id) {
-        const product = products.find(p => p.id === id);
+        const product = products.find(p => p.id == id);
         if(!product) return;
         cart.push(product);
         updateCartUI();
@@ -603,7 +609,7 @@
         container.innerHTML = html;
     }
 
-    // --- إرسال الطلب وحفظه في سحابة Firebase مباشرة ---
+    // --- إرسال الطلب وحفظه في سحابة Firebase مباشرة لتظهر في لوحة التحكم ---
     function submitOrderToCloud() {
         const name = document.getElementById('customerName').value.trim();
         const address = document.getElementById('customerAddress').value.trim();
@@ -621,25 +627,28 @@
             items: [...cart],
             totalAmount: total,
             status: "جديد",
-            date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            fullDate: new Date().toLocaleDateString()
+            date: new Date().toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'}) + ' - ' + new Date().toLocaleDateString()
         };
 
-        // حفظ الطلب في سحابة Firebase (مجموعة orders)
-        db.collection("orders").add(newOrder).then(() => {
-            let allOrders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
-            allOrders.unshift(newOrder);
-            localStorage.setItem('aloroba_orders', JSON.stringify(allOrders));
-
-            cart = [];
-            updateCartUI();
-            closeModal('cartModal');
-
-            if(confirm("🎉 تم حفظ الطلب في السحابة بنجاح! هل تريد الانتقال إلى 'لوحة التحكم' لمشاهدته؟")) {
-                window.location.href = "dashboard.html";
-            }
-        }).catch((error) => {
-            alert("حدث خطأ أثناء حفظ الطلب في السحابة: " + error.message);
+        // إرسال الطلب إلى جدول الطلبات الحية في قاعدة البيانات السحابية لكي يستقبله صاحب المتجر فوراً في لوحة التحكم
+        db.ref('aloroba/orders').once('value', (snapshot) => {
+            let orders = snapshot.val() || [];
+            orders = Array.isArray(orders) ? orders : Object.values(orders);
+            orders.unshift(newOrder);
+            
+            db.ref('aloroba/orders').set(orders, (error) => {
+                if(!error) {
+                    orderHistory.unshift(newOrder);
+                    localStorage.setItem('aloroba_orders', JSON.stringify(orderHistory));
+                    
+                    cart = [];
+                    updateCartUI();
+                    closeModal('cartModal');
+                    alert("تم إرسال طلبك بنجاح إلى سوبر ماركت العروبة! 🚀");
+                } else {
+                    alert("حدث خطأ أثناء إرسال الطلب، تأكد من الاتصال بالإنترنت.");
+                }
+            });
         });
     }
 </script>
