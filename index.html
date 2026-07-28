@@ -52,7 +52,7 @@
             -webkit-overflow-scrolling: touch;
         }
         .categories-slider:active { cursor: grabbing; }
-        .categories-slider::-webkit-scrollbar { display: none; } /* إخفاء شريط التمرير */
+        .categories-slider::-webkit-scrollbar { display: none; }
         
         .cat-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; background: white; padding: 6px 10px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); text-align: center; flex: 0 0 auto; min-width: 65px; border: 1px solid transparent; }
         .cat-circle { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 3px; font-size: 0.9rem; }
@@ -347,14 +347,28 @@
         { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, img: "https://i.ibb.co/7Xv8L9p/nido.png", category: "ألبان" }
     ];
 
+    // جلب الفئات من الذاكرة المحلية (لوحة التحكم) مع التأكد من عدم وجود فئة "عروض" وضمان وجود فئة "الكل"
     let storedCategories = JSON.parse(localStorage.getItem('aloroba_categories'));
-    let categories = storedCategories ? storedCategories.filter(c => c.name !== "عروض") : [
-        { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
-        { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
-        { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
-        { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
-        { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" }
-    ];
+    let categories = [];
+    
+    if (storedCategories && storedCategories.length > 0) {
+        // فلترة أي فئة اسمها "عروض" بناءً على طلبك السابق
+        let filteredStored = storedCategories.filter(c => c.name !== "عروض");
+        // التأكد من وجود فئة "الكل" في بداية الشريط
+        if (!filteredStored.some(c => c.name === "الكل")) {
+            categories = [{ name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" }, ...filteredStored];
+        } else {
+            categories = filteredStored;
+        }
+    } else {
+        categories = [
+            { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
+            { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
+            { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
+            { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
+            { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" }
+        ];
+    }
 
     let bannerData = JSON.parse(localStorage.getItem('aloroba_banner')) || {
         title: "كل احتياجات بيتك في مكان واحد",
@@ -371,10 +385,9 @@
         renderBanner();
         renderCategories();
         renderProducts(products);
-        initCategoryDragScroll(); // تفعيل ميزة السحب بالماوس
+        initCategoryDragScroll();
     }
 
-    // ميزة تحريك شريط الفئات بالماوس (Drag to scroll) بالإضافة للمس الهواتف
     function initCategoryDragScroll() {
         const slider = document.getElementById('categoriesContainer');
         let isDown = false;
@@ -402,7 +415,7 @@
             if(!isDown) return;
             e.preventDefault();
             const x = e.pageX - slider.offsetLeft;
-            const walk = (x - startX) * 2; // سرعة الحركة
+            const walk = (x - startX) * 2;
             slider.scrollLeft = scrollLeft - walk;
         });
     }
