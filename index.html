@@ -239,12 +239,9 @@
         </div>
     </header>
 
-    <!-- البانر المتحرك: صور كاملة مع دعم السحب اليدوي (Swipe) والتشغيل التلقائي -->
+    <!-- البانر المتحرك -->
     <div class="store-banner-slider-container" id="bannerContainer">
-        <div id="storeBannerSlidesWrapper" style="display: flex; transition: transform 0.4s ease-in-out; width: 100%;">
-            <!-- يتم تعبئة الشرائح ديناميكياً -->
-        </div>
-        <!-- نقاط التنقل بين الشرائح (Dots) -->
+        <div id="storeBannerSlidesWrapper" style="display: flex; transition: transform 0.4s ease-in-out; width: 100%;"></div>
         <div id="storeBannerDots"></div>
     </div>
 
@@ -345,7 +342,24 @@
     </div>
 </div>
 
-<script>
+<script type="module">
+    import { initializeApp } from "firebase/app";
+    import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
+      authDomain: "alorobaonline.firebaseapp.com",
+      projectId: "alorobaonline",
+      storageBucket: "alorobaonline.firebasestorage.app",
+      messagingSenderId: "880642361344",
+      appId: "1:880642361344:web:9dddec05f81125f0fc30e5",
+      measurementId: "G-NL9CS2135V"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const cartId = "aloroba_main_cart";
+
     let products = JSON.parse(localStorage.getItem('aloroba_products')) || [
         { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, salePrice: 18, img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات", "عروض"] },
         { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, salePrice: "", img: "https://i.ibb.co/1q20K0v/maggi.png", categories: ["معلبات"] },
@@ -367,16 +381,16 @@
         horizontalScroll: true
     };
 
-    let cart = [];
+    // استرجاع السلة مباشرة من LocalStorage لضمان عدم ضياعها عند تحديث الصفحة
+    let cart = JSON.parse(localStorage.getItem('aloroba_cart')) || [];
     let favorites = JSON.parse(localStorage.getItem('aloroba_favorites')) || [];
     let orderHistory = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
     let selectedCategory = "الكل";
 
-    // متغيرات البانر المتحرك والسحب اليدوي
     let currentBannerIndex = 0;
     let bannerInterval;
 
-    function initStoreData() {
+    window.initStoreData = async function() {
         products = JSON.parse(localStorage.getItem('aloroba_products')) || products;
         categories = JSON.parse(localStorage.getItem('aloroba_categories')) || categories;
         
@@ -384,14 +398,38 @@
             let savedLayout = JSON.parse(localStorage.getItem('aloroba_layout'));
             if(savedLayout) layoutData = savedLayout;
         } catch(e) {}
+
+        // محاولة جلب السلة من Firebase كضمان إضافي عند التحديث
+        try {
+            const docRef = doc(db, "carts", cartId);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists() && (!cart || cart.length === 0)) {
+                cart = docSnap.data().items || [];
+                localStorage.setItem('aloroba_cart', JSON.stringify(cart));
+            }
+        } catch (err) {
+            console.log("الاعتماد على التخزين المحلي للسلة");
+        }
         
         renderBannerSlider();
         renderCategories();
+        updateCartUI(); // تحديث عداد السلة الفوري عند فتح الموقع
         
         if(selectedCategory === "الكل") {
             renderMainContent();
         } else {
             filterByCategory(selectedCategory);
+        }
+    }
+
+    // دالة لحفظ السلة محلياً وفي السحابة
+    window.syncAndSaveCart = async function() {
+        localStorage.setItem('aloroba_cart', JSON.stringify(cart));
+        updateCartUI();
+        try {
+            await setDoc(doc(db, "carts", cartId), { items: cart });
+        } catch (err) {
+            console.error("خطأ في المزامنة السحابية:", err);
         }
     }
 
@@ -401,7 +439,6 @@
         }
     });
 
-    // دالة عرض وتشغيل البانر المتحرك مع إضافة خاصية التحريك اليدوي (Swipe / Touch) والضغط
     function renderBannerSlider() {
         const bannerSlidesData = JSON.parse(localStorage.getItem('aloroba_banner_slides')) || [
             { img: "https://i.ibb.co/3m1K2wP/basket.png" },
@@ -424,7 +461,6 @@
                     <img src="${slide.img}" alt="بانر المتجر" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                 </div>
             `;
-
             dotsContainer.innerHTML += `
                 <div class="banner-dot ${index === 0 ? 'active' : ''}" onclick="currentBannerSlide(${index})"></div>
             `;
@@ -444,11 +480,8 @@
             }
             const dots = document.querySelectorAll('.banner-dot');
             dots.forEach((dot, idx) => {
-                if (idx === currentBannerIndex) {
-                    dot.classList.add('active');
-                } else {
-                    dot.classList.remove('active');
-                }
+                if (idx === currentBannerIndex) dot.classList.add('active');
+                else dot.classList.remove('active');
             });
         }
 
@@ -462,7 +495,6 @@
             }
         }
 
-        // تفعيل خاصية السحب اليدوي (Swipe Left / Swipe Right) للبانر
         let startX = 0;
         let isDragging = false;
 
@@ -471,20 +503,17 @@
             startX = e.clientX;
             if(bannerInterval) clearInterval(bannerInterval);
         };
-
         container.onmouseup = (e) => {
             if (!isDragging) return;
             isDragging = false;
             let diffX = e.clientX - startX;
             handleSwipeAction(diffX, totalSlides);
         };
-
         container.ontouchstart = (e) => {
             isDragging = true;
             startX = e.touches[0].clientX;
             if(bannerInterval) clearInterval(bannerInterval);
         };
-
         container.ontouchend = (e) => {
             if (!isDragging) return;
             isDragging = false;
@@ -493,23 +522,17 @@
         };
 
         function handleSwipeAction(diffX, total) {
-            if (Math.abs(diffX) > 40) { // مسافة كافية لاعتبارها سحبة
-                if (diffX > 0) {
-                    // سحب لليمين (الانتقال للشريحة السابقة في تخطيط RTL)
-                    currentBannerIndex = (currentBannerIndex - 1 + total) % total;
-                } else {
-                    // سحب لليسار (الانتقال للشريحة التالية)
-                    currentBannerIndex = (currentBannerIndex + 1) % total;
-                }
+            if (Math.abs(diffX) > 40) {
+                if (diffX > 0) currentBannerIndex = (currentBannerIndex - 1 + total) % total;
+                else currentBannerIndex = (currentBannerIndex + 1) % total;
                 updateBannerSliderPosition();
             }
             resetBannerInterval();
         }
-
         resetBannerInterval();
     }
 
-    function renderCategories() {
+    window.renderCategories = function() {
         const container = document.getElementById('categoriesContainer');
         container.innerHTML = '';
         categories.forEach((cat) => {
@@ -524,7 +547,7 @@
         });
     }
 
-    function filterByCategory(catName) {
+    window.filterByCategory = function(catName) {
         selectedCategory = catName;
         renderCategories();
         
@@ -544,7 +567,7 @@
         if(catName === "عروض") {
             sectionTitle = "🔥 العروض والتخفيضات";
             filtered = products.filter(p => {
-                let currentSalePrice = p.salePrice !== undefined && p.salePrice !== "" ? p.salePrice : (p.promoPrice !== undefined ? p.promoPrice : "");
+                let currentSalePrice = p.salePrice !== undefined && p.salePrice !== "" ? p.salePrice : "";
                 return currentSalePrice !== "" && !isNaN(currentSalePrice) && parseFloat(currentSalePrice) < parseFloat(p.price);
             });
         } else {
@@ -569,7 +592,7 @@
         renderProductCardsIntoContainer(filtered, 'filteredProductsGrid');
     }
 
-    function renderMainContent() {
+    window.renderMainContent = function() {
         const container = document.getElementById('mainContentArea');
         container.innerHTML = '';
         products = JSON.parse(localStorage.getItem('aloroba_products')) || products;
@@ -597,7 +620,7 @@
                     let sp = p.salePrice !== undefined && p.salePrice !== "" ? p.salePrice : "";
                     return sp !== "" && !isNaN(sp) && parseFloat(sp) < parseFloat(p.price);
                 });
-            } else if(secName === "الأكثر مبيعا" || secName === "الأكثر مبيعا") {
+            } else if(secName === "الأكثر مبيعا") {
                 secIcon = "⭐";
                 secTitle = "الأكثر مبيعاً ورغبة";
                 secProducts = products.slice(0, 6);
@@ -621,7 +644,7 @@
         });
     }
 
-    function renderProductCardsIntoContainer(list, containerId) {
+    window.renderProductCardsIntoContainer = function(list, containerId) {
         const container = document.getElementById(containerId);
         if(!container) return;
         container.innerHTML = '';
@@ -636,15 +659,10 @@
             let currentSalePrice = p.salePrice !== undefined && p.salePrice !== "" ? p.salePrice : "";
             let hasDiscount = currentSalePrice !== "" && !isNaN(currentSalePrice) && parseFloat(currentSalePrice) < parseFloat(p.price);
 
-            let priceHtml = '';
-            if (hasDiscount) {
-                priceHtml = `
-                    <span class="price-new">${currentSalePrice}₪</span>
-                    <span class="price-old">${p.price}₪</span>
-                `;
-            } else {
-                priceHtml = `<span class="price-new" style="color: var(--primary-green);">${p.price}₪</span>`;
-            }
+            let priceHtml = hasDiscount ? `
+                <span class="price-new">${currentSalePrice}₪</span>
+                <span class="price-old">${p.price}₪</span>
+            ` : `<span class="price-new" style="color: var(--primary-green);">${p.price}₪</span>`;
 
             container.innerHTML += `
                 <div class="product-card">
@@ -655,39 +673,28 @@
                     </div>
                     <div class="product-name" title="${p.name}">${p.name}</div>
                     <div class="product-weight">${p.weight || 'حبة'}</div>
-                    <div class="product-price-box">
-                        ${priceHtml}
-                    </div>
+                    <div class="product-price-box">${priceHtml}</div>
                     <button class="btn-add-cart" onclick="addToCart(${p.id})">أضف 🛒</button>
                 </div>
             `;
         });
     }
 
-    function resetFilter() {
+    window.resetFilter = function() {
         selectedCategory = "الكل";
         renderCategories();
         renderMainContent();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function goToHome() {
-        resetFilter();
-    }
+    window.goToHome = function() { resetFilter(); }
+    window.scrollToCategories = function() { document.getElementById('categoriesContainer').scrollIntoView({behavior: 'smooth'}); }
 
-    function scrollToCategories() {
-        document.getElementById('categoriesContainer').scrollIntoView({behavior: 'smooth'});
-    }
-
-    function filterProducts() {
+    window.filterProducts = function() {
         products = JSON.parse(localStorage.getItem('aloroba_products')) || products;
         const query = document.getElementById('searchInput').value.toLowerCase().trim();
         const container = document.getElementById('mainContentArea');
-        
-        if(!query) {
-            renderMainContent();
-            return;
-        }
+        if(!query) { renderMainContent(); return; }
 
         const filtered = products.filter(p => p.name.toLowerCase().includes(query));
         container.innerHTML = `
@@ -700,27 +707,21 @@
         renderProductCardsIntoContainer(filtered, 'searchGrid');
     }
 
-    function toggleFavorite(id) {
+    window.toggleFavorite = function(id) {
         products = JSON.parse(localStorage.getItem('aloroba_products')) || products;
         const product = products.find(p => p.id === id);
         if(!product) return;
         const index = favorites.findIndex(f => f.id === id);
-        if(index > -1) {
-            favorites.splice(index, 1);
-        } else {
-            favorites.push(product);
-        }
+        if(index > -1) favorites.splice(index, 1);
+        else favorites.push(product);
         localStorage.setItem('aloroba_favorites', JSON.stringify(favorites));
         initStoreData();
         renderFavoritesUI();
     }
 
-    function renderFavoritesUI() {
+    window.renderFavoritesUI = function() {
         const container = document.getElementById('favoritesListContainer');
-        if(favorites.length === 0) {
-            container.innerHTML = "لم تقم بإضافة أي منتج للمفضلة بعد.";
-            return;
-        }
+        if(favorites.length === 0) { container.innerHTML = "لم تقم بإضافة أي منتج للمفضلة بعد."; return; }
         let html = "";
         favorites.forEach(f => {
             let activePrice = (f.salePrice !== undefined && f.salePrice !== "") ? f.salePrice : f.price;
@@ -740,24 +741,16 @@
         container.innerHTML = html;
     }
 
-    function openZoomModal(imgSrc, title, weight) {
+    window.openZoomModal = function(imgSrc, title, weight) {
         document.getElementById('zoomedImg').src = imgSrc;
         document.getElementById('zoomedTitle').innerText = title;
         document.getElementById('zoomedWeight').innerText = weight;
         document.getElementById('imageZoomOverlay').style.display = 'flex';
     }
+    window.closeZoomModal = function() { document.getElementById('imageZoomOverlay').style.display = 'none'; }
+    window.handleZoomOverlayClick = function(event) { if (event.target === document.getElementById('imageZoomOverlay')) closeZoomModal(); }
 
-    function closeZoomModal() {
-        document.getElementById('imageZoomOverlay').style.display = 'none';
-    }
-
-    function handleZoomOverlayClick(event) {
-        if (event.target === document.getElementById('imageZoomOverlay')) {
-            closeZoomModal();
-        }
-    }
-
-    function addToCart(id) {
+    window.addToCart = function(id) {
         products = JSON.parse(localStorage.getItem('aloroba_products')) || products;
         const product = products.find(p => p.id === id);
         if(!product) return;
@@ -766,23 +759,27 @@
         let cartItem = { ...product, effectivePrice: parseFloat(finalPrice) };
         
         cart.push(cartItem);
-        updateCartUI();
+        syncAndSaveCart(); // حفظ السلة فوراً محلياً وسحابياً
     }
 
-    function updateCartUI() {
-        document.getElementById('cart-count').innerText = cart.length;
+    window.updateCartUI = function() {
+        const countSpan = document.getElementById('cart-count');
+        if(countSpan) countSpan.innerText = cart.length;
+
         const listDiv = document.getElementById('cartItemsList');
+        if(!listDiv) return;
+
         let total = 0;
         const floatingBar = document.getElementById('floatingCheckoutBar');
 
         if(cart.length === 0) {
             listDiv.innerHTML = "السلة فارغة حالياً";
             document.getElementById('cartTotal').innerText = "0";
-            floatingBar.style.display = "none";
+            if(floatingBar) floatingBar.style.display = "none";
             return;
         }
 
-        floatingBar.style.display = "flex";
+        if(floatingBar) floatingBar.style.display = "flex";
 
         let html = "";
         cart.forEach((item) => {
@@ -797,30 +794,18 @@
         document.getElementById('floatingCount').innerText = cart.length;
     }
 
-    function openModal(modalId) {
+    window.openModal = function(modalId) {
         document.getElementById(modalId).style.display = 'flex';
-        if(modalId === 'accountModal') {
-            loadAccountInfo();
-        } else if(modalId === 'favoritesModal') {
-            renderFavoritesUI();
-        }
+        if(modalId === 'accountModal') loadAccountInfo();
+        else if(modalId === 'favoritesModal') renderFavoritesUI();
     }
+    window.closeModal = function(modalId) { document.getElementById(modalId).style.display = 'none'; }
+    window.handleOutsideClick = function(event, modalId) { if (event.target === document.getElementById(modalId)) closeModal(modalId); }
 
-    function closeModal(modalId) {
-        document.getElementById(modalId).style.display = 'none';
-    }
-
-    function handleOutsideClick(event, modalId) {
-        if (event.target === document.getElementById(modalId)) {
-            closeModal(modalId);
-        }
-    }
-
-    function saveAccountInfo() {
+    window.saveAccountInfo = function() {
         const name = document.getElementById('accName').value;
         const phone = document.getElementById('accPhone').value;
         const address = document.getElementById('accAddress').value;
-
         localStorage.setItem('aloroba_user', JSON.stringify({ name, phone, address }));
         document.getElementById('customerName').value = name;
         document.getElementById('customerPhone').value = phone;
@@ -828,13 +813,12 @@
         alert("تم حفظ بيانات الحساب بنجاح!");
     }
 
-    function loadAccountInfo() {
+    window.loadAccountInfo = function() {
         let savedUser = JSON.parse(localStorage.getItem('aloroba_user'));
         if(savedUser) {
             document.getElementById('accName').value = savedUser.name || "";
             document.getElementById('accPhone').value = savedUser.phone || "";
             document.getElementById('accAddress').value = savedUser.address || "";
-            
             document.getElementById('customerName').value = savedUser.name || "";
             document.getElementById('customerPhone').value = savedUser.phone || "";
             document.getElementById('customerAddress').value = savedUser.address || "";
@@ -842,13 +826,10 @@
         renderOrderHistory();
     }
 
-    function renderOrderHistory() {
+    window.renderOrderHistory = function() {
         orderHistory = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
         const container = document.getElementById('orderHistoryContainer');
-        if(orderHistory.length === 0) {
-            container.innerHTML = "لا توجد طلبات مسجلة حتى الآن.";
-            return;
-        }
+        if(orderHistory.length === 0) { container.innerHTML = "لا توجد طلبات مسجلة حتى الآن."; return; }
         let html = "";
         orderHistory.forEach((ord, index) => {
             html += `
@@ -864,29 +845,23 @@
         container.innerHTML = html;
     }
 
-    function reorderItems(index) {
+    window.reorderItems = function(index) {
         const ord = orderHistory[index];
         if(ord && ord.items) {
             cart = [...ord.items];
-            updateCartUI();
+            syncAndSaveCart();
             closeModal('accountModal');
             openModal('cartModal');
         }
     }
 
-    function submitOrderToDashboard() {
+    window.submitOrderToDashboard = function() {
         const name = document.getElementById('customerName').value.trim();
         const address = document.getElementById('customerAddress').value.trim();
         const phone = document.getElementById('customerPhone').value.trim();
 
-        if(!name || !address || !phone) {
-            alert("الرجاء إدخال الاسم، العنوان، ورقم الهاتف لإتمام الطلب");
-            return;
-        }
-        if(cart.length === 0) {
-            alert("السلة فارغة");
-            return;
-        }
+        if(!name || !address || !phone) { alert("الرجاء إدخال الاسم، العنوان، ورقم الهاتف لإتمام الطلب"); return; }
+        if(cart.length === 0) { alert("السلة فارغة"); return; }
         
         let total = cart.reduce((sum, item) => {
             let p = item.effectivePrice !== undefined ? item.effectivePrice : ((item.salePrice !== undefined && item.salePrice !== "") ? item.salePrice : item.price);
@@ -907,11 +882,10 @@
 
         let liveOrders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
         liveOrders.unshift(newOrder);
-
         localStorage.setItem('aloroba_orders', JSON.stringify(liveOrders));
 
         cart = [];
-        updateCartUI();
+        syncAndSaveCart(); // تفريغ السلة وتحديثها في الذاكرة والسحابة بعد الطلب
         closeModal('cartModal');
 
         if(confirm("🎉 تم إرسال الطلب بنجاح إلى لوحة التحكم! هل تريد الانتقال إلى 'لوحة التحكم' لمشاهدته الآن؟")) {
