@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - العروبة أونلاين</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-green: #1b4d2e;
+            --accent-green: #68a633;
+            --light-bg: #f3f4f6;
+            --shadow-card: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+        body { background-color: var(--light-bg); color: #1f2937; padding: 12px; padding-bottom: 50px; }
+
+        .dashboard-container { max-width: 480px; margin: 0 auto; background: white; border-radius: 20px; padding: 15px; box-shadow: var(--shadow-card); }
+        
+        .dash-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 15px; }
+        .dash-header h1 { font-size: 0.95rem; color: var(--primary-green); font-weight: 900; }
+        .back-btn { background: #e5e7eb; color: #374151; padding: 5px 12px; border-radius: 8px; text-decoration: none; font-size: 0.7rem; font-weight: 700; }
+
+        .sales-summary-box { background: linear-gradient(135deg, #1b4d2e, #2e6930); color: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: bold; }
+        
+        .section-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+        .section-header-toggle { font-size: 0.85rem; color: var(--primary-green); font-weight: 800; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+        .section-content { margin-top: 10px; display: none; }
+
+        .form-group { margin-bottom: 8px; }
+        .form-group label { display: block; font-size: 0.7rem; font-weight: 700; margin-bottom: 3px; color: #4b5563; }
+        .form-control { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; outline: none; background: white; }
+        .form-control:focus { border-color: var(--accent-green); }
+
+        .categories-checkbox-container {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 8px;
+            background: white;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 4px;
+            font-size: 0.65rem;
+            padding: 5px 6px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #374151;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .checkbox-item input { accent-color: var(--primary-green); width: 13px; height: 13px; cursor: pointer; flex-shrink: 0; }
+
+        .file-upload-box { display: flex; align-items: center; gap: 8px; }
+        .camera-btn { background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; flex: 1; }
+
+        .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 9px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; margin-top: 5px; }
+        .product-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+        .btn-delete { background: #ef4444; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; }
+        .btn-edit { background: #3b82f6; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; }
+
+        .list-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 0.7rem; }
+        #adminCategoriesList { max-height: 220px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px; background: #fff; margin-top: 10px; }
+
+        .category-group-box { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
+        .category-group-title { font-size: 0.8rem; font-weight: 900; color: var(--primary-green); border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 8px; display: flex; align-items: center; cursor: pointer; user-select: none; }
+        .category-toggle-badge { margin-right: auto; font-size: 0.7rem; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; color: #334155; font-weight: bold; }
+        
+        .product-card-container { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+        .product-mini-row { display: flex; justify-content: space-between; align-items: center; padding: 8px; font-size: 0.7rem; gap: 8px; }
+        .product-mini-info { display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; }
+        .product-mini-thumb { width: 32px; height: 32px; object-fit: contain; background: white; border-radius: 4px; border: 1px solid #ddd; padding: 2px; flex-shrink: 0; }
+        .inline-edit-form { background: #eff6ff; border-top: 1px dashed #bfdbfe; padding: 10px; display: none; }
+        .preview-thumb { width: 45px; height: 45px; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 6px; background: white; padding: 2px; }
+        .toggle-arrow { font-size: 0.75rem; transition: transform 0.2s; }
+        
+        .order-card { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 0.75rem; }
+        .order-header { display: flex; justify-content: space-between; font-weight: bold; color: var(--primary-green); border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; }
+        .order-action-btns { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+        .btn-call { background: #2563eb; color: white; text-decoration: none; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; display: inline-flex; align-items: center; gap: 3px; }
+        .btn-status { background: #16a34a; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; cursor: pointer; }
+        
+        /* جدول الأرشيف الإكسل */
+        .archive-table-wrapper { width: 100%; overflow-x: auto; margin-top: 8px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; }
+        .archive-table { width: 100%; border-collapse: collapse; font-size: 0.65rem; text-align: right; white-space: nowrap; }
+        .archive-table th, .archive-table td { border-bottom: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; padding: 6px 8px; }
+        .archive-table th { background: var(--primary-green); color: white; font-weight: bold; }
+        .archive-table tr:nth-child(even) { background: #f8fafc; }
+        .archive-table tr:hover { background: #f1f5f9; }
+
+        .banner-slide-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+    </style>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
+            authDomain: "alorobaonline.firebaseapp.com",
+            projectId: "alorobaonline",
+            storageBucket: "alorobaonline.firebasestorage.app",
+            messagingSenderId: "880642361344",
+            appId: "1:880642361344:web:9dddec05f81125f0fc30e5",
+            measurementId: "G-NL9CS2135V"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.collection = collection;
+        window.getDocs = getDocs;
+        window.addDoc = addDoc;
+        window.updateDoc = updateDoc;
+        window.deleteDoc = deleteDoc;
+        window.doc = doc;
+        window.setDoc = setDoc;
+
+        window.dispatchEvent(new Event('firebase-ready'));
+    </script>
+</head>
+<body>
+
+<div class="dashboard-container">
+    <div class="dash-header">
+        <h1>⚙️ لوحة التحكم - العروبة أونلاين</h1>
+        <a href="index.html" class="back-btn">← المتجر الرئيسي</a>
+    </div>
+
+    <!-- زر الانتقال السريع لشاشة المطبخ والطلبات الواردة -->
+    <a href="kitchen.html" target="_blank" style="display: block; text-align: center; background: var(--accent-green); color: white; padding: 10px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 0.85rem; margin-bottom: 12px; box-shadow: var(--shadow-card);">
+        🍳 فتح شاشة المطبخ والطلبات الواردة (مباشر)
+    </a>
+
+    <!-- ملخص المبيعات -->
+    <div class="sales-summary-box">
+        <div>
+            <div style="font-size: 0.65rem; opacity: 0.85;">إجمالي المبيعات المؤكدة</div>
+            <div id="totalSalesAmount" style="font-size: 1.1rem;">0.00 ₪</div>
+        </div>
+        <div style="text-align: left;">
+            <div style="font-size: 0.65rem; opacity: 0.85;">الطلبات الجديدة</div>
+            <div id="newOrdersCountBadge" style="font-size: 1.1rem;">0</div>
+        </div>
+    </div>
+
+    <!-- 1. إدارة الطلبات الواردة -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('ordersSectionContent', this)">
+            <span>📦 طلبات الزبائن الواردة (<span id="ordersCountTitle">0</span>)</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="ordersSectionContent">
+            <div id="adminOrdersList" style="margin-top: 8px; max-height: 300px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- أرشيف الطلبات المكتملة (بشكل جدول إكسل) -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('archiveSectionContent', this)">
+            <span>📂 أرشيف الطلبات المكتملة (<span id="archiveCountTitle">0</span>)</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="archiveSectionContent">
+            <button class="btn-main" style="background: #059669; margin-bottom: 8px; font-size: 0.75rem;" onclick="exportArchiveToExcel()">📥 تنزيل الأرشيف كملف إكسل (CSV)</button>
+            <div id="adminArchiveList"></div>
+        </div>
+    </div>
+
+    <!-- 2. إضافة منتج جديد -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('addProductSectionContent', this)">
+            <span>➕ إضافة منتج جديد</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="addProductSectionContent">
+            <div class="form-group">
+                <label>اسم المنتج</label>
+                <input type="text" id="newProdName" class="form-control" placeholder="مثال: أرز بسمتي">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div class="form-group">
+                    <label>السعر الأساسي (₪)</label>
+                    <input type="number" id="newProdPrice" class="form-control" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>سعر العرض (اختياري)</label>
+                    <input type="number" id="newProdSalePrice" class="form-control" placeholder="فارغ إذا لم يوجد">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>الوزن / الحجم</label>
+                <input type="text" id="newProdWeight" class="form-control" placeholder="مثال: 5 كجم أو حبة">
+            </div>
+            <div class="form-group">
+                <label>أقسام المنتج (اختر قسم واحد أو أكثر)</label>
+                <div class="categories-checkbox-container" id="newProdCategoriesContainer"></div>
+            </div>
+            <div class="form-group">
+                <label>صورة المنتج (رابط أو رفع من الجهاز)</label>
+                <div class="file-upload-box">
+                    <input type="text" id="newProdImg" class="form-control" placeholder="رابط الصورة أو اختر ملف" style="flex: 2;">
+                    <label class="camera-btn">
+                        📁 اختر صورة
+                        <input type="file" accept="image/*" onchange="handleImageUpload(event, 'newProdImg', 'newProdPreview')">
+                    </label>
+                </div>
+                <img id="newProdPreview" class="preview-thumb" src="" alt="معاينة" style="display: none; margin-top: 5px;">
+            </div>
+            <button class="btn-main" onclick="addNewProduct()">حفظ وإضافة المنتج 🚀</button>
+        </div>
+    </div>
+
+    <!-- 3. إدارة المنتجات وتعديلها -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('manageProductsSectionContent', this)">
+            <span>📋 إدارة وتعديل المنتجات (مقسمة حسب الأقسام)</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="manageProductsSectionContent">
+            <div id="adminGroupedProductsContainer" style="margin-top: 8px;"></div>
+        </div>
+    </div>
+
+    <!-- 4. إضافة وإدارة فئات الأقسام الجديدة -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('categoriesSectionContent', this)">
+            <span>🗂️ إضافة وإدارة الفئات والأقسام الجديدة</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="categoriesSectionContent">
+            <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">إضافة قسم جديد مع إيموجي:</div>
+            <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+                <input type="text" id="newCatName" class="form-control" placeholder="اسم القسم الجديد" style="flex: 2;">
+                <input type="text" id="newCatIcon" class="form-control" placeholder="إيموجي 🏷️" style="flex: 1; text-align: center;">
+            </div>
+            <button class="btn-main" onclick="addNewCategory()">إضافة القسم ➕</button>
+            <div id="adminCategoriesList"></div>
+        </div>
+    </div>
+
+    <!-- 5. تخصيص شرائح البانر المتحركة -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('bannerSectionContent', this)">
+            <span>🎨 تخصيص شرائح البانر المتحركة (Slider)</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="bannerSectionContent">
+            <div id="bannerSlidesContainer"></div>
+            <button class="btn-main" style="background: #059669; margin-bottom: 8px;" onclick="addNewBannerSlide()">➕ إضافة شريحة بانر جديدة</button>
+            <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث شرائح البانر ✨</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let products = [];
+    let categories = [
+        { name: "الكل", icon: "🛍️" }
+    ];
+    let bannerSlides = [];
+    let orders = [];
+
+    window.addEventListener('firebase-ready', async function() {
+        await loadDataFromCloud();
+    });
+
+    async function loadDataFromCloud() {
+        try {
+            const prodSnap = await window.getDocs(window.collection(window.db, "products"));
+            products = [];
+            prodSnap.forEach(docSnap => {
+                products.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
+            const catSnap = await window.getDocs(window.collection(window.db, "categories"));
+            if(!catSnap.empty) {
+                categories = [{ name: "الكل", icon: "🛍️" }];
+                catSnap.forEach(docSnap => {
+                    let catData = docSnap.data();
+                    if(catData.name && catData.name !== "الكل") {
+                        categories.push(catData);
+                    }
+                });
+            }
+
+            const ordSnap = await window.getDocs(window.collection(window.db, "orders"));
+            orders = [];
+            ordSnap.forEach(docSnap => {
+                orders.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
+            renderNewProdCategoriesCheckboxes();
+            renderAdminGroupedProducts();
+            renderAdminCategoriesList();
+            initBannerForm();
+            renderAdminOrders();
+            updateSalesSummary();
+        } catch (e) {
+            console.error("خطأ في جلب البيانات من السحابة: ", e);
+        }
+    }
+
+    function toggleSection(contentId, headerElem) {
+        const content = document.getElementById(contentId);
+        const arrow = headerElem.querySelector('.toggle-arrow');
+        if(content.style.display === 'block') {
+            content.style.display = 'none';
+            arrow.style.transform = 'rotate(0deg)';
+        } else {
+            content.style.display = 'block';
+            arrow.style.transform = 'rotate(180deg)';
+        }
+    }
+
+    function handleImageUpload(event, inputId, previewId) {
+        const file = event.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800;
+                const MAX_HEIGHT = 800;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                document.getElementById(inputId).value = dataUrl;
+                const preview = document.getElementById(previewId);
+                if(preview) {
+                    preview.src = dataUrl;
+                    preview.style.display = 'block';
+                }
+            }
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function renderNewProdCategoriesCheckboxes(selectedCategories = []) {
+        const container = document.getElementById('newProdCategoriesContainer');
+        if(!container) return;
+        container.innerHTML = '';
+        if(categories.length <= 1) {
+            container.innerHTML = '<span style="font-size:0.7rem; color:#888;">لا توجد فئات مضافة بعد</span>';
+            return;
+        }
+        categories.forEach(cat => {
+            if(cat.name === "الكل") return;
+            const isChecked = selectedCategories.includes(cat.name) ? 'checked' : '';
+            container.innerHTML += `
+                <label class="checkbox-item">
+                    <input type="checkbox" name="prodCatCheckbox" value="${cat.name}" ${isChecked}>
+                    ${cat.icon} ${cat.name}
+                </label>
+            `;
+        });
+    }
+
+    async function addNewProduct() {
+        const name = document.getElementById('newProdName').value.trim();
+        const priceInput = document.getElementById('newProdPrice').value.trim();
+        const price = priceInput !== "" ? parseFloat(priceInput) : 0;
+        let salePrice = document.getElementById('newProdSalePrice').value.trim();
+        const weight = document.getElementById('newProdWeight').value.trim();
+        const img = document.getElementById('newProdImg').value.trim();
+
+        let selectedCats = [];
+        document.querySelectorAll('input[name="prodCatCheckbox"]:checked').forEach(cb => {
+            selectedCats.push(cb.value);
+        });
+
+        // تم إلغاء أي قيود إجبارية على الحقول
+
+        const newProd = {
+            name,
+            price,
+            salePrice: salePrice !== "" ? parseFloat(salePrice) : "",
+            weight,
+            img,
+            categories: selectedCats.length > 0 ? selectedCats : ["عام"]
+        };
+
+        try {
+            const docRef = await window.addDoc(window.collection(window.db, "products"), newProd);
+            newProd.id = docRef.id;
+            products.push(newProd);
+            renderAdminGroupedProducts();
+
+            document.getElementById('newProdName').value = '';
+            document.getElementById('newProdPrice').value = '';
+            document.getElementById('newProdSalePrice').value = '';
+            document.getElementById('newProdWeight').value = '';
+            document.getElementById('newProdImg').value = '';
+            document.getElementById('newProdPreview').style.display = 'none';
+            renderNewProdCategoriesCheckboxes();
+
+            alert("تم إضافة المنتج بنجاح للسحابة! 🚀");
+        } catch (e) {
+            console.error("خطأ الحفظ:", e);
+            alert("حدث خطأ أثناء الحفظ بالسحابة");
+        }
+    }
+
+    function renderAdminGroupedProducts() {
+        const container = document.getElementById('adminGroupedProductsContainer');
+        if(!container) return;
+        container.innerHTML = '';
+
+        if(products.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 10px;">لا توجد منتجات حالياً</p>';
+            return;
+        }
+
+        let catGroups = {};
+        categories.forEach(c => {
+            if(c.name !== "الكل") catGroups[c.name] = [];
+        });
+        catGroups["أخرى غير مصنفة"] = [];
+
+        products.forEach(p => {
+            let placed = false;
+            if(p.categories && Array.isArray(p.categories)) {
+                p.categories.forEach(cName => {
+                    if(catGroups[cName]) {
+                        catGroups[cName].push(p);
+                        placed = true;
+                    }
+                });
+            }
+            if(!placed) catGroups["أخرى غير مصنفة"].push(p);
+        });
+
+        Object.keys(catGroups).forEach(catName => {
+            let list = catGroups[catName];
+            if(list.length === 0) return;
+
+            let groupHtml = `
+                <div class="category-group-box">
+                    <div class="category-group-title" onclick="toggleCategoryGroup(this)">
+                        <span>🏷️ ${catName}</span>
+                        <span class="category-toggle-badge">${list.length} منتج ▾</span>
+                    </div>
+                    <div class="category-group-items" style="display: none; margin-top: 6px;">
+            `;
+
+            list.forEach(p => {
+                let activePrice = (p.salePrice !== undefined && p.salePrice !== "") ? `${p.salePrice}₪ (عرض)` : `${p.price}₪`;
+                let catsText = p.categories ? p.categories.join(', ') : '';
+
+                groupHtml += `
+                    <div class="product-card-container">
+                        <div class="product-mini-row">
+                            <div class="product-mini-info">
+                                <img src="${p.img}" class="product-mini-thumb" onerror="this.src='https://i.ibb.co/3m1K2wP/basket.png'">
+                                <div>
+                                    <div style="font-weight: 800;">${p.name}</div>
+                                    <div style="color: #6b7280; font-size: 0.65rem;">السعر: ${activePrice} | ${p.weight || 'حبة'}</div>
+                                    <div style="color: #16a34a; font-size: 0.6rem;">الأقسام: ${catsText}</div>
+                                </div>
+                            </div>
+                            <div class="product-actions">
+                                <button class="btn-edit" onclick="toggleEditForm('${p.id}')">تعديل ✏️</button>
+                                <button class="btn-delete" onclick="deleteProduct('${p.id}')">حذف 🗑️</button>
+                            </div>
+                        </div>
+                        <div class="inline-edit-form" id="editForm_${p.id}">
+                            <div class="form-group">
+                                <label>اسم المنتج</label>
+                                <input type="text" id="edit_name_${p.id}" class="form-control" value="${p.name}">
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                                <div class="form-group">
+                                    <label>السعر الأساسي</label>
+                                    <input type="number" id="edit_price_${p.id}" class="form-control" value="${p.price}">
+                                </div>
+                                <div class="form-group">
+                                    <label>سعر العرض</label>
+                                    <input type="number" id="edit_saleprice_${p.id}" class="form-control" value="${p.salePrice !== undefined ? p.salePrice : ''}">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>الوزن</label>
+                                <input type="text" id="edit_weight_${p.id}" class="form-control" value="${p.weight || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label>رابط الصورة</label>
+                                <input type="text" id="edit_img_${p.id}" class="form-control" value="${p.img}">
+                            </div>
+                            <div class="form-group">
+                                <label>أقسام المنتج</label>
+                                <div class="categories-checkbox-container" id="editCatsContainer_${p.id}"></div>
+                            </div>
+                            <button class="btn-main" style="background: #3b82f6; padding: 6px; font-size: 0.7rem;" onclick="saveEditedProduct('${p.id}')">حفظ التعديلات ✓</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            groupHtml += `</div></div>`;
+            container.innerHTML += groupHtml;
+        });
+    }
+
+    function toggleCategoryGroup(headerElem) {
+        const items = headerElem.nextElementSibling;
+        items.style.display = items.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function toggleEditForm(id) {
+        const form = document.getElementById(`editForm_${id}`);
+        if(form.style.display === 'block') {
+            form.style.display = 'none';
+        } else {
+            form.style.display = 'block';
+            let p = products.find(prod => prod.id == id);
+            if(p) renderEditCategoriesCheckboxes(id, p.categories || []);
+        }
+    }
+
+    function renderEditCategoriesCheckboxes(prodId, currentCats) {
+        const container = document.getElementById(`editCatsContainer_${prodId}`);
+        if(!container) return;
+        container.innerHTML = '';
+        categories.forEach(cat => {
+            if(cat.name === "الكل") return;
+            const isChecked = currentCats.includes(cat.name) ? 'checked' : '';
+            container.innerHTML += `
+                <label class="checkbox-item">
+                    <input type="checkbox" name="editCat_${prodId}" value="${cat.name}" ${isChecked}>
+                    ${cat.icon} ${cat.name}
+                </label>
+            `;
+        });
+    }
+
+    async function saveEditedProduct(localId) {
+        let p = products.find(prod => prod.id == localId);
+        if(!p) return;
+
+        p.name = document.getElementById(`edit_name_${localId}`).value.trim();
+        p.price = parseFloat(document.getElementById(`edit_price_${localId}`).value) || 0;
+        let sp = document.getElementById(`edit_saleprice_${localId}`).value.trim();
+        p.salePrice = sp !== "" ? parseFloat(sp) : "";
+        p.weight = document.getElementById(`edit_weight_${localId}`).value.trim();
+        p.img = document.getElementById(`edit_img_${localId}`).value.trim();
+
+        let selectedCats = [];
+        document.querySelectorAll(`input[name="editCat_${localId}"]:checked`).forEach(cb => {
+            selectedCats.push(cb.value);
+        });
+        p.categories = selectedCats.length > 0 ? selectedCats : ["عام"];
+
+        try {
+            await window.updateDoc(window.doc(window.db, "products", localId), {
+                name: p.name,
+                price: p.price,
+                salePrice: p.salePrice,
+                weight: p.weight,
+                img: p.img,
+                categories: p.categories
+            });
+            renderAdminGroupedProducts();
+            alert("تم تحديث المنتج بنجاح في السحابة!");
+        } catch(e) {
+            alert("خطأ أثناء التحديث");
+        }
+    }
+
+    async function deleteProduct(id) {
+        if(confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
+            try {
+                await window.deleteDoc(window.doc(window.db, "products", id));
+                products = products.filter(p => p.id != id);
+                renderAdminGroupedProducts();
+            } catch(e) {
+                alert("خطأ أثناء الحذف");
+            }
+        }
+    }
+
+    function renderAdminCategoriesList() {
+        const container = document.getElementById('adminCategoriesList');
+        if(!container) return;
+        container.innerHTML = '';
+        if(categories.length <= 1) {
+            container.innerHTML = '<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 10px;">لا توجد فئات مضافة</p>';
+            return;
+        }
+        categories.forEach((cat) => {
+            if(cat.name === "الكل") return;
+            container.innerHTML += `
+                <div class="list-item">
+                    <div><b>${cat.icon}</b> ${cat.name}</div>
+                    <button class="btn-delete" onclick="deleteCategory('${cat.name}')">حذف 🗑️</button>
+                </div>
+            `;
+        });
+    }
+
+    async function addNewCategory() {
+        const name = document.getElementById('newCatName').value.trim();
+        const icon = document.getElementById('newCatIcon').value.trim() || "📦";
+
+        if(!name) {
+            alert("الرجاء إدخال اسم القسم");
+            return;
+        }
+
+        if(categories.some(c => c.name === name)) {
+            alert("هذا القسم موجود مسبقاً");
+            return;
+        }
+
+        const newCat = { name, icon };
+        
+        try {
+            await window.setDoc(window.doc(window.db, "categories", name), newCat);
+            categories.push(newCat);
+            renderAdminCategoriesList();
+            renderNewProdCategoriesCheckboxes();
+
+            document.getElementById('newCatName').value = '';
+            document.getElementById('newCatIcon').value = '';
+            alert("تم إضافة القسم بنجاح للسحابة! 🚀");
+        } catch(e) {
+            alert("خطأ في حفظ القسم");
+        }
+    }
+
+    async function deleteCategory(catName) {
+        if(confirm(`هل أنت متأكد من حذف القسم "${catName}"؟`)) {
+            try {
+                await window.deleteDoc(window.doc(window.db, "categories", catName));
+                categories = categories.filter(c => c.name !== catName);
+                renderAdminCategoriesList();
+                renderNewProdCategoriesCheckboxes();
+                renderAdminGroupedProducts();
+                alert("تم حذف القسم بنجاح!");
+            } catch(e) {
+                alert("خطأ أثناء الحذف");
+            }
+        }
+    }
+
+    function initBannerForm() {
+        const container = document.getElementById('bannerSlidesContainer');
+        if(!container) return;
+        container.innerHTML = '';
+        bannerSlides.forEach((slide, index) => {
+            container.innerHTML += `
+                <div class="banner-slide-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <span style="font-weight: bold; font-size: 0.75rem; color: var(--primary-green);">الشريحة رقم ${index + 1}</span>
+                        <button class="btn-delete" type="button" onclick="removeBannerSlide(${index})">حذف ✕</button>
+                    </div>
+                    <div class="form-group">
+                        <label>نص الشارة</label>
+                        <input type="text" id="bannerTag_${index}" class="form-control" value="${slide.tag || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>العنوان</label>
+                        <input type="text" id="bannerTitle_${index}" class="form-control" value="${slide.title || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>صورة البانر</label>
+                        <input type="text" id="bannerImg_${index}" class="form-control" value="${slide.img || ''}">
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function addNewBannerSlide() {
+        collectCurrentBannerData();
+        bannerSlides.push({ tag: "عروض جديدة", title: "تسوق أفضل المنتجات", img: "https://i.ibb.co/3m1K2wP/basket.png" });
+        initBannerForm();
+    }
+
+    function removeBannerSlide(index) {
+        collectCurrentBannerData();
+        bannerSlides.splice(index, 1);
+        initBannerForm();
+    }
+
+    function collectCurrentBannerData() {
+        bannerSlides = [];
+        let index = 0;
+        while(true) {
+            let tagInput = document.getElementById(`bannerTag_${index}`);
+            let titleInput = document.getElementById(`bannerTitle_${index}`);
+            let imgInput = document.getElementById(`bannerImg_${index}`);
+            if(!tagInput) break;
+            bannerSlides.push({ tag: tagInput.value.trim(), title: titleInput.value.trim(), img: imgInput.value.trim() });
+            index++;
+        }
+    }
+
+    async function saveBannerSettings() {
+        collectCurrentBannerData();
+        try {
+            await window.setDoc(window.doc(window.db, "settings", "banner"), { slides: bannerSlides });
+            alert("تم حفظ شرائح البانر في السحابة بنجاح! ✨");
+        } catch(e) {
+            alert("خطأ في حفظ البانر");
+        }
+    }
+
+    // عرض الطلبات الواردة وأرشيف الإكسل المكتمل
+    function renderAdminOrders() {
+        const container = document.getElementById('adminOrdersList');
+        const archiveContainer = document.getElementById('adminArchiveList');
+        if(!container || !archiveContainer) return;
+
+        const activeOrders = orders.filter(o => o.status !== "مكتمل");
+        const archivedOrders = orders.filter(o => o.status === "مكتمل");
+
+        document.getElementById('ordersCountTitle').innerText = activeOrders.length;
+        document.getElementById('archiveCountTitle').innerText = archivedOrders.length;
+        document.getElementById('newOrdersCountBadge').innerText = activeOrders.filter(o => !o.status || o.status === "جديد").length;
+
+        // 1. عرض الطلبات الواردة النشطة
+        if(activeOrders.length === 0) {
+            container.innerHTML = '<p style="color: #666; text-align: center; font-size: 0.75rem;">لا توجد طلبات واردة حالياً.</p>';
+        } else {
+            let html = "";
+            activeOrders.forEach((ord, index) => {
+                let itemsStr = "";
+                if(ord.items) {
+                    ord.items.forEach(it => {
+                        itemsStr += `▪️ ${it.name} (${it.price} ₪)<br>`;
+                    });
+                }
+                html += `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <span>طلب #${ord.id || (index+1)}</span>
+                            <span>${ord.status || 'جديد'}</span>
+                        </div>
+                        <div><b>الزبون:</b> ${ord.customerName}</div>
+                        <div><b>الهاتف:</b> ${ord.customerPhone}</div>
+                        <div><b>العنوان:</b> ${ord.customerAddress}</div>
+                        <div style="margin: 4px 0;"><b>المنتجات:<br></b> ${itemsStr}</div>
+                        <div style="font-weight: bold;">المجموع: ${ord.total || 0} ₪</div>
+                        <div class="order-action-btns">
+                            <a href="tel:${ord.customerPhone}" class="btn-call">📞 اتصال</a>
+                            <button class="btn-status" onclick="updateOrderStatus('${ord.id}', 'مكتمل')">تم ✓</button>
+                            <button class="btn-delete" onclick="deleteOrder('${ord.id}')">حذف ✕</button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // 2. عرض أرشيف الطلبات المكتملة على شكل جدول إكسل مرتب
+        if(archivedOrders.length === 0) {
+            archiveContainer.innerHTML = '<p style="color: #666; text-align: center; font-size: 0.75rem; padding: 10px;">الأرشيف فارغ.</p>';
+        } else {
+            let tableHtml = `
+                <div class="archive-table-wrapper">
+                    <table class="archive-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>اسم الزبون</th>
+                                <th>رقم الهاتف</th>
+                                <th>العنوان (الحارة والبيت)</th>
+                                <th>السعر الإجمالي</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            archivedOrders.forEach((ord, index) => {
+                tableHtml += `
+                    <tr>
+                        <td style="font-weight: bold;">${index + 1}</td>
+                        <td>${ord.customerName || ''}</td>
+                        <td>${ord.customerPhone || ''}</td>
+                        <td>${ord.customerAddress || ''}</td>
+                        <td style="font-weight: bold; color: #16a34a;">${ord.total || 0} ₪</td>
+                        <td>
+                            <button class="btn-status" style="background: #3b82f6; padding: 2px 6px; font-size: 0.6rem;" onclick="updateOrderStatus('${ord.id}', 'جديد')">استعادة ↩</button>
+                            <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteOrder('${ord.id}')">حذف ✕</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            archiveContainer.innerHTML = tableHtml;
+        }
+    }
+
+    // دالة لتنزيل الأرشيف كملف إكسل CSV متوافق تماماً
+    function exportArchiveToExcel() {
+        const archivedOrders = orders.filter(o => o.status === "مكتمل");
+        if(archivedOrders.length === 0) {
+            alert("لا توجد طلبات في الأرشيف لتنزيلها.");
+            return;
+        }
+
+        let csvContent = "\uFEFFاسم الزبون,رقم الهاتف,العنوان,السعر الإجمالي (₪)\n";
+        archivedOrders.forEach(ord => {
+            let name = `"${(ord.customerName || '').replace(/"/g, '""')}"`;
+            let phone = `"${(ord.customerPhone || '').replace(/"/g, '""')}"`;
+            let address = `"${(ord.customerAddress || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`;
+            let total = ord.total || 0;
+            csvContent += `${name},${phone},${address},${total}\n`;
+        });
+
+        let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement('a');
+        a.href = url;
+        a.download = 'Aloroba_Archive_Orders.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    async function updateOrderStatus(id, status) {
+        let o = orders.find(ord => ord.id == id);
+        if(o) {
+            o.status = status;
+            try {
+                await window.updateDoc(window.doc(window.db, "orders", id), { status: status });
+                renderAdminOrders();
+                updateSalesSummary();
+            } catch(e) {
+                alert("خطأ في تحديث الحالة");
+            }
+        }
+    }
+
+    async function deleteOrder(id) {
+        if(confirm("هل أنت متأكد من حذف هذا الطلب؟")) {
+            try {
+                await window.deleteDoc(window.doc(window.db, "orders", id));
+                orders = orders.filter(ord => ord.id != id);
+                renderAdminOrders();
+                updateSalesSummary();
+            } catch(e) {
+                alert("خطأ أثناء الحذف");
+            }
+        }
+    }
+
+    function updateSalesSummary() {
+        let total = 0;
+        orders.forEach(o => { if(o.status === "مكتمل" || !o.status) total += parseFloat(o.total || 0); });
+        const elem = document.getElementById('totalSalesAmount');
+        if(elem) elem.innerText = total.toFixed(2) + " ₪";
+    }
+</script>
+</body>
+</html>
