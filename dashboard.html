@@ -209,7 +209,7 @@
                     <input type="text" id="catColor" class="form-control" value="#2e6930">
                 </div>
             </div>
-            <button class="btn-main" onclick="addCategory()">إضافة فئة جديدة ➕</button>
+            <button class="btn-main" onclick="addCategory(event)">إضافة فئة جديدة ➕</button>
             <div style="margin-top: 10px;" id="adminCategoriesList"></div>
         </div>
     </div>
@@ -837,11 +837,18 @@
         });
     }
 
-    function addCategory() {
-        const name = document.getElementById('catName').value.trim();
-        const icon = document.getElementById('catIcon').value.trim();
-        const bg = document.getElementById('catBg').value.trim();
-        const color = document.getElementById('catColor').value.trim();
+    function addCategory(event) {
+        if (event) event.preventDefault(); // منع إعادة تحميل الصفحة الافتراضي
+
+        const nameInput = document.getElementById('catName');
+        const iconInput = document.getElementById('catIcon');
+        const bgInput = document.getElementById('catBg');
+        const colorInput = document.getElementById('catColor');
+
+        const name = nameInput.value.trim();
+        const icon = iconInput.value.trim();
+        const bg = bgInput.value.trim();
+        const color = colorInput.value.trim();
 
         if(!name) {
             alert("الرجاء إدخال اسم الفئة.");
@@ -853,14 +860,26 @@
             return;
         }
 
-        let cats = [...categories];
-        cats.push({ name, icon: icon || '📦', bg: bg || '#eaf3df', color: color || '#2e6930' });
-        db.ref('aloroba/categories').set(cats, (error) => {
-            if(!error) {
-                document.getElementById('catName').value = '';
-                document.getElementById('catIcon').value = '';
-                alert("تمت إضافة الفئة سحابياً بنجاح!");
-            }
+        db.ref('aloroba/categories').once('value', (snapshot) => {
+            let cats = snapshot.val() || [];
+            cats = Array.isArray(cats) ? cats : Object.values(cats);
+            
+            cats.push({ 
+                name: name, 
+                icon: icon || '📦', 
+                bg: bg || '#eaf3df', 
+                color: color || '#2e6930' 
+            });
+            
+            db.ref('aloroba/categories').set(cats, (error) => {
+                if(!error) {
+                    nameInput.value = '';
+                    if (iconInput) iconInput.value = '';
+                    alert("تمت إضافة الفئة سحابياً بنجاح!");
+                } else {
+                    alert("حدث خطأ أثناء الحفظ، يرجى المحاولة مجدداً.");
+                }
+            });
         });
     }
 
