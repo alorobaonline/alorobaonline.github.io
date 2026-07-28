@@ -183,7 +183,7 @@
     let products = [];
     let categories = [{ name: "الكل", icon: "🛍️" }];
     let bannerSlides = [{ tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "https://cdn-icons-png.flaticon.com/512/3081/3081840.png" }];
-    let layoutData = { firstSection: "عروض", secondSection: "ألبان", thirdSection: "معلبات" };
+    let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
     let cart = [];
     let currentCategory = "الكل";
 
@@ -201,9 +201,12 @@
 
             const catSnap = await window.getDocs(window.collection(window.db, "categories"));
             if(!catSnap.empty) {
-                categories = [];
+                categories = [{ name: "الكل", icon: "🛍️" }];
                 catSnap.forEach(docSnap => {
-                    categories.push(docSnap.data());
+                    let catData = docSnap.data();
+                    if(catData.name && catData.name !== "الكل") {
+                        categories.push(catData);
+                    }
                 });
             }
 
@@ -254,6 +257,17 @@
         renderMainStoreContent();
     }
 
+    // دالة مساعدة للتحقق من انتماء المنتج للقسم (تدعم المصفوفات والنصوص)
+    function productBelongsToCategory(p, catName) {
+        if (!p.categories) return false;
+        if (Array.isArray(p.categories)) {
+            return p.categories.includes(catName);
+        } else if (typeof p.categories === 'string') {
+            return p.categories.includes(catName);
+        }
+        return false;
+    }
+
     function renderMainStoreContent() {
         const container = document.getElementById('storeMainContent');
         container.innerHTML = '';
@@ -264,7 +278,7 @@
         if(query !== "" || currentCategory !== "الكل") {
             let filtered = products.filter(p => {
                 let matchesQuery = p.name.toLowerCase().includes(query);
-                let matchesCat = currentCategory === "الكل" || (p.categories && p.categories.includes(currentCategory));
+                let matchesCat = currentCategory === "الكل" || productBelongsToCategory(p, currentCategory);
                 return matchesQuery && matchesCat;
             });
 
@@ -281,14 +295,16 @@
             return;
         }
 
-        // العرض الافتراضي: عرض الأقسام بشكل أفقي (يمين ويسار)
-        let sectionsToShow = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection];
-        
+        // العرض الافتراضي: عرض الأقسام بشكل أفقي
+        let sectionsToShow = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection].filter(Boolean);
+        let displayedCount = 0;
+
+        // أولاً: محاولة عرض الأقسام المحددة في لوحة التحكم
         sectionsToShow.forEach(secName => {
-            if(!secName) return;
-            let secProds = products.filter(p => p.categories && p.categories.includes(secName));
+            let secProds = products.filter(p => productBelongsToCategory(p, secName));
             if(secProds.length === 0) return;
 
+            displayedCount++;
             let catObj = categories.find(c => c.name === secName);
             let icon = catObj ? catObj.icon : '🏷️';
 
@@ -308,6 +324,29 @@
             secHtml += `</div></div>`;
             container.innerHTML += secHtml;
         });
+
+        // ثانياً: نظام احتياطي (Fallback) - إذا لم يتم تحديد أقسام أفقية أو لم تظهر، اعرض جميع الفئات التي تحتوي على منتجات تلقائياً
+        if(displayedCount === 0 && products.length > 0) {
+            categories.forEach(cat => {
+                if(cat.name === "الكل") return;
+                let secProds = products.filter(p => productBelongsToCategory(p, cat.name));
+                if(secProds.length === 0) return;
+
+                let secHtml = `
+                    <div class="horizontal-section">
+                        <div class="horizontal-section-title">
+                            <span>${cat.icon || '🏷️'} ${cat.name}</span>
+                            <span style="font-size: 0.65rem; color: #6b7280; cursor: pointer;" onclick="selectCategory('${cat.name}')">عرض الكل ←</span>
+                        </div>
+                        <div class="products-horizontal-scroll">
+                `;
+                secProds.forEach(p => {
+                    secHtml += createProductCardHtml(p);
+                });
+                secHtml += `</div></div>`;
+                container.innerHTML += secHtml;
+            });
+        }
     }
 
     function createProductCardHtml(p) {
