@@ -112,7 +112,7 @@
         .btn-call { background: #2563eb; color: white; text-decoration: none; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; display: inline-flex; align-items: center; gap: 3px; }
         .btn-status { background: #16a34a; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; cursor: pointer; }
         
-        .banner-slide-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+        .banner-slide-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 10px; position: relative; }
     </style>
 </head>
 <body onload="initDashboard()">
@@ -246,9 +246,10 @@
             <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="bannerSectionContent">
-            <div style="font-size: 0.7rem; color: #666; margin-bottom: 8px;">يمكنك التحكم بالشرائح التي تظهر في أعلى المتجر:</div>
+            <div style="font-size: 0.7rem; color: #666; margin-bottom: 8px;">يمكنك تعديل الشرائح الحالية، حذف شريحة، أو إضافة شريحة جديدة لمتجرك:</div>
             <div id="bannerSlidesContainer"></div>
-            <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث شرائح البانر ✨</button>
+            <button class="btn-main" style="background: #059669; margin-bottom: 8px;" onclick="addNewBannerSlide()">➕ إضافة شريحة بانر جديدة</button>
+            <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث شرائح البانر في المتجر ✨</button>
         </div>
     </div>
 </div>
@@ -264,7 +265,7 @@
         { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" }
     ];
     
-    // دعم شرائح متعددة للبانر المتحرك (Slider)
+    // دعم عدد غير محدود من شرائح البانر المتحرك
     let bannerSlides = JSON.parse(localStorage.getItem('aloroba_banner_slides')) || [
         {
             tag: "سوبر ماركت العروبة",
@@ -274,6 +275,11 @@
         {
             tag: "عروض مميزة",
             title: "تخفيضات الكبرى على كافة المنتجات",
+            img: "https://i.ibb.co/3m1K2wP/basket.png"
+        },
+        {
+            tag: "توصيل سريع",
+            title: "أرخص الأسعار لخدمة أهالينا",
             img: "https://i.ibb.co/3m1K2wP/basket.png"
         }
     ];
@@ -599,10 +605,14 @@
     function initBannerForm() {
         const container = document.getElementById('bannerSlidesContainer');
         container.innerHTML = '';
+        
         bannerSlides.forEach((slide, index) => {
             container.innerHTML += `
                 <div class="banner-slide-box">
-                    <div style="font-weight: bold; font-size: 0.75rem; margin-bottom: 5px; color: var(--primary-green);">الشريحة رقم ${index + 1}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <span style="font-weight: bold; font-size: 0.75rem; color: var(--primary-green);">الشريحة رقم ${index + 1}</span>
+                        <button class="btn-delete" type="button" onclick="removeBannerSlide(${index})">حذف الشريحة ✕</button>
+                    </div>
                     <div class="form-group">
                         <label>نص الشارة العلوية</label>
                         <input type="text" id="bannerTag_${index}" class="form-control" value="${slide.tag || ''}">
@@ -627,24 +637,50 @@
         });
     }
 
-    function saveBannerSettings() {
-        bannerSlides = [];
-        // نفترض أن لدينا شريحتين أو نقوم بالمرور عليهما حسب عدد العناصر المعروضة
-        for(let i = 0; i < 2; i++) {
-            let tagInput = document.getElementById(`bannerTag_${i}`);
-            let titleInput = document.getElementById(`bannerTitle_${i}`);
-            let imgInput = document.getElementById(`bannerImg_${i}`);
-            if(tagInput && titleInput && imgInput) {
-                bannerSlides.push({
-                    tag: tagInput.value.trim(),
-                    title: titleInput.value.trim(),
-                    img: imgInput.value.trim()
-                });
-            }
-        }
+    function addNewBannerSlide() {
+        // جمع البيانات الحالية أولاً لكي لا تضيع عند الإضافة
+        collectCurrentBannerData();
+        bannerSlides.push({
+            tag: "عروض جديدة",
+            title: "تسوق أفضل المنتجات الآن",
+            img: "https://i.ibb.co/3m1K2wP/basket.png"
+        });
+        initBannerForm();
+    }
 
+    function removeBannerSlide(index) {
+        if(bannerSlides.length <= 1) {
+            alert("يجب أن تبقى شريحة بانر واحدة على الأقل في المتجر!");
+            return;
+        }
+        collectCurrentBannerData();
+        bannerSlides.splice(index, 1);
+        initBannerForm();
+    }
+
+    function collectCurrentBannerData() {
+        bannerSlides = [];
+        let index = 0;
+        while(true) {
+            let tagInput = document.getElementById(`bannerTag_${index}`);
+            let titleInput = document.getElementById(`bannerTitle_${index}`);
+            let imgInput = document.getElementById(`bannerImg_${index}`);
+            
+            if(!tagInput) break; // توقف إذا انتهت الحقول
+            
+            bannerSlides.push({
+                tag: tagInput.value.trim(),
+                title: titleInput.value.trim(),
+                img: imgInput.value.trim()
+            });
+            index++;
+        }
+    }
+
+    function saveBannerSettings() {
+        collectCurrentBannerData();
         localStorage.setItem('aloroba_banner_slides', JSON.stringify(bannerSlides));
-        alert("تم تحديث شرائح البانر الرئيسي بنجاح! ✨");
+        alert("تم حفظ وتحديث شرائح البانر بنجاح وتطبيقها على المتجر فورياً! ✨");
     }
 
     function initLayoutDropdowns() {
