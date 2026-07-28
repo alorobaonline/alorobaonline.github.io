@@ -425,6 +425,9 @@
                 });
             }
 
+            // تفعيل وإضافة فئة "أخرى غير مصنفة" تلقائياً
+            categories.push({ name: "أخرى غير مصنفة", icon: "📦" });
+
             const layoutDoc = await window.getDoc(window.doc(window.db, "settings", "layout"));
             if(layoutDoc.exists()) layoutData = layoutDoc.data();
 
@@ -473,6 +476,10 @@
     }
 
     function productBelongsToCategory(p, catName) {
+        if (catName === "أخرى غير مصنفة") {
+            return !p.categories || p.categories.length === 0 || p.categories === "أخرى غير مصنفة";
+        }
+        
         if (!p.categories) return false;
         if (Array.isArray(p.categories)) {
             return p.categories.includes(catName);
