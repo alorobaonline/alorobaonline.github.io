@@ -19,7 +19,8 @@
         
         .store-header { background: var(--primary-green); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
         .store-title { font-size: 1.1rem; font-weight: 900; }
-        .admin-link { background: rgba(255,255,255,0.2); color: white; padding: 5px 10px; border-radius: 8px; text-decoration: none; font-size: 0.7rem; font-weight: bold; }
+        .header-actions { display: flex; gap: 6px; align-items: center; }
+        .admin-link { background: rgba(255,255,255,0.2); color: white; padding: 5px 10px; border-radius: 8px; text-decoration: none; font-size: 0.7rem; font-weight: bold; cursor: pointer; border: none; }
 
         .search-bar-container { padding: 12px 15px; background: white; }
         .search-input { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.8rem; outline: none; background: #f8fafc; }
@@ -37,11 +38,10 @@
         .cat-chip { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; cursor: pointer; color: #334155; display: flex; align-items: center; gap: 4px; }
         .cat-chip.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
 
-        /* أقسام العرض الأفقي للمتجر (يمين وشمال) */
+        /* أقسام العرض الأفقي للمتجر */
         .horizontal-section { margin-bottom: 20px; padding: 0 15px; }
         .horizontal-section-title { font-size: 0.9rem; font-weight: 900; color: var(--primary-green); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* التمرير الأفقي السلس للمنتجات يمين ويسار */
         .products-horizontal-scroll { 
             display: flex; 
             gap: 10px; 
@@ -72,14 +72,12 @@
         .product-name { font-size: 0.75rem; font-weight: 800; color: #1f2937; margin-bottom: 4px; height: 26px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         .product-weight { font-size: 0.65rem; color: #6b7280; margin-bottom: 4px; }
         
-        /* حالات السعر (في الأسفل افتراضياً، أو في الأعلى عند ظهور شريط التحكم) */
         .product-price-row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
         .product-price-top { margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
         
         .price-text { font-size: 0.85rem; font-weight: 900; color: var(--primary-green); }
         .old-price { font-size: 0.65rem; color: #9ca3af; text-decoration: line-through; }
         
-        /* زر الإضافة السريع (+) وزر التحكم الكامل */
         .add-to-cart-btn { background: var(--accent-green); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 1rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         
         .quantity-control-full {
@@ -94,38 +92,31 @@
             height: 32px;
             margin-top: auto;
         }
-        .quantity-control-full .qty-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .quantity-control-full .qty-display {
-            font-weight: bold;
-            font-size: 0.85rem;
-            text-align: center;
-        }
+        .quantity-control-full .qty-btn { background: none; border: none; color: white; font-size: 16px; cursor: pointer; font-weight: bold; }
+        .quantity-control-full .qty-display { font-weight: bold; font-size: 0.85rem; text-align: center; }
 
-        /* شبكة المنتجات العادية (عند البحث أو اختيار قسم معين) */
         .products-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 15px; }
         .products-grid .product-card { min-width: 100%; max-width: 100%; }
 
-        /* سلة المشتريات السفلية */
+        /* شريط السلة السفلي */
         .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--primary-green); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 16px; border-top-right-radius: 16px; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); z-index: 100; cursor: pointer; }
         
-        /* نافذة السلة / إتمام الطلب */
+        /* النوافذ العائمة (Modals) */
         .cart-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; max-width: 480px; margin: 0 auto; }
-        .cart-modal-content { background: white; width: 100%; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; max-height: 80vh; overflow-y: auto; }
+        .cart-modal-content { background: white; width: 100%; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; max-height: 85vh; overflow-y: auto; }
         .form-control { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; margin-bottom: 8px; outline: none; }
-        .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 800; cursor: pointer; margin-top: 10px; }
+        .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 800; cursor: pointer; margin-top: 5px; }
+        
+        /* تبويبات نافذة الحساب */
+        .profile-tabs { display: flex; gap: 5px; margin-bottom: 12px; background: #f1f5f9; padding: 4px; border-radius: 8px; }
+        .profile-tab { flex: 1; text-align: center; padding: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; border-radius: 6px; color: #64748b; }
+        .profile-tab.active { background: white; color: var(--primary-green); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     </style>
 
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, doc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
@@ -146,6 +137,8 @@
         window.addDoc = addDoc;
         window.doc = doc;
         window.getDoc = getDoc;
+        window.query = query;
+        window.where = where;
 
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
@@ -153,10 +146,13 @@
 <body>
 
 <div class="store-container">
-    <!-- الهيدر -->
+    <!-- الهيدر مع زر الحساب بجانب لوحة التحكم في الأعلى من جهة الشمال -->
     <div class="store-header">
         <div class="store-title">🛒 العروبة أونلاين</div>
-        <a href="admin.html" class="admin-link">لوحة التحكم ⚙️</a>
+        <div class="header-actions">
+            <button class="admin-link" onclick="openProfileModal()">👤 حسابي</button>
+            <a href="admin.html" class="admin-link">لوحة التحكم ⚙️</a>
+        </div>
     </div>
 
     <!-- شريط البحث -->
@@ -179,7 +175,7 @@
     <!-- الأقسام الدائرية -->
     <div class="categories-scroll" id="categoriesScrollContainer"></div>
 
-    <!-- المحتوى الرئيسي (عرض أفقي يمين ويسار للأقسام) -->
+    <!-- المحتوى الرئيسي -->
     <div id="storeMainContent"></div>
 </div>
 
@@ -194,6 +190,44 @@
     </div>
 </div>
 
+<!-- نافذة حساب المستخدم والطلبات السابقة -->
+<div class="cart-modal" id="profileModal">
+    <div class="cart-modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3 style="font-size: 0.9rem; color: var(--primary-green);">👤 حسابي الشخصي</h3>
+            <button onclick="closeProfileModal()" style="background:none; border:none; font-size: 1rem; cursor:pointer;">✕</button>
+        </div>
+        
+        <div class="profile-tabs">
+            <div class="profile-tab active" id="tabInfoBtn" onclick="switchProfileTab('info')">بيانات العميل</div>
+            <div class="profile-tab" id="tabOrdersBtn" onclick="switchProfileTab('orders')">طلباتي السابقة 📦</div>
+        </div>
+
+        <!-- قسم بيانات العميل -->
+        <div id="profileInfoSection">
+            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">قم بحفظ بياناتك لتسهيل وتسريع عملية الطلب في كل مرة:</div>
+            <label style="font-size: 0.7rem; font-weight: bold;">الاسم الكريم:</label>
+            <input type="text" id="userProfileName" class="form-control" placeholder="ادخل اسمك الكامل">
+            
+            <label style="font-size: 0.7rem; font-weight: bold;">رقم الهاتف:</label>
+            <input type="tel" id="userProfilePhone" class="form-control" placeholder="05xxxxxxxx">
+            
+            <label style="font-size: 0.7rem; font-weight: bold;">عنوان التوصيل:</label>
+            <input type="text" id="userProfileAddress" class="form-control" placeholder="المدينة، الحي، الشارع، رقم العمارة">
+            
+            <button class="btn-main" onclick="saveUserProfile()">حفظ البيانات 💾</button>
+        </div>
+
+        <!-- قسم الطلبات السابقة -->
+        <div id="profileOrdersSection" style="display: none;">
+            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">الطلبات المرتبطة برقم هاتفك المسجل من السحابة:</div>
+            <div id="myPreviousOrdersList" style="max-height: 250px; overflow-y: auto;">
+                <p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">الرجاء حفظ رقم هاتفك أولاً أو لا توجد طلبات سابقة.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- نافذة تفاصيل السلة وإتمام الطلب -->
 <div class="cart-modal" id="cartModal">
     <div class="cart-modal-content">
@@ -203,7 +237,7 @@
         </div>
         <div id="cartItemsList" style="max-height: 180px; overflow-y: auto; margin-bottom: 10px;"></div>
         <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
-        <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">معلومات التوصيل:</div>
+        <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">معلومات التوصيل: (تعبئة تلقائية من حسابك)</div>
         <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم">
         <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف">
         <input type="text" id="customerAddress" class="form-control" placeholder="العنوان (المدينة، الحي، الشارع)">
@@ -220,8 +254,130 @@
     let currentCategory = "الكل";
 
     window.addEventListener('firebase-ready', async function() {
+        loadUserProfileData();
         await loadStoreDataFromCloud();
     });
+
+    function loadUserProfileData() {
+        let savedName = localStorage.getItem('aloroba_user_name') || '';
+        let savedPhone = localStorage.getItem('aloroba_user_phone') || '';
+        let savedAddress = localStorage.getItem('aloroba_user_address') || '';
+
+        document.getElementById('userProfileName').value = savedName;
+        document.getElementById('userProfilePhone').value = savedPhone;
+        document.getElementById('userProfileAddress').value = savedAddress;
+
+        document.getElementById('customerName').value = savedName;
+        document.getElementById('customerPhone').value = savedPhone;
+        document.getElementById('customerAddress').value = savedAddress;
+    }
+
+    function saveUserProfile() {
+        let name = document.getElementById('userProfileName').value.trim();
+        let phone = document.getElementById('userProfilePhone').value.trim();
+        let address = document.getElementById('userProfileAddress').value.trim();
+
+        if(!name || !phone || !address) {
+            alert("الرجاء تعبئة جميع الحقول بشكل صحيح.");
+            return;
+        }
+
+        localStorage.setItem('aloroba_user_name', name);
+        localStorage.setItem('aloroba_user_phone', phone);
+        localStorage.setItem('aloroba_user_address', address);
+
+        loadUserProfileData();
+        alert("تم حفظ بياناتك بنجاح! 💾");
+        closeProfileModal();
+    }
+
+    function openProfileModal() {
+        document.getElementById('profileModal').style.display = 'flex';
+        loadUserProfileData();
+    }
+
+    function closeProfileModal() {
+        document.getElementById('profileModal').style.display = 'none';
+    }
+
+    function switchProfileTab(tab) {
+        if(tab === 'info') {
+            document.getElementById('tabInfoBtn').classList.add('active');
+            document.getElementById('tabOrdersBtn').classList.remove('active');
+            document.getElementById('profileInfoSection').style.display = 'block';
+            document.getElementById('profileOrdersSection').style.display = 'none';
+        } else {
+            document.getElementById('tabOrdersBtn').classList.add('active');
+            document.getElementById('tabInfoBtn').classList.remove('active');
+            document.getElementById('profileInfoSection').style.display = 'none';
+            document.getElementById('profileOrdersSection').style.display = 'block';
+            fetchUserPreviousOrders();
+        }
+    }
+
+    async function fetchUserPreviousOrders() {
+        let phone = localStorage.getItem('aloroba_user_phone');
+        let container = document.getElementById('myPreviousOrdersList');
+        
+        if(!phone) {
+            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">الرجاء حفظ رقم هاتفك في تبويب "بيانات العميل" أولاً لعرض طلباتك.</p>`;
+            return;
+        }
+
+        container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">جاري جلب الطلبات من السحابة...</p>`;
+
+        try {
+            const q = window.query(window.collection(window.db, "orders"), window.where("customerPhone", "==", phone));
+            const querySnapshot = await window.getDocs(q);
+            
+            if(querySnapshot.empty) {
+                container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">لا توجد طلبات سابقة مسجلة بهذا الرقم.</p>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            querySnapshot.forEach(docSnap => {
+                let order = docSnap.data();
+                let dateStr = order.timestamp ? new Date(order.timestamp).toLocaleDateString('ar-SA') : 'تاريخ غير متوفر';
+                let itemsListHtml = order.items.map(i => `${i.name} (${i.quantity})`).join('، ');
+
+                container.innerHTML += `
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px; border-radius: 8px; margin-bottom: 8px; font-size: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 4px;">
+                            <span>الحالة: <span style="color: var(--accent-green);">${order.status || 'جديد'}</span></span>
+                            <span>${dateStr}</span>
+                        </div>
+                        <div style="color: #64748b; margin-bottom: 4px;">المنتجات: ${itemsListHtml}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 4px; font-weight: bold;">
+                            <span>المجموع: ${order.total.toFixed(2)} ₪</span>
+                            <button onclick='reorderPrevious(${JSON.stringify(order.items)})' style="background: var(--accent-green); color: white; border: none; padding: 3px 8px; border-radius: 4px; font-size: 0.65rem; cursor: pointer;">إعادة الطلب 🔄</button>
+                        </div>
+                    </div>
+                `;
+            });
+        } catch(e) {
+            console.error(e);
+            container.innerHTML = `<p style="text-align: center; color: red; font-size: 0.75rem; padding: 15px;">حدث خطأ أثناء جلب الطلبات.</p>`;
+        }
+    }
+
+    function reorderPrevious(items) {
+        items.forEach(oldItem => {
+            let p = products.find(prod => prod.id == oldItem.id);
+            let finalPrice = p ? ((p.salePrice !== undefined && p.salePrice !== "") ? Number(p.salePrice) : Number(p.price)) : oldItem.price;
+            
+            let existing = cart.find(item => item.id == oldItem.id);
+            if(existing) {
+                existing.quantity += oldItem.quantity;
+            } else {
+                cart.push({ id: oldItem.id, name: oldItem.name, price: finalPrice, quantity: oldItem.quantity, img: oldItem.img || '' });
+            }
+        });
+        updateCartStateUI();
+        products.forEach(p => updateProductCardDOM(p.id));
+        closeProfileModal();
+        alert("تمت إضافة منتجات الطلب السابق إلى السلة بنجاح! 🛒");
+    }
 
     async function loadStoreDataFromCloud() {
         try {
@@ -481,6 +637,7 @@
             alert("السلة فارغة حالياً!");
             return;
         }
+        loadUserProfileData();
         let listContainer = document.getElementById('cartItemsList');
         listContainer.innerHTML = '';
         cart.forEach((item) => {
@@ -509,6 +666,10 @@
             return;
         }
 
+        localStorage.setItem('aloroba_user_name', name);
+        localStorage.setItem('aloroba_user_phone', phone);
+        localStorage.setItem('aloroba_user_address', address);
+
         let total = 0;
         cart.forEach(i => total += (i.price * i.quantity));
 
@@ -516,7 +677,7 @@
             customerName: name,
             customerPhone: phone,
             customerAddress: address,
-            items: cart.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })),
+            items: cart.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, img: i.img })),
             total: total,
             status: "جديد",
             timestamp: new Date().toISOString()
