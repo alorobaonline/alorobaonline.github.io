@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>سوبر ماركت العروبة - Aloroba Online</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- مكتبات Firebase السحابية -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
     <style>
         :root {
             --primary-green: #1b4d2e;
@@ -39,20 +44,20 @@
         .banner-img-side { width: 42%; text-align: left; display: flex; align-items: center; justify-content: center; }
         .banner-img-side img { width: 100%; height: 110px; object-fit: contain; border-radius: 10px; }
 
-        /* شريط الفئات الأفقي القابل للتحريك والسحب (يمين ويسار) */
+        /* شريط الفئات الأفقي */
+        .categories-wrapper { width: 100%; overflow: hidden; margin-bottom: 12px; }
         .categories-slider { 
             display: flex; 
+            flex-wrap: nowrap;
             gap: 8px; 
             overflow-x: auto; 
-            margin-bottom: 12px; 
-            padding-bottom: 6px; 
+            width: 100%;
+            padding: 4px 2px 8px 2px; 
             scroll-behavior: smooth; 
-            cursor: grab;
-            user-select: none;
             -webkit-overflow-scrolling: touch;
         }
-        .categories-slider:active { cursor: grabbing; }
-        .categories-slider::-webkit-scrollbar { display: none; }
+        .categories-slider::-webkit-scrollbar { height: 4px; background: #e2e8f0; border-radius: 4px; }
+        .categories-slider::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         
         .cat-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; background: white; padding: 6px 10px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); text-align: center; flex: 0 0 auto; min-width: 65px; border: 1px solid transparent; }
         .cat-circle { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 3px; font-size: 0.9rem; }
@@ -113,7 +118,7 @@
         .checkout-total-price { font-size: 1rem; font-weight: 900; color: #1b4d2e; }
         .checkout-items-count { font-size: 0.65rem; color: #4b5563; font-weight: 700; }
 
-        /* النوافذ المنبثقة العامة (Modals) */
+        /* النوافذ المنبثقة العامة */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -157,7 +162,7 @@
         .cart-input { width: 100%; padding: 8px; margin-bottom: 6px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.75rem; outline: none; }
         .submit-order-btn { width: 100%; background: #1b4d2e; color: white; border: none; padding: 10px; border-radius: 20px; font-weight: bold; font-size: 0.75rem; cursor: pointer; margin-top: 6px; }
 
-        /* نافذة تكبير الصورة (Zoom Modal) */
+        /* نافذة تكبير الصورة */
         .image-zoom-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -238,13 +243,15 @@
         </div>
     </div>
 
-    <!-- شريط الفئات الأفقي القابل للتحريك والسحب (يمين ويسار) -->
-    <div class="categories-slider" id="categoriesContainer"></div>
+    <!-- شريط الفئات الأفقي -->
+    <div class="categories-wrapper">
+        <div class="categories-slider" id="categoriesContainer"></div>
+    </div>
 
     <!-- عنوان القسم -->
     <div class="section-header">
         <a class="section-all" onclick="resetFilter()">عرض الكل ❮</a>
-        <div class="section-title">🛍️ المنتجات المتوفرة</div>
+        <div class="section-title">🛍️ المنتجات المتوفرة سحابياً</div>
     </div>
 
     <!-- شبكة المنتجات -->
@@ -274,7 +281,7 @@
     </nav>
 </div>
 
-<!-- 1. نافذة السلة وإتمام الطلب المنبثقة -->
+<!-- 1. نافذة السلة -->
 <div class="modal-overlay" id="cartModal" onclick="handleOutsideClick(event, 'cartModal')">
     <div class="modal-content">
         <button class="close-modal-btn" onclick="closeModal('cartModal')">✕</button>
@@ -287,11 +294,11 @@
             <input type="text" id="customerAddress" class="cart-input" placeholder="العنوان (رهط والمحيط)">
             <input type="tel" id="customerPhone" class="cart-input" placeholder="رقم الهاتف">
         </div>
-        <button class="submit-order-btn" onclick="submitOrderToDashboard()">إرسال الطلب إلى لوحة التحكم 🚀</button>
+        <button class="submit-order-btn" onclick="submitOrderToCloud()">إرسال الطلب للسحابة 🚀</button>
     </div>
 </div>
 
-<!-- 2. نافذة المفضلة المنبثقة -->
+<!-- 2. نافذة المفضلة -->
 <div class="modal-overlay" id="favoritesModal" onclick="handleOutsideClick(event, 'favoritesModal')">
     <div class="modal-content">
         <button class="close-modal-btn" onclick="closeModal('favoritesModal')">✕</button>
@@ -309,29 +316,21 @@
         <div class="account-card-box">
             <div class="account-card-title">معلومات الحساب 📋</div>
             <div style="display: flex; flex-direction: column; gap: 4px;">
-                <input type="text" id="accName" class="cart-input" placeholder="الاسم الكامل" value="">
-                <input type="tel" id="accPhone" class="cart-input" placeholder="رقم الهاتف المحمول" value="">
-                <input type="text" id="accAddress" class="cart-input" placeholder="العنوان الافتراضي (المدينة، الحي)" value="">
+                <input type="text" id="accName" class="cart-input" placeholder="الاسم الكامل">
+                <input type="tel" id="accPhone" class="cart-input" placeholder="رقم الهاتف المحمول">
+                <input type="text" id="accAddress" class="cart-input" placeholder="العنوان الافتراضي (المدينة، الحي)">
                 <button class="btn-add-cart" style="padding: 6px; margin-top: 4px;" onclick="saveAccountInfo()">حفظ البيانات 💾</button>
             </div>
         </div>
 
         <div class="account-card-box">
             <div class="account-card-title">سجل الطلبات السابقة 📦</div>
-            <div id="orderHistoryContainer" style="font-size: 0.7rem; color: #666;">
-                لا توجد طلبات مسجلة حتى الآن.
-            </div>
-        </div>
-
-        <div class="account-card-box">
-            <div class="account-card-title">تطبيق سوبر ماركت العروبة 📱</div>
-            <p style="font-size: 0.65rem; color: #555; margin-bottom: 6px;">احصل على أحدث منتجات العروبة أونلاين وتجربة تسوق أسرع.</p>
-            <a href="index.html" class="btn-add-cart" style="display: block; text-decoration: none; padding: 6px; text-align: center;">زيارة الصفحة الرئيسية</a>
+            <div id="orderHistoryContainer" style="font-size: 0.7rem; color: #666;">لا توجد طلبات مسجلة حتى الآن.</div>
         </div>
     </div>
 </div>
 
-<!-- نافذة تكبير صورة المنتج (Zoom Modal) -->
+<!-- نافذة تكبير الصورة -->
 <div class="image-zoom-overlay" id="imageZoomOverlay" onclick="handleZoomOverlayClick(event)">
     <div class="image-zoom-container">
         <button class="close-zoom-btn" onclick="closeZoomModal()">✕</button>
@@ -342,40 +341,33 @@
 </div>
 
 <script>
-    let defaultProducts = [
-        { id: 1, name: "أرز بسمتي فاخر", weight: "5 كجم", price: 18, oldPrice: 22, img: "https://cdn-icons-png.flaticon.com/512/3081/3081986.png", categories: ["معلبات"] },
-        { id: 2, name: "مرقة دجاج ماجي", weight: "قطعة", price: 10, oldPrice: "", img: "https://cdn-icons-png.flaticon.com/512/2921/2921822.png", categories: ["معلبات"] },
-        { id: 3, name: "حليب نيدو مجفف", weight: "2500جم", price: 55, oldPrice: 59, img: "https://cdn-icons-png.flaticon.com/512/2738/2738730.png", categories: ["ألبان"] }
+    // --- تهيئة Firebase المأخوذة من إعدادات مشروعك ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyAfK8EX7-EM...", // استبدل بـ مفتاحك الكامل إن لزم الأمر
+        authDomain: "alorobaonline.firebaseapp.com",
+        projectId: "alorobaonline",
+        storageBucket: "alorobaonline.appspot.com",
+        messagingSenderId: "880642361344",
+        appId: "1:880642361344:web:906cd07f00bcb6dafc30e5",
+        measurementId: "G-6VL0PDW..."
+    };
+
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
+
+    let products = [];
+    let categories = [
+        { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
+        { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
+        { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
+        { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
+        { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" }
     ];
 
-    let products = JSON.parse(localStorage.getItem('aloroba_products'));
-    if (!products || products.length === 0) {
-        products = defaultProducts;
-        localStorage.setItem('aloroba_products', JSON.stringify(products));
-    }
-
-    let storedCategories = JSON.parse(localStorage.getItem('aloroba_categories'));
-    let categories = [];
-    
-    if (storedCategories && storedCategories.length > 0) {
-        let filteredStored = storedCategories.filter(c => c.name !== "عروض");
-        if (!filteredStored.some(c => c.name === "الكل")) {
-            categories = [{ name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" }, ...filteredStored];
-        } else {
-            categories = filteredStored;
-        }
-    } else {
-        categories = [
-            { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
-            { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
-            { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
-            { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
-            { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" }
-        ];
-    }
-
-    let bannerData = JSON.parse(localStorage.getItem('aloroba_banner')) || {
-        title: "كل احتياجات بيتك في مكان واحد",
+    let bannerData = {
+        title: "كل احتياجات بيتك في مكان واحد سحابياً",
         tag: "سوبر ماركت العروبة",
         img: "https://cdn-icons-png.flaticon.com/512/3081/3081986.png"
     };
@@ -388,58 +380,33 @@
     function initStoreData() {
         renderBanner();
         renderCategories();
-        renderProducts(products);
-        initCategoryDragScroll();
+        loadProductsFromCloud();
     }
 
-    // دعم السحب بالماوس واللمس للهواتف لشريط الفئات الأفقي
-    function initCategoryDragScroll() {
-        const slider = document.getElementById('categoriesContainer');
-        let isDown = false;
-        let startX;
-        let scrollLeft;
-
-        // مهارة الماوس (Desktop)
-        slider.addEventListener('mousedown', (e) => {
-            isDown = true;
-            slider.classList.add('active');
-            startX = e.pageX - slider.offsetLeft;
-            scrollLeft = slider.scrollLeft;
+    // --- جلب المنتجات من قاعدة بيانات Firebase سحابياً ---
+    function loadProductsFromCloud() {
+        db.collection("products").onSnapshot((snapshot) => {
+            products = [];
+            snapshot.forEach((doc) => {
+                products.push({ id: doc.id, ...doc.data() });
+            });
+            
+            // إذا كانت قاعدة البيانات فارغة تماماً، نضيف منتجات افتراضية سحابياً
+            if(products.length === 0) {
+                let defaultProds = [
+                    { name: "أرز بسمتي فاخر", weight: "5 كجم", price: 18, oldPrice: 22, img: "https://cdn-icons-png.flaticon.com/512/3081/3081986.png", categories: ["معلبات"] },
+                    { name: "حليب نيدو مجفف", weight: "2500جم", price: 55, oldPrice: 59, img: "https://cdn-icons-png.flaticon.com/512/2738/2738730.png", categories: ["ألبان"] }
+                ];
+                defaultProds.forEach(p => db.collection("products").add(p));
+            } else {
+                renderProducts(products);
+            }
         });
-
-        slider.addEventListener('mouseleave', () => { isDown = false; slider.classList.remove('active'); });
-        slider.addEventListener('mouseup', () => { isDown = false; slider.classList.remove('active'); });
-        slider.addEventListener('mousemove', (e) => {
-            if(!isDown) return;
-            e.preventDefault();
-            const x = e.pageX - slider.offsetLeft;
-            const walk = (x - startX) * 2;
-            slider.scrollLeft = scrollLeft - walk;
-        });
-
-        // دعم السحب باللمس للهواتف (Touch Events)
-        slider.addEventListener('touchstart', (e) => {
-            isDown = true;
-            startX = e.touches[0].pageX - slider.offsetLeft;
-            scrollLeft = slider.scrollLeft;
-        }, {passive: true});
-
-        slider.addEventListener('touchend', () => { isDown = false; });
-        slider.addEventListener('touchmove', (e) => {
-            if(!isDown) return;
-            const x = e.touches[0].pageX - slider.offsetLeft;
-            const walk = (x - startX) * 2;
-            slider.scrollLeft = scrollLeft - walk;
-        }, {passive: true});
     }
 
     function renderBanner() {
-        document.getElementById('bannerTitle').innerText = bannerData.title || "كل احتياجات بيتك في مكان واحد";
-        document.getElementById('bannerTag').innerText = bannerData.tag || "سوبر ماركت العروبة";
-        const bannerImg = document.getElementById('bannerImg');
-        if(bannerData.img && !bannerData.img.includes('imgbb.com')) {
-            bannerImg.src = bannerData.img;
-        }
+        document.getElementById('bannerTitle').innerText = bannerData.title;
+        document.getElementById('bannerTag').innerText = bannerData.tag;
     }
 
     function renderCategories() {
@@ -449,7 +416,7 @@
             const isActive = cat.name === selectedCategory;
             container.innerHTML += `
                 <div class="cat-item" onclick="filterByCategory('${cat.name}')" ${isActive ? 'style="border: 1px solid #68a633; background: #f4fbf0;"' : ''}>
-                    <div class="cat-circle" style="background: ${cat.bg || '#eaf3df'}; color: ${cat.color || '#2e6930'};">${cat.icon || '📦'}</div>
+                    <div class="cat-circle" style="background: ${cat.bg}; color: ${cat.color};">${cat.icon}</div>
                     <div class="cat-name" ${isActive ? 'style="color: #2e6930;"' : ''}>${cat.name}</div>
                 </div>
             `;
@@ -474,20 +441,12 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function goToHome() {
-        resetFilter();
-    }
-
-    function scrollToCategories() {
-        document.getElementById('categoriesContainer').scrollIntoView({behavior: 'smooth'});
-    }
+    function goToHome() { resetFilter(); }
+    function scrollToCategories() { document.getElementById('categoriesContainer').scrollIntoView({behavior: 'smooth'}); }
 
     function filterProducts() {
         const query = document.getElementById('searchInput').value.toLowerCase().trim();
-        if(!query) {
-            renderProducts(products);
-            return;
-        }
+        if(!query) { renderProducts(products); return; }
         const filtered = products.filter(p => p.name.toLowerCase().includes(query));
         renderProducts(filtered);
     }
@@ -501,7 +460,6 @@
         }
         list.forEach(p => {
             const isFav = favorites.some(f => f.id === p.id);
-            
             let priceHtml = `<span class="price-new">${p.price} ₪</span>`;
             if (p.oldPrice && Number(p.oldPrice) > Number(p.price)) {
                 priceHtml += ` <span class="price-old">${p.oldPrice} ₪</span>`;
@@ -509,16 +467,14 @@
 
             container.innerHTML += `
                 <div class="product-card">
-                    <button class="fav-heart-btn" onclick="toggleFavorite(${p.id})">${isFav ? '❤️' : '🤍'}</button>
+                    <button class="fav-heart-btn" onclick="toggleFavorite('${p.id}')">${isFav ? '❤️' : '🤍'}</button>
                     <div class="product-img-box" onclick="openZoomModal('${p.img}', '${p.name}', '${p.weight || 'حبة'}')">
                         <img src="${p.img}" alt="${p.name}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
                     </div>
                     <div class="product-name" title="${p.name}">${p.name}</div>
                     <div class="product-weight">${p.weight || 'حبة'}</div>
-                    <div class="product-price-box">
-                        ${priceHtml}
-                    </div>
-                    <button class="btn-add-cart" onclick="addToCart(${p.id})">أضف 🛒</button>
+                    <div class="product-price-box">${priceHtml}</div>
+                    <button class="btn-add-cart" onclick="addToCart('${p.id}')">أضف 🛒</button>
                 </div>
             `;
         });
@@ -528,11 +484,7 @@
         const product = products.find(p => p.id === id);
         if(!product) return;
         const index = favorites.findIndex(f => f.id === id);
-        if(index > -1) {
-            favorites.splice(index, 1);
-        } else {
-            favorites.push(product);
-        }
+        if(index > -1) { favorites.splice(index, 1); } else { favorites.push(product); }
         localStorage.setItem('aloroba_favorites', JSON.stringify(favorites));
         renderProducts(products);
         renderFavoritesUI();
@@ -540,10 +492,7 @@
 
     function renderFavoritesUI() {
         const container = document.getElementById('favoritesListContainer');
-        if(favorites.length === 0) {
-            container.innerHTML = "لم تقم بإضافة أي منتج للمفضلة بعد.";
-            return;
-        }
+        if(favorites.length === 0) { container.innerHTML = "لم تقم بإضافة أي منتج للمفضلة بعد."; return; }
         let html = "";
         favorites.forEach(f => {
             html += `
@@ -555,7 +504,7 @@
                             <div style="color: #68a633; font-weight: bold;">${f.price} ₪</div>
                         </div>
                     </div>
-                    <button class="btn-reorder" onclick="addToCart(${f.id}); closeModal('favoritesModal'); openModal('cartModal');">إضافة للسلة 🛒</button>
+                    <button class="btn-reorder" onclick="addToCart('${f.id}'); closeModal('favoritesModal'); openModal('cartModal');">إضافة للسلة 🛒</button>
                 </div>
             `;
         });
@@ -568,16 +517,8 @@
         document.getElementById('zoomedWeight').innerText = weight;
         document.getElementById('imageZoomOverlay').style.display = 'flex';
     }
-
-    function closeZoomModal() {
-        document.getElementById('imageZoomOverlay').style.display = 'none';
-    }
-
-    function handleZoomOverlayClick(event) {
-        if (event.target === document.getElementById('imageZoomOverlay')) {
-            closeZoomModal();
-        }
-    }
+    function closeZoomModal() { document.getElementById('imageZoomOverlay').style.display = 'none'; }
+    function handleZoomOverlayClick(event) { if (event.target === document.getElementById('imageZoomOverlay')) closeZoomModal(); }
 
     function addToCart(id) {
         const product = products.find(p => p.id === id);
@@ -600,7 +541,6 @@
         }
 
         floatingBar.style.display = "flex";
-
         let html = "";
         cart.forEach((item) => {
             total += Number(item.price);
@@ -615,28 +555,16 @@
 
     function openModal(modalId) {
         document.getElementById(modalId).style.display = 'flex';
-        if(modalId === 'accountModal') {
-            loadAccountInfo();
-        } else if(modalId === 'favoritesModal') {
-            renderFavoritesUI();
-        }
+        if(modalId === 'accountModal') loadAccountInfo();
+        else if(modalId === 'favoritesModal') renderFavoritesUI();
     }
-
-    function closeModal(modalId) {
-        document.getElementById(modalId).style.display = 'none';
-    }
-
-    function handleOutsideClick(event, modalId) {
-        if (event.target === document.getElementById(modalId)) {
-            closeModal(modalId);
-        }
-    }
+    function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
+    function handleOutsideClick(event, modalId) { if (event.target === document.getElementById(modalId)) closeModal(modalId); }
 
     function saveAccountInfo() {
         const name = document.getElementById('accName').value;
         const phone = document.getElementById('accPhone').value;
         const address = document.getElementById('accAddress').value;
-
         localStorage.setItem('aloroba_user', JSON.stringify({ name, phone, address }));
         document.getElementById('customerName').value = name;
         document.getElementById('customerPhone').value = phone;
@@ -650,7 +578,6 @@
             document.getElementById('accName').value = savedUser.name || "";
             document.getElementById('accPhone').value = savedUser.phone || "";
             document.getElementById('accAddress').value = savedUser.address || "";
-            
             document.getElementById('customerName').value = savedUser.name || "";
             document.getElementById('customerPhone').value = savedUser.phone || "";
             document.getElementById('customerAddress').value = savedUser.address || "";
@@ -661,10 +588,7 @@
     function renderOrderHistory() {
         orderHistory = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
         const container = document.getElementById('orderHistoryContainer');
-        if(orderHistory.length === 0) {
-            container.innerHTML = "لا توجد طلبات مسجلة حتى الآن.";
-            return;
-        }
+        if(orderHistory.length === 0) { container.innerHTML = "لا توجد طلبات مسجلة حتى الآن."; return; }
         let html = "";
         orderHistory.forEach((ord, index) => {
             html += `
@@ -673,39 +597,22 @@
                         <div style="font-weight: 800;">طلب #${index + 1} (${ord.date || 'وقت سابق'})</div>
                         <div style="color: #4b5563;">المجموع: ${ord.totalAmount || ord.total} ₪ | ${ord.items.length} منتجات</div>
                     </div>
-                    <button class="btn-reorder" onclick="reorderItems(${index})">إعادة الطلب 🔄</button>
                 </div>
             `;
         });
         container.innerHTML = html;
     }
 
-    function reorderItems(index) {
-        const ord = orderHistory[index];
-        if(ord && ord.items) {
-            cart = [...ord.items];
-            updateCartUI();
-            closeModal('accountModal');
-            openModal('cartModal');
-        }
-    }
-
-    function submitOrderToDashboard() {
+    // --- إرسال الطلب وحفظه في سحابة Firebase مباشرة ---
+    function submitOrderToCloud() {
         const name = document.getElementById('customerName').value.trim();
         const address = document.getElementById('customerAddress').value.trim();
         const phone = document.getElementById('customerPhone').value.trim();
 
-        if(!name || !address || !phone) {
-            alert("الرجاء إدخال الاسم، العنوان، ورقم الهاتف لإتمام الطلب");
-            return;
-        }
-        if(cart.length === 0) {
-            alert("السلة فارغة");
-            return;
-        }
+        if(!name || !address || !phone) { alert("الرجاء إدخال الاسم، العنوان، ورقم الهاتف لإتمام الطلب"); return; }
+        if(cart.length === 0) { alert("السلة فارغة"); return; }
         
         let total = cart.reduce((sum, item) => sum + Number(item.price), 0);
-        
         let newOrder = {
             id: 'ORD-' + Date.now().toString().slice(-6),
             customerName: name,
@@ -718,22 +625,22 @@
             fullDate: new Date().toLocaleDateString()
         };
 
-        let liveOrders = JSON.parse(localStorage.getItem('aloroba_live_orders')) || [];
-        let allOrders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
+        // حفظ الطلب في سحابة Firebase (مجموعة orders)
+        db.collection("orders").add(newOrder).then(() => {
+            let allOrders = JSON.parse(localStorage.getItem('aloroba_orders')) || [];
+            allOrders.unshift(newOrder);
+            localStorage.setItem('aloroba_orders', JSON.stringify(allOrders));
 
-        liveOrders.unshift(newOrder);
-        allOrders.unshift(newOrder);
+            cart = [];
+            updateCartUI();
+            closeModal('cartModal');
 
-        localStorage.setItem('aloroba_live_orders', JSON.stringify(liveOrders));
-        localStorage.setItem('aloroba_orders', JSON.stringify(allOrders));
-
-        cart = [];
-        updateCartUI();
-        closeModal('cartModal');
-
-        if(confirm("🎉 تم إرسال الطلب بنجاح إلى لوحة التحكم! هل تريد الانتقال إلى 'لوحة التحكم' لمشاهدته الآن؟")) {
-            window.location.href = "dashboard.html";
-        }
+            if(confirm("🎉 تم حفظ الطلب في السحابة بنجاح! هل تريد الانتقال إلى 'لوحة التحكم' لمشاهدته؟")) {
+                window.location.href = "dashboard.html";
+            }
+        }).catch((error) => {
+            alert("حدث خطأ أثناء حفظ الطلب في السحابة: " + error.message);
+        });
     }
 </script>
 </body>
