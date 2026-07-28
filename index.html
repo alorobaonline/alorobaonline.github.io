@@ -370,7 +370,7 @@
             if(existing) {
                 existing.quantity += oldItem.quantity;
             } else {
-                cart.push({ id: oldItem.id, name: oldItem.name, price: finalPrice, quantity: oldItem.quantity, img: oldItem.img || '' });
+                cart.push({ id: oldItem.id, name: oldItem.name, price: finalPrice, quantity: oldItem.quantity, img: (p ? p.img : '') });
             }
         });
         updateCartStateUI();
@@ -673,7 +673,7 @@
         let total = 0;
         cart.forEach(i => total += (i.price * i.quantity));
 
-        // تنظيف البيانات والتأكد من عدم وجود قيم undefined مرفوضة من فايربيس
+        // تم إزالة تخزين صور المنتجات الضخمة في الطلب لتجنب تجاوز الحد الأقصى لفايربيس (1MB)
         const newOrder = {
             customerName: name,
             customerPhone: phone,
@@ -682,8 +682,7 @@
                 id: i.id || '', 
                 name: i.name || '', 
                 price: Number(i.price) || 0, 
-                quantity: Number(i.quantity) || 1, 
-                img: i.img || '' 
+                quantity: Number(i.quantity) || 1 
             })),
             total: Number(total) || 0,
             status: "جديد",
