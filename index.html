@@ -56,6 +56,7 @@
         .product-card { background: #ffffff; border-radius: 12px; padding: 6px; box-shadow: var(--shadow-card); display: flex; flex-direction: column; justify-content: space-between; position: relative; border: 1px solid #f1f5f9; }
         
         .badge-offer { position: absolute; top: 4px; right: 4px; background: #fee2e2; color: #dc2626; font-size: 0.4rem; font-weight: 800; padding: 2px 4px; border-radius: 4px; z-index: 2; }
+        .badge-red { position: absolute; top: 4px; left: 4px; background: #ef4444; color: white; font-size: 0.4rem; font-weight: 800; padding: 1px 4px; border-radius: 3px; z-index: 2; }
         .fav-heart-btn { position: absolute; top: 22px; left: 4px; background: rgba(255,255,255,0.8); border: none; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.7rem; z-index: 2; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
 
         .product-img-box { width: 100%; height: 70px; display: flex; align-items: center; justify-content: center; margin: 10px 0 4px 0; cursor: pointer; }
@@ -255,11 +256,10 @@
 
     <footer>سوبر ماركت العروبة © 2026 - رهط</footer>
 
-    <!-- شريط التنقل السفلي -->
+    <!-- شريط التنقل السفلي (تم إزالة زر العروض منه) -->
     <nav class="bottom-nav-bar">
         <button class="nav-item active" onclick="goToHome()"><span class="icon">🏠</span><span>الرئيسية</span></button>
         <button class="nav-item" onclick="scrollToCategories()"><span class="icon">🗂️</span><span>التصنيفات</span></button>
-        <button class="nav-item" onclick="filterByOffers()"><span class="icon">🏷️</span><span>العروض</span></button>
         <button class="nav-item" onclick="openModal('favoritesModal')"><span class="icon">🤍</span><span>المفضلة</span></button>
         <button class="nav-item" onclick="openModal('accountModal')"><span class="icon">👤</span><span>حسابي</span></button>
     </nav>
@@ -339,9 +339,9 @@
         { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png", category: "ألبان" }
     ];
 
+    // تم إزالة فئة "عروض" من مصفوفة التصنيفات
     let categories = JSON.parse(localStorage.getItem('aloroba_categories')) || [
         { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
-        { name: "عروض", icon: "🔥", bg: "#fee2e2", color: "#dc2626" },
         { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
         { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
         { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
@@ -393,9 +393,6 @@
         renderCategories();
         if(catName === "الكل") {
             renderProducts(products);
-        } else if(catName === "عروض") {
-            const filtered = products.filter(p => p.offer || (p.oldPrice && Number(p.oldPrice) > Number(p.price)));
-            renderProducts(filtered);
         } else {
             const filtered = products.filter(p => (p.categories && p.categories.includes(catName)) || p.category === catName);
             renderProducts(filtered);
@@ -415,13 +412,6 @@
 
     function scrollToCategories() {
         document.getElementById('categoriesContainer').scrollIntoView({behavior: 'smooth'});
-    }
-
-    function filterByOffers() {
-        selectedCategory = "عروض";
-        renderCategories();
-        const filtered = products.filter(p => p.offer || (p.oldPrice && Number(p.oldPrice) > Number(p.price)));
-        renderProducts(filtered);
     }
 
     function filterProducts() {
@@ -446,6 +436,7 @@
             container.innerHTML += `
                 <div class="product-card">
                     ${p.offer ? `<div class="badge-offer">${p.offer}</div>` : ''}
+                    <div class="badge-red">عرض</div>
                     <button class="fav-heart-btn" onclick="toggleFavorite(${p.id})">${isFav ? '❤️' : '🤍'}</button>
                     <div class="product-img-box" onclick="openZoomModal('${p.img}', '${p.name}', '${p.weight || 'حبة'}')">
                         <img src="${p.img}" alt="${p.name}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
