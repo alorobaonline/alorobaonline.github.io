@@ -111,6 +111,8 @@
         .order-action-btns { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
         .btn-call { background: #2563eb; color: white; text-decoration: none; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; display: inline-flex; align-items: center; gap: 3px; }
         .btn-status { background: #16a34a; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; cursor: pointer; }
+        
+        .banner-slide-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
     </style>
 </head>
 <body onload="initDashboard()">
@@ -237,33 +239,16 @@
         </div>
     </div>
 
-    <!-- 5. تخصيص البانر الرئيسي -->
+    <!-- 5. تخصيص شرائح البانر المتحركة (Slider) -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('bannerSectionContent', this)">
-            <span>🎨 تخصيص البانر الرئيسي</span>
+            <span>🎨 تخصيص شرائح البانر المتحركة (Slider)</span>
             <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="bannerSectionContent">
-            <div class="form-group">
-                <label>عنوان البانر الرئيسي</label>
-                <input type="text" id="bannerTitleInput" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>نص الشارة العلوية بالبانر</label>
-                <input type="text" id="bannerTagInput" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>صورة البانر</label>
-                <div class="file-upload-box">
-                    <input type="text" id="bannerImgInput" class="form-control" style="flex: 2;">
-                    <label class="camera-btn">
-                        📁 اختر صورة
-                        <input type="file" accept="image/*" onchange="handleImageUpload(event, 'bannerImgInput', 'bannerImgPreview')">
-                    </label>
-                </div>
-                <img id="bannerImgPreview" class="preview-thumb" src="" alt="معاينة" style="display: none; margin-top: 5px;">
-            </div>
-            <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث البانر ✨</button>
+            <div style="font-size: 0.7rem; color: #666; margin-bottom: 8px;">يمكنك التحكم بالشرائح التي تظهر في أعلى المتجر:</div>
+            <div id="bannerSlidesContainer"></div>
+            <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث شرائح البانر ✨</button>
         </div>
     </div>
 </div>
@@ -278,12 +263,21 @@
         { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
         { name: "منظفات", icon: "🧴", bg: "#f3e8ff", color: "#7e22ce" }
     ];
-    let bannerData = JSON.parse(localStorage.getItem('aloroba_banner')) || {
-        title: "كل احتياجات بيتك في مكان واحد",
-        tag: "سوبر ماركت العروبة",
-        img: "https://i.ibb.co/3m1K2wP/basket.png"
-    };
-    // تحديث إعدادات التخطيط لدعم 3 أقسام أفقية رئيسية
+    
+    // دعم شرائح متعددة للبانر المتحرك (Slider)
+    let bannerSlides = JSON.parse(localStorage.getItem('aloroba_banner_slides')) || [
+        {
+            tag: "سوبر ماركت العروبة",
+            title: "كل احتياجات بيتك في مكان واحد",
+            img: "https://i.ibb.co/3m1K2wP/basket.png"
+        },
+        {
+            tag: "عروض مميزة",
+            title: "تخفيضات الكبرى على كافة المنتجات",
+            img: "https://i.ibb.co/3m1K2wP/basket.png"
+        }
+    ];
+
     let layoutData = JSON.parse(localStorage.getItem('aloroba_layout')) || {
         firstSection: "عروض",
         secondSection: "ألبان",
@@ -320,8 +314,10 @@
         reader.onload = function(e) {
             document.getElementById(inputId).value = e.target.result;
             const preview = document.getElementById(previewId);
-            preview.src = e.target.result;
-            preview.style.display = 'block';
+            if(preview) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            }
         };
         reader.readAsDataURL(file);
     }
@@ -601,18 +597,54 @@
     }
 
     function initBannerForm() {
-        document.getElementById('bannerTitleInput').value = bannerData.title || "";
-        document.getElementById('bannerTagInput').value = bannerData.tag || "";
-        document.getElementById('bannerImgInput').value = bannerData.img || "";
+        const container = document.getElementById('bannerSlidesContainer');
+        container.innerHTML = '';
+        bannerSlides.forEach((slide, index) => {
+            container.innerHTML += `
+                <div class="banner-slide-box">
+                    <div style="font-weight: bold; font-size: 0.75rem; margin-bottom: 5px; color: var(--primary-green);">الشريحة رقم ${index + 1}</div>
+                    <div class="form-group">
+                        <label>نص الشارة العلوية</label>
+                        <input type="text" id="bannerTag_${index}" class="form-control" value="${slide.tag || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>عنوان البانر</label>
+                        <input type="text" id="bannerTitle_${index}" class="form-control" value="${slide.title || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>صورة البانر (رابط أو رفع ملف)</label>
+                        <div class="file-upload-box">
+                            <input type="text" id="bannerImg_${index}" class="form-control" value="${slide.img || ''}" style="flex: 2;">
+                            <label class="camera-btn">
+                                📁 اختر صورة
+                                <input type="file" accept="image/*" onchange="handleImageUpload(event, 'bannerImg_${index}', 'bannerPreview_${index}')">
+                            </label>
+                        </div>
+                        <img id="bannerPreview_${index}" class="preview-thumb" src="${slide.img || ''}" alt="معاينة" style="display: ${slide.img ? 'block' : 'none'}; margin-top: 5px;">
+                    </div>
+                </div>
+            `;
+        });
     }
 
     function saveBannerSettings() {
-        bannerData.title = document.getElementById('bannerTitleInput').value.trim();
-        bannerData.tag = document.getElementById('bannerTagInput').value.trim();
-        bannerData.img = document.getElementById('bannerImgInput').value.trim();
+        bannerSlides = [];
+        // نفترض أن لدينا شريحتين أو نقوم بالمرور عليهما حسب عدد العناصر المعروضة
+        for(let i = 0; i < 2; i++) {
+            let tagInput = document.getElementById(`bannerTag_${i}`);
+            let titleInput = document.getElementById(`bannerTitle_${i}`);
+            let imgInput = document.getElementById(`bannerImg_${i}`);
+            if(tagInput && titleInput && imgInput) {
+                bannerSlides.push({
+                    tag: tagInput.value.trim(),
+                    title: titleInput.value.trim(),
+                    img: imgInput.value.trim()
+                });
+            }
+        }
 
-        localStorage.setItem('aloroba_banner', JSON.stringify(bannerData));
-        alert("تم تحديث البانر الرئيسي بنجاح!");
+        localStorage.setItem('aloroba_banner_slides', JSON.stringify(bannerSlides));
+        alert("تم تحديث شرائح البانر الرئيسي بنجاح! ✨");
     }
 
     function initLayoutDropdowns() {
