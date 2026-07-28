@@ -39,9 +39,21 @@
         .banner-img-side { width: 42%; text-align: left; display: flex; align-items: center; justify-content: center; }
         .banner-img-side img { width: 100%; height: 110px; object-fit: cover; border-radius: 10px; }
 
-        /* شريط الفئات الأفقي */
-        .categories-slider { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 4px; scroll-behavior: smooth; }
-        .categories-slider::-webkit-scrollbar { display: none; }
+        /* شريط الفئات الأفقي القابل للتحريك والسحب (يمين ويسار) */
+        .categories-slider { 
+            display: flex; 
+            gap: 8px; 
+            overflow-x: auto; 
+            margin-bottom: 12px; 
+            padding-bottom: 6px; 
+            scroll-behavior: smooth; 
+            cursor: grab;
+            user-select: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        .categories-slider:active { cursor: grabbing; }
+        .categories-slider::-webkit-scrollbar { display: none; } /* إخفاء شريط التمرير */
+        
         .cat-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; background: white; padding: 6px 10px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); text-align: center; flex: 0 0 auto; min-width: 65px; border: 1px solid transparent; }
         .cat-circle { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 3px; font-size: 0.9rem; }
         .cat-name { font-size: 0.55rem; font-weight: 700; color: #4b5563; white-space: nowrap; }
@@ -225,7 +237,7 @@
         </div>
     </div>
 
-    <!-- شريط الفئات الأفقي (بدون فئة عروض) -->
+    <!-- شريط الفئات الأفقي القابل للتحريك والسحب (يمين ويسار) -->
     <div class="categories-slider" id="categoriesContainer"></div>
 
     <!-- عنوان القسم -->
@@ -252,7 +264,7 @@
 
     <footer>سوبر ماركت العروبة © 2026 - رهط</footer>
 
-    <!-- شريط التنقل السفلي (بدون زر العروض) -->
+    <!-- شريط التنقل السفلي -->
     <nav class="bottom-nav-bar">
         <button class="nav-item active" onclick="goToHome()"><span class="icon">🏠</span><span>الرئيسية</span></button>
         <button class="nav-item" onclick="scrollToCategories()"><span class="icon">🗂️</span><span>التصنيفات</span></button>
@@ -335,7 +347,6 @@
         { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, img: "https://i.ibb.co/7Xv8L9p/nido.png", category: "ألبان" }
     ];
 
-    // تنظيف الأقسام المخزنة مسبقاً إذا احتوت على فئة "عروض"
     let storedCategories = JSON.parse(localStorage.getItem('aloroba_categories'));
     let categories = storedCategories ? storedCategories.filter(c => c.name !== "عروض") : [
         { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
@@ -360,6 +371,40 @@
         renderBanner();
         renderCategories();
         renderProducts(products);
+        initCategoryDragScroll(); // تفعيل ميزة السحب بالماوس
+    }
+
+    // ميزة تحريك شريط الفئات بالماوس (Drag to scroll) بالإضافة للمس الهواتف
+    function initCategoryDragScroll() {
+        const slider = document.getElementById('categoriesContainer');
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        slider.addEventListener('mousedown', (e) => {
+            isDown = true;
+            slider.classList.add('active');
+            startX = e.pageX - slider.offsetLeft;
+            scrollLeft = slider.scrollLeft;
+        });
+
+        slider.addEventListener('mouseleave', () => {
+            isDown = false;
+            slider.classList.remove('active');
+        });
+
+        slider.addEventListener('mouseup', () => {
+            isDown = false;
+            slider.classList.remove('active');
+        });
+
+        slider.addEventListener('mousemove', (e) => {
+            if(!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - slider.offsetLeft;
+            const walk = (x - startX) * 2; // سرعة الحركة
+            slider.scrollLeft = scrollLeft - walk;
+        });
     }
 
     function renderBanner() {
