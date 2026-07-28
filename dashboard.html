@@ -143,6 +143,30 @@
         </div>
     </div>
 
+    <!-- قسم فئات المنتجات الجديد (فوق قسم إضافة منتج جديد) -->
+    <div class="section-box" style="border-color: #68a633; background: #f4fbf0;">
+        <div class="section-header-toggle" onclick="toggleMainSection('categoriesSection', 'catArrow')">
+            <span>🏷️ إدارة الفئات والتصنيفات</span>
+            <span id="catArrow" class="toggle-arrow">▼</span>
+        </div>
+        <div id="categoriesSection" class="section-content">
+            <div class="form-group">
+                <label>اسم الفئة *</label>
+                <input type="text" id="catName" class="form-control" placeholder="مثال: خضروات وفواكه">
+            </div>
+            <div class="form-group">
+                <label>الأيموجي (الرمز التعبيري) *</label>
+                <input type="text" id="catEmoji" class="form-control" placeholder="مثال: 🍎 أو 🛒">
+            </div>
+            <button class="btn-main" onclick="saveCategory()">إضافة الفئة للمتجر ➕</button>
+            
+            <div style="margin-top: 12px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+                <div style="font-size: 0.7rem; font-weight: bold; margin-bottom: 5px; color: #4b5563;">الفئات الحالية:</div>
+                <div id="categoriesAdminList"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- القسم الأول: إضافة منتج جديد -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleMainSection('addProductSection', 'prodArrow')">
@@ -154,6 +178,13 @@
             <div class="form-group">
                 <label>اسم المنتج *</label>
                 <input type="text" id="prodName" class="form-control" placeholder="مثال: أرز تات بسمتي">
+            </div>
+
+            <div class="form-group">
+                <label>فئة المنتج *</label>
+                <select id="prodCategory" class="form-control">
+                    <option value="">اختر الفئة المناسبة</option>
+                </select>
             </div>
 
             <div style="display: flex; gap: 6px;">
@@ -218,6 +249,7 @@
     const db = firebase.database();
 
     let cachedProducts = [];
+    let cachedCategories = [];
     let bannerData = {};
     let lastOrdersCount = 0;
 
@@ -278,14 +310,29 @@
             let products = snapshot.val();
             if (!products) {
                 products = [
-                    { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 18, oldPrice: 22, img: "https://i.ibb.co/6y40H69/tat-rice.png", inStock: true, stockQty: 15 },
-                    { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: "", img: "https://i.ibb.co/1q20K0v/maggi.png", inStock: true, stockQty: 30 },
-                    { id: 3, name: "حليب نيدو", weight: "2500جم", price: 55, oldPrice: 59, img: "https://i.ibb.co/7Xv8L9p/nido.png", inStock: true, stockQty: 10 }
+                    { id: 1, name: "أرز تات بسمتي", category: "معبأة وجافة", weight: "5 كجم", price: 18, oldPrice: 22, img: "https://i.ibb.co/6y40H69/tat-rice.png", inStock: true, stockQty: 15 },
+                    { id: 2, name: "ماجي مرقة", category: "بهارات وتوابل", weight: "قطعة", price: 10, oldPrice: "", img: "https://i.ibb.co/1q20K0v/maggi.png", inStock: true, stockQty: 30 },
+                    { id: 3, name: "حليب نيدو", category: "ألبان ومشروبات", weight: "2500جم", price: 55, oldPrice: 59, img: "https://i.ibb.co/7Xv8L9p/nido.png", inStock: true, stockQty: 10 }
                 ];
                 db.ref('aloroba/products').set(products);
             }
             cachedProducts = Array.isArray(products) ? products : Object.values(products);
             renderAdmin();
+        });
+
+        db.ref('aloroba/categories').on('value', (snapshot) => {
+            let categories = snapshot.val();
+            if (!categories) {
+                categories = [
+                    { name: "معبأة وجافة", emoji: "🌾" },
+                    { name: "ألبان ومشروبات", emoji: "🥛" },
+                    { name: "بهارات وتوابل", emoji: "🧂" }
+                ];
+                db.ref('aloroba/categories').set(categories);
+            }
+            cachedCategories = Array.isArray(categories) ? categories : Object.values(categories);
+            renderCategoriesDropdown();
+            renderCategoriesAdminList();
         });
 
         db.ref('aloroba/banner').on('value', (snapshot) => {
@@ -331,6 +378,60 @@
         } catch(e) {}
     }
 
+    function renderCategoriesDropdown() {
+        const prodCatSelect = document.getElementById('prodCategory');
+        prodCatSelect.innerHTML = '<option value="">اختر الفئة المناسبة</option>';
+        cachedCategories.forEach(cat => {
+            prodCatSelect.innerHTML += `<option value="${cat.name}">${cat.emoji} ${cat.name}</option>`;
+        });
+    }
+
+    function renderCategoriesAdminList() {
+        const container = document.getElementById('categoriesAdminList');
+        container.innerHTML = '';
+        if (cachedCategories.length === 0) {
+            container.innerHTML = '<div style="font-size: 0.65rem; color: #9ca3af;">لا توجد فئات مضافة</div>';
+            return;
+        }
+        cachedCategories.forEach((cat, index) => {
+            container.innerHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 5px 8px; border-radius: 6px; margin-bottom: 4px; border: 1px solid #e2e8f0; font-size: 0.7rem;">
+                    <span><b>${cat.emoji}</b> ${cat.name}</span>
+                    <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteCategory(${index})">حذف</button>
+                </div>
+            `;
+        });
+    }
+
+    function saveCategory() {
+        const name = document.getElementById('catName').value.trim();
+        const emoji = document.getElementById('catEmoji').value.trim();
+
+        if (!name || !emoji) {
+            alert("الرجاء إدخال اسم الفئة والأيموجي.");
+            return;
+        }
+
+        let categories = [...cachedCategories];
+        categories.push({ name, emoji });
+
+        db.ref('aloroba/categories').set(categories, (error) => {
+            if (!error) {
+                alert("تمت إضافة الفئة بنجاح! ✅");
+                document.getElementById('catName').value = '';
+                document.getElementById('catEmoji').value = '';
+            }
+        });
+    }
+
+    function deleteCategory(index) {
+        if (confirm("هل أنت متأكد من حذف هذه الفئة؟")) {
+            let categories = [...cachedCategories];
+            categories.splice(index, 1);
+            db.ref('aloroba/categories').set(categories);
+        }
+    }
+
     function renderAdmin() {
         let products = cachedProducts;
 
@@ -352,6 +453,8 @@
         products.forEach((p, originalIndex) => {
             let isAvailable = p.inStock !== false && (p.stockQty === undefined || p.stockQty > 0);
             
+            let categoriesOptionsHtml = cachedCategories.map(cat => `<option value="${cat.name}" ${p.category === cat.name ? 'selected' : ''}>${cat.emoji} ${cat.name}</option>`).join('');
+
             productsContainer.innerHTML += `
                 <div class="product-card-container" style="${!isAvailable ? 'opacity: 0.7; background: #fffbeb;' : ''}">
                     <div class="product-mini-row">
@@ -362,7 +465,7 @@
                                     ${p.name} ${!isAvailable ? '<span style="color:#d97706; font-size:0.6rem;">(نفد من المخزن ⚠️)</span>' : ''}
                                 </div>
                                 <div style="font-size: 0.6rem; color: #6b7280;">
-                                    السعر: ${p.price} ₪ ${p.oldPrice ? `<span style="text-decoration: line-through; color: #9ca3af;">(${p.oldPrice} ₪)</span>` : ''} | الكمية: <b>${p.stockQty ?? 'غير محدد'}</b>
+                                    الفئة: ${p.category || 'غير مصنف'} | السعر: ${p.price} ₪ | الكمية: <b>${p.stockQty ?? 'غير محدد'}</b>
                                 </div>
                             </div>
                         </div>
@@ -376,6 +479,14 @@
                         <div class="form-group">
                             <label>اسم المنتج *</label>
                             <input type="text" id="edit-name-${originalIndex}" class="form-control" value="${p.name}">
+                        </div>
+
+                        <div class="form-group">
+                            <label>فئة المنتج *</label>
+                            <select id="edit-category-${originalIndex}" class="form-control">
+                                <option value="">اختر الفئة</option>
+                                ${categoriesOptionsHtml}
+                            </select>
                         </div>
 
                         <div style="display: flex; gap: 6px;">
@@ -613,6 +724,7 @@
     function saveInlineEdit(index) {
         let products = [...cachedProducts];
         const name = document.getElementById(`edit-name-${index}`).value;
+        const category = document.getElementById(`edit-category-${index}`).value;
         const weight = document.getElementById(`edit-weight-${index}`).value;
         const stockQty = parseInt(document.getElementById(`edit-stock-${index}`).value);
         const price = parseFloat(document.getElementById(`edit-price-${index}`).value);
@@ -620,14 +732,15 @@
         const oldPrice = oldPriceVal ? parseFloat(oldPriceVal) : "";
         const img = document.getElementById(`edit-imgData-${index}`).value;
 
-        if (!name || isNaN(price) || isNaN(stockQty)) {
-            alert("الرجاء إدخال اسم المنتج، سعر العرض، والكمية المتاحة.");
+        if (!name || isNaN(price) || isNaN(stockQty) || !category) {
+            alert("الرجاء إدخال اسم المنتج، الفئة، سعر العرض، والكمية المتاحة.");
             return;
         }
 
         products[index] = {
             ...products[index],
             name,
+            category,
             weight,
             stockQty: isNaN(stockQty) ? 0 : stockQty,
             price,
@@ -665,6 +778,7 @@
 
     function saveProduct() {
         const name = document.getElementById('prodName').value.trim();
+        const category = document.getElementById('prodCategory').value;
         const weight = document.getElementById('prodWeight').value.trim();
         const stockQty = parseInt(document.getElementById('prodStockQty').value);
         const price = parseFloat(document.getElementById('prodPrice').value);
@@ -672,8 +786,8 @@
         const oldPrice = oldPriceVal ? parseFloat(oldPriceVal) : "";
         const img = document.getElementById('prodImgData').value;
 
-        if(!name || isNaN(price) || !img || isNaN(stockQty)) {
-            alert("الرجاء ملء اسم المنتج، الكمية، سعر العرض، واختيار الصورة.");
+        if(!name || !category || isNaN(price) || !img || isNaN(stockQty)) {
+            alert("الرجاء ملء اسم المنتج، اختيار الفئة، الكمية، سعر العرض، واختيار الصورة.");
             return;
         }
 
@@ -681,6 +795,7 @@
         const newProd = {
             id: Date.now(),
             name,
+            category,
             weight,
             stockQty,
             price,
@@ -695,6 +810,7 @@
                 alert("تم إضافة ونشر المنتج سحابياً بنجاح 🚀");
                 
                 document.getElementById('prodName').value = '';
+                document.getElementById('prodCategory').value = '';
                 document.getElementById('prodWeight').value = '';
                 document.getElementById('prodStockQty').value = '';
                 document.getElementById('prodPrice').value = '';
