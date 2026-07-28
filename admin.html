@@ -88,6 +88,15 @@
         .order-action-btns { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
         .btn-call { background: #2563eb; color: white; text-decoration: none; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; display: inline-flex; align-items: center; gap: 3px; }
         .btn-status { background: #16a34a; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; cursor: pointer; }
+        
+        /* جدول الأرشيف الإكسل */
+        .archive-table-wrapper { width: 100%; overflow-x: auto; margin-top: 8px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; }
+        .archive-table { width: 100%; border-collapse: collapse; font-size: 0.65rem; text-align: right; white-space: nowrap; }
+        .archive-table th, .archive-table td { border-bottom: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; padding: 6px 8px; }
+        .archive-table th { background: var(--primary-green); color: white; font-weight: bold; }
+        .archive-table tr:nth-child(even) { background: #f8fafc; }
+        .archive-table tr:hover { background: #f1f5f9; }
+
         .banner-slide-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
     </style>
 
@@ -149,6 +158,18 @@
         </div>
         <div class="section-content" id="ordersSectionContent">
             <div id="adminOrdersList" style="margin-top: 8px; max-height: 300px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- أرشيف الطلبات المكتملة (بشكل جدول إكسل) -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('archiveSectionContent', this)">
+            <span>📂 أرشيف الطلبات المكتملة (<span id="archiveCountTitle">0</span>)</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="archiveSectionContent">
+            <button class="btn-main" style="background: #059669; margin-bottom: 8px; font-size: 0.75rem;" onclick="exportArchiveToExcel()">📥 تنزيل الأرشيف كملف إكسل (CSV)</button>
+            <div id="adminArchiveList"></div>
         </div>
     </div>
 
@@ -298,7 +319,6 @@
         }
     }
 
-    // رفع الصورة بجودة عالية وواضحة (بدقة 800×800 وجودة 85%) وضمن حدود السحابة
     function handleImageUpload(event, inputId, previewId) {
         const file = event.target.files[0];
         if(!file) return;
@@ -329,7 +349,6 @@
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // جودة عالية 85% لتظهر الصور بشكل واضح وجميل في المتجر
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
                 document.getElementById(inputId).value = dataUrl;
                 const preview = document.getElementById(previewId);
@@ -348,7 +367,7 @@
         if(!container) return;
         container.innerHTML = '';
         if(categories.length <= 1) {
-            container.innerHTML = '<span style="font-size:0.7rem; color:#888;">لا توجد فئات مضافة بعد، أضف فئات من قسم إدارة الفئات أدناه.</span>';
+            container.innerHTML = '<span style="font-size:0.7rem; color:#888;">لا توجد فئات مضافة بعد</span>';
             return;
         }
         categories.forEach(cat => {
@@ -406,7 +425,7 @@
             alert("تم إضافة المنتج بنجاح للسحابة! 🚀");
         } catch (e) {
             console.error("خطأ الحفظ:", e);
-            alert("حدث خطأ أثناء الحفظ بالسحابة: " + (e.message || "تأكد من اتصال الإنترنت وحجم الصورة"));
+            alert("حدث خطأ أثناء الحفظ بالسحابة");
         }
     }
 
@@ -571,7 +590,6 @@
             renderAdminGroupedProducts();
             alert("تم تحديث المنتج بنجاح في السحابة!");
         } catch(e) {
-            console.error("خطأ التحديث:", e);
             alert("خطأ أثناء التحديث");
         }
     }
@@ -593,7 +611,7 @@
         if(!container) return;
         container.innerHTML = '';
         if(categories.length <= 1) {
-            container.innerHTML = '<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 10px;">لا توجد فئات مضافة حالياً</p>';
+            container.innerHTML = '<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 10px;">لا توجد فئات مضافة</p>';
             return;
         }
         categories.forEach((cat) => {
@@ -647,7 +665,7 @@
                 renderAdminGroupedProducts();
                 alert("تم حذف القسم بنجاح!");
             } catch(e) {
-                alert("خطأ أثناء حذف القسم من السحابة");
+                alert("خطأ أثناء الحذف");
             }
         }
     }
@@ -715,45 +733,123 @@
         }
     }
 
+    // عرض الطلبات الواردة وأرشيف الإكسل المكتمل
     function renderAdminOrders() {
         const container = document.getElementById('adminOrdersList');
-        if(!container) return;
-        document.getElementById('ordersCountTitle').innerText = orders.length;
-        document.getElementById('newOrdersCountBadge').innerText = orders.filter(o => o.status === "جديد").length;
+        const archiveContainer = document.getElementById('adminArchiveList');
+        if(!container || !archiveContainer) return;
 
-        if(orders.length === 0) {
+        const activeOrders = orders.filter(o => o.status !== "مكتمل");
+        const archivedOrders = orders.filter(o => o.status === "مكتمل");
+
+        document.getElementById('ordersCountTitle').innerText = activeOrders.length;
+        document.getElementById('archiveCountTitle').innerText = archivedOrders.length;
+        document.getElementById('newOrdersCountBadge').innerText = activeOrders.filter(o => !o.status || o.status === "جديد").length;
+
+        // 1. عرض الطلبات الواردة النشطة
+        if(activeOrders.length === 0) {
             container.innerHTML = '<p style="color: #666; text-align: center; font-size: 0.75rem;">لا توجد طلبات واردة حالياً.</p>';
+        } else {
+            let html = "";
+            activeOrders.forEach((ord, index) => {
+                let itemsStr = "";
+                if(ord.items) {
+                    ord.items.forEach(it => {
+                        itemsStr += `▪️ ${it.name} (${it.price} ₪)<br>`;
+                    });
+                }
+                html += `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <span>طلب #${ord.id || (index+1)}</span>
+                            <span>${ord.status || 'جديد'}</span>
+                        </div>
+                        <div><b>الزبون:</b> ${ord.customerName}</div>
+                        <div><b>الهاتف:</b> ${ord.customerPhone}</div>
+                        <div><b>العنوان:</b> ${ord.customerAddress}</div>
+                        <div style="margin: 4px 0;"><b>المنتجات:<br></b> ${itemsStr}</div>
+                        <div style="font-weight: bold;">المجموع: ${ord.total || 0} ₪</div>
+                        <div class="order-action-btns">
+                            <a href="tel:${ord.customerPhone}" class="btn-call">📞 اتصال</a>
+                            <button class="btn-status" onclick="updateOrderStatus('${ord.id}', 'مكتمل')">تم ✓</button>
+                            <button class="btn-delete" onclick="deleteOrder('${ord.id}')">حذف ✕</button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // 2. عرض أرشيف الطلبات المكتملة على شكل جدول إكسل مرتب
+        if(archivedOrders.length === 0) {
+            archiveContainer.innerHTML = '<p style="color: #666; text-align: center; font-size: 0.75rem; padding: 10px;">الأرشيف فارغ.</p>';
+        } else {
+            let tableHtml = `
+                <div class="archive-table-wrapper">
+                    <table class="archive-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>اسم الزبون</th>
+                                <th>رقم الهاتف</th>
+                                <th>العنوان (الحارة والبيت)</th>
+                                <th>السعر الإجمالي</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            archivedOrders.forEach((ord, index) => {
+                tableHtml += `
+                    <tr>
+                        <td style="font-weight: bold;">${index + 1}</td>
+                        <td>${ord.customerName || ''}</td>
+                        <td>${ord.customerPhone || ''}</td>
+                        <td>${ord.customerAddress || ''}</td>
+                        <td style="font-weight: bold; color: #16a34a;">${ord.total || 0} ₪</td>
+                        <td>
+                            <button class="btn-status" style="background: #3b82f6; padding: 2px 6px; font-size: 0.6rem;" onclick="updateOrderStatus('${ord.id}', 'جديد')">استعادة ↩</button>
+                            <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteOrder('${ord.id}')">حذف ✕</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            archiveContainer.innerHTML = tableHtml;
+        }
+    }
+
+    // دالة لتنزيل الأرشيف كملف إكسل CSV متوافق تماماً
+    function exportArchiveToExcel() {
+        const archivedOrders = orders.filter(o => o.status === "مكتمل");
+        if(archivedOrders.length === 0) {
+            alert("لا توجد طلبات في الأرشيف لتنزيلها.");
             return;
         }
 
-        let html = "";
-        orders.forEach((ord, index) => {
-            let itemsStr = "";
-            if(ord.items) {
-                ord.items.forEach(it => {
-                    itemsStr += `▪️ ${it.name} (${it.price} ₪)<br>`;
-                });
-            }
-            html += `
-                <div class="order-card">
-                    <div class="order-header">
-                        <span>طلب #${ord.id || (index+1)}</span>
-                        <span>${ord.status || 'جديد'}</span>
-                    </div>
-                    <div><b>الزبون:</b> ${ord.customerName}</div>
-                    <div><b>الهاتف:</b> ${ord.customerPhone}</div>
-                    <div><b>العنوان:</b> ${ord.customerAddress}</div>
-                    <div style="margin: 4px 0;"><b>المنتجات:<br></b> ${itemsStr}</div>
-                    <div style="font-weight: bold;">المجموع: ${ord.total || 0} ₪</div>
-                    <div class="order-action-btns">
-                        <a href="tel:${ord.customerPhone}" class="btn-call">📞 اتصال</a>
-                        <button class="btn-status" onclick="updateOrderStatus('${ord.id}', 'مكتمل')">تم ✓</button>
-                        <button class="btn-delete" onclick="deleteOrder('${ord.id}')">حذف ✕</button>
-                    </div>
-                </div>
-            `;
+        let csvContent = "\uFEFFاسم الزبون,رقم الهاتف,العنوان,السعر الإجمالي (₪)\n";
+        archivedOrders.forEach(ord => {
+            let name = `"${(ord.customerName || '').replace(/"/g, '""')}"`;
+            let phone = `"${(ord.customerPhone || '').replace(/"/g, '""')}"`;
+            let address = `"${(ord.customerAddress || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`;
+            let total = ord.total || 0;
+            csvContent += `${name},${phone},${address},${total}\n`;
         });
-        container.innerHTML = html;
+
+        let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement('a');
+        a.href = url;
+        a.download = 'Aloroba_Archive_Orders.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     }
 
     async function updateOrderStatus(id, status) {
