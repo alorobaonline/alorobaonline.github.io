@@ -79,7 +79,6 @@
         .product-mini-row { display: flex; justify-content: space-between; align-items: center; padding: 8px; font-size: 0.7rem; gap: 8px; }
         .product-mini-info { display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; }
         .product-mini-thumb { width: 32px; height: 32px; object-fit: contain; background: white; border-radius: 4px; border: 1px solid #ddd; padding: 2px; flex-shrink: 0; cursor: pointer; }
-        .inline-edit-form { background: #eff6ff; border-top: 1px dashed #bfdbfe; padding: 10px; display: none; }
         .preview-thumb { width: 45px; height: 45px; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 6px; background: white; padding: 2px; cursor: pointer; }
         .toggle-arrow { font-size: 0.75rem; transition: transform 0.2s; }
         
@@ -105,6 +104,38 @@
         .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--primary-green); }
         input:checked + .slider:before { transform: translateX(22px); }
+
+        /* تنسيقات نافذة التعديل السريع المنبثقة */
+        .quick-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center;
+            z-index: 10000;
+        }
+        .quick-modal-content {
+            background: #fff; padding: 15px; border-radius: 12px;
+            width: 95%; max-width: 520px; box-shadow: var(--shadow-card);
+            direction: rtl; font-family: 'Cairo', sans-serif;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .quick-modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 10px; }
+        .quick-modal-header h3 { font-size: 0.9rem; color: var(--primary-green); font-weight: 800; }
+        .quick-close-btn { font-size: 22px; cursor: pointer; color: #888; font-weight: bold; }
+        .quick-product-preview { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .quick-product-preview img { width: 45px; height: 45px; object-fit: contain; border-radius: 6px; background: white; border: 1px solid #ddd; padding: 2px; cursor: pointer; }
+        .quick-product-id { font-weight: bold; color: #4b5563; font-size: 0.7rem; }
+        
+        .form-row-compact {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        @media (max-width: 480px) {
+            .form-row-compact {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .highlight-price { color: #16a34a; font-weight: bold; }
     </style>
 
     <!-- Firebase SDKs -->
@@ -238,7 +269,7 @@
         </div>
         <div class="section-content" id="bulkImagesSectionContent">
             <div style="font-size: 0.7rem; color: #4b5563; margin-bottom: 8px; line-height: 1.4;">
-                اختر عدة صور دفعة واحدة من جهازك. سيتم إنشاء منتج جديد لكل صورة تلقائياً (بعنوان افتراضي وسعر 0)، ويمكنك تعديل بياناتها لاحقاً من قسم إدارة المنتجات بكل سهولة!
+                اختر عدة صور دفعة واحدة من جهازك. سيتم إنشاء منتج جديد لكل صورة تلقائياً (بعنوان افتراضي وسعر 0)، ويمكنك تعديل بياناتها لاحقاً بسرعة باستخدام نافذة التعديل السريع!
             </div>
             <div class="form-group">
                 <label>اختر صور المنتجات (يمكنك اختيار صور متعددة معاً)</label>
@@ -306,12 +337,63 @@
     </div>
 </div>
 
+<!-- نافذة التعديل السريع المنبثقة لكل منتج (مع حفظ وانتقال للتالي) -->
+<div id="quickEditModal" class="quick-modal-overlay" style="display: none;">
+  <div class="quick-modal-content">
+    <div class="quick-modal-header">
+      <h3>⚡ تعديل سريع للمنتج</h3>
+      <span class="quick-close-btn" onclick="closeQuickModal()">&times;</span>
+    </div>
+    
+    <div class="quick-modal-body">
+      <!-- معاينة الصورة ومعرف المنتج -->
+      <div class="quick-product-preview">
+        <img id="modalProductImage" src="" alt="صورة المنتج" onclick="openModal(this)">
+        <span id="modalProductId" class="quick-product-id"></span>
+      </div>
+
+      <form id="quickEditForm" onsubmit="event.preventDefault();">
+        <!-- البيانات الأساسية في صف واحد -->
+        <div class="form-row-compact">
+          <div class="form-group">
+            <label>اسم المنتج</label>
+            <input type="text" id="modalProductName" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="highlight-price">السعر (₪)</label>
+            <input type="number" step="0.01" id="modalProductPrice" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>سعر العرض</label>
+            <input type="number" step="0.01" id="modalProductSalePrice" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>الوزن / الحجم</label>
+            <input type="text" id="modalProductWeight" class="form-control">
+          </div>
+        </div>
+
+        <!-- الأقسام: كل 3 أقسام في صف واحد -->
+        <div class="form-group" style="margin-top: 10px;">
+            <label>أقسام الفئات</label>
+            <div class="categories-checkbox-container" id="modalCategoriesGrid">
+                <!-- تعبئة ديناميكية -->
+            </div>
+        </div>
+      </form>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px;">
+      <button type="button" onclick="closeQuickModal()" style="background: #6c757d; color: #fff; border: none; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: bold;">إلغاء</button>
+      <button type="button" onclick="saveAndNextQuick()" style="background: #16a34a; color: #fff; border: none; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: bold;">حفظ وانتقال للتالي 🚀</button>
+    </div>
+  </div>
+</div>
+
 <!-- نافذة عرض الصورة بالحجم الكامل مع زر إغلاق (X) واضح -->
 <div id="imageModal" style="display: none; position: fixed; z-index: 9999; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); justify-content: center; align-items: center;">
     <div style="position: relative; max-width: 90%; max-height: 90%;">
-        <!-- زر علامة X للإغلاق -->
         <span onclick="closeModal()" style="position: absolute; top: -12px; right: -12px; background-color: #ff4d4d; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.4); z-index: 10000;">&times;</span>
-        <!-- الصورة المكبرة -->
         <img id="modalImg" style="max-width: 100%; max-height: 85vh; border-radius: 8px; display: block; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" />
     </div>
 </div>
@@ -323,6 +405,10 @@
     ];
     let bannerSlides = [];
     let orders = [];
+
+    // متغيرات التعديل السريع المنبثق
+    let currentProductIndex = 0;
+    let flatProductsList = [];
 
     window.addEventListener('firebase-ready', async function() {
         await loadDataFromCloud();
@@ -353,7 +439,6 @@
                 orders.push({ id: docSnap.id, ...docSnap.data() });
             });
 
-            // جلب إعدادات عرض فئة "أخرى غير مصنفة"
             try {
                 const settingSnap = await window.getDoc(window.doc(window.db, "settings", "storeSettings"));
                 if(settingSnap.exists()) {
@@ -365,7 +450,7 @@
                     }
                 }
             } catch(e) {
-                console.log("لم يتم العثور على إعدادات سابقة، الافتراضي مفعل");
+                console.log("لم يتم العثور على إعدادات سابقة");
             }
 
             renderNewProdCategoriesCheckboxes();
@@ -388,7 +473,6 @@
             alert("تم تحديث حالة عرض فئة 'أخرى غير مصنفة' بنجاح! ✨");
         } catch(e) {
             console.error("خطأ في حفظ الإعداد:", e);
-            alert("حدث خطأ أثناء حفظ الإعدادات بالسحابة");
         }
     }
 
@@ -555,7 +639,7 @@
 
         renderAdminGroupedProducts();
         progressDiv.innerText = `تم الانتهاء! نجاح: ${successCount} | فشل: ${failCount} 🚀`;
-        alert(`تم رفع وإنشاء ${successCount} منتج بنجاح! يمكنك الآن تعديل بياناتها من قسم "إدارة وتعديل المنتجات".`);
+        alert(`تم رفع وإنشاء ${successCount} منتج بنجاح! يمكنك الآن تعديل بياناتها سريعاً من قائمة المنتجات.`);
         fileInput.value = '';
     }
 
@@ -657,45 +741,9 @@
                                 </div>
                             </div>
                             <div class="product-actions">
-                                <button class="btn-edit" onclick="toggleEditForm('${p.id}')">تعديل ✏️</button>
+                                <button class="btn-edit" onclick="openQuickEdit('${p.id}')">تعديل سريع ⚡</button>
                                 <button class="btn-delete" onclick="deleteProduct('${p.id}')">حذف 🗑️</button>
                             </div>
-                        </div>
-                        <div class="inline-edit-form" id="editForm_${p.id}">
-                            <div class="form-group">
-                                <label>اسم المنتج</label>
-                                <input type="text" id="edit_name_${p.id}" class="form-control" value="${p.name}">
-                            </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                                <div class="form-group">
-                                    <label>السعر الأساسي</label>
-                                    <input type="number" id="edit_price_${p.id}" class="form-control" value="${p.price}">
-                                </div>
-                                <div class="form-group">
-                                    <label>سعر العرض</label>
-                                    <input type="number" id="edit_saleprice_${p.id}" class="form-control" value="${p.salePrice !== undefined ? p.salePrice : ''}">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>الوزن</label>
-                                <input type="text" id="edit_weight_${p.id}" class="form-control" value="${p.weight || ''}">
-                            </div>
-                            <div class="form-group">
-                                <label>صورة المنتج (رابط أو رفع من الجهاز)</label>
-                                <div class="file-upload-box">
-                                    <input type="text" id="edit_img_${p.id}" class="form-control" value="${p.img}" style="flex: 2;">
-                                    <label class="camera-btn">
-                                        📁 تغيير الصورة
-                                        <input type="file" accept="image/*" onchange="handleImageUpload(event, 'edit_img_${p.id}', 'editPreview_${p.id}')">
-                                    </label>
-                                </div>
-                                <img id="editPreview_${p.id}" class="preview-thumb" src="${p.img || ''}" alt="معاينة" style="${p.img ? 'display: block;' : 'display: none;'} margin-top: 5px;" onclick="openModal(this)">
-                            </div>
-                            <div class="form-group">
-                                <label>أقسام المنتج</label>
-                                <div class="categories-checkbox-container" id="editCatsContainer_${p.id}"></div>
-                            </div>
-                            <button class="btn-main" style="background: #3b82f6; padding: 6px; font-size: 0.7rem;" onclick="saveEditedProduct('${p.id}')">حفظ التعديلات ✓</button>
                         </div>
                     </div>
                 `;
@@ -711,63 +759,92 @@
         items.style.display = items.style.display === 'block' ? 'none' : 'block';
     }
 
-    function toggleEditForm(id) {
-        const form = document.getElementById(`editForm_${id}`);
-        if(form.style.display === 'block') {
-            form.style.display = 'none';
-        } else {
-            form.style.display = 'block';
-            let p = products.find(prod => prod.id == id);
-            if(p) renderEditCategoriesCheckboxes(id, p.categories || []);
+    // دوال نافذة التعديل السريع المنبثقة الفردية
+    function openQuickEdit(productId) {
+        flatProductsList = [...products];
+        const index = flatProductsList.findIndex(p => p.id == productId);
+        if(index !== -1) {
+            currentProductIndex = index;
+            renderQuickEditModalData(currentProductIndex);
+            document.getElementById('quickEditModal').style.display = 'flex';
         }
     }
 
-    function renderEditCategoriesCheckboxes(prodId, currentCats) {
-        const container = document.getElementById(`editCatsContainer_${prodId}`);
+    function renderQuickEditModalData(index) {
+        const product = flatProductsList[index];
+        if(!product) return;
+
+        document.getElementById('modalProductImage').src = product.img || 'https://i.ibb.co/3m1K2wP/basket.png';
+        document.getElementById('modalProductId').innerText = `معرف المنتج: ${product.id} (${index + 1} من ${flatProductsList.length})`;
+        document.getElementById('modalProductName').value = product.name || '';
+        document.getElementById('modalProductPrice').value = product.price !== undefined ? product.price : 0;
+        document.getElementById('modalProductSalePrice').value = product.salePrice !== undefined ? product.salePrice : '';
+        document.getElementById('modalProductWeight').value = product.weight || '';
+
+        renderModalCategoriesCheckboxes(product.categories || []);
+    }
+
+    function renderModalCategoriesCheckboxes(selectedCats) {
+        const container = document.getElementById('modalCategoriesGrid');
         if(!container) return;
         container.innerHTML = '';
         categories.forEach(cat => {
             if(cat.name === "الكل") return;
-            const isChecked = currentCats.includes(cat.name) ? 'checked' : '';
+            const isChecked = selectedCats.includes(cat.name) ? 'checked' : '';
             container.innerHTML += `
                 <label class="checkbox-item">
-                    <input type="checkbox" name="editCat_${prodId}" value="${cat.name}" ${isChecked}>
+                    <input type="checkbox" name="modalCatCheckbox" value="${cat.name}" ${isChecked}>
                     ${cat.icon} ${cat.name}
                 </label>
             `;
         });
     }
 
-    async function saveEditedProduct(localId) {
-        let p = products.find(prod => prod.id == localId);
-        if(!p) return;
+    async function saveAndNextQuick() {
+        const product = flatProductsList[currentProductIndex];
+        if(!product) return;
 
-        p.name = document.getElementById(`edit_name_${localId}`).value.trim();
-        p.price = parseFloat(document.getElementById(`edit_price_${localId}`).value) || 0;
-        let sp = document.getElementById(`edit_saleprice_${localId}`).value.trim();
-        p.salePrice = sp !== "" ? parseFloat(sp) : "";
-        p.weight = document.getElementById(`edit_weight_${localId}`).value.trim();
-        p.img = document.getElementById(`edit_img_${localId}`).value.trim();
+        product.name = document.getElementById('modalProductName').value.trim();
+        product.price = parseFloat(document.getElementById('modalProductPrice').value) || 0;
+        let sp = document.getElementById('modalProductSalePrice').value.trim();
+        product.salePrice = sp !== "" ? parseFloat(sp) : "";
+        product.weight = document.getElementById('modalProductWeight').value.trim();
 
         let selectedCats = [];
-        document.querySelectorAll(`input[name="editCat_${localId}"]:checked`).forEach(cb => {
+        document.querySelectorAll('input[name="modalCatCheckbox"]:checked').forEach(cb => {
             selectedCats.push(cb.value);
         });
-        p.categories = selectedCats.length > 0 ? selectedCats : ["عام"];
+        product.categories = selectedCats.length > 0 ? selectedCats : ["عام"];
 
         try {
-            await window.updateDoc(window.doc(window.db, "products", localId), {
-                name: p.name,
-                price: p.price,
-                salePrice: p.salePrice,
-                weight: p.weight,
-                img: p.img,
-                categories: p.categories
+            await window.updateDoc(window.doc(window.db, "products", product.id), {
+                name: product.name,
+                price: product.price,
+                salePrice: product.salePrice,
+                weight: product.weight,
+                categories: product.categories
             });
+            
             renderAdminGroupedProducts();
-            alert("تم تحديث المنتج بنجاح في السحابة!");
+
+            // الانتقال التلقائي للمنتج التالي
+            if (currentProductIndex + 1 < flatProductsList.length) {
+                currentProductIndex++;
+                renderQuickEditModalData(currentProductIndex);
+            } else {
+                closeQuickModal();
+                alert("تم تحديث جميع المنتجات بنجاح! ✨");
+            }
         } catch(e) {
-            alert("خطأ أثناء التحديث");
+            console.error(e);
+            alert("خطأ أثناء الحفظ بالسحابة");
+        }
+    }
+
+    function closeQuickModal() {
+        const modal = document.getElementById('quickEditModal');
+        if(modal) {
+            modal.style.display = 'none';
         }
     }
 
@@ -1059,7 +1136,6 @@
         if(elem) elem.innerText = total.toFixed(2) + " ₪";
     }
 
-    // دوال نافذة عرض الصورة بالحجم الكامل
     function openModal(imgElement) {
         const modal = document.getElementById('imageModal');
         const modalImg = document.getElementById('modalImg');
