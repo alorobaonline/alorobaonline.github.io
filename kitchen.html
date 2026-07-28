@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>العروبة أونلاين - شاشة الطلبات الواردة (المطبخ)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-green: #1b4d2e;
+            --accent-green: #68a633;
+            --light-bg: #f8fafc;
+            --card-bg: #ffffff;
+            --danger-red: #ef4444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+        body { background-color: var(--light-bg); color: #1f2937; padding: 20px; min-height: 100vh; }
+
+        .kitchen-header { display: flex; justify-content: space-between; align-items: center; background: var(--primary-green); color: white; padding: 15px 25px; border-radius: 14px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .kitchen-title { font-size: 1.5rem; font-weight: 900; display: flex; align-items: center; gap: 10px; }
+        .live-indicator { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: bold; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 20px; }
+        .pulse-dot { width: 12px; height: 12px; background-color: #22c55e; border-radius: 50%; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); animation: pulse 1.5s infinite; }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        .orders-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+        
+        .order-card { background: var(--card-bg); border: 2px solid #e2e8f0; border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .order-card.new-order { border-color: var(--accent-green); background-color: #f7fee7; animation: highlightNew 2s infinite alternate; }
+
+        @keyframes highlightNew {
+            from { box-shadow: 0 0 10px rgba(104, 166, 51, 0.2); }
+            to { box-shadow: 0 0 25px rgba(104, 166, 51, 0.6); }
+        }
+
+        .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+        .order-id { font-weight: 900; font-size: 1.1rem; color: var(--primary-green); }
+        .order-time { font-size: 0.8rem; color: #64748b; font-weight: bold; }
+
+        .customer-info { background: white; padding: 10px; border-radius: 10px; margin-bottom: 12px; border: 1px solid #cbd5e1; font-size: 0.9rem; }
+        .customer-info div { margin-bottom: 4px; }
+
+        .order-items-list { margin-bottom: 15px; max-height: 220px; overflow-y: auto; }
+        .order-item-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.95rem; }
+        .item-name { font-weight: 800; color: #1f2937; }
+        .item-qty { background: var(--primary-green); color: white; padding: 2px 10px; border-radius: 6px; font-weight: bold; font-size: 0.9rem; }
+
+        .order-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: auto; }
+        .order-total { font-size: 1.1rem; font-weight: 900; color: var(--primary-green); }
+        
+        .action-btn { background: var(--accent-green); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 0.9rem; cursor: pointer; transition: background 0.2s; }
+        .action-btn:hover { opacity: 0.9; }
+        .action-btn.completed { background: #64748b; }
+
+        .no-orders { grid-column: 1 / -1; text-align: center; padding: 60px; color: #64748b; font-size: 1.2rem; font-weight: bold; background: white; border-radius: 16px; border: 2px dashed #cbd5e1; }
+    </style>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
+            authDomain: "alorobaonline.firebaseapp.com",
+            projectId: "alorobaonline",
+            storageBucket: "alorobaonline.firebasestorage.app",
+            messagingSenderId: "880642361344",
+            appId: "1:880642361344:web:9dddec05f81125f0fc30e5",
+            measurementId: "G-NL9CS2135V"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.collection = collection;
+        window.onSnapshot = onSnapshot;
+        window.doc = doc;
+        window.updateDoc = updateDoc;
+        window.query = query;
+        window.orderBy = orderBy;
+
+        window.dispatchEvent(new Event('firebase-ready'));
+    </script>
+</head>
+<body>
+
+<div class="kitchen-header">
+    <div class="kitchen-title">
+        🍳 شاشة الطلبات الواردة - العروبة أونلاين
+    </div>
+    <div class="live-indicator">
+        <div class="pulse-dot"></div>
+        متصل بالسحابة (مباشر)
+    </div>
+</div>
+
+<div class="orders-grid" id="kitchenOrdersContainer">
+    <div class="no-orders">جاري استماع الطلبات الواردة من السحابة...</div>
+</div>
+
+<!-- صوت تنبيه (بيبان صوتي بسيط عبر الويب أوديو API بدون الحاجة لملف خارجي) -->
+<script>
+    function playBeepSound() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime); // نغمة D5
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.4);
+        } catch(e) {
+            console.log("Audio context prevented or not supported", e);
+        }
+    }
+
+    let previousOrdersCount = -1;
+
+    window.addEventListener('firebase-ready', function() {
+        const q = window.query(window.collection(window.db, "orders"), window.orderBy("timestamp", "desc"));
+        
+        window.onSnapshot(q, (snapshot) => {
+            const container = document.getElementById('kitchenOrdersContainer');
+            container.innerHTML = '';
+
+            let activeOrders = [];
+            snapshot.forEach(docSnap => {
+                let orderData = docSnap.data();
+                // نعرض فقط الطلبات الجديدة أو التي لم تكتمل بعد، أو عرض الكل
+                if (orderData.status !== "مكتمل") {
+                    activeOrders.push({ id: docSnap.id, ...orderData });
+                }
+            });
+
+            // فحص إذا وصل طلب جديد لإطلاق التنبيه الصوتي
+            if (previousOrdersCount !== -1 && activeOrders.length > previousOrdersCount) {
+                playBeepSound();
+            }
+            previousOrdersCount = activeOrders.length;
+
+            if (activeOrders.length === 0) {
+                container.innerHTML = `<div class="no-orders">لا توجد طلبات جديدة معلقة حالياً. الشاشة بانتظار الطلبات...[cite: 6]</div>`;
+                return;
+            }
+
+            activeOrders.forEach(order => {
+                let timeStr = order.timestamp ? new Date(order.timestamp).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : 'وقت غير متوفر[cite: 6]';
+                let itemsHtml = order.items.map(item => `
+                    <div class="order-item-row">
+                        <span class="item-name">${item.name}</span>
+                        <span class="item-qty">${item.quantity}</span>
+                    </div>
+                `).join('');
+
+                container.innerHTML += `
+                    <div class="order-card new-order">
+                        <div>
+                            <div class="order-header">
+                                <span class="order-id">طلب #${order.id.slice(-4).toUpperCase()}</span>
+                                <span class="order-time">🕒 ${timeStr}</span>
+                            </div>
+                            <div class="customer-info">
+                                <div>👤 <b>${order.customerName}</b></div>
+                                <div>📞 <b>${order.customerPhone}</b></div>
+                                <div>📍 <b>${order.customerAddress}</b></div>
+                            </div>
+                            <div class="order-items-list">
+                                ${itemsHtml}
+                            </div>
+                        </div>
+                        <div class="order-footer">
+                            <span class="order-total">المجموع: ${order.total.toFixed(2)} ₪[cite: 6]</span>
+                            <button class="action-btn" onclick="markOrderCompleted('${order.id}')">إنجاز الطلب ✓[cite: 6]</button>
+                        </div>
+                    </div>
+                `;
+            });
+        });
+    });
+
+    async function markOrderCompleted(orderId) {
+        if(confirm("هل أنت متأكد من تغيير حالة الطلب إلى مكتمل وإزالته من شاشة التجهيز؟[cite: 6]")) {
+            try {
+                await window.updateDoc(window.doc(window.db, "orders", orderId), {
+                    status: "مكتمل"
+                });
+            } catch(e) {
+                alert("حدث خطأ أثناء تحديث حالة الطلب: " + e.message);
+            }
+        }
+    }
+</script>
+</body>
+</html>
