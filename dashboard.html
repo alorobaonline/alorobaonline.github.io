@@ -222,20 +222,25 @@
                 <input type="text" id="prodName" class="form-control" placeholder="مثال: أرز تات بسمتي">
             </div>
 
-            <!-- السعر، الكمية المتاحة، والوزن / الحجم في صف واحد متناسق -->
+            <!-- الأسعار، الكمية، والوزن في صفوف متناسقة -->
             <div style="display: flex; gap: 6px;">
                 <div class="form-group" style="flex: 1;">
-                    <label>السعر (₪) *</label>
-                    <input type="number" id="prodPrice" class="form-control" placeholder="22">
+                    <label>سعر العرض (₪) *</label>
+                    <input type="number" id="prodPrice" class="form-control" placeholder="18">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>السعر القديم (اختياري)</label>
+                    <input type="number" id="prodOldPrice" class="form-control" placeholder="22">
                 </div>
                 <div class="form-group" style="flex: 1;">
                     <label>الكمية المتاحة *</label>
                     <input type="number" id="prodStockQty" class="form-control" placeholder="20">
                 </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>الوزن / الحجم</label>
-                    <input type="text" id="prodWeight" class="form-control" placeholder="5 كجم">
-                </div>
+            </div>
+
+            <div class="form-group">
+                <label>الوزن / الحجم</label>
+                <input type="text" id="prodWeight" class="form-control" placeholder="5 كجم">
             </div>
 
             <div class="form-group">
@@ -341,9 +346,6 @@
                 let parsed = JSON.parse(saved);
                 if (Array.isArray(parsed)) {
                     return parsed.map(p => {
-                        // إزالة خانة العرض القديمة وتصفية الفئات التي تحمل اسم "عروض"
-                        delete p.offerPrice;
-                        delete p.offer;
                         if (p.categories && Array.isArray(p.categories)) {
                             p.categories = p.categories.filter(c => c.trim() !== "عروض");
                         } else if (!p.categories && p.category) {
@@ -375,9 +377,9 @@
         }
         
         const defaultProducts = [
-            { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات"], inStock: true, stockQty: 15 },
-            { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, img: "https://i.ibb.co/1q20K0v/maggi.png", categories: ["معلبات"], inStock: true, stockQty: 30 },
-            { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, img: "https://i.ibb.co/7Xv8L9p/nido.png", categories: ["ألبان"], inStock: true, stockQty: 10 }
+            { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 18, oldPrice: 22, img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات"], inStock: true, stockQty: 15 },
+            { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: "", img: "https://i.ibb.co/1q20K0v/maggi.png", categories: ["معلبات"], inStock: true, stockQty: 30 },
+            { id: 3, name: "حليب نيدو", weight: "2500جم", price: 55, oldPrice: 59, img: "https://i.ibb.co/7Xv8L9p/nido.png", categories: ["ألبان"], inStock: true, stockQty: 10 }
         ];
         try {
             localStorage.setItem('aloroba_products', JSON.stringify(defaultProducts));
@@ -396,7 +398,6 @@
             { name: "عصير", icon: "🧃", bg: "#fdf2f8", color: "#db2777" },
             { name: "نساء", icon: "👩", bg: "#fce7f3", color: "#be185d" }
         ];
-        // التأكد من عدم وجود فئة "عروض" في المخزن المحفوظ مسبقاً
         categories = categories.filter(cat => cat.name !== "عروض");
     } catch(e) {
         categories = [{ name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" }];
@@ -510,7 +511,7 @@
                                             ${p.name} ${!isAvailable ? '<span style="color:#d97706; font-size:0.6rem;">(نفد من المخزن ⚠️)</span>' : ''}
                                         </div>
                                         <div style="font-size: 0.6rem; color: #6b7280;">
-                                            السعر: ${p.price} ₪ | الكمية: <b>${p.stockQty ?? 'غير محدد'}</b>
+                                            السعر: ${p.price} ₪ ${p.oldPrice ? `<span style="text-decoration: line-through; color: #9ca3af;">(${p.oldPrice} ₪)</span>` : ''} | الكمية: <b>${p.stockQty ?? 'غير محدد'}</b>
                                         </div>
                                     </div>
                                 </div>
@@ -529,17 +530,22 @@
 
                                 <div style="display: flex; gap: 6px;">
                                     <div class="form-group" style="flex: 1;">
-                                        <label>السعر (₪) *</label>
+                                        <label>سعر العرض (₪) *</label>
                                         <input type="number" id="edit-price-${originalIndex}" class="form-control" value="${p.price}">
+                                    </div>
+                                    <div class="form-group" style="flex: 1;">
+                                        <label>السعر القديم</label>
+                                        <input type="number" id="edit-oldPrice-${originalIndex}" class="form-control" value="${p.oldPrice || ''}">
                                     </div>
                                     <div class="form-group" style="flex: 1;">
                                         <label>الكمية المتاحة *</label>
                                         <input type="number" id="edit-stock-${originalIndex}" class="form-control" value="${p.stockQty ?? 0}">
                                     </div>
-                                    <div class="form-group" style="flex: 1;">
-                                        <label>الوزن / الحجم</label>
-                                        <input type="text" id="edit-weight-${originalIndex}" class="form-control" value="${p.weight || ''}">
-                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>الوزن / الحجم</label>
+                                    <input type="text" id="edit-weight-${originalIndex}" class="form-control" value="${p.weight || ''}">
                                 </div>
 
                                 <div class="form-group">
@@ -787,6 +793,8 @@
         const weight = document.getElementById(`edit-weight-${index}`).value;
         const stockQty = parseInt(document.getElementById(`edit-stock-${index}`).value);
         const price = parseFloat(document.getElementById(`edit-price-${index}`).value);
+        const oldPriceVal = document.getElementById(`edit-oldPrice-${index}`).value;
+        const oldPrice = oldPriceVal ? parseFloat(oldPriceVal) : "";
         const img = document.getElementById(`edit-imgData-${index}`).value;
 
         let selectedCategories = [];
@@ -795,7 +803,7 @@
         });
 
         if (!name || isNaN(price) || isNaN(stockQty)) {
-            alert("الرجاء إدخال اسم المنتج، السعر، والكمية المتاحة.");
+            alert("الرجاء إدخال اسم المنتج، سعر العرض، والكمية المتاحة.");
             return;
         }
 
@@ -805,13 +813,10 @@
             weight,
             stockQty: isNaN(stockQty) ? 0 : stockQty,
             price,
+            oldPrice,
             img,
             categories: selectedCategories.length > 0 ? selectedCategories : ['معلبات']
         };
-        
-        // إزالة الحقول القديمة إن وجدت
-        delete products[index].offerPrice;
-        delete products[index].offer;
 
         localStorage.setItem('aloroba_products', JSON.stringify(products));
         alert("تم تحديث المنتج بنجاح! ✅");
@@ -875,6 +880,8 @@
         const weight = document.getElementById('prodWeight').value.trim();
         const stockQty = parseInt(document.getElementById('prodStockQty').value);
         const price = parseFloat(document.getElementById('prodPrice').value);
+        const oldPriceVal = document.getElementById('prodOldPrice').value;
+        const oldPrice = oldPriceVal ? parseFloat(oldPriceVal) : "";
         const img = document.getElementById('prodImgData').value;
 
         let selectedCategories = [];
@@ -883,7 +890,7 @@
         });
 
         if(!name || isNaN(price) || !img || isNaN(stockQty)) {
-            alert("الرجاء ملء اسم المنتج، الكمية، السعر، واختيار الصورة.");
+            alert("الرجاء ملء اسم المنتج، الكمية، سعر العرض، واختيار الصورة.");
             return;
         }
 
@@ -894,6 +901,7 @@
             weight,
             stockQty,
             price,
+            oldPrice,
             img,
             categories: selectedCategories.length > 0 ? selectedCategories : ['معلبات'],
             inStock: stockQty > 0
@@ -907,6 +915,7 @@
         document.getElementById('prodWeight').value = '';
         document.getElementById('prodStockQty').value = '';
         document.getElementById('prodPrice').value = '';
+        document.getElementById('prodOldPrice').value = '';
         document.getElementById('prodImgData').value = '';
         document.getElementById('prodPreview').src = 'https://cdn-icons-png.flaticon.com/512/3081/3081986.png';
         document.querySelectorAll('input[name="productCategoryCheck"]').forEach(chk => chk.checked = false);
