@@ -55,9 +55,7 @@
         .products-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
         .product-card { background: #ffffff; border-radius: 12px; padding: 6px; box-shadow: var(--shadow-card); display: flex; flex-direction: column; justify-content: space-between; position: relative; border: 1px solid #f1f5f9; }
         
-        .badge-offer { position: absolute; top: 4px; right: 4px; background: #fee2e2; color: #dc2626; font-size: 0.4rem; font-weight: 800; padding: 2px 4px; border-radius: 4px; z-index: 2; }
-        .badge-red { position: absolute; top: 4px; left: 4px; background: #ef4444; color: white; font-size: 0.4rem; font-weight: 800; padding: 1px 4px; border-radius: 3px; z-index: 2; }
-        .fav-heart-btn { position: absolute; top: 22px; left: 4px; background: rgba(255,255,255,0.8); border: none; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.7rem; z-index: 2; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+        .fav-heart-btn { position: absolute; top: 8px; left: 6px; background: rgba(255,255,255,0.9); border: none; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.7rem; z-index: 2; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
 
         .product-img-box { width: 100%; height: 70px; display: flex; align-items: center; justify-content: center; margin: 10px 0 4px 0; cursor: pointer; }
         .product-img-box img { max-width: 100%; max-height: 70px; object-fit: contain; transition: transform 0.2s; }
@@ -66,8 +64,7 @@
         .product-weight { font-size: 0.5rem; color: #9ca3af; text-align: center; margin-bottom: 4px; font-weight: 600; }
         
         .product-price-box { text-align: center; margin-bottom: 6px; display: flex; justify-content: center; align-items: center; gap: 4px; }
-        .price-new { font-size: 0.75rem; font-weight: 900; color: #ea580c; }
-        .price-old { font-size: 0.55rem; font-weight: 800; color: #000000; text-decoration: line-through; }
+        .price-new { font-size: 0.75rem; font-weight: 900; color: #1b4d2e; }
 
         .btn-add-cart { width: 100%; background: #68a633; color: white; border: none; border-radius: 6px; padding: 4px 0; font-size: 0.55rem; font-weight: 700; cursor: pointer; text-align: center; }
 
@@ -184,7 +181,6 @@
 
         footer { text-align: center; padding: 10px; font-size: 0.6rem; color: #6b7280; margin-top: 15px; }
         
-        /* تصميم كروت لوحة تحكم الزبون (حسابي) */
         .account-card-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; margin-bottom: 10px; font-size: 0.75rem; }
         .account-card-title { font-weight: 800; color: var(--primary-green); margin-bottom: 6px; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
         .order-history-item { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
@@ -229,13 +225,13 @@
         </div>
     </div>
 
-    <!-- شريط الفئات الأفقي -->
+    <!-- شريط الفئات الأفقي (بدون فئة عروض) -->
     <div class="categories-slider" id="categoriesContainer"></div>
 
     <!-- عنوان القسم -->
     <div class="section-header">
         <a class="section-all" onclick="resetFilter()">عرض الكل ❮</a>
-        <div class="section-title">🏷️ المنتجات والعروض</div>
+        <div class="section-title">🛍️ المنتجات المتوفرة</div>
     </div>
 
     <!-- شبكة المنتجات -->
@@ -256,11 +252,10 @@
 
     <footer>سوبر ماركت العروبة © 2026 - رهط</footer>
 
-    <!-- شريط التنقل السفلي -->
+    <!-- شريط التنقل السفلي (بدون زر العروض) -->
     <nav class="bottom-nav-bar">
         <button class="nav-item active" onclick="goToHome()"><span class="icon">🏠</span><span>الرئيسية</span></button>
         <button class="nav-item" onclick="scrollToCategories()"><span class="icon">🗂️</span><span>التصنيفات</span></button>
-        <button class="nav-item" onclick="filterByOffers()"><span class="icon">🏷️</span><span>العروض</span></button>
         <button class="nav-item" onclick="openModal('favoritesModal')"><span class="icon">🤍</span><span>المفضلة</span></button>
         <button class="nav-item" onclick="openModal('accountModal')"><span class="icon">👤</span><span>حسابي</span></button>
     </nav>
@@ -317,7 +312,7 @@
 
         <div class="account-card-box">
             <div class="account-card-title">تطبيق سوبر ماركت العروبة 📱</div>
-            <p style="font-size: 0.65rem; color: #555; margin-bottom: 6px;">احصل على أحدث عروض العروبة أونلاين وتجربة تسوق أسرع.</p>
+            <p style="font-size: 0.65rem; color: #555; margin-bottom: 6px;">احصل على أحدث منتجات العروبة أونلاين وتجربة تسوق أسرع.</p>
             <a href="index.html" class="btn-add-cart" style="display: block; text-decoration: none; padding: 6px; text-align: center;">زيارة الصفحة الرئيسية</a>
         </div>
     </div>
@@ -335,14 +330,15 @@
 
 <script>
     let products = JSON.parse(localStorage.getItem('aloroba_products')) || [
-        { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, oldPrice: 30, offer: "3 بـ22", img: "https://i.ibb.co/6y40H69/tat-rice.png", category: "معلبات" },
-        { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: 14, offer: "3 بـ22", img: "https://i.ibb.co/1q20K0v/maggi.png", category: "معلبات" },
-        { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, oldPrice: 75, offer: "عرض", img: "https://i.ibb.co/7Xv8L9p/nido.png", category: "ألبان" }
+        { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, img: "https://i.ibb.co/6y40H69/tat-rice.png", category: "معلبات" },
+        { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, img: "https://i.ibb.co/1q20K0v/maggi.png", category: "معلبات" },
+        { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, img: "https://i.ibb.co/7Xv8L9p/nido.png", category: "ألبان" }
     ];
 
-    let categories = JSON.parse(localStorage.getItem('aloroba_categories')) || [
+    // تنظيف الأقسام المخزنة مسبقاً إذا احتوت على فئة "عروض"
+    let storedCategories = JSON.parse(localStorage.getItem('aloroba_categories'));
+    let categories = storedCategories ? storedCategories.filter(c => c.name !== "عروض") : [
         { name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" },
-        { name: "عروض", icon: "🔥", bg: "#fee2e2", color: "#dc2626" },
         { name: "ألبان", icon: "🥛", bg: "#fef3c7", color: "#d97706" },
         { name: "معلبات", icon: "🥫", bg: "#ffedd5", color: "#c2410c" },
         { name: "خضار", icon: "🥦", bg: "#ecfdf5", color: "#059669" },
@@ -394,10 +390,6 @@
         renderCategories();
         if(catName === "الكل") {
             renderProducts(products);
-        } else if(catName === "عروض") {
-            // التعديل: تظهر فقط المنتجات التي تحتوي على عرض حقيقي (سعر قديم أكبر من الحالي أو نص عرض مسجل)
-            const filtered = products.filter(p => (p.offer && p.offer.trim() !== "") || (p.oldPrice && Number(p.oldPrice) > Number(p.price)));
-            renderProducts(filtered);
         } else {
             const filtered = products.filter(p => (p.categories && p.categories.includes(catName)) || p.category === catName);
             renderProducts(filtered);
@@ -417,14 +409,6 @@
 
     function scrollToCategories() {
         document.getElementById('categoriesContainer').scrollIntoView({behavior: 'smooth'});
-    }
-
-    function filterByOffers() {
-        selectedCategory = "عروض";
-        renderCategories();
-        // التعديل هنا أيضاً ليطابق شروط العروض الحقيقية فقط
-        const filtered = products.filter(p => (p.offer && p.offer.trim() !== "") || (p.oldPrice && Number(p.oldPrice) > Number(p.price)));
-        renderProducts(filtered);
     }
 
     function filterProducts() {
@@ -448,8 +432,6 @@
             const isFav = favorites.some(f => f.id === p.id);
             container.innerHTML += `
                 <div class="product-card">
-                    ${p.offer ? `<div class="badge-offer">${p.offer}</div>` : ''}
-                    <div class="badge-red">عرض</div>
                     <button class="fav-heart-btn" onclick="toggleFavorite(${p.id})">${isFav ? '❤️' : '🤍'}</button>
                     <div class="product-img-box" onclick="openZoomModal('${p.img}', '${p.name}', '${p.weight || 'حبة'}')">
                         <img src="${p.img}" alt="${p.name}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081986.png'">
@@ -458,7 +440,6 @@
                     <div class="product-weight">${p.weight || 'حبة'}</div>
                     <div class="product-price-box">
                         <span class="price-new">${p.price}₪</span>
-                        ${p.oldPrice ? `<span class="price-old">${p.oldPrice}₪</span>` : ''}
                     </div>
                     <button class="btn-add-cart" onclick="addToCart(${p.id})">أضف 🛒</button>
                 </div>
