@@ -591,7 +591,7 @@
         if(existing) {
             existing.quantity += 1;
         } else {
-            cart.push({ id: p.id, name: p.name, price: finalPrice, quantity: 1, img: p.img });
+            cart.push({ id: p.id, name: p.name, price: finalPrice, quantity: 1, img: p.img || '' });
         }
         updateCartStateUI();
         updateProductCardDOM(prodId);
@@ -673,12 +673,19 @@
         let total = 0;
         cart.forEach(i => total += (i.price * i.quantity));
 
+        // تنظيف البيانات والتأكد من عدم وجود قيم undefined مرفوضة من فايربيس
         const newOrder = {
             customerName: name,
             customerPhone: phone,
             customerAddress: address,
-            items: cart.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, img: i.img })),
-            total: total,
+            items: cart.map(i => ({ 
+                id: i.id || '', 
+                name: i.name || '', 
+                price: Number(i.price) || 0, 
+                quantity: Number(i.quantity) || 1, 
+                img: i.img || '' 
+            })),
+            total: Number(total) || 0,
             status: "جديد",
             timestamp: new Date().toISOString()
         };
@@ -691,7 +698,8 @@
             products.forEach(p => updateProductCardDOM(p.id));
             closeCartModal();
         } catch(e) {
-            alert("حدث خطأ أثناء إرسال الطلب، حاول مرة أخرى.");
+            alert("خطأ تفصيلي: " + e.message);
+            console.error(e);
         }
     }
 </script>
