@@ -75,8 +75,9 @@
         .product-name { font-size: 0.65rem; font-weight: 800; color: #1f2937; text-align: center; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .product-weight { font-size: 0.5rem; color: #9ca3af; text-align: center; margin-bottom: 4px; font-weight: 600; }
         
-        .product-price-box { text-align: center; margin-bottom: 6px; display: flex; justify-content: center; align-items: center; gap: 4px; }
+        .product-price-box { text-align: center; margin-bottom: 6px; display: flex; justify-content: center; align-items: center; gap: 4px; flex-wrap: wrap; }
         .price-new { font-size: 0.75rem; font-weight: 900; color: #1b4d2e; }
+        .price-old { font-size: 0.6rem; font-weight: 700; color: #9ca3af; text-decoration: line-through; }
 
         .btn-add-cart { width: 100%; background: #68a633; color: white; border: none; border-radius: 6px; padding: 4px 0; font-size: 0.55rem; font-weight: 700; cursor: pointer; text-align: center; }
 
@@ -342,19 +343,16 @@
 
 <script>
     let products = JSON.parse(localStorage.getItem('aloroba_products')) || [
-        { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 22, img: "https://i.ibb.co/6y40H69/tat-rice.png", category: "معلبات" },
-        { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, img: "https://i.ibb.co/1q20K0v/maggi.png", category: "معلبات" },
-        { id: 3, name: "حليب نيدو", weight: "2500جم", price: 59, img: "https://i.ibb.co/7Xv8L9p/nido.png", category: "ألبان" }
+        { id: 1, name: "أرز تات بسمتي", weight: "5 كجم", price: 18, oldPrice: 22, img: "https://i.ibb.co/6y40H69/tat-rice.png", categories: ["معلبات"] },
+        { id: 2, name: "ماجي مرقة", weight: "قطعة", price: 10, oldPrice: "", img: "https://i.ibb.co/1q20K0v/maggi.png", categories: ["معلبات"] },
+        { id: 3, name: "حليب نيدو", weight: "2500جم", price: 55, oldPrice: 59, img: "https://i.ibb.co/7Xv8L9p/nido.png", categories: ["ألبان"] }
     ];
 
-    // جلب الفئات من الذاكرة المحلية (لوحة التحكم) مع التأكد من عدم وجود فئة "عروض" وضمان وجود فئة "الكل"
     let storedCategories = JSON.parse(localStorage.getItem('aloroba_categories'));
     let categories = [];
     
     if (storedCategories && storedCategories.length > 0) {
-        // فلترة أي فئة اسمها "عروض" بناءً على طلبك السابق
         let filteredStored = storedCategories.filter(c => c.name !== "عروض");
-        // التأكد من وجود فئة "الكل" في بداية الشريط
         if (!filteredStored.some(c => c.name === "الكل")) {
             categories = [{ name: "الكل", icon: "🛍️", bg: "#eaf3df", color: "#2e6930" }, ...filteredStored];
         } else {
@@ -488,6 +486,13 @@
         }
         list.forEach(p => {
             const isFav = favorites.some(f => f.id === p.id);
+            
+            // عرض السعر القديم مشطوباً إذا وُجد
+            let priceHtml = `<span class="price-new">${p.price} ₪</span>`;
+            if (p.oldPrice && Number(p.oldPrice) > Number(p.price)) {
+                priceHtml += ` <span class="price-old">${p.oldPrice} ₪</span>`;
+            }
+
             container.innerHTML += `
                 <div class="product-card">
                     <button class="fav-heart-btn" onclick="toggleFavorite(${p.id})">${isFav ? '❤️' : '🤍'}</button>
@@ -497,7 +502,7 @@
                     <div class="product-name" title="${p.name}">${p.name}</div>
                     <div class="product-weight">${p.weight || 'حبة'}</div>
                     <div class="product-price-box">
-                        <span class="price-new">${p.price}₪</span>
+                        ${priceHtml}
                     </div>
                     <button class="btn-add-cart" onclick="addToCart(${p.id})">أضف 🛒</button>
                 </div>
