@@ -261,8 +261,7 @@
 
 <script>
     let products = [];
-    let categories = [
-        { name: "الكل", icon: "🛍️" },
+    let defaultCategories = [
         { name: "الخضار والفواكه الطازجة", icon: "🍎" },
         { name: "الألبان والأجبان", icon: "🧀" },
         { name: "اللحوم، الدجاج والأسماك", icon: "🥩" },
@@ -276,6 +275,7 @@
         { name: "المنظفات والمستلزمات المنزلية", icon: "🧼" },
         { name: "العناية الشخصية والجمال", icon: "🧴" }
     ];
+    let categories = [{ name: "الكل", icon: "🛍️" }];
     let bannerSlides = [];
     let orders = [];
 
@@ -291,23 +291,21 @@
                 products.push({ id: docSnap.id, ...docSnap.data() });
             });
 
+            // التأكد من وجود الفئات الافتراضية ودمجها في السحابة
+            for(let cat of defaultCategories) {
+                await window.setDoc(window.doc(window.db, "categories", cat.name), cat, { merge: true });
+            }
+
             const catSnap = await window.getDocs(window.collection(window.db, "categories"));
-            if(catSnap.empty) {
-                // إذا كانت قاعدة البيانات فارغة، يتم حفظ الفئات الافتراضية تلقائياً في السحابة
-                for(let cat of categories) {
-                    if(cat.name !== "الكل") {
-                        await window.setDoc(window.doc(window.db, "categories", cat.name), cat);
-                    }
-                }
-            } else {
-                categories = [{ name: "الكل", icon: "🛍️" }];
-                catSnap.forEach(docSnap => {
-                    let catData = docSnap.data();
-                    if(catData.name && catData.name !== "الكل") {
+            categories = [{ name: "الكل", icon: "🛍️" }];
+            catSnap.forEach(docSnap => {
+                let catData = docSnap.data();
+                if(catData.name && catData.name !== "الكل") {
+                    if(!categories.some(c => c.name === catData.name)) {
                         categories.push(catData);
                     }
-                });
-            }
+                }
+            });
 
             const ordSnap = await window.getDocs(window.collection(window.db, "orders"));
             orders = [];
