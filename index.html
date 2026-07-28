@@ -55,8 +55,8 @@
 
         /* بطاقة المنتج */
         .product-card { 
-            min-width: 135px; 
-            max-width: 135px; 
+            min-width: 145px; 
+            max-width: 145px; 
             background: white; 
             border: 1px solid #e2e8f0; 
             border-radius: 12px; 
@@ -70,36 +70,41 @@
         .product-img-box { width: 100%; height: 90px; position: relative; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 8px; margin-bottom: 6px; }
         .product-img { max-width: 100%; max-height: 100%; object-fit: contain; }
         .product-name { font-size: 0.75rem; font-weight: 800; color: #1f2937; margin-bottom: 4px; height: 26px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .product-weight { font-size: 0.65rem; color: #6b7280; margin-bottom: 6px; }
-        .product-price-row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
-        .price-text { font-size: 0.8rem; font-weight: 900; color: var(--primary-green); }
-        .old-price { font-size: 0.65rem; color: #9ca3af; text-decoration: line-through; margin-left: 4px; }
+        .product-weight { font-size: 0.65rem; color: #6b7280; margin-bottom: 4px; }
         
-        /* أزرار السلة والتحكم بالكمية التفاعلية */
-        .cart-action-container { display: flex; align-items: center; }
+        /* حالات السعر (في الأسفل افتراضياً، أو في الأعلى عند ظهور شريط التحكم) */
+        .product-price-row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
+        .product-price-top { margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+        
+        .price-text { font-size: 0.85rem; font-weight: 900; color: var(--primary-green); }
+        .old-price { font-size: 0.65rem; color: #9ca3af; text-decoration: line-through; }
+        
+        /* زر الإضافة السريع (+) وزر التحكم الكامل */
         .add-to-cart-btn { background: var(--accent-green); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 1rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .quantity-control {
+        
+        .quantity-control-full {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             background-color: var(--accent-green);
-            border-radius: 20px;
-            padding: 2px 6px;
+            border-radius: 8px;
+            padding: 2px 10px;
             color: white;
+            width: 100%;
+            height: 32px;
+            margin-top: auto;
         }
-        .qty-btn {
+        .quantity-control-full .qty-btn {
             background: none;
             border: none;
             color: white;
             font-size: 16px;
             cursor: pointer;
-            padding: 0 4px;
             font-weight: bold;
         }
-        .qty-display {
-            margin: 0 6px;
+        .quantity-control-full .qty-display {
             font-weight: bold;
-            font-size: 0.75rem;
-            min-width: 14px;
+            font-size: 0.85rem;
             text-align: center;
         }
 
@@ -211,7 +216,7 @@
     let categories = [{ name: "الكل", icon: "🛍️" }];
     let bannerSlides = [{ tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "https://cdn-icons-png.flaticon.com/512/3081/3081840.png" }];
     let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
-    let cart = []; // مصفوفة لتخزين المنتجات مع الكميات
+    let cart = [];
     let currentCategory = "الكل";
 
     window.addEventListener('firebase-ready', async function() {
@@ -284,7 +289,6 @@
         renderMainStoreContent();
     }
 
-    // دالة مساعدة للتحقق من انتماء المنتج للقسم
     function productBelongsToCategory(p, catName) {
         if (!p.categories) return false;
         if (Array.isArray(p.categories)) {
@@ -382,8 +386,7 @@
 
         let cartItem = cart.find(item => item.id == p.id);
         let qty = cartItem ? cartItem.quantity : 0;
-        let addBtnDisplay = qty > 0 ? 'none' : 'flex';
-        let qtyControlDisplay = qty > 0 ? 'flex' : 'none';
+        let hasQty = qty > 0;
 
         return `
             <div class="product-card" data-product-id="${p.id}">
@@ -393,19 +396,26 @@
                     </div>
                     <div class="product-name">${p.name}</div>
                     <div class="product-weight">${p.weight || 'حبة'}</div>
-                </div>
-                <div class="product-price-row">
-                    <div>
+                    <!-- يظهر السعر في الأعلى فقط عند ظهور شريط التحكم (الكمية > 0) -->
+                    <div class="product-price-top" style="${hasQty ? 'display: flex;' : 'display: none;'}">
                         <span class="price-text">${priceDisplay}</span>
                         ${oldPriceDisplay}
                     </div>
-                    <div class="cart-action-container">
-                        <button class="add-to-cart-btn" style="display: ${addBtnDisplay};" onclick='increaseCartQty("${p.id}")'>+</button>
-                        <div class="quantity-control" style="display: ${qtyControlDisplay};">
-                            <button class="qty-btn" onclick='decreaseCartQty("${p.id}")'>-</button>
-                            <span class="qty-display">${qty}</span>
-                            <button class="qty-btn" onclick='increaseCartQty("${p.id}")'>+</button>
+                </div>
+                <div>
+                    <!-- يظهر السعر في الأسفل بجانب زر (+) فقط عندما تكون الكمية 0 -->
+                    <div class="product-price-row" style="${hasQty ? 'display: none;' : 'display: flex;'}">
+                        <div>
+                            <span class="price-text">${priceDisplay}</span>
+                            ${oldPriceDisplay}
                         </div>
+                        <button class="add-to-cart-btn" onclick='increaseCartQty("${p.id}")'>+</button>
+                    </div>
+                    <!-- شريط التحكم الكامل بالأسفل يظهر فقط عند وجود الكمية -->
+                    <div class="quantity-control-full" style="${hasQty ? 'display: flex;' : 'display: none;'}">
+                        <button class="qty-btn" onclick='decreaseCartQty("${p.id}")'>-</button>
+                        <span class="qty-display">${qty}</span>
+                        <button class="qty-btn" onclick='increaseCartQty("${p.id}")'>+</button>
                     </div>
                 </div>
             </div>
@@ -445,20 +455,13 @@
     }
 
     function updateProductCardDOM(prodId) {
-        let cartItem = cart.find(item => item.id == prodId);
-        let qty = cartItem ? cartItem.quantity : 0;
-        let addBtnDisplay = qty > 0 ? 'none' : 'flex';
-        let qtyControlDisplay = qty > 0 ? 'flex' : 'none';
-
+        let p = products.find(item => item.id == prodId);
+        if(!p) return;
         let cards = document.querySelectorAll(`.product-card[data-product-id="${prodId}"]`);
         cards.forEach(card => {
-            let addBtn = card.querySelector('.add-to-cart-btn');
-            let qtyControl = card.querySelector('.quantity-control');
-            let qtyDisplay = card.querySelector('.qty-display');
-
-            if(addBtn) addBtn.style.display = addBtnDisplay;
-            if(qtyControl) qtyControl.style.display = qtyControlDisplay;
-            if(qtyDisplay) qtyDisplay.innerText = qty;
+            let tempDiv = document.createElement('div');
+            tempDiv.innerHTML = createProductCardHtml(p);
+            card.outerHTML = tempDiv.firstElementChild.outerHTML;
         });
     }
 
