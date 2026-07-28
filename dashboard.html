@@ -294,7 +294,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // تخزين مؤقت للبيانات السحابية داخل المتصفح لتسريع العرض
     let cachedProducts = [];
     let categories = [];
     let bannerData = {};
@@ -364,9 +363,7 @@
         reader.readAsDataURL(file);
     }
 
-    // --- جلب البيانات السحابية والاستماع للتحديثات الحية ---
     function initAdmin() {
-        // 1. مزامنة المنتجات سحابياً
         db.ref('aloroba/products').on('value', (snapshot) => {
             let products = snapshot.val();
             if (!products) {
@@ -381,7 +378,6 @@
             renderAdmin();
         });
 
-        // 2. مزامنة الفئات سحابياً
         db.ref('aloroba/categories').on('value', (snapshot) => {
             let cats = snapshot.val();
             if (!cats) {
@@ -400,7 +396,6 @@
             renderAdmin();
         });
 
-        // 3. مزامنة البانر سحابياً
         db.ref('aloroba/banner').on('value', (snapshot) => {
             bannerData = snapshot.val() || {
                 title: "كل احتياجات بيتك في مكان واحد",
@@ -410,7 +405,6 @@
             renderAdmin();
         });
 
-        // 4. مراقبة الطلبات الحية والأرشيف سحابياً بشكل لحظي
         db.ref('aloroba/orders').on('value', (snapshot) => {
             let orders = snapshot.val() || [];
             orders = Array.isArray(orders) ? orders : Object.values(orders);
