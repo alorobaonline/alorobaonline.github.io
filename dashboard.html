@@ -249,7 +249,7 @@
     const db = firebase.database();
 
     let cachedProducts = [];
-    let cachedCategories = [];
+    let cachedCategories = {};
     let bannerData = {};
     let lastOrdersCount = 0;
 
@@ -323,16 +323,18 @@
         db.ref('aloroba/categories').on('value', (snapshot) => {
             let categories = snapshot.val();
             if (!categories) {
-                categories = [
-                    { name: "معبأة وجافة", emoji: "🌾" },
-                    { name: "ألبان ومشروبات", emoji: "🥛" },
-                    { name: "بهارات وتوابل", emoji: "🧂" }
-                ];
+                // إنشاء فئات افتراضية باستخدام مفاتيح فريدة
+                categories = {
+                    "cat1": { name: "معبأة وجافة", emoji: "🌾" },
+                    "cat2": { name: "ألبان ومشروبات", emoji: "🥛" },
+                    "cat3": { name: "بهارات وتوابل", emoji: "🧂" }
+                };
                 db.ref('aloroba/categories').set(categories);
             }
-            cachedCategories = Array.isArray(categories) ? categories : Object.values(categories);
+            cachedCategories = categories; // كائن (Object) يحتوي على المفاتيح
             renderCategoriesDropdown();
             renderCategoriesAdminList();
+            renderAdmin(); // إعادة تحديث قائمة المنتجات لتحديث حقول التعديل
         });
 
         db.ref('aloroba/banner').on('value', (snapshot) => {
@@ -381,7 +383,9 @@
     function renderCategoriesDropdown() {
         const prodCatSelect = document.getElementById('prodCategory');
         prodCatSelect.innerHTML = '<option value="">اختر الفئة المناسبة</option>';
-        cachedCategories.forEach(cat => {
+        
+        Object.keys(cachedCategories).forEach(key => {
+            let cat = cachedCategories[key];
             prodCatSelect.innerHTML += `<option value="${cat.name}">${cat.emoji} ${cat.name}</option>`;
         });
     }
@@ -389,15 +393,19 @@
     function renderCategoriesAdminList() {
         const container = document.getElementById('categoriesAdminList');
         container.innerHTML = '';
-        if (cachedCategories.length === 0) {
+        
+        const keys = Object.keys(cachedCategories);
+        if (keys.length === 0) {
             container.innerHTML = '<div style="font-size: 0.65rem; color: #9ca3af;">لا توجد فئات مضافة</div>';
             return;
         }
-        cachedCategories.forEach((cat, index) => {
+
+        keys.forEach(key => {
+            let cat = cachedCategories[key];
             container.innerHTML += `
                 <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 5px 8px; border-radius: 6px; margin-bottom: 4px; border: 1px solid #e2e8f0; font-size: 0.7rem;">
                     <span><b>${cat.emoji}</b> ${cat.name}</span>
-                    <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteCategory(${index})">حذف</button>
+                    <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteCategory('${key}')">حذف</button>
                 </div>
             `;
         });
@@ -412,23 +420,26 @@
             return;
         }
 
-        let categories = [...cachedCategories];
-        categories.push({ name, emoji });
-
-        db.ref('aloroba/categories').set(categories, (error) => {
+        // استخدام push في Firebase لتوليد مفتاح فريد تلقائياً لمنع الحذف أو التداخل
+        const newCatRef = db.ref('aloroba/categories').push();
+        newCatRef.set({ name, emoji }, (error) => {
             if (!error) {
                 alert("تمت إضافة الفئة بنجاح! ✅");
                 document.getElementById('catName').value = '';
                 document.getElementById('catEmoji').value = '';
+            } else {
+                alert("حدث خطأ أثناء الحفظ.");
             }
         });
     }
 
-    function deleteCategory(index) {
+    function deleteCategory(key) {
         if (confirm("هل أنت متأكد من حذف هذه الفئة؟")) {
-            let categories = [...cachedCategories];
-            categories.splice(index, 1);
-            db.ref('aloroba/categories').set(categories);
+            db.ref(`aloroba/categories/${key}`).remove((error) => {
+                if(!error) {
+                    alert("تم حذف الفئة بنجاح");
+                }
+            });
         }
     }
 
@@ -450,10 +461,23 @@
             return;
         }
 
+        // تجهيز خيارات القائمة المنسدلة للفئات داخل المنتجات
+        let categoriesOptionsHtml = '<option value="">اختر الفئة</option>';
+        Object.keys(cachedCategories).forEach(key => {
+            let cat = cachedCategories[key];
+            categoriesOptionsHtml += `<option value="${cat.name}">${cat.emoji} ${cat.name}</option>`;
+        });
+
         products.forEach((p, originalIndex) => {
             let isAvailable = p.inStock !== false && (p.stockQty === undefined || p.stockQty > 0);
             
-            let categoriesOptionsHtml = cachedCategories.map(cat => `<option value="${cat.name}" ${p.category === cat.name ? 'selected' : ''}>${cat.emoji} ${cat.name}</option>`).join('');
+            // تخصيص الخيارات لكل منتج لتعيين القيمة الحالية كـ Selected
+            let productCatOptions = '<option value="">اختر الفئة</option>';
+            Object.keys(cachedCategories).forEach(key => {
+                let cat = cachedCategories[key];
+                let isSelected = (p.category === cat.name) ? 'selected' : '';
+                productCatOptions += `<option value="${cat.name}" ${isSelected}>${cat.emoji} ${cat.name}</option>`;
+            });
 
             productsContainer.innerHTML += `
                 <div class="product-card-container" style="${!isAvailable ? 'opacity: 0.7; background: #fffbeb;' : ''}">
@@ -484,8 +508,7 @@
                         <div class="form-group">
                             <label>فئة المنتج *</label>
                             <select id="edit-category-${originalIndex}" class="form-control">
-                                <option value="">اختر الفئة</option>
-                                ${categoriesOptionsHtml}
+                                ${productCatOptions}
                             </select>
                         </div>
 
