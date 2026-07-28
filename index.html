@@ -33,9 +33,9 @@
         .banner-img { width: 50px; height: 50px; object-fit: contain; background: white; border-radius: 50%; padding: 5px; }
 
         /* الأقسام الدائرية السريعة */
-        .categories-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 0 15px 10px 15px; scrollbar-width: none; }
+        .categories-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 0 15px 10px 15px; scrollbar-width: none; scroll-behavior: smooth; }
         .categories-scroll::-webkit-scrollbar { display: none; }
-        .cat-chip { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; cursor: pointer; color: #334155; display: flex; align-items: center; gap: 4px; }
+        .cat-chip { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; cursor: pointer; color: #334155; display: flex; align-items: center; gap: 4px; flex-shrink: 0; transition: all 0.3s ease; }
         .cat-chip.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
 
         /* أقسام العرض الأفقي للمتجر */
@@ -148,10 +148,10 @@
 <div class="store-container">
     <!-- الهيدر مع زر الحساب بجانب لوحة التحكم في الأعلى من جهة الشمال -->
     <div class="store-header">
-        <div class="store-title">🛒 العروبة أونلاين</div>
+        <div class="store-title">🛒 العروبة أونلاين[cite: 6]</div>
         <div class="header-actions">
-            <button class="admin-link" onclick="openProfileModal()">👤 حسابي</button>
-            <a href="admin.html" class="admin-link">لوحة التحكم ⚙️</a>
+            <button class="admin-link" onclick="openProfileModal()">👤 حسابي[cite: 6]</button>
+            <a href="admin.html" class="admin-link">لوحة التحكم ⚙️[cite: 6]</a>
         </div>
     </div>
 
@@ -164,9 +164,9 @@
     <div class="banner-slider" id="bannerContainer">
         <div class="banner-card">
             <div class="banner-text">
-                <span style="font-size: 0.65rem; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;" id="bannerTag">سوبر ماركت العروبة</span>
-                <h2 id="bannerTitle">أهلاً بك في متجرنا</h2>
-                <p>تسوّق أفضل المنتجات الطازجة</p>
+                <span style="font-size: 0.65rem; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;" id="bannerTag">سوبر ماركت العروبة[cite: 6]</span>
+                <h2 id="bannerTitle">أهلاً بك في متجرنا[cite: 6]</h2>
+                <p>تسوّق أفضل المنتجات الطازجة[cite: 6]</p>
             </div>
             <img src="https://cdn-icons-png.flaticon.com/512/3081/3081840.png" class="banner-img" id="bannerImg">
         </div>
@@ -182,11 +182,11 @@
 <!-- شريط السلة السفلي -->
 <div class="cart-bar" onclick="openCartModal()">
     <div>
-        <div style="font-size: 0.7rem; opacity: 0.8;">سلة المشتريات</div>
-        <div style="font-size: 0.95rem; font-weight: bold;" id="cartTotalText">0.00 ₪</div>
+        <div style="font-size: 0.7rem; opacity: 0.8;">سلة المشتريات[cite: 6]</div>
+        <div style="font-size: 0.95rem; font-weight: bold;" id="cartTotalText">0.00 ₪[cite: 6]</div>
     </div>
     <div style="background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 10px; font-size: 0.75rem; font-weight: bold;">
-        عرض السلة (<span id="cartCountBadge">0</span>) 🛍️
+        عرض السلة (<span id="cartCountBadge">0</span>) 🛍️[cite: 6]
     </div>
 </div>
 
@@ -194,35 +194,35 @@
 <div class="cart-modal" id="profileModal">
     <div class="cart-modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h3 style="font-size: 0.9rem; color: var(--primary-green);">👤 حسابي الشخصي</h3>
-            <button onclick="closeProfileModal()" style="background:none; border:none; font-size: 1rem; cursor:pointer;">✕</button>
+            <h3 style="font-size: 0.9rem; color: var(--primary-green);">👤 حسابي الشخصي[cite: 6]</h3>
+            <button onclick="closeProfileModal()" style="background:none; border:none; font-size: 1rem; cursor:pointer;">✕[cite: 6]</button>
         </div>
         
         <div class="profile-tabs">
-            <div class="profile-tab active" id="tabInfoBtn" onclick="switchProfileTab('info')">بيانات العميل</div>
-            <div class="profile-tab" id="tabOrdersBtn" onclick="switchProfileTab('orders')">طلباتي السابقة 📦</div>
+            <div class="profile-tab active" id="tabInfoBtn" onclick="switchProfileTab('info')">بيانات العميل[cite: 6]</div>
+            <div class="profile-tab" id="tabOrdersBtn" onclick="switchProfileTab('orders')">طلباتي السابقة 📦[cite: 6]</div>
         </div>
 
         <!-- قسم بيانات العميل -->
         <div id="profileInfoSection">
-            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">قم بحفظ بياناتك لتسهيل وتسريع عملية الطلب في كل مرة:</div>
-            <label style="font-size: 0.7rem; font-weight: bold;">الاسم الكريم:</label>
+            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">قم بحفظ بياناتك لتسهيل وتسريع عملية الطلب في كل مرة:[cite: 6]</div>
+            <label style="font-size: 0.7rem; font-weight: bold;">الاسم الكريم:[cite: 6]</label>
             <input type="text" id="userProfileName" class="form-control" placeholder="ادخل اسمك الكامل">
             
-            <label style="font-size: 0.7rem; font-weight: bold;">رقم الهاتف:</label>
+            <label style="font-size: 0.7rem; font-weight: bold;">رقم الهاتف:[cite: 6]</label>
             <input type="tel" id="userProfilePhone" class="form-control" placeholder="05xxxxxxxx">
             
-            <label style="font-size: 0.7rem; font-weight: bold;">عنوان التوصيل:</label>
+            <label style="font-size: 0.7rem; font-weight: bold;">عنوان التوصيل:[cite: 6]</label>
             <input type="text" id="userProfileAddress" class="form-control" placeholder="المدينة، الحي، الشارع، رقم العمارة">
             
-            <button class="btn-main" onclick="saveUserProfile()">حفظ البيانات 💾</button>
+            <button class="btn-main" onclick="saveUserProfile()">حفظ البيانات 💾[cite: 6]</button>
         </div>
 
         <!-- قسم الطلبات السابقة -->
         <div id="profileOrdersSection" style="display: none;">
-            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">الطلبات المرتبطة برقم هاتفك المسجل من السحابة:</div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">الطلبات المرتبطة برقم هاتفك المسجل من السحابة:[cite: 6]</div>
             <div id="myPreviousOrdersList" style="max-height: 250px; overflow-y: auto;">
-                <p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">الرجاء حفظ رقم هاتفك أولاً أو لا توجد طلبات سابقة.</p>
+                <p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">الرجاء حفظ رقم هاتفك أولاً أو لا توجد طلبات سابقة.[cite: 6]</p>
             </div>
         </div>
     </div>
@@ -232,16 +232,16 @@
 <div class="cart-modal" id="cartModal">
     <div class="cart-modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h3 style="font-size: 0.9rem; color: var(--primary-green);">🛒 سلة المشتريات</h3>
-            <button onclick="closeCartModal()" style="background:none; border:none; font-size: 1rem; cursor:pointer;">✕</button>
+            <h3 style="font-size: 0.9rem; color: var(--primary-green);">🛒 سلة المشتريات[cite: 6]</h3>
+            <button onclick="closeCartModal()" style="background:none; border:none; font-size: 1rem; cursor:pointer;">✕[cite: 6]</button>
         </div>
         <div id="cartItemsList" style="max-height: 180px; overflow-y: auto; margin-bottom: 10px;"></div>
         <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
-        <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">معلومات التوصيل: (تعبئة تلقائية من حسابك)</div>
+        <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">معلومات التوصيل: (تعبئة تلقائية من حسابك)[cite: 6]</div>
         <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم">
         <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف">
         <input type="text" id="customerAddress" class="form-control" placeholder="العنوان (المدينة، الحي، الشارع)">
-        <button class="btn-main" onclick="submitOrder()">إتمام وتأكيد الطلب 🚀</button>
+        <button class="btn-main" onclick="submitOrder()">إتمام وتأكيد الطلب 🚀[cite: 6]</button>
     </div>
 </div>
 
@@ -278,7 +278,7 @@
         let address = document.getElementById('userProfileAddress').value.trim();
 
         if(!name || !phone || !address) {
-            alert("الرجاء تعبئة جميع الحقول بشكل صحيح.");
+            alert("الرجاء تعبئة جميع الحقول بشكل صحيح.[cite: 6]");
             return;
         }
 
@@ -287,7 +287,7 @@
         localStorage.setItem('aloroba_user_address', address);
 
         loadUserProfileData();
-        alert("تم حفظ بياناتك بنجاح! 💾");
+        alert("تم حفظ بياناتك بنجاح! 💾[cite: 6]");
         closeProfileModal();
     }
 
@@ -320,44 +320,44 @@
         let container = document.getElementById('myPreviousOrdersList');
         
         if(!phone) {
-            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">الرجاء حفظ رقم هاتفك في تبويب "بيانات العميل" أولاً لعرض طلباتك.</p>`;
+            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">الرجاء حفظ رقم هاتفك في تبويب "بيانات العميل" أولاً لعرض طلباتك.[cite: 6]</p>`;
             return;
         }
 
-        container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">جاري جلب الطلبات من السحابة...</p>`;
+        container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">جاري جلب الطلبات من السحابة...[cite: 6]</p>`;
 
         try {
             const q = window.query(window.collection(window.db, "orders"), window.where("customerPhone", "==", phone));
             const querySnapshot = await window.getDocs(q);
             
             if(querySnapshot.empty) {
-                container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">لا توجد طلبات سابقة مسجلة بهذا الرقم.</p>`;
+                container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 15px;">لا توجد طلبات سابقة مسجلة بهذا الرقم.[cite: 6]</p>`;
                 return;
             }
 
             container.innerHTML = '';
             querySnapshot.forEach(docSnap => {
                 let order = docSnap.data();
-                let dateStr = order.timestamp ? new Date(order.timestamp).toLocaleDateString('ar-SA') : 'تاريخ غير متوفر';
+                let dateStr = order.timestamp ? new Date(order.timestamp).toLocaleDateString('ar-SA') : 'تاريخ غير متوفر[cite: 6]';
                 let itemsListHtml = order.items.map(i => `${i.name} (${i.quantity})`).join('، ');
 
                 container.innerHTML += `
                     <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px; border-radius: 8px; margin-bottom: 8px; font-size: 0.75rem;">
                         <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 4px;">
-                            <span>الحالة: <span style="color: var(--accent-green);">${order.status || 'جديد'}</span></span>
+                            <span>الحالة: <span style="color: var(--accent-green);">${order.status || 'جديد[cite: 6]'}</span></span>
                             <span>${dateStr}</span>
                         </div>
                         <div style="color: #64748b; margin-bottom: 4px;">المنتجات: ${itemsListHtml}</div>
                         <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 4px; font-weight: bold;">
-                            <span>المجموع: ${order.total.toFixed(2)} ₪</span>
-                            <button onclick='reorderPrevious(${JSON.stringify(order.items)})' style="background: var(--accent-green); color: white; border: none; padding: 3px 8px; border-radius: 4px; font-size: 0.65rem; cursor: pointer;">إعادة الطلب 🔄</button>
+                            <span>المجموع: ${order.total.toFixed(2)} ₪[cite: 6]</span>
+                            <button onclick='reorderPrevious(${JSON.stringify(order.items)})' style="background: var(--accent-green); color: white; border: none; padding: 3px 8px; border-radius: 4px; font-size: 0.65rem; cursor: pointer;">إعادة الطلب 🔄[cite: 6]</button>
                         </div>
                     </div>
                 `;
             });
         } catch(e) {
             console.error(e);
-            container.innerHTML = `<p style="text-align: center; color: red; font-size: 0.75rem; padding: 15px;">حدث خطأ أثناء جلب الطلبات.</p>`;
+            container.innerHTML = `<p style="text-align: center; color: red; font-size: 0.75rem; padding: 15px;">حدث خطأ أثناء جلب الطلبات.[cite: 6]</p>`;
         }
     }
 
@@ -376,7 +376,7 @@
         updateCartStateUI();
         products.forEach(p => updateProductCardDOM(p.id));
         closeProfileModal();
-        alert("تمت إضافة منتجات الطلب السابق إلى السلة بنجاح! 🛒");
+        alert("تمت إضافة منتجات الطلب السابق إلى السلة بنجاح! 🛒[cite: 6]");
     }
 
     async function loadStoreDataFromCloud() {
@@ -421,8 +421,8 @@
     function renderBanner() {
         if(bannerSlides.length === 0) return;
         let slide = bannerSlides[0];
-        document.getElementById('bannerTag').innerText = slide.tag || 'سوبر ماركت العروبة';
-        document.getElementById('bannerTitle').innerText = slide.title || 'أهلاً بك';
+        document.getElementById('bannerTag').innerText = slide.tag || 'سوبر ماركت العروبة[cite: 6]';
+        document.getElementById('bannerTitle').innerText = slide.title || 'أهلاً بك[cite: 6]';
         if(slide.img) document.getElementById('bannerImg').src = slide.img;
     }
 
@@ -437,6 +437,14 @@
                 </div>
             `;
         });
+
+        // التمرير التلقائي لجلب القسم النشط إلى مركز الشاشة الأفقي بشكل سلس
+        setTimeout(() => {
+            const activeChip = container.querySelector('.cat-chip.active');
+            if (activeChip) {
+                activeChip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+        }, 50);
     }
 
     function selectCategory(catName) {
@@ -446,6 +454,8 @@
     }
 
     function productBelongsToCategory(p, catName) {
+        if (catName === "الكل") return true;
+        if (p.category && p.category === catName) return true;
         if (!p.categories) return false;
         if (Array.isArray(p.categories)) {
             return p.categories.includes(catName);
@@ -459,6 +469,11 @@
         const container = document.getElementById('storeMainContent');
         container.innerHTML = '';
 
+        if (products.length === 0) {
+            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; padding: 30px;">جاري تحميل المنتجات أو أن المتجر فارغ حالياً...[cite: 6]</p>`;
+            return;
+        }
+
         let query = document.getElementById('searchInput').value.trim().toLowerCase();
 
         if(query !== "" || currentCategory !== "الكل") {
@@ -470,7 +485,7 @@
 
             let gridHtml = `<div class="products-grid" style="margin-top: 10px;">`;
             if(filtered.length === 0) {
-                gridHtml = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 20px;">لا توجد منتجات مطابقة</p>`;
+                gridHtml = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 20px;">لا توجد منتجات مطابقة[cite: 6]</p>`;
             } else {
                 filtered.forEach(p => {
                     gridHtml += createProductCardHtml(p);
@@ -490,13 +505,13 @@
 
             displayedCount++;
             let catObj = categories.find(c => c.name === secName);
-            let icon = catObj ? catObj.icon : '🏷️';
+            let icon = catObj ? catObj.icon : '🏷️[cite: 6]';
 
             let secHtml = `
                 <div class="horizontal-section">
                     <div class="horizontal-section-title">
                         <span>${icon} ${secName}</span>
-                        <span style="font-size: 0.65rem; color: #6b7280; cursor: pointer;" onclick="selectCategory('${secName}')">عرض الكل ←</span>
+                        <span style="font-size: 0.65rem; color: #6b7280; cursor: pointer;" onclick="selectCategory('${secName}')">عرض الكل ←[cite: 6]</span>
                     </div>
                     <div class="products-horizontal-scroll">
             `;
@@ -518,8 +533,8 @@
                 let secHtml = `
                     <div class="horizontal-section">
                         <div class="horizontal-section-title">
-                            <span>${cat.icon || '🏷️'} ${cat.name}</span>
-                            <span style="font-size: 0.65rem; color: #6b7280; cursor: pointer;" onclick="selectCategory('${cat.name}')">عرض الكل ←</span>
+                            <span>${cat.icon || '🏷️[cite: 6]'} ${cat.name}</span>
+                            <span style="font-size: 0.65rem; color: #6b7280; cursor: pointer;" onclick="selectCategory('${cat.name}')">عرض الكل ←[cite: 6]</span>
                         </div>
                         <div class="products-horizontal-scroll">
                 `;
@@ -533,11 +548,11 @@
     }
 
     function createProductCardHtml(p) {
-        let priceDisplay = `${p.price} ₪`;
+        let priceDisplay = `${p.price} ₪[cite: 6]`;
         let oldPriceDisplay = "";
         if(p.salePrice !== undefined && p.salePrice !== "") {
-            priceDisplay = `${p.salePrice} ₪`;
-            oldPriceDisplay = `<span class="old-price">${p.price} ₪</span>`;
+            priceDisplay = `${p.salePrice} ₪[cite: 6]`;
+            oldPriceDisplay = `<span class="old-price">${p.price} ₪[cite: 6]</span>`;
         }
 
         let cartItem = cart.find(item => item.id == p.id);
@@ -551,7 +566,7 @@
                         <img src="${p.img}" class="product-img" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081840.png'">
                     </div>
                     <div class="product-name">${p.name}</div>
-                    <div class="product-weight">${p.weight || 'حبة'}</div>
+                    <div class="product-weight">${p.weight || 'حبة[cite: 6]'}</div>
                     <!-- يظهر السعر في الأعلى فقط عند ظهور شريط التحكم (الكمية > 0) -->
                     <div class="product-price-top" style="${hasQty ? 'display: flex;' : 'display: none;'}">
                         <span class="price-text">${priceDisplay}</span>
@@ -565,13 +580,13 @@
                             <span class="price-text">${priceDisplay}</span>
                             ${oldPriceDisplay}
                         </div>
-                        <button class="add-to-cart-btn" onclick='increaseCartQty("${p.id}")'>+</button>
+                        <button class="add-to-cart-btn" onclick='increaseCartQty("${p.id}")'>+[cite: 6]</button>
                     </div>
                     <!-- شريط التحكم الكامل بالأسفل يظهر فقط عند وجود الكمية -->
                     <div class="quantity-control-full" style="${hasQty ? 'display: flex;' : 'display: none;'}">
-                        <button class="qty-btn" onclick='decreaseCartQty("${p.id}")'>-</button>
+                        <button class="qty-btn" onclick='decreaseCartQty("${p.id}")'>-[cite: 6]</button>
                         <span class="qty-display">${qty}</span>
-                        <button class="qty-btn" onclick='increaseCartQty("${p.id}")'>+</button>
+                        <button class="qty-btn" onclick='increaseCartQty("${p.id}")'>+[cite: 6]</button>
                     </div>
                 </div>
             </div>
@@ -628,13 +643,13 @@
             totalCount += item.quantity;
             totalPrice += item.price * item.quantity;
         });
-        document.getElementById('cartTotalText').innerText = totalPrice.toFixed(2) + " ₪";
+        document.getElementById('cartTotalText').innerText = totalPrice.toFixed(2) + " ₪[cite: 6]";
         document.getElementById('cartCountBadge').innerText = totalCount;
     }
 
     function openCartModal() {
         if(cart.length === 0) {
-            alert("السلة فارغة حالياً!");
+            alert("السلة فارغة حالياً![cite: 6]");
             return;
         }
         loadUserProfileData();
@@ -645,7 +660,7 @@
             listContainer.innerHTML += `
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; margin-bottom: 6px; background: #f8fafc; padding: 6px; border-radius: 6px;">
                     <span>${item.name} (${item.quantity})</span>
-                    <span><b>${itemTotal.toFixed(2)} ₪</b></span>
+                    <span><b>${itemTotal.toFixed(2)} ₪[cite: 6]</b></span>
                 </div>
             `;
         });
@@ -662,7 +677,7 @@
         const address = document.getElementById('customerAddress').value.trim();
 
         if(!name || !phone || !address) {
-            alert("الرجاء إكمال بيانات التوصيل (الاسم، الهاتف، العنوان)");
+            alert("الرجاء إكمال بيانات التوصيل (الاسم، الهاتف، العنوان)[cite: 6]");
             return;
         }
 
@@ -673,7 +688,6 @@
         let total = 0;
         cart.forEach(i => total += (i.price * i.quantity));
 
-        // تم إزالة تخزين صور المنتجات الضخمة في الطلب لتجنب تجاوز الحد الأقصى لفايربيس (1MB)
         const newOrder = {
             customerName: name,
             customerPhone: phone,
@@ -685,13 +699,13 @@
                 quantity: Number(i.quantity) || 1 
             })),
             total: Number(total) || 0,
-            status: "جديد",
+            status: "جديد[cite: 6]",
             timestamp: new Date().toISOString()
         };
 
         try {
             await window.addDoc(window.collection(window.db, "orders"), newOrder);
-            alert("تم إرسال طلبك بنجاح! سيتم التواصل معك قريباً 🚀");
+            alert("تم إرسال طلبك بنجاح! سيتم التواصل معك قريباً 🚀[cite: 6]");
             cart = [];
             updateCartStateUI();
             products.forEach(p => updateProductCardDOM(p.id));
