@@ -21,6 +21,10 @@
         .header h1 { font-size: 1.1rem; font-weight: 900; margin-bottom: 5px; }
         .status-badge { display: inline-block; background: rgba(104, 166, 51, 0.3); color: #a3e635; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
 
+        .notif-bar { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 10px 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; }
+        .notif-bar span { color: #1e40af; font-weight: bold; }
+        .notif-bar button { background: #2563eb; color: white; border: none; padding: 5px 10px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
         .order-card { background: white; border: 2px solid #e2e8f0; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: var(--shadow-card); }
         .order-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 10px; font-weight: 900; color: var(--primary-green); font-size: 0.9rem; }
         
@@ -52,7 +56,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
@@ -72,6 +76,7 @@
         window.getDocs = getDocs;
         window.updateDoc = updateDoc;
         window.doc = doc;
+        window.onSnapshot = onSnapshot;
 
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
@@ -86,6 +91,12 @@
         <div class="status-badge">🟢 متصل بالسحابة (تحديث مباشر)</div>
     </div>
 
+    <!-- شريط تفعيل التنبيهات الصوتية -->
+    <div class="notif-bar" id="notifBanner">
+        <span>🔔 انقر لتفعيل التنبيهات الصوتية للطلبات</span>
+        <button onclick="askNotificationPermission()">تفعيل</button>
+    </div>
+
     <div id="kitchenOrdersList">
         <p style="text-align: center; color: #666; font-size: 0.8rem; padding: 20px;">جاري تحميل الطلبات...</p>
     </div>
@@ -94,12 +105,50 @@
 <script>
     let orders = [];
     let productsList = [];
+    let isInitialLoad = true;
 
     window.addEventListener('firebase-ready', async function() {
+        checkNotificationPermissionUI();
         await loadProductsList();
-        await loadKitchenOrders();
-        setInterval(loadKitchenOrders, 10000);
+        initKitchenRealtimeOrders();
     });
+
+    function checkNotificationPermissionUI() {
+        if ("Notification" in window && Notification.permission === "granted") {
+            const banner = document.getElementById('notifBanner');
+            if(banner) banner.style.display = 'none';
+        }
+    }
+
+    function askNotificationPermission() {
+        if ("Notification" in window) {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    const banner = document.getElementById('notifBanner');
+                    if(banner) banner.style.display = 'none';
+                    alert("تم تفعيل إشعارات المطبخ بنجاح!");
+                }
+            });
+        }
+    }
+
+    // تنبيه صوتي عبر Web Audio API
+    function playAlertSound() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+        } catch(e) {
+            console.log("Audio blocked");
+        }
+    }
 
     async function loadProductsList() {
         try {
@@ -113,17 +162,37 @@
         }
     }
 
-    async function loadKitchenOrders() {
-        try {
-            const querySnapshot = await window.getDocs(window.collection(window.db, "orders"));
+    function initKitchenRealtimeOrders() {
+        window.onSnapshot(window.collection(window.db, "orders"), (snapshot) => {
+            if (isInitialLoad) {
+                isInitialLoad = false;
+                orders = [];
+                snapshot.forEach(docSnap => {
+                    orders.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                renderKitchenOrders();
+                return;
+            }
+
+            snapshot.docChanges().forEach((change) => {
+                if (change.type === "added") {
+                    let newOrder = change.doc.data();
+                    playAlertSound();
+                    if ("Notification" in window && Notification.permission === "granted") {
+                        new Notification("طلب مطبخ جديد! 🍳", {
+                            body: `الزبون: ${newOrder.customerName || 'بدون اسم'} - الإجمالي: ${newOrder.total || 0} ₪`,
+                            icon: "https://i.ibb.co/3m1K2wP/basket.png"
+                        });
+                    }
+                }
+            });
+
             orders = [];
-            querySnapshot.forEach(docSnap => {
+            snapshot.forEach(docSnap => {
                 orders.push({ id: docSnap.id, ...docSnap.data() });
             });
             renderKitchenOrders();
-        } catch (e) {
-            console.error("خطأ في جلب الطلبات:", e);
-        }
+        });
     }
 
     function renderKitchenOrders() {
@@ -217,7 +286,6 @@
         if(confirm("هل أنت متأكد من إنجاز هذا الطلب ونقله للأرشيف؟")) {
             try {
                 await window.updateDoc(window.doc(window.db, "orders", orderId), { status: "مكتمل" });
-                await loadKitchenOrders();
             } catch(e) {
                 alert("حدث خطأ أثناء تحديث حالة الطلب");
             }
