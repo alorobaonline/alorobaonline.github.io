@@ -286,7 +286,18 @@
     let bannerSlides = [{ tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "logo.png" }];
     let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
     let cart = [];
-    let currentCategory = "الكل";
+    
+    // التحقق من وجود القسم في الرابط (Hash) عند بدء التشغيل
+    let initialHash = decodeURIComponent(window.location.hash.replace('#', ''));
+    let currentCategory = initialHash ? initialHash : "الكل";
+
+    // الاستماع لزر الرجوع في المتصفح أو الهاتف
+    window.addEventListener('hashchange', () => {
+        let hash = decodeURIComponent(window.location.hash.replace('#', ''));
+        currentCategory = hash ? hash : "الكل";
+        renderCategoriesScroll();
+        requestAnimationFrame(() => { renderMainStoreContent(); });
+    });
 
     function hideSplashScreen() {
         const splash = document.getElementById('splashScreen');
@@ -565,6 +576,12 @@
 
     function selectCategory(catName) {
         currentCategory = catName;
+        // تحديث الـ Hash في الرابط ليتم حفظ الحالة في السجل وزر الرجوع
+        if (catName === "الكل") {
+            history.pushState("", document.title, window.location.pathname + window.location.search);
+        } else {
+            window.location.hash = encodeURIComponent(catName);
+        }
         renderCategoriesScroll();
         requestAnimationFrame(() => { renderMainStoreContent(); });
     }
