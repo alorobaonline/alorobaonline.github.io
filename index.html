@@ -122,7 +122,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, doc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, doc, getDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
@@ -145,6 +145,7 @@
         window.getDoc = getDoc;
         window.query = query;
         window.where = where;
+        window.onSnapshot = onSnapshot;
 
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
@@ -289,9 +290,56 @@
     window.addEventListener('firebase-ready', async function() {
         loadUserProfileData();
         loadCartFromLocalStorage(); // تحميل السلة المحفوظة محلياً عند الجاهزية
-        await loadStoreDataFromCloud();
+        await loadStaticSettingsFromCloud(); // جلب الإعدادات الثابتة لمرة واحدة
+        initRealtimeListeners(); // تفعيل الاستماع الفوري للمنتجات والأقسام
         updateCartStateUI(); // تحديث واجهة السلة بناءً على العناصر المسترجعة
     });
+
+    async function loadStaticSettingsFromCloud() {
+        try {
+            const layoutDoc = await window.getDoc(window.doc(window.db, "settings", "layout"));
+            if(layoutDoc.exists()) layoutData = layoutDoc.data();
+
+            const bannerDoc = await window.getDoc(window.doc(window.db, "settings", "banner"));
+            if(bannerDoc.exists() && bannerDoc.data().slides) {
+                bannerSlides = bannerDoc.data().slides;
+            }
+            renderBanner();
+        } catch(e) {
+            console.error("خطأ في جلب الإعدادات الثابتة: ", e);
+        }
+    }
+
+    function initRealtimeListeners() {
+        // الاستماع الفوري للتغيرات في جدول المنتجات
+        window.onSnapshot(window.collection(window.db, "products"), (prodSnap) => {
+            products = [];
+            prodSnap.forEach(docSnap => {
+                products.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            renderMainStoreContent();
+            updateCartStateUI();
+        }, (error) => {
+            console.error("خطأ في الاستماع للمنتجات: ", error);
+        });
+
+        // الاستماع الفوري للتغيرات في جدول الأقسام
+        window.onSnapshot(window.collection(window.db, "categories"), (catSnap) => {
+            if(!catSnap.empty) {
+                categories = [{ name: "الكل", icon: "🛍️" }];
+                catSnap.forEach(docSnap => {
+                    let catData = docSnap.data();
+                    if(catData.name && catData.name !== "الكل") {
+                        categories.push(catData);
+                    }
+                });
+            }
+            renderCategoriesScroll();
+            renderMainStoreContent();
+        }, (error) => {
+            console.error("خطأ في الاستماع للأقسام: ", error);
+        });
+    }
 
     function loadUserProfileData() {
         let savedName = localStorage.getItem('aloroba_user_name') || '';
@@ -418,44 +466,11 @@
                 cart.push({ id: oldItem.id, name: oldItem.name, price: finalPrice, quantity: oldItem.quantity, img: (p ? p.img : '') });
             }
         });
-        saveCartToLocalStorage(); // حفظ السلة في الذاكرة المحلية
+        saveCartToLocalStorage();
         updateCartStateUI();
         products.forEach(p => updateProductCardDOM(p.id));
         closeProfileModal();
         alert("تمت إضافة منتجات الطلب السابق إلى السلة بنجاح! 🛒");
-    }
-
-    async function loadStoreDataFromCloud() {
-        try {
-            const prodSnap = await window.getDocs(window.collection(window.db, "products"));
-            products = [];
-            prodSnap.forEach(docSnap => {
-                products.push({ id: docSnap.id, ...docSnap.data() });
-            });
-
-            const catSnap = await window.getDocs(window.collection(window.db, "categories"));
-            if(!catSnap.empty) {
-                categories = [{ name: "الكل", icon: "🛍️" }];
-                catSnap.forEach(docSnap => {
-                    let catData = docSnap.data();
-                    if(catData.name && catData.name !== "الكل") {
-                        categories.push(catData);
-                    }
-                });
-            }
-
-            const layoutDoc = await window.getDoc(window.doc(window.db, "settings", "layout"));
-            if(layoutDoc.exists()) layoutData = layoutDoc.data();
-
-            const bannerDoc = await window.getDoc(window.doc(window.db, "settings", "banner"));
-            if(bannerDoc.exists() && bannerDoc.data().slides) {
-                bannerSlides = bannerDoc.data().slides;
-            }
-
-            renderStoreUI();
-        } catch(e) {
-            console.error("خطأ في جلب بيانات المتجر: ", e);
-        }
     }
 
     function renderStoreUI() {
@@ -598,14 +613,12 @@
                     </div>
                     <div class="product-name">${p.name}</div>
                     <div class="product-weight">${p.weight || 'حبة'}</div>
-                    <!-- يظهر السعر في الأعلى فقط عند ظهور شريط التحكم (الكمية > 0) -->
                     <div class="product-price-top" style="${hasQty ? 'display: flex;' : 'display: none;'}">
                         <span class="price-text">${priceDisplay}</span>
                         ${oldPriceDisplay}
                     </div>
                 </div>
                 <div>
-                    <!-- يظهر السعر في الأسفل بجانب زر (+) فقط عندما تكون الكمية 0 -->
                     <div class="product-price-row" style="${hasQty ? 'display: none;' : 'display: flex;'}">
                         <div>
                             <span class="price-text">${priceDisplay}</span>
@@ -613,7 +626,6 @@
                         </div>
                         <button class="add-to-cart-btn" onclick='increaseCartQty("${p.id}")'>+</button>
                     </div>
-                    <!-- شريط التحكم الكامل بالأسفل يظهر فقط عند وجود الكمية -->
                     <div class="quantity-control-full" style="${hasQty ? 'display: flex;' : 'display: none;'}">
                         <button class="qty-btn" onclick='decreaseCartQty("${p.id}")'>-</button>
                         <span class="qty-display">${qty}</span>
@@ -639,7 +651,7 @@
         } else {
             cart.push({ id: p.id, name: p.name, price: finalPrice, quantity: 1, img: p.img || '' });
         }
-        saveCartToLocalStorage(); // حفظ التغييرات في الذاكرة المحلية
+        saveCartToLocalStorage();
         updateCartStateUI();
         updateProductCardDOM(prodId);
     }
@@ -653,7 +665,7 @@
                 cart.splice(existingIndex, 1);
             }
         }
-        saveCartToLocalStorage(); // حفظ التغييرات في الذاكرة المحلية
+        saveCartToLocalStorage();
         updateCartStateUI();
         updateProductCardDOM(prodId);
     }
@@ -740,7 +752,7 @@
             await window.addDoc(window.collection(window.db, "orders"), newOrder);
             alert("تم إرسال طلبك بنجاح! سيتم التواصل معك قريباً 🚀");
             cart = [];
-            saveCartToLocalStorage(); // تفريغ السلة المحفوظة محلياً بعد نجاح الطلب
+            saveCartToLocalStorage();
             updateCartStateUI();
             products.forEach(p => updateProductCardDOM(p.id));
             closeCartModal();
