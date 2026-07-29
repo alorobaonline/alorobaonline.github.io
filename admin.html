@@ -476,7 +476,6 @@
     let isInitialOrdersLoad = true;
     let editingCategoryOriginalName = null;
     
-    // لتخزين أسماء الأقسام المفتوحة حتى لا تغلق تلقائياً عند التعديل
     let openCategoryNames = new Set();
 
     window.addEventListener('firebase-ready', async function() {
@@ -485,7 +484,6 @@
         initRealtimeOrdersListener();
     });
 
-    // استماع لتحديثات حقل الترتيب اليدوي (sortOrder) مباشرة عند تعديله في بطاقة المنتج
     document.addEventListener('change', async (e) => {
         if (e.target.classList.contains('sort-order-input')) {
             const productId = e.target.getAttribute('data-id');
@@ -975,10 +973,8 @@
             let list = catGroups[catName];
             if(list.length === 0) return;
 
-            // ترتيب المنتجات تصاعدياً حسب رقم الترتيب اليدوي (sortOrder)
             list.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
-            // الحفاظ على حالة القسم إن كان مفتوحاً مسبقاً
             let isOpen = openCategoryNames.has(catName);
             let displayStyle = isOpen ? 'block' : 'none';
 
@@ -1005,7 +1001,6 @@
                                     <div style="color: #6b7280; font-size: 0.65rem;">السعر: ${activePrice} | ${p.weight || 'حبة'}</div>
                                     <div style="color: #16a34a; font-size: 0.6rem;">الأقسام: ${catsText}</div>
                                     
-                                    <!-- حقل تعديل الترتيب اليدوي (يظهر في جميع الأقسام ما عدا "أخرى غير مصنفة") -->
                                     ${catName !== 'أخرى غير مصنفة' ? `
                                     <div style="display: flex; align-items: center; gap: 6px; margin-top: 3px;">
                                         <span style="font-size: 0.6rem; color: var(--primary-green); font-weight: bold;">رقم الظهور:</span>
@@ -1015,7 +1010,8 @@
                                 </div>
                             </div>
                             <div class="product-actions">
-                                <button class="btn-edit" onclick="openQuickEdit('${p.id}')">تعديل سريع ⚡</button>
+                                <!-- تم تمرير اسم القسم الحالي لتحديد نطاق التنقل للسابق والتالي -->
+                                <button class="btn-edit" onclick="openQuickEdit('${p.id}', '${catName}')">تعديل سريع ⚡</button>
                                 <button class="btn-delete" onclick="deleteProduct('${p.id}')">حذف 🗑️</button>
                             </div>
                         </div>
@@ -1039,8 +1035,31 @@
         }
     }
 
-    function openQuickEdit(productId) {
-        flatProductsList = [...products];
+    // [تم التعديل هنا] تقييد قائمة المنتجات المتنقلة بمنتجات القسم الحالي فقط
+    function openQuickEdit(productId, categoryName) {
+        let list = [];
+        if (categoryName === 'أخرى غير مصنفة') {
+            list = products.filter(p => {
+                let placed = false;
+                if(p.categories && Array.isArray(p.categories)) {
+                    p.categories.forEach(cName => {
+                        if(categories.some(c => c.name === cName && c.name !== "الكل")) {
+                            placed = true;
+                        }
+                    });
+                }
+                return !placed;
+            });
+        } else if (categoryName) {
+            list = products.filter(p => p.categories && p.categories.includes(categoryName));
+        } else {
+            list = [...products];
+        }
+
+        // ترتيب المنتجات تصاعدياً حسب sortOrder لضمان تطابق الترتيب مع الشاشة
+        list.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+        flatProductsList = list;
         const index = flatProductsList.findIndex(p => p.id == productId);
         if(index !== -1) {
             currentProductIndex = index;
@@ -1120,7 +1139,7 @@
             currentProductIndex--;
             renderQuickEditModalData(currentProductIndex);
         } else {
-            alert("هذا هو المنتج الأول.");
+            alert("هذا هو المنتج الأول في هذا القسم.");
         }
     }
 
@@ -1130,7 +1149,7 @@
             currentProductIndex++;
             renderQuickEditModalData(currentProductIndex);
         } else {
-            alert("هذا هو المنتج الأخير.");
+            alert("هذا هو المنتج الأخير في هذا القسم.");
         }
     }
 
