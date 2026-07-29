@@ -8,14 +8,14 @@
     <style>
         :root {
             --primary-green: #1b4d2e;
-            --accent-green: #68a633;
-            --light-bg: #f3f4f6;
-            --shadow-card: 0 4px 15px rgba(0,0,0,0.05);
+            --accent-green: #58b256;
+            --light-bg: #f4f6f5;
+            --border-color: #eaeaea;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
         body { background-color: var(--light-bg); color: #1f2937; padding-bottom: 90px; }
 
-        .store-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; box-shadow: var(--shadow-card); position: relative; }
+        .store-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; position: relative; }
         
         .store-header { background: var(--primary-green); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
         .store-title { font-size: 1.1rem; font-weight: 900; }
@@ -23,11 +23,11 @@
         .admin-link { background: rgba(255,255,255,0.2); color: white; padding: 5px 10px; border-radius: 8px; text-decoration: none; font-size: 0.7rem; font-weight: bold; cursor: pointer; border: none; }
 
         .search-bar-container { padding: 12px 15px; background: white; }
-        .search-input { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.8rem; outline: none; background: #f8fafc; }
+        .search-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 0.8rem; outline: none; background: #fafafa; }
 
         /* البانر المتحرك */
         .banner-slider { padding: 0 15px; margin-bottom: 15px; }
-        .banner-card { background: linear-gradient(135deg, #1b4d2e, #3a7d44); color: white; border-radius: 14px; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .banner-card { background: #1e5642; color: white; border-radius: 16px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
         .banner-text h2 { font-size: 0.95rem; font-weight: 900; margin-bottom: 4px; }
         .banner-text p { font-size: 0.75rem; opacity: 0.9; }
         .banner-img { width: 60px; height: 60px; object-fit: contain; background: white; border-radius: 50%; padding: 3px; }
@@ -35,7 +35,7 @@
         /* الأقسام الدائرية السريعة */
         .categories-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 0 15px 10px 15px; scrollbar-width: none; }
         .categories-scroll::-webkit-scrollbar { display: none; }
-        .cat-chip { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; cursor: pointer; color: #334155; display: flex; align-items: center; gap: 4px; }
+        .cat-chip { background: white; border: 1px solid var(--border-color); padding: 7px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; cursor: pointer; color: #334155; display: flex; align-items: center; gap: 4px; }
         .cat-chip.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
 
         /* أقسام العرض الأفقي للمتجر */
@@ -53,24 +53,23 @@
         }
         .products-horizontal-scroll::-webkit-scrollbar { display: none; }
 
-        /* بطاقة المنتج */
+        /* بطاقة المنتج (تصميم مسطح ونظيف بدون ظلال معقدة) */
         .product-card { 
             min-width: 145px; 
             max-width: 145px; 
             background: white; 
-            border: 1px solid #e2e8f0; 
+            border: 1px solid var(--border-color); 
             border-radius: 12px; 
-            padding: 8px; 
+            padding: 10px; 
             display: flex; 
             flex-direction: column; 
             justify-content: space-between; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02); 
             flex-shrink: 0; 
         }
-        .product-img-box { width: 100%; height: 130px; position: relative; display: flex; align-items: center; justify-content: center; background: #ffffff; border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
+        .product-img-box { width: 100%; height: 110px; position: relative; display: flex; align-items: center; justify-content: center; background: #ffffff; border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
         .product-img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .product-name { font-size: 0.75rem; font-weight: 800; color: #1f2937; margin-bottom: 4px; height: 26px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .product-weight { font-size: 0.65rem; color: #6b7280; margin-bottom: 4px; }
+        .product-name { font-size: 0.75rem; font-weight: 800; color: #333; margin-bottom: 4px; height: 26px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .product-weight { font-size: 0.65rem; color: #888; margin-bottom: 8px; }
         
         .product-price-row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
         .product-price-top { margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
@@ -99,7 +98,7 @@
         .products-grid .product-card { min-width: 100%; max-width: 100%; }
 
         /* شريط السلة السفلي */
-        .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--primary-green); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 16px; border-top-right-radius: 16px; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); z-index: 100; cursor: pointer; }
+        .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--primary-green); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 16px; border-top-right-radius: 16px; z-index: 100; cursor: pointer; }
         
         /* النوافذ العائمة (Modals) */
         .cart-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; max-width: 480px; margin: 0 auto; }
@@ -110,24 +109,21 @@
         .image-modal-content { background: white; width: 100%; border-radius: 16px; padding: 15px; text-align: center; position: relative; }
         .image-modal-content img { max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 8px; margin-bottom: 10px; }
 
-        .form-control { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; margin-bottom: 8px; outline: none; }
+        .form-control { width: 100%; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.75rem; margin-bottom: 8px; outline: none; background: #fafafa; }
         .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 800; cursor: pointer; margin-top: 5px; }
         
         /* تبويبات نافذة الحساب */
         .profile-tabs { display: flex; gap: 5px; margin-bottom: 12px; background: #f1f5f9; padding: 4px; border-radius: 8px; }
         .profile-tab { flex: 1; text-align: center; padding: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; border-radius: 6px; color: #64748b; }
-        .profile-tab.active { background: white; color: var(--primary-green); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .profile-tab.active { background: white; color: var(--primary-green); }
 
-        /* تأثير حركة رقص وتذبذب الشعار لشاشة الترحيب */
         @keyframes logoDance {
             0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
             25% { transform: translateY(-10px) rotate(-3deg) scale(1.05); }
             50% { transform: translateY(0) rotate(0deg) scale(1); }
             75% { transform: translateY(-6px) rotate(3deg) scale(1.03); }
         }
-        .dancing-logo {
-            animation: logoDance 1.2s infinite ease-in-out;
-        }
+        .dancing-logo { animation: logoDance 1.2s infinite ease-in-out; }
     </style>
 
     <!-- Firebase SDKs -->
@@ -163,7 +159,7 @@
 </head>
 <body>
 
-<!-- شاشة الترحيب المتحركة (Splash Screen) بالشعار الرسمي logo.png -->
+<!-- شاشة الترحيب المتحركة -->
 <div id="splashScreen" style="position: fixed; inset: 0; background: #ffffff; display: flex; align-items: center; justify-content: center; z-index: 9999; max-width: 480px; margin: 0 auto; transition: opacity 0.5s ease;">
     <div style="background: white; padding: 30px; border-radius: 30px; text-align: center;">
         <img src="logo.png" class="dancing-logo" style="width: 160px; height: 160px; object-fit: contain; border-radius: 20px;" alt="شعار العروبة أونلاين">
@@ -287,11 +283,9 @@
     let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
     let cart = [];
     
-    // التحقق من وجود القسم في الرابط (Hash) عند بدء التشغيل
     let initialHash = decodeURIComponent(window.location.hash.replace('#', ''));
     let currentCategory = initialHash ? initialHash : "الكل";
 
-    // الاستماع لزر الرجوع في المتصفح أو الهاتف
     window.addEventListener('hashchange', () => {
         let hash = decodeURIComponent(window.location.hash.replace('#', ''));
         currentCategory = hash ? hash : "الكل";
@@ -303,9 +297,7 @@
         const splash = document.getElementById('splashScreen');
         if (splash && splash.style.display !== 'none') {
             splash.style.opacity = '0';
-            setTimeout(() => {
-                splash.style.display = 'none';
-            }, 500);
+            setTimeout(() => { splash.style.display = 'none'; }, 500);
         }
     }
 
@@ -322,9 +314,7 @@
             let numA = !isNaN(Number(valA)) ? Number(valA) : 9999;
             let numB = !isNaN(Number(valB)) ? Number(valB) : 9999;
 
-            if (numA !== numB) {
-                return numA - numB;
-            }
+            if (numA !== numB) return numA - numB;
             return (a.name || "").localeCompare(b.name || "");
         });
     }
@@ -334,10 +324,7 @@
         let cachedCats = localStorage.getItem('aloroba_cached_categories');
         
         if (cachedProds) {
-            try { 
-                products = JSON.parse(cachedProds); 
-                sortProducts(); 
-            } catch(e) {}
+            try { products = JSON.parse(cachedProds); sortProducts(); } catch(e) {}
         }
         if (cachedCats) {
             try { categories = JSON.parse(cachedCats); } catch(e) {}
@@ -516,7 +503,7 @@
                 let itemsListHtml = order.items.map(i => `${i.name} (${i.quantity})`).join('، ');
 
                 container.innerHTML += `
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px; border-radius: 8px; margin-bottom: 8px; font-size: 0.75rem;">
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 8px; border-radius: 8px; margin-bottom: 8px; font-size: 0.75rem;">
                         <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 4px;">
                             <span>الحالة: <span style="color: var(--accent-green);">${order.status || 'جديد'}</span></span>
                             <span>${dateStr}</span>
@@ -576,7 +563,6 @@
 
     function selectCategory(catName) {
         currentCategory = catName;
-        // تحديث الـ Hash في الرابط ليتم حفظ الحالة في السجل وزر الرجوع
         if (catName === "الكل") {
             history.pushState("", document.title, window.location.pathname + window.location.search);
         } else {
