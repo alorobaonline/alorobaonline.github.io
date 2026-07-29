@@ -163,10 +163,10 @@
 </head>
 <body>
 
-<!-- شاشة الترحيب المتحركة (Splash Screen) بالشعار الرسمي -->
+<!-- شاشة الترحيب المتحركة (Splash Screen) بالشعار الرسمي logo.png -->
 <div id="splashScreen" style="position: fixed; inset: 0; background: #ffffff; display: flex; align-items: center; justify-content: center; z-index: 9999; max-width: 480px; margin: 0 auto; transition: opacity 0.5s ease;">
     <div style="background: white; padding: 30px; border-radius: 30px; text-align: center;">
-        <img src="IMG-20260729-WA0001.jpg" class="dancing-logo" style="width: 160px; height: 160px; object-fit: contain; border-radius: 20px;" alt="شعار العروبة أونلاين">
+        <img src="logo.png" class="dancing-logo" style="width: 160px; height: 160px; object-fit: contain; border-radius: 20px;" alt="شعار العروبة أونلاين">
         <div style="font-size: 0.85rem; font-weight: bold; color: #1b4d2e; margin-top: 15px;">العروبة أونلاين - جاري تجهيز السوبر ماركت... 🛒</div>
     </div>
 </div>
@@ -194,7 +194,7 @@
                 <h2 id="bannerTitle">أهلاً بك في متجرنا</h2>
                 <p>تسوّق أفضل المنتجات الطازجة</p>
             </div>
-            <img src="IMG-20260729-WA0001.jpg" class="banner-img" id="bannerImg">
+            <img src="logo.png" class="banner-img" id="bannerImg">
         </div>
     </div>
 
@@ -283,12 +283,11 @@
 <script>
     let products = [];
     let categories = [{ name: "الكل", icon: "🛍️" }];
-    let bannerSlides = [{ tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "IMG-20260729-WA0001.jpg" }];
+    let bannerSlides = [{ tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "logo.png" }];
     let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
     let cart = [];
     let currentCategory = "الكل";
 
-    // دالة إخفاء شاشة الترحيب بسلاسة
     function hideSplashScreen() {
         const splash = document.getElementById('splashScreen');
         if (splash && splash.style.display !== 'none') {
@@ -299,7 +298,6 @@
         }
     }
 
-    // دالة محسنة ومضمونة لفرز وترتيب المنتجات تصاعدياً حسب رقم الظهور مع معالجة كافة الاحتمالات
     function sortProducts() {
         products.sort((a, b) => {
             let valA = (a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "") ? a.displayOrder : 
@@ -320,7 +318,6 @@
         });
     }
 
-    // تحميل فوري من الذاكرة المحلية دون أي انتظار
     function loadCachedData() {
         let cachedProds = localStorage.getItem('aloroba_cached_products');
         let cachedCats = localStorage.getItem('aloroba_cached_categories');
@@ -668,7 +665,7 @@
             <div class="product-card" data-product-id="${p.id}">
                 <div>
                     <div class="product-img-box" onclick='openImageModal("${p.img}", "${p.name}")'>
-                        <img src="${p.img}" class="product-img" loading="lazy" onerror="this.src='IMG-20260729-WA0001.jpg'">
+                        <img src="${p.img}" class="product-img" loading="lazy" onerror="this.src='logo.png'">
                     </div>
                     <div class="product-name">${p.name}</div>
                     <div class="product-weight">${p.weight || 'حبة'}</div>
