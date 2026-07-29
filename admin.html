@@ -474,12 +474,35 @@
     let currentProductIndex = 0;
     let flatProductsList = [];
     let isInitialOrdersLoad = true;
-    let editingCategoryOriginalName = null; // تتبع القسم قيد التعديل
+    let editingCategoryOriginalName = null;
 
     window.addEventListener('firebase-ready', async function() {
         checkNotificationPermissionUI();
         await loadDataFromCloud();
         initRealtimeOrdersListener();
+    });
+
+    // استماع لتحديثات حقل الترتيب اليدوي (sortOrder) مباشرة عند تعديله في بطاقة المنتج
+    document.addEventListener('change', async (e) => {
+        if (e.target.classList.contains('sort-order-input')) {
+            const productId = e.target.getAttribute('data-id');
+            const newSortOrder = parseInt(e.target.value) || 0;
+            
+            let p = products.find(prod => prod.id == productId);
+            if(p) {
+                p.sortOrder = newSortOrder;
+            }
+
+            try {
+                await window.updateDoc(window.doc(window.db, "products", productId), {
+                    sortOrder: newSortOrder
+                });
+                renderAdminGroupedProducts();
+            } catch(err) {
+                console.error("خطأ في تحديث الترتيب:", err);
+                alert("حدث خطأ أثناء حفظ الترتيب.");
+            }
+        }
     });
 
     function checkNotificationPermissionUI() {
@@ -570,7 +593,6 @@
                         categories.push(catData);
                     }
                 });
-                // ترتيب الأقسام تصاعدياً حسب رقم الترتيب
                 categories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
             }
 
@@ -802,7 +824,8 @@
             salePrice: salePrice !== "" ? parseFloat(salePrice) : "",
             weight,
             img,
-            categories: selectedCats.length > 0 ? selectedCats : ["عام"]
+            categories: selectedCats.length > 0 ? selectedCats : ["عام"],
+            sortOrder: 0
         };
 
         try {
@@ -855,7 +878,8 @@
                     salePrice: "",
                     weight: "حبة",
                     img: dataUrl,
-                    categories: ["عام"]
+                    categories: ["عام"],
+                    sortOrder: 0
                 };
 
                 const docRef = await window.addDoc(window.collection(window.db, "products"), newProd);
@@ -948,6 +972,9 @@
             let list = catGroups[catName];
             if(list.length === 0) return;
 
+            // ترتيب المنتجات تصاعدياً حسب رقم الترتيب اليدوي (sortOrder)
+            list.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
             let groupHtml = `
                 <div class="category-group-box">
                     <div class="category-group-title" onclick="toggleCategoryGroup(this)">
@@ -970,6 +997,11 @@
                                     <div style="font-weight: 800;">${p.name}</div>
                                     <div style="color: #6b7280; font-size: 0.65rem;">السعر: ${activePrice} | ${p.weight || 'حبة'}</div>
                                     <div style="color: #16a34a; font-size: 0.6rem;">الأقسام: ${catsText}</div>
+                                    <!-- حقل تعديل الترتيب اليدوي -->
+                                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 3px;">
+                                        <span style="font-size: 0.6rem; color: var(--primary-green); font-weight: bold;">رقم الظهور:</span>
+                                        <input type="number" class="sort-order-input" data-id="${p.id}" value="${p.sortOrder !== undefined ? p.sortOrder : 0}" style="width: 50px; padding: 1px 3px; font-size: 0.65rem; text-align: center; border: 1px solid #cbd5e1; border-radius: 4px;">
+                                    </div>
                                 </div>
                             </div>
                             <div class="product-actions">
@@ -1105,7 +1137,6 @@
         }
     }
 
-    // عرض قائمة الأقسام في لوحة التحكم مع رقم الترتيب وزر التعديل والحذف
     function renderAdminCategoriesList() {
         const container = document.getElementById('adminCategoriesList');
         if(!container) return;
@@ -1128,7 +1159,6 @@
         });
     }
 
-    // دالة إضافة أو تحديث القسم مع دعم رقم الترتيب
     async function saveOrUpdateCategory() {
         const name = document.getElementById('newCatName').value.trim();
         const icon = document.getElementById('newCatIcon').value.trim() || "📦";
@@ -1140,7 +1170,6 @@
         }
 
         if (editingCategoryOriginalName === null) {
-            // حالة إضافة قسم جديد
             if(categories.some(c => c.name === name)) {
                 alert("هذا القسم موجود مسبقاً");
                 return;
@@ -1158,7 +1187,6 @@
                 alert("خطأ في حفظ القسم");
             }
         } else {
-            // حالة تعديل قسم موجود
             try {
                 if (editingCategoryOriginalName !== name) {
                     if(categories.some(c => c.name === name)) {
@@ -1188,7 +1216,6 @@
         }
     }
 
-    // تعبئة حقول التعديل عند الضغط على زر تعديل
     function editCategory(name, icon, sortOrder) {
         editingCategoryOriginalName = name;
         document.getElementById('newCatName').value = name;
