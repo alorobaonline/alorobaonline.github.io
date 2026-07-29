@@ -153,7 +153,7 @@
 <body>
 
 <div class="store-container">
-    <!-- الهيدر مع زر الحساب بجانب لوحة التحكم في الأعلى من جهة الشمال -->
+    <!-- الهيدر -->
     <div class="store-header">
         <div class="store-title">🛒 العروبة أونلاين</div>
         <div class="header-actions">
@@ -221,7 +221,6 @@
             <div class="profile-tab" id="tabOrdersBtn" onclick="switchProfileTab('orders')">طلباتي السابقة 📦</div>
         </div>
 
-        <!-- قسم بيانات العميل -->
         <div id="profileInfoSection">
             <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">قم بحفظ بياناتك لتسهيل وتسريع عملية الطلب في كل مرة:</div>
             <label style="font-size: 0.7rem; font-weight: bold;">الاسم الكريم:</label>
@@ -236,7 +235,6 @@
             <button class="btn-main" onclick="saveUserProfile()">حفظ البيانات 💾</button>
         </div>
 
-        <!-- قسم الطلبات السابقة -->
         <div id="profileOrdersSection" style="display: none;">
             <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">الطلبات المرتبطة برقم هاتفك المسجل من السحابة:</div>
             <div id="myPreviousOrdersList" style="max-height: 250px; overflow-y: auto;">
@@ -270,17 +268,29 @@
     let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
     let cart = [];
     let currentCategory = "الكل";
-    let isDataLoaded = false;
 
-    // دوال إدارة السلة محلياً (LocalStorage)
+    // استرجاع المنتجات المخزنة محلياً لتظهر فوراً دون أي انتظار
+    function loadCachedData() {
+        let cachedProds = localStorage.getItem('aloroba_cached_products');
+        let cachedCats = localStorage.getItem('aloroba_cached_categories');
+        
+        if (cachedProds) {
+            try { products = JSON.parse(cachedProds); } catch(e) {}
+        }
+        if (cachedCats) {
+            try { categories = JSON.parse(cachedCats); } catch(e) {}
+        }
+
+        if (products.length > 0) {
+            renderCategoriesScroll();
+            renderMainStoreContent();
+        }
+    }
+
     function loadCartFromLocalStorage() {
         let savedCart = localStorage.getItem('aloroba_cart');
         if (savedCart) {
-            try {
-                cart = JSON.parse(savedCart);
-            } catch (e) {
-                cart = [];
-            }
+            try { cart = JSON.parse(savedCart); } catch (e) { cart = []; }
         }
     }
 
@@ -290,20 +300,18 @@
 
     window.addEventListener('firebase-ready', async function() {
         loadUserProfileData();
-        loadCartFromLocalStorage(); 
-        
-        // عرض حالة التحميل فوراً للمستخدم
-        document.getElementById('storeMainContent').innerHTML = `
-            <div style="text-align: center; color: var(--primary-green); font-size: 0.85rem; padding: 40px; font-weight: bold;">
-                ⏳ جاري تحميل المتجر...
-            </div>
-        `;
+        loadCartFromLocalStorage();
+        loadCachedData(); // عرض فوري من الذاكرة المحلية أولاً
 
-        // دمج الطلبات الثابتة معاً لتسريع وقت التحميل (Parallel execution)
-        await Promise.all([
-            loadStaticSettingsFromCloud()
-        ]);
+        if (products.length === 0) {
+            document.getElementById('storeMainContent').innerHTML = `
+                <div style="text-align: center; color: var(--primary-green); font-size: 0.85rem; padding: 40px; font-weight: bold;">
+                    ⏳ جاري تحميل المتجر...
+                </div>
+            `;
+        }
 
+        await loadStaticSettingsFromCloud();
         initRealtimeListeners(); 
         updateCartStateUI(); 
     });
@@ -321,25 +329,23 @@
             }
             renderBanner();
         } catch(e) {
-            console.error("خطأ في جلب الإعدادات الثابتة: ", e);
+            console.error("خطأ في جلب الإعدادات: ", e);
         }
     }
 
     function initRealtimeListeners() {
-        // الاستماع الفوري للمنتجات
+        // جلب المنتجات وتخزينها محلياً لتسريع الفتح المستقبلي
         window.onSnapshot(window.collection(window.db, "products"), (prodSnap) => {
             products = [];
             prodSnap.forEach(docSnap => {
                 products.push({ id: docSnap.id, ...docSnap.data() });
             });
-            isDataLoaded = true;
+            localStorage.setItem('aloroba_cached_products', JSON.stringify(products));
             renderMainStoreContent();
             updateCartStateUI();
-        }, (error) => {
-            console.error("خطأ في الاستماع للمنتجات: ", error);
         });
 
-        // الاستماع الفوري للأقسام
+        // جلب الأقسام
         window.onSnapshot(window.collection(window.db, "categories"), (catSnap) => {
             if(!catSnap.empty) {
                 categories = [{ name: "الكل", icon: "🛍️" }];
@@ -349,11 +355,10 @@
                         categories.push(catData);
                     }
                 });
+                localStorage.setItem('aloroba_cached_categories', JSON.stringify(categories));
             }
             renderCategoriesScroll();
             renderMainStoreContent();
-        }, (error) => {
-            console.error("خطأ في الاستماع للأقسام: ", error);
         });
     }
 
@@ -465,7 +470,6 @@
                 `;
             });
         } catch(e) {
-            console.error(e);
             container.innerHTML = `<p style="text-align: center; color: red; font-size: 0.75rem; padding: 15px;">حدث خطأ أثناء جلب الطلبات.</p>`;
         }
     }
@@ -528,15 +532,7 @@
 
     function renderMainStoreContent() {
         const container = document.getElementById('storeMainContent');
-        
-        if (!isDataLoaded && products.length === 0) {
-            container.innerHTML = `
-                <div style="text-align: center; color: var(--primary-green); font-size: 0.85rem; padding: 40px; font-weight: bold;">
-                    ⏳ جاري تحميل المتجر...
-                </div>
-            `;
-            return;
-        }
+        if (products.length === 0) return;
 
         container.innerHTML = '';
         let query = document.getElementById('searchInput').value.trim().toLowerCase();
@@ -552,9 +548,7 @@
             if(filtered.length === 0) {
                 gridHtml = `<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 20px;">لا توجد منتجات مطابقة</p>`;
             } else {
-                filtered.forEach(p => {
-                    gridHtml += createProductCardHtml(p);
-                });
+                filtered.forEach(p => { gridHtml += createProductCardHtml(p); });
                 gridHtml += `</div>`;
             }
             container.innerHTML = gridHtml;
@@ -580,11 +574,7 @@
                     </div>
                     <div class="products-horizontal-scroll">
             `;
-
-            secProds.forEach(p => {
-                secHtml += createProductCardHtml(p);
-            });
-
+            secProds.forEach(p => { secHtml += createProductCardHtml(p); });
             secHtml += `</div></div>`;
             container.innerHTML += secHtml;
         });
@@ -603,9 +593,7 @@
                         </div>
                         <div class="products-horizontal-scroll">
                 `;
-                secProds.forEach(p => {
-                    secHtml += createProductCardHtml(p);
-                });
+                secProds.forEach(p => { secHtml += createProductCardHtml(p); });
                 secHtml += `</div></div>`;
                 container.innerHTML += secHtml;
             });
@@ -628,7 +616,8 @@
             <div class="product-card" data-product-id="${p.id}">
                 <div>
                     <div class="product-img-box" onclick='openImageModal("${p.img}", "${p.name}")'>
-                        <img src="${p.img}" class="product-img" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081840.png'">
+                        <!-- إضافة loading="lazy" لتسريع عرض الصور تدريجياً وتحріك الصفحة بسلاسة -->
+                        <img src="${p.img}" class="product-img" loading="lazy" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081840.png'">
                     </div>
                     <div class="product-name">${p.name}</div>
                     <div class="product-weight">${p.weight || 'حبة'}</div>
@@ -777,7 +766,6 @@
             closeCartModal();
         } catch(e) {
             alert("خطأ تفصيلي: " + e.message);
-            console.error(e);
         }
     }
 </script>
