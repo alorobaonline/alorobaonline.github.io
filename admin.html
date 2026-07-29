@@ -141,7 +141,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
@@ -165,6 +165,7 @@
         window.deleteDoc = deleteDoc;
         window.doc = doc;
         window.setDoc = setDoc;
+        window.onSnapshot = onSnapshot;
 
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
@@ -175,6 +176,12 @@
     <div class="dash-header">
         <h1>⚙️ لوحة التحكم - العروبة أونلاين</h1>
         <a href="index.html" class="back-btn">← المتجر الرئيسي</a>
+    </div>
+
+    <!-- شريط تفعيل إشعارات المتصفح والتنبيهات الفورية -->
+    <div class="section-box" id="notifBanner" style="background: #eff6ff; border-color: #bfdbfe; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; margin-bottom: 12px;">
+        <span style="font-size: 0.75rem; color: #1e40af; font-weight: bold;">🔔 تفعيل التنبيهات الصوتية والفورية للطلبات الجديدة</span>
+        <button onclick="askNotificationPermission()" style="background: #2563eb; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.7rem;">تفعيل</button>
     </div>
 
     <!-- زر الانتقال السريع لشاشة المطبخ والطلبات الواردة -->
@@ -416,10 +423,86 @@
     // متغيرات التعديل السريع المنبثق
     let currentProductIndex = 0;
     let flatProductsList = [];
+    let isInitialOrdersLoad = true;
 
     window.addEventListener('firebase-ready', async function() {
+        checkNotificationPermissionUI();
         await loadDataFromCloud();
+        initRealtimeOrdersListener();
     });
+
+    function checkNotificationPermissionUI() {
+        if ("Notification" in window && Notification.permission === "granted") {
+            const banner = document.getElementById('notifBanner');
+            if(banner) banner.style.display = 'none';
+        }
+    }
+
+    function askNotificationPermission() {
+        if ("Notification" in window) {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    const banner = document.getElementById('notifBanner');
+                    if(banner) banner.style.display = 'none';
+                    alert("تم تفعيل الإشعارات بنجاح!");
+                }
+            });
+        }
+    }
+
+    // نظام التنبيه الصوتي عبر Web Audio API
+    function playAlertSound() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // تردد نغمة التنبيه
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+        } catch(e) {
+            console.log("Audio Context blocked or not supported");
+        }
+    }
+
+    // الاستماع الفوري للطلبات الجديدة باستخدام onSnapshot
+    function initRealtimeOrdersListener() {
+        window.onSnapshot(window.collection(window.db, "orders"), (snapshot) => {
+            if (isInitialOrdersLoad) {
+                isInitialOrdersLoad = false;
+                orders = [];
+                snapshot.forEach(docSnap => {
+                    orders.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                renderAdminOrders();
+                updateSalesSummary();
+                return;
+            }
+
+            snapshot.docChanges().forEach((change) => {
+                if (change.type === "added") {
+                    let newOrder = change.doc.data();
+                    playAlertSound();
+                    if ("Notification" in window && Notification.permission === "granted") {
+                        new Notification("طلب جديد في العروبة أونلاين! 🛒", {
+                            body: `الزبون: ${newOrder.customerName} - الإجمالي: ${newOrder.total} ₪`,
+                            icon: "https://i.ibb.co/3m1K2wP/basket.png"
+                        });
+                    }
+                }
+            });
+
+            orders = [];
+            snapshot.forEach(docSnap => {
+                orders.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            renderAdminOrders();
+            updateSalesSummary();
+        });
+    }
 
     async function loadDataFromCloud() {
         try {
