@@ -252,7 +252,24 @@
             <h3 style="font-size: 0.9rem; color: var(--primary-green);">🛒 سلة المشتريات</h3>
             <button onclick="closeCartModal()" style="background:none; border:none; font-size: 1rem; cursor:pointer;">✕</button>
         </div>
-        <div id="cartItemsList" style="max-height: 180px; overflow-y: auto; margin-bottom: 10px;"></div>
+        <div id="cartItemsList" style="max-height: 160px; overflow-y: auto; margin-bottom: 10px;"></div>
+        
+        <!-- اختيار منطقة التوصيل -->
+        <label style="font-size: 0.7rem; font-weight: bold; margin-top: 6px; display: block;">منطقة التوصيل:</label>
+        <select id="deliveryZone" class="form-control" onchange="updateCartTotalWithDelivery()">
+            <option value="0">اختر الحي / المنطقة (توصيل مجاني أو محلي)</option>
+            <option value="5">المركز والمدينة - 5 ₪</option>
+            <option value="10">الأحياء الخارجية - 10 ₪</option>
+            <option value="15">الضواحي والقرى المجاورة - 15 ₪</option>
+        </select>
+
+        <div style="font-size: 0.75rem; background: #f8fafc; padding: 8px; border-radius: 8px; margin: 8px 0;">
+            <div style="display: flex; justify-content: space-between;"><span>مجموع المنتجات:</span> <span id="productsSubtotal">0.00 ₪</span></div>
+            <div style="display: flex; justify-content: space-between;"><span>رسوم التوصيل:</span> <span id="deliveryFeeText">0.00 ₪</span></div>
+            <hr style="border:0; border-top:1px solid #e2e8f0; margin:4px 0;">
+            <div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--primary-green);"><span>الإجمالي النهائي:</span> <span id="finalOrderTotal">0.00 ₪</span></div>
+        </div>
+
         <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
         <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">معلومات التوصيل: (تعبئة تلقائية من حسابك)</div>
         <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم">
@@ -671,13 +688,27 @@
 
     function updateCartStateUI() {
         let totalCount = 0;
-        let totalPrice = 0;
+        let productsPrice = 0;
         cart.forEach(item => {
             totalCount += item.quantity;
-            totalPrice += item.price * item.quantity;
+            productsPrice += item.price * item.quantity;
         });
-        document.getElementById('cartTotalText').innerText = totalPrice.toFixed(2) + " ₪";
+        
+        let deliveryFee = Number(document.getElementById('deliveryZone') ? document.getElementById('deliveryZone').value : 0);
+        let finalTotalPrice = productsPrice + deliveryFee;
+
+        document.getElementById('cartTotalText').innerText = finalTotalPrice.toFixed(2) + " ₪";
         document.getElementById('cartCountBadge').innerText = totalCount;
+        
+        if(document.getElementById('productsSubtotal')) {
+            document.getElementById('productsSubtotal').innerText = productsPrice.toFixed(2) + " ₪";
+            document.getElementById('deliveryFeeText').innerText = deliveryFee.toFixed(2) + " ₪";
+            document.getElementById('finalOrderTotal').innerText = finalTotalPrice.toFixed(2) + " ₪";
+        }
+    }
+
+    function updateCartTotalWithDelivery() {
+        updateCartStateUI();
     }
 
     function openCartModal() {
@@ -697,6 +728,7 @@
                 </div>
             `;
         });
+        updateCartStateUI();
         document.getElementById('cartModal').style.display = 'flex';
     }
 
@@ -708,6 +740,7 @@
         const name = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('customerPhone').value.trim();
         const address = document.getElementById('customerAddress').value.trim();
+        const deliveryFee = Number(document.getElementById('deliveryZone').value || 0);
 
         if(!name || !phone || !address) {
             alert("الرجاء إكمال بيانات التوصيل (الاسم، الهاتف، العنوان)");
@@ -718,13 +751,15 @@
         localStorage.setItem('aloroba_user_phone', phone);
         localStorage.setItem('aloroba_user_address', address);
 
-        let total = 0;
-        cart.forEach(i => total += (i.price * i.quantity));
+        let productsSubtotal = 0;
+        cart.forEach(i => productsSubtotal += (i.price * i.quantity));
+        let total = productsSubtotal + deliveryFee;
 
         const newOrder = {
             customerName: name,
             customerPhone: phone,
             customerAddress: address,
+            deliveryFee: deliveryFee,
             items: cart.map(i => ({ 
                 id: i.id || '', 
                 name: i.name || '', 
