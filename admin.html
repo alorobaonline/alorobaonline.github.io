@@ -288,56 +288,6 @@
         </div>
     </div>
 
-    <!-- 3. إعدادات التوصيل والمناطق الجغرافية -->
-    <div class="section-box">
-        <div class="section-header-toggle" onclick="toggleSection('deliverySectionContent', this)">
-            <span>🚚 إعدادات التوصيل والمناطق الجغرافية</span>
-            <span class="toggle-arrow">▼</span>
-        </div>
-        <div class="section-content" id="deliverySectionContent">
-            <div class="form-group">
-                <label>السعر الافتراضي للتوصيل (₪)</label>
-                <input type="number" id="defaultDeliveryFee" class="form-control" placeholder="مثال: 20">
-            </div>
-            <div class="form-group">
-                <label>الحد الأدنى للتوصيل المجاني (₪)</label>
-                <input type="number" id="freeDeliveryThreshold" class="form-control" placeholder="مثال: 150">
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px;">
-                <div style="font-size: 0.75rem; font-weight: 700; color: #4b5563;">تفعيل نظام التوصيل حسب المناطق</div>
-                <label class="switch">
-                    <input type="checkbox" id="toggleDeliverySystem" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-
-            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 10px 0;">
-
-            <div style="font-size: 0.75rem; font-weight: 800; color: var(--primary-green); margin-bottom: 6px;">تخصيص أسعار المناطق والأحياء</div>
-            <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 6px; margin-bottom: 8px;">
-                <input type="text" id="newZoneName" class="form-control" placeholder="اسم المنطقة / الحي">
-                <input type="number" id="newZonePrice" class="form-control" placeholder="السعر (₪)">
-            </div>
-            <button class="btn-main" style="background: var(--accent-green); margin-bottom: 10px;" onclick="addDeliveryZone()">إضافة المنطقة ➕</button>
-
-            <div class="archive-table-wrapper" style="margin-top: 8px;">
-                <table class="archive-table">
-                    <thead>
-                        <tr>
-                            <th>المنطقة / الحي</th>
-                            <th>سعر التوصيل</th>
-                            <th>الإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody id="adminZonesListBody">
-                        <!-- تعبئة ديناميكية للمناطق -->
-                    </tbody>
-                </table>
-            </div>
-            <button class="btn-main" style="margin-top: 10px;" onclick="saveDeliverySettings()">حفظ إعدادات التوصيل 💾</button>
-        </div>
-    </div>
-
     <!-- 4. إدارة المنتجات وتعديلها -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('manageProductsSectionContent', this)">
@@ -473,12 +423,6 @@
     ];
     let bannerSlides = [];
     let orders = [];
-    let deliveryZones = [];
-    let deliverySettings = {
-        defaultFee: 20,
-        freeThreshold: 150,
-        enabled: true
-    };
 
     let currentProductIndex = 0;
     let flatProductsList = [];
@@ -666,26 +610,6 @@
                 console.log("لم يتم العثور على إعدادات سابقة للمتجر");
             }
 
-            try {
-                const deliverySettingSnap = await window.getDoc(window.doc(window.db, "settings", "deliverySettings"));
-                if(deliverySettingSnap.exists()) {
-                    let dData = deliverySettingSnap.data();
-                    deliverySettings = { ...deliverySettings, ...dData };
-                    document.getElementById('defaultDeliveryFee').value = deliverySettings.defaultFee;
-                    document.getElementById('freeDeliveryThreshold').value = deliverySettings.freeThreshold;
-                    document.getElementById('toggleDeliverySystem').checked = deliverySettings.enabled !== false;
-                }
-
-                const zoneSnap = await window.getDocs(window.collection(window.db, "deliveryZones"));
-                deliveryZones = [];
-                zoneSnap.forEach(docSnap => {
-                    deliveryZones.push({ id: docSnap.id, ...docSnap.data() });
-                });
-                renderAdminDeliveryZones();
-            } catch(e) {
-                console.log("خطأ في جلب إعدادات التوصيل:", e);
-            }
-
             renderNewProdCategoriesCheckboxes();
             renderAdminGroupedProducts();
             renderAdminCategoriesList();
@@ -706,77 +630,6 @@
             alert("تم تحديث حالة عرض فئة 'أخرى غير مصنفة' بنجاح! ✨");
         } catch(e) {
             console.error("خطأ في حفظ الإعداد:", e);
-        }
-    }
-
-    async function addDeliveryZone() {
-        const name = document.getElementById('newZoneName').value.trim();
-        const price = parseFloat(document.getElementById('newZonePrice').value);
-
-        if(!name || isNaN(price)) {
-            alert("الرجاء إدخال اسم المنطقة وسعر التوصيل بشكل صحيح.");
-            return;
-        }
-
-        const newZone = { name, price };
-        try {
-            const docRef = await window.addDoc(window.collection(window.db, "deliveryZones"), newZone);
-            newZone.id = docRef.id;
-            deliveryZones.push(newZone);
-            renderAdminDeliveryZones();
-            document.getElementById('newZoneName').value = '';
-            document.getElementById('newZonePrice').value = '';
-            alert("تم إضافة المنطقة بنجاح! ✨");
-        } catch(e) {
-            console.error(e);
-            alert("خطأ في حفظ المنطقة بالسحابة.");
-        }
-    }
-
-    async function deleteDeliveryZone(id) {
-        if(confirm("هل أنت متأكد من حذف هذه المنطقة؟")) {
-            try {
-                await window.deleteDoc(window.doc(window.db, "deliveryZones", id));
-                deliveryZones = deliveryZones.filter(z => z.id != id);
-                renderAdminDeliveryZones();
-            } catch(e) {
-                alert("خطأ أثناء الحذف.");
-            }
-        }
-    }
-
-    function renderAdminDeliveryZones() {
-        const tbody = document.getElementById('adminZonesListBody');
-        if(!tbody) return;
-        tbody.innerHTML = '';
-        if(deliveryZones.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #888; padding: 10px;">لا توجد مناطق مضافة حالياً</td></tr>`;
-            return;
-        }
-        deliveryZones.forEach(zone => {
-            tbody.innerHTML += `
-                <tr>
-                    <td><b>${zone.name}</b></td>
-                    <td style="color: #16a34a; font-weight: bold;">${zone.price} ₪</td>
-                    <td>
-                        <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteDeliveryZone('${zone.id}')">حذف ✕</button>
-                    </td>
-                </tr>
-            `;
-        });
-    }
-
-    async function saveDeliverySettings() {
-        deliverySettings.defaultFee = parseFloat(document.getElementById('defaultDeliveryFee').value) || 0;
-        deliverySettings.freeThreshold = parseFloat(document.getElementById('freeDeliveryThreshold').value) || 0;
-        deliverySettings.enabled = document.getElementById('toggleDeliverySystem').checked;
-
-        try {
-            await window.setDoc(window.doc(window.db, "settings", "deliverySettings"), deliverySettings);
-            alert("تم حفظ إعدادات التوصيل في السحابة بنجاح! 🚀");
-        } catch(e) {
-            console.error(e);
-            alert("خطأ في حفظ الإعدادات.");
         }
     }
 
