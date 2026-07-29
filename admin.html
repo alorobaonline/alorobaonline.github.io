@@ -1004,11 +1004,14 @@
                                     <div style="font-weight: 800;">${p.name}</div>
                                     <div style="color: #6b7280; font-size: 0.65rem;">السعر: ${activePrice} | ${p.weight || 'حبة'}</div>
                                     <div style="color: #16a34a; font-size: 0.6rem;">الأقسام: ${catsText}</div>
-                                    <!-- حقل تعديل الترتيب اليدوي -->
+                                    
+                                    <!-- حقل تعديل الترتيب اليدوي (يظهر في جميع الأقسام ما عدا "أخرى غير مصنفة") -->
+                                    ${catName !== 'أخرى غير مصنفة' ? `
                                     <div style="display: flex; align-items: center; gap: 6px; margin-top: 3px;">
                                         <span style="font-size: 0.6rem; color: var(--primary-green); font-weight: bold;">رقم الظهور:</span>
                                         <input type="number" class="sort-order-input" data-id="${p.id}" value="${p.sortOrder !== undefined ? p.sortOrder : 0}" style="width: 50px; padding: 1px 3px; font-size: 0.65rem; text-align: center; border: 1px solid #cbd5e1; border-radius: 4px;">
                                     </div>
+                                    ` : ''}
                                 </div>
                             </div>
                             <div class="product-actions">
