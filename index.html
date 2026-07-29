@@ -270,9 +270,27 @@
     let cart = [];
     let currentCategory = "الكل";
 
+    // دوال إدارة السلة محلياً (LocalStorage)
+    function loadCartFromLocalStorage() {
+        let savedCart = localStorage.getItem('aloroba_cart');
+        if (savedCart) {
+            try {
+                cart = JSON.parse(savedCart);
+            } catch (e) {
+                cart = [];
+            }
+        }
+    }
+
+    function saveCartToLocalStorage() {
+        localStorage.setItem('aloroba_cart', JSON.stringify(cart));
+    }
+
     window.addEventListener('firebase-ready', async function() {
         loadUserProfileData();
+        loadCartFromLocalStorage(); // تحميل السلة المحفوظة محلياً عند الجاهزية
         await loadStoreDataFromCloud();
+        updateCartStateUI(); // تحديث واجهة السلة بناءً على العناصر المسترجعة
     });
 
     function loadUserProfileData() {
@@ -400,6 +418,7 @@
                 cart.push({ id: oldItem.id, name: oldItem.name, price: finalPrice, quantity: oldItem.quantity, img: (p ? p.img : '') });
             }
         });
+        saveCartToLocalStorage(); // حفظ السلة في الذاكرة المحلية
         updateCartStateUI();
         products.forEach(p => updateProductCardDOM(p.id));
         closeProfileModal();
@@ -620,6 +639,7 @@
         } else {
             cart.push({ id: p.id, name: p.name, price: finalPrice, quantity: 1, img: p.img || '' });
         }
+        saveCartToLocalStorage(); // حفظ التغييرات في الذاكرة المحلية
         updateCartStateUI();
         updateProductCardDOM(prodId);
     }
@@ -633,6 +653,7 @@
                 cart.splice(existingIndex, 1);
             }
         }
+        saveCartToLocalStorage(); // حفظ التغييرات في الذاكرة المحلية
         updateCartStateUI();
         updateProductCardDOM(prodId);
     }
@@ -719,6 +740,7 @@
             await window.addDoc(window.collection(window.db, "orders"), newOrder);
             alert("تم إرسال طلبك بنجاح! سيتم التواصل معك قريباً 🚀");
             cart = [];
+            saveCartToLocalStorage(); // تفريغ السلة المحفوظة محلياً بعد نجاح الطلب
             updateCartStateUI();
             products.forEach(p => updateProductCardDOM(p.id));
             closeCartModal();
