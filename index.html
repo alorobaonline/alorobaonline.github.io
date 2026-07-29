@@ -100,19 +100,18 @@
         /* شريط السلة السفلي */
         .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--primary-green); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 16px; border-top-right-radius: 16px; z-index: 100; cursor: pointer; }
         
-        /* النوافذ العائمة (Modals) */
+        /* النوافذ العائمة */
         .cart-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; max-width: 480px; margin: 0 auto; }
-        .cart-modal-content { background: white; width: 100%; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; max-height: 85vh; overflow-y: auto; }
+        .cart-modal-content { background: white; width: 100%; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; max-height: 90vh; overflow-y: auto; }
         
         /* نافذة تكبير الصورة */
         .image-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 300; max-width: 480px; margin: 0 auto; padding: 20px; }
         .image-modal-content { background: white; width: 100%; border-radius: 16px; padding: 15px; text-align: center; position: relative; }
         .image-modal-content img { max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 8px; margin-bottom: 10px; }
 
-        .form-control { width: 100%; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.75rem; margin-bottom: 8px; outline: none; background: #fafafa; }
+        .form-control { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.75rem; margin-bottom: 8px; outline: none; background: #fafafa; }
         .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 800; cursor: pointer; margin-top: 5px; }
         
-        /* تبويبات نافذة الحساب */
         .profile-tabs { display: flex; gap: 5px; margin-bottom: 12px; background: #f1f5f9; padding: 4px; border-radius: 8px; }
         .profile-tab { flex: 1; text-align: center; padding: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; border-radius: 6px; color: #64748b; }
         .profile-tab.active { background: white; color: var(--primary-green); }
@@ -244,8 +243,8 @@
             <label style="font-size: 0.7rem; font-weight: bold;">رقم الهاتف:</label>
             <input type="tel" id="userProfilePhone" class="form-control" placeholder="05xxxxxxxx">
             
-            <label style="font-size: 0.7rem; font-weight: bold;">عنوان التوصيل:</label>
-            <input type="text" id="userProfileAddress" class="form-control" placeholder="المدينة، الحي، الشارع، رقم العمارة">
+            <label style="font-size: 0.7rem; font-weight: bold;">عنوان التوصيل (افتراضي):</label>
+            <input type="text" id="userProfileAddress" class="form-control" placeholder="المدينة، الحي، الشارع">
             
             <button class="btn-main" onclick="saveUserProfile()">حفظ البيانات 💾</button>
         </div>
@@ -259,20 +258,62 @@
     </div>
 </div>
 
-<!-- نافذة تفاصيل السلة وإتمام الطلب -->
+<!-- نافذة تفاصيل السلة وتوصيل الطلب (المحدثة والشاملة) -->
 <div class="cart-modal" id="cartModal">
     <div class="cart-modal-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h3 style="font-size: 0.9rem; color: var(--primary-green);">🛒 سلة المشتريات</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="font-size: 0.9rem; color: var(--primary-green);">🛒 سلة المشتريات وتفاصيل التوصيل</h3>
             <button onclick="closeCartModal()" style="background:none; border:none; font-size: 1rem; cursor:pointer;">✕</button>
         </div>
-        <div id="cartItemsList" style="max-height: 150px; overflow-y: auto; margin-bottom: 6px;"></div>
-        <div id="cartSummaryContainer"></div>
+        
+        <div id="cartItemsList" style="max-height: 110px; overflow-y: auto; margin-bottom: 8px;"></div>
+        
+        <!-- الحساب المالي الشفاف -->
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 8px; border-radius: 8px; margin-bottom: 10px; font-size: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                <span>مجموع المنتجات:</span>
+                <span id="cartSubtotalText">0.00 ₪</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                <span>رسوم التوصيل الثابتة:</span>
+                <span id="deliveryFeeText" style="font-weight: bold; color: var(--accent-green);">10.00 ₪</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px solid #e2e8f0; padding-top: 4px; color: var(--primary-green); font-size: 0.8rem;">
+                <span>المجموع النهائي للإرسال:</span>
+                <span id="cartFinalTotalText">0.00 ₪</span>
+            </div>
+        </div>
+
         <hr style="border:0; border-top:1px solid #eee; margin:8px 0;">
-        <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">معلومات التوصيل: (تعبئة تلقائية من حسابك)</div>
+        <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">معلومات التوصيل (تعبئة تلقائية من حسابك):</div>
+        
         <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم">
-        <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف">
-        <input type="text" id="customerAddress" class="form-control" placeholder="العنوان (المدينة، الحي، الشارع)">
+        <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف (05xxxxxxxx)">
+
+        <!-- زر تحديد الموقع الجغرافي GPS -->
+        <button type="button" onclick="getCurrentLocation()" style="width: 100%; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 7px; border-radius: 8px; font-weight: bold; font-size: 0.75rem; cursor: pointer; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            📍 تحديد موقعي الحالي تلقائياً (GPS)
+        </button>
+        <input type="hidden" id="customerGpsLocation" value="">
+
+        <!-- تفاصيل العنوان المقسمة -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <input type="text" id="customerCity" class="form-control" placeholder="المدينة / الحي">
+            <input type="text" id="customerStreet" class="form-control" placeholder="اسم الشارع">
+        </div>
+        <input type="text" id="customerBuilding" class="form-control" placeholder="رقم العمارة / الطابق / رقم الشقة">
+
+        <!-- وقت التوصيل المفضل -->
+        <label style="font-size: 0.7rem; font-weight: bold; display: block; margin-bottom: 3px;">وقت التوصيل المفضل:</label>
+        <select id="deliveryTimeSlot" class="form-control">
+            <option value="توصيل فوري (خلال 30-45 دقيقة)">⚡ توصيل فوري (خلال 30-45 دقيقة)</option>
+            <option value="اليوم - الفترة المسائية (4-8 مساءً)">🕒 اليوم - الفترة المسائية (4-8 مساءً)</option>
+            <option value="غداً صباحاً (9-12 ظهراً)">🌅 غداً صباحاً (9-12 ظهراً)</option>
+        </select>
+
+        <!-- ملاحظات خاصة للمندوب -->
+        <textarea id="customerNotes" class="form-control" placeholder="ملاحظات للمندوب (اختياري، مثلاً: اترك الطلب عند الباب...)" style="resize: none; height: 40px;"></textarea>
+
         <button class="btn-main" onclick="submitOrder()">إتمام وتأكيد الطلب 🚀</button>
     </div>
 </div>
@@ -283,12 +324,7 @@
     let bannerSlides = [{ tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "logo.png" }];
     let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
     let cart = [];
-    
-    // إعدادات التوصيل والمناطق الجغرافية القادمة من فايربيس
-    let deliverySettings = { enabled: false, defaultFee: 0, freeThreshold: 0 };
-    let deliveryZones = [];
-    let selectedDeliveryFee = 0;
-    let selectedZoneName = "";
+    const FIXED_DELIVERY_FEE = 10.00;
     
     let initialHash = decodeURIComponent(window.location.hash.replace('#', ''));
     let currentCategory = initialHash ? initialHash : "الكل";
@@ -369,19 +405,14 @@
 
     async function loadStaticSettingsFromCloud() {
         try {
-            const [layoutDoc, bannerDoc, deliveryDoc] = await Promise.all([
+            const [layoutDoc, bannerDoc] = await Promise.all([
                 window.getDoc(window.doc(window.db, "settings", "layout")),
-                window.getDoc(window.doc(window.db, "settings", "banner")),
-                window.getDoc(window.doc(window.db, "settings", "deliverySettings"))
+                window.getDoc(window.doc(window.db, "settings", "banner"))
             ]);
 
             if(layoutDoc.exists()) layoutData = layoutDoc.data();
             if(bannerDoc.exists() && bannerDoc.data().slides) {
                 bannerSlides = bannerDoc.data().slides;
-            }
-            if(deliveryDoc.exists()) {
-                deliverySettings = deliveryDoc.data();
-                selectedDeliveryFee = Number(deliverySettings.defaultFee || 0);
             }
             renderBanner();
         } catch(e) {}
@@ -419,31 +450,6 @@
                 hideSplashScreen(); 
             });
         });
-
-        // الاستماع الفوري لتحديثات مناطق التوصيل من لوحة التحكم
-        window.onSnapshot(window.collection(window.db, "deliveryZones"), (zoneSnap) => {
-            deliveryZones = [];
-            zoneSnap.forEach(docSnap => {
-                deliveryZones.push({ id: docSnap.id, ...docSnap.data() });
-            });
-            if(document.getElementById('cartModal').style.display === 'flex') {
-                updateCartModalContent();
-            }
-        });
-
-        // الاستماع الفوري لإعدادات التوصيل العامة
-        window.onSnapshot(window.doc(window.db, "settings", "deliverySettings"), (docSnap) => {
-            if(docSnap.exists()) {
-                deliverySettings = docSnap.data();
-                if(selectedZoneName === "") {
-                    selectedDeliveryFee = Number(deliverySettings.defaultFee || 0);
-                }
-                updateCartStateUI();
-                if(document.getElementById('cartModal').style.display === 'flex') {
-                    updateCartModalContent();
-                }
-            }
-        });
     }
 
     function loadUserProfileData() {
@@ -457,7 +463,9 @@
 
         document.getElementById('customerName').value = savedName;
         document.getElementById('customerPhone').value = savedPhone;
-        document.getElementById('customerAddress').value = savedAddress;
+        if(savedAddress) {
+            document.getElementById('customerCity').value = savedAddress;
+        }
     }
 
     function saveUserProfile() {
@@ -465,8 +473,8 @@
         let phone = document.getElementById('userProfilePhone').value.trim();
         let address = document.getElementById('userProfileAddress').value.trim();
 
-        if(!name || !phone || !address) {
-            alert("الرجاء تعبئة جميع الحقول بشكل صحيح.");
+        if(!name || !phone) {
+            alert("الرجاء تعبئة الاسم ورقم الهاتف.");
             return;
         }
 
@@ -777,37 +785,15 @@
         });
     }
 
-    // حسابات السلة والتوصيل
-    function calculateCartSubtotal() {
-        let subtotal = 0;
-        cart.forEach(item => {
-            subtotal += item.price * item.quantity;
-        });
-        return subtotal;
-    }
-
-    function calculateDeliveryFee(subtotal) {
-        if (!deliverySettings.enabled) return 0;
-        let freeThreshold = Number(deliverySettings.freeThreshold || 0);
-        if (freeThreshold > 0 && subtotal >= freeThreshold) {
-            return 0;
-        }
-        if (selectedDeliveryFee !== null && selectedDeliveryFee !== undefined && !isNaN(selectedDeliveryFee)) {
-            return Number(selectedDeliveryFee);
-        }
-        return Number(deliverySettings.defaultFee || 0);
-    }
-
     function updateCartStateUI() {
         let totalCount = 0;
+        let totalPrice = 0;
         cart.forEach(item => {
             totalCount += item.quantity;
+            totalPrice += item.price * item.quantity;
         });
-        let subtotal = calculateCartSubtotal();
-        let deliveryFee = calculateDeliveryFee(subtotal);
-        let totalPrice = subtotal + deliveryFee;
-
-        document.getElementById('cartTotalText').innerText = totalPrice.toFixed(2) + " ₪";
+        let finalDisplayTotal = totalPrice + (cart.length > 0 ? FIXED_DELIVERY_FEE : 0);
+        document.getElementById('cartTotalText').innerText = finalDisplayTotal.toFixed(2) + " ₪";
         document.getElementById('cartCountBadge').innerText = totalCount;
     }
 
@@ -817,117 +803,87 @@
             return;
         }
         loadUserProfileData();
-        updateCartModalContent();
-        document.getElementById('cartModal').style.display = 'flex';
-    }
-
-    function updateCartModalContent() {
         let listContainer = document.getElementById('cartItemsList');
         listContainer.innerHTML = '';
         
-        let subtotal = calculateCartSubtotal();
+        let subtotal = 0;
         cart.forEach((item) => {
             let itemTotal = item.price * item.quantity;
+            subtotal += itemTotal;
             listContainer.innerHTML += `
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; margin-bottom: 6px; background: #f8fafc; padding: 6px; border-radius: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; margin-bottom: 5px; background: #f8fafc; padding: 5px; border-radius: 6px;">
                     <span>${item.name} (${item.quantity})</span>
                     <span><b>${itemTotal.toFixed(2)} ₪</b></span>
                 </div>
             `;
         });
 
-        let deliverySectionHtml = '';
-        if (deliverySettings.enabled) {
-            let currentFee = calculateDeliveryFee(subtotal);
-            let freeThreshold = Number(deliverySettings.freeThreshold || 0);
-            let freeNotice = '';
-            
-            if (freeThreshold > 0) {
-                if (subtotal >= freeThreshold) {
-                    freeNotice = `<div style="color: var(--accent-green); font-size: 0.7rem; font-weight: bold; margin-top: 4px;">🎉 مبروك! لقد حصلت على توصيل مجاني (الحد الأدنى للتوصيل المجاني ${freeThreshold} ₪)</div>`;
-                } else {
-                    let diff = freeThreshold - subtotal;
-                    freeNotice = `<div style="color: #d97706; font-size: 0.7rem; margin-top: 4px;">أضف منتجات بقيمة ${diff.toFixed(2)} ₪ أخرى لتحصل على توصيل مجاني!</div>`;
-                }
-            }
+        let finalTotal = subtotal + FIXED_DELIVERY_FEE;
+        document.getElementById('cartSubtotalText').innerText = subtotal.toFixed(2) + " ₪";
+        document.getElementById('deliveryFeeText').innerText = FIXED_DELIVERY_FEE.toFixed(2) + " ₪";
+        document.getElementById('cartFinalTotalText').innerText = finalTotal.toFixed(2) + " ₪";
 
-            let zonesOptions = `<option value="">اختر منطقة التوصيل (الافتراضي: ${deliverySettings.defaultFee || 0} ₪)</option>`;
-            deliveryZones.forEach(z => {
-                let selected = selectedZoneName === z.name ? 'selected' : '';
-                zonesOptions += `<option value="${z.name}" data-fee="${z.fee}" ${selected}>${z.name} (${z.fee} ₪)</option>`;
-            });
-
-            deliverySectionHtml = `
-                <div style="background: #f1f5f9; padding: 8px; border-radius: 8px; margin-bottom: 8px; font-size: 0.75rem;">
-                    <div style="font-weight: bold; margin-bottom: 4px; color: var(--primary-green);">🚗 تفاصيل التوصيل:</div>
-                    ${deliveryZones.length > 0 ? `
-                        <label style="font-size: 0.68rem; font-weight: bold; display: block; margin-bottom: 2px;">منطقة التوصيل:</label>
-                        <select id="deliveryZoneSelect" class="form-control" onchange="onDeliveryZoneChange(this)" style="margin-bottom: 4px;">
-                            ${zonesOptions}
-                        </select>
-                    ` : ''}
-                    <div style="display: flex; justify-content: space-between; margin-top: 4px; font-weight: bold;">
-                        <span>رسوم التوصيل:</span>
-                        <span>${currentFee.toFixed(2)} ₪</span>
-                    </div>
-                    ${freeNotice}
-                </div>
-            `;
-        }
-
-        let deliveryFee = calculateDeliveryFee(subtotal);
-        let finalTotal = subtotal + deliveryFee;
-
-        let summaryHtml = `
-            ${deliverySectionHtml}
-            <div style="display: flex; justify-content: space-between; font-size: 0.82rem; font-weight: bold; margin-bottom: 6px; padding-top: 4px; border-top: 1px dashed #cbd5e1;">
-                <span>المجموع الكلي (مع التوصيل):</span>
-                <span style="color: var(--primary-green);">${finalTotal.toFixed(2)} ₪</span>
-            </div>
-        `;
-
-        let summaryContainer = document.getElementById('cartSummaryContainer');
-        summaryContainer.innerHTML = summaryHtml;
-    }
-
-    function onDeliveryZoneChange(selectEl) {
-        let selectedOpt = selectEl.options[selectEl.selectedIndex];
-        selectedZoneName = selectEl.value;
-        if (selectedZoneName === "") {
-            selectedDeliveryFee = Number(deliverySettings.defaultFee || 0);
-        } else {
-            selectedDeliveryFee = Number(selectedOpt.getAttribute('data-fee') || 0);
-        }
-        updateCartModalContent();
-        updateCartStateUI();
+        document.getElementById('cartModal').style.display = 'flex';
     }
 
     function closeCartModal() {
         document.getElementById('cartModal').style.display = 'none';
     }
 
+    function getCurrentLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    let lat = position.coords.latitude;
+                    let lng = position.coords.longitude;
+                    let mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
+                    document.getElementById('customerGpsLocation').value = mapsUrl;
+                    alert("تم تحديد موقعك الجغرافي (GPS) بنجاح! 📍");
+                },
+                (error) => {
+                    alert("تعذّر تحديد الموقع. يرجى التأكد من السماح للمتصفح بالوصول للموقع، أو إدخال العنوان يدوياً.");
+                }
+            );
+        } else {
+            alert("متصفحك لا يدعم تحديد الموقع الجغرافي.");
+        }
+    }
+
     async function submitOrder() {
         const name = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('customerPhone').value.trim();
-        const address = document.getElementById('customerAddress').value.trim();
+        const city = document.getElementById('customerCity').value.trim();
+        const street = document.getElementById('customerStreet').value.trim();
+        const building = document.getElementById('customerBuilding').value.trim();
+        const gpsUrl = document.getElementById('customerGpsLocation').value.trim();
+        const deliveryTime = document.getElementById('deliveryTimeSlot').value;
+        const notes = document.getElementById('customerNotes').value.trim();
 
-        if(!name || !phone || !address) {
-            alert("الرجاء إكمال بيانات التوصيل (الاسم، الهاتف، العنوان)");
+        if(!name || !phone || !city || !street) {
+            alert("الرجاء إكمال بيانات التوصيل الأساسية (الاسم، الهاتف، المدينة، والشارع)");
             return;
         }
 
         localStorage.setItem('aloroba_user_name', name);
         localStorage.setItem('aloroba_user_phone', phone);
-        localStorage.setItem('aloroba_user_address', address);
+        localStorage.setItem('aloroba_user_address', `${city} - ${street}`);
 
-        let subtotal = calculateCartSubtotal();
-        let deliveryFee = calculateDeliveryFee(subtotal);
-        let finalTotal = subtotal + deliveryFee;
+        let subtotal = 0;
+        cart.forEach(i => subtotal += (i.price * i.quantity));
+        let finalTotal = subtotal + FIXED_DELIVERY_FEE;
+
+        const fullAddress = `${city} - شارع ${street} - ${building || 'بدون تفاصيل إضافية'}`;
 
         const newOrder = {
             customerName: name,
             customerPhone: phone,
-            customerAddress: address,
+            customerCity: city,
+            customerStreet: street,
+            customerBuilding: building,
+            customerAddress: fullAddress,
+            customerGps: gpsUrl || 'لم يتم مشاركة موقع GPS',
+            deliveryTime: deliveryTime,
+            notes: notes || 'لا توجد ملاحظات',
             items: cart.map(i => ({ 
                 id: i.id || '', 
                 name: i.name || '', 
@@ -935,8 +891,7 @@
                 quantity: Number(i.quantity) || 1 
             })),
             subtotal: Number(subtotal) || 0,
-            deliveryFee: Number(deliveryFee) || 0,
-            deliveryZone: selectedZoneName || 'افتراضي',
+            deliveryFee: FIXED_DELIVERY_FEE,
             total: Number(finalTotal) || 0,
             status: "جديد",
             timestamp: new Date().toISOString()
@@ -944,14 +899,14 @@
 
         try {
             await window.addDoc(window.collection(window.db, "orders"), newOrder);
-            alert("تم إرسال طلبك بنجاح! سيتم التواصل معك قريباً 🚀");
+            alert("تم إرسال طلبك بنجاح! سيتم تجهيزه وتوصيله في الوقت المحدد 🚀");
             cart = [];
             saveCartToLocalStorage();
             updateCartStateUI();
             products.forEach(p => updateProductCardDOM(p.id));
             closeCartModal();
         } catch(e) {
-            alert("خطأ تفصيلي: " + e.message);
+            alert("خطأ في إرسال الطلب: " + e.message);
         }
     }
 </script>
