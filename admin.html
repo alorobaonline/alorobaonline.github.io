@@ -289,7 +289,7 @@
         </div>
     </div>
 
-    <!-- 3. إعدادات التوصيل والمناطق الجغرافية (الميزة الجديدة المضافة) -->
+    <!-- 3. إعدادات التوصيل والمناطق الجغرافية -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('deliverySectionContent', this)">
             <span>🚚 إعدادات التوصيل والمناطق الجغرافية</span>
@@ -350,19 +350,20 @@
         </div>
     </div>
 
-    <!-- 5. إضافة وإدارة فئات الأقسام الجديدة -->
+    <!-- 5. إضافة وإدارة فئات الأقسام الجديدة (مع دعم الترتيب الرقمي وزر التعديل) -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('categoriesSectionContent', this)">
             <span>🗂️ إضافة وإدارة الفئات والأقسام الجديدة</span>
             <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="categoriesSectionContent">
-            <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">إضافة قسم جديد مع إيموجي:</div>
-            <div style="display: flex; gap: 5px; margin-bottom: 8px;">
-                <input type="text" id="newCatName" class="form-control" placeholder="اسم القسم الجديد" style="flex: 2;">
-                <input type="text" id="newCatIcon" class="form-control" placeholder="إيموجي 🏷️" style="flex: 1; text-align: center;">
+            <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">إضافة أو تعديل قسم (الترتيب برقم تصاعدي):</div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 5px; margin-bottom: 8px;">
+                <input type="text" id="newCatName" class="form-control" placeholder="اسم القسم الجديد">
+                <input type="text" id="newCatIcon" class="form-control" placeholder="إيموجي 🏷️" style="text-align: center;">
+                <input type="number" id="newCatOrder" class="form-control" placeholder="الترتيب (1,2..)" style="text-align: center;">
             </div>
-            <button class="btn-main" onclick="addNewCategory()">إضافة القسم ➕</button>
+            <button id="saveCategoryBtn" class="btn-main" onclick="saveOrUpdateCategory()">إضافة القسم ➕</button>
             
             <!-- زر تحكم On/Off لفئة "أخرى غير مصنفة" -->
             <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
@@ -394,7 +395,7 @@
     </div>
 </div>
 
-<!-- نافذة التعديل السريع المنبثقة لكل منتج (مع أزرار السابق، التالي، حفظ، إغلاق) -->
+<!-- نافذة التعديل السريع المنبثقة لكل منتج -->
 <div id="quickEditModal" class="quick-modal-overlay" style="display: none;">
   <div class="quick-modal-content">
     <div class="quick-modal-header">
@@ -403,14 +404,12 @@
     </div>
     
     <div class="quick-modal-body">
-      <!-- معاينة الصورة ومعرف المنتج -->
       <div class="quick-product-preview">
         <img id="modalProductImage" src="" alt="صورة المنتج" onclick="openModal(this)">
         <span id="modalProductId" class="quick-product-id"></span>
       </div>
 
       <form id="quickEditForm" onsubmit="event.preventDefault();">
-        <!-- البيانات الأساسية في صف واحد -->
         <div class="form-row-compact">
           <div class="form-group">
             <label>اسم المنتج</label>
@@ -430,17 +429,13 @@
           </div>
         </div>
 
-        <!-- الأقسام: كل 3 أقسام في صف واحد -->
         <div class="form-group" style="margin-top: 10px;">
             <label>أقسام الفئات</label>
-            <div class="categories-checkbox-container" id="modalCategoriesGrid">
-                <!-- تعبئة ديناميكية -->
-            </div>
+            <div class="categories-checkbox-container" id="modalCategoriesGrid"></div>
         </div>
       </form>
     </div>
 
-    <!-- أزرار التنقل السريع: السابق، التالي، حفظ، إغلاق -->
     <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; gap: 4px; flex-wrap: wrap;">
       <div style="display: flex; gap: 4px;">
         <button type="button" onclick="prevQuickProduct()" style="background: #3b82f6; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">⬅️ السابق</button>
@@ -454,7 +449,7 @@
   </div>
 </div>
 
-<!-- نافذة عرض الصورة بالحجم الكامل مع زر إغلاق (X) وتوافقية تامة فوق النوافذ المنبثقة -->
+<!-- نافذة عرض الصورة بالحجم الكامل -->
 <div id="imageModal" style="display: none; position: fixed; z-index: 20000; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); justify-content: center; align-items: center;">
     <div style="position: relative; max-width: 90%; max-height: 90%;">
         <span onclick="closeModal()" style="position: absolute; top: -12px; right: -12px; background-color: #ff4d4d; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.4); z-index: 20001;">&times;</span>
@@ -465,7 +460,7 @@
 <script>
     let products = [];
     let categories = [
-        { name: "الكل", icon: "🛍️" }
+        { name: "الكل", icon: "🛍️", sortOrder: -1 }
     ];
     let bannerSlides = [];
     let orders = [];
@@ -476,10 +471,10 @@
         enabled: true
     };
 
-    // متغيرات التعديل السريع المنبثق
     let currentProductIndex = 0;
     let flatProductsList = [];
     let isInitialOrdersLoad = true;
+    let editingCategoryOriginalName = null; // تتبع القسم قيد التعديل
 
     window.addEventListener('firebase-ready', async function() {
         checkNotificationPermissionUI();
@@ -506,7 +501,6 @@
         }
     }
 
-    // نظام التنبيه الصوتي عبر Web Audio API
     function playAlertSound() {
         try {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -524,7 +518,6 @@
         }
     }
 
-    // الاستماع الفوري للطلبات الجديدة باستخدام onSnapshot
     function initRealtimeOrdersListener() {
         window.onSnapshot(window.collection(window.db, "orders"), (snapshot) => {
             if (isInitialOrdersLoad) {
@@ -570,13 +563,15 @@
 
             const catSnap = await window.getDocs(window.collection(window.db, "categories"));
             if(!catSnap.empty) {
-                categories = [{ name: "الكل", icon: "🛍️" }];
+                categories = [{ name: "الكل", icon: "🛍️", sortOrder: -1 }];
                 catSnap.forEach(docSnap => {
                     let catData = docSnap.data();
                     if(catData.name && catData.name !== "الكل") {
                         categories.push(catData);
                     }
                 });
+                // ترتيب الأقسام تصاعدياً حسب رقم الترتيب
+                categories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
             }
 
             const ordSnap = await window.getDocs(window.collection(window.db, "orders"));
@@ -599,7 +594,6 @@
                 console.log("لم يتم العثور على إعدادات سابقة للمتجر");
             }
 
-            // تحميل إعدادات التوصيل والمناطق
             try {
                 const deliverySettingSnap = await window.getDoc(window.doc(window.db, "settings", "deliverySettings"));
                 if(deliverySettingSnap.exists()) {
@@ -643,7 +637,6 @@
         }
     }
 
-    // إدارة مناطق وقواعد التوصيل
     async function addDeliveryZone() {
         const name = document.getElementById('newZoneName').value.trim();
         const price = parseFloat(document.getElementById('newZonePrice').value);
@@ -998,7 +991,6 @@
         items.style.display = items.style.display === 'block' ? 'none' : 'block';
     }
 
-    // دوال نافذة التعديل السريع المنبثقة الفردية والتنقل بين المنتجات
     function openQuickEdit(productId) {
         flatProductsList = [...products];
         const index = flatProductsList.findIndex(p => p.id == productId);
@@ -1113,6 +1105,7 @@
         }
     }
 
+    // عرض قائمة الأقسام في لوحة التحكم مع رقم الترتيب وزر التعديل والحذف
     function renderAdminCategoriesList() {
         const container = document.getElementById('adminCategoriesList');
         if(!container) return;
@@ -1125,41 +1118,99 @@
             if(cat.name === "الكل") return;
             container.innerHTML += `
                 <div class="list-item">
-                    <div><b>${cat.icon}</b> ${cat.name}</div>
-                    <button class="btn-delete" onclick="deleteCategory('${cat.name}')">حذف 🗑️</button>
+                    <div><b>${cat.icon || '📦'}</b> ${cat.name} <span style="color: #6b7280; font-size: 0.6rem;">(ترتيب: ${cat.sortOrder || 0})</span></div>
+                    <div style="display: flex; gap: 4px;">
+                        <button class="btn-edit" style="padding: 2px 6px; font-size: 0.6rem;" onclick="editCategory('${cat.name}', '${cat.icon || ''}', ${cat.sortOrder || 0})">تعديل ✏️</button>
+                        <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteCategory('${cat.name}')">حذف 🗑️</button>
+                    </div>
                 </div>
             `;
         });
     }
 
-    async function addNewCategory() {
+    // دالة إضافة أو تحديث القسم مع دعم رقم الترتيب
+    async function saveOrUpdateCategory() {
         const name = document.getElementById('newCatName').value.trim();
         const icon = document.getElementById('newCatIcon').value.trim() || "📦";
+        const sortOrder = parseInt(document.getElementById('newCatOrder').value) || 0;
 
         if(!name) {
             alert("الرجاء إدخال اسم القسم");
             return;
         }
 
-        if(categories.some(c => c.name === name)) {
-            alert("هذا القسم موجود مسبقاً");
-            return;
-        }
+        if (editingCategoryOriginalName === null) {
+            // حالة إضافة قسم جديد
+            if(categories.some(c => c.name === name)) {
+                alert("هذا القسم موجود مسبقاً");
+                return;
+            }
+            const newCat = { name, icon, sortOrder };
+            try {
+                await window.setDoc(window.doc(window.db, "categories", name), newCat);
+                categories.push(newCat);
+                categories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+                renderAdminCategoriesList();
+                renderNewProdCategoriesCheckboxes();
+                resetCategoryForm();
+                alert("تم إضافة القسم بنجاح للسحابة! 🚀");
+            } catch(e) {
+                alert("خطأ في حفظ القسم");
+            }
+        } else {
+            // حالة تعديل قسم موجود
+            try {
+                if (editingCategoryOriginalName !== name) {
+                    if(categories.some(c => c.name === name)) {
+                        alert("اسم القسم الجديد موجود مسبقاً");
+                        return;
+                    }
+                    await window.deleteDoc(window.doc(window.db, "categories", editingCategoryOriginalName));
+                    categories = categories.filter(c => c.name !== editingCategoryOriginalName);
+                }
 
-        const newCat = { name, icon };
+                const updatedCat = { name, icon, sortOrder };
+                await window.setDoc(window.doc(window.db, "categories", name), updatedCat);
+                
+                categories = categories.filter(c => c.name !== editingCategoryOriginalName && c.name !== name);
+                categories.push(updatedCat);
+                categories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+                renderAdminCategoriesList();
+                renderNewProdCategoriesCheckboxes();
+                renderAdminGroupedProducts();
+                resetCategoryForm();
+                alert("تم تحديث القسم بنجاح! ✨");
+            } catch(e) {
+                console.error(e);
+                alert("خطأ أثناء تحديث القسم");
+            }
+        }
+    }
+
+    // تعبئة حقول التعديل عند الضغط على زر تعديل
+    function editCategory(name, icon, sortOrder) {
+        editingCategoryOriginalName = name;
+        document.getElementById('newCatName').value = name;
+        document.getElementById('newCatIcon').value = icon || '';
+        document.getElementById('newCatOrder').value = sortOrder !== undefined ? sortOrder : 0;
+
+        const btn = document.getElementById('saveCategoryBtn');
+        btn.innerText = 'حفظ التعديلات ✏️';
+        btn.style.backgroundColor = '#3b82f6';
         
-        try {
-            await window.setDoc(window.doc(window.db, "categories", name), newCat);
-            categories.push(newCat);
-            renderAdminCategoriesList();
-            renderNewProdCategoriesCheckboxes();
+        document.getElementById('categoriesSectionContent').style.display = 'block';
+    }
 
-            document.getElementById('newCatName').value = '';
-            document.getElementById('newCatIcon').value = '';
-            alert("تم إضافة القسم بنجاح للسحابة! 🚀");
-        } catch(e) {
-            alert("خطأ في حفظ القسم");
-        }
+    function resetCategoryForm() {
+        editingCategoryOriginalName = null;
+        document.getElementById('newCatName').value = '';
+        document.getElementById('newCatIcon').value = '';
+        document.getElementById('newCatOrder').value = '';
+
+        const btn = document.getElementById('saveCategoryBtn');
+        btn.innerText = 'إضافة القسم ➕';
+        btn.style.backgroundColor = '';
     }
 
     async function deleteCategory(catName) {
