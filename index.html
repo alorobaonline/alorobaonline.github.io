@@ -117,6 +117,17 @@
         .profile-tabs { display: flex; gap: 5px; margin-bottom: 12px; background: #f1f5f9; padding: 4px; border-radius: 8px; }
         .profile-tab { flex: 1; text-align: center; padding: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; border-radius: 6px; color: #64748b; }
         .profile-tab.active { background: white; color: var(--primary-green); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+        /* تأثير حركة رقص وتذبذب الشعار لشاشة الترحيب */
+        @keyframes logoDance {
+            0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+            25% { transform: translateY(-10px) rotate(-3deg) scale(1.05); }
+            50% { transform: translateY(0) rotate(0deg) scale(1); }
+            75% { transform: translateY(-6px) rotate(3deg) scale(1.03); }
+        }
+        .dancing-logo {
+            animation: logoDance 1.2s infinite ease-in-out;
+        }
     </style>
 
     <!-- Firebase SDKs -->
@@ -151,6 +162,14 @@
     </script>
 </head>
 <body>
+
+<!-- شاشة الترحيب المتحركة (Splash Screen) -->
+<div id="splashScreen" style="position: fixed; inset: 0; background: #ffffff; display: flex; align-items: center; justify-content: center; z-index: 9999; max-width: 480px; margin: 0 auto; transition: opacity 0.5s ease;">
+    <div style="background: white; padding: 30px; border-radius: 30px; text-align: center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/3081/3081840.png" class="dancing-logo" style="width: 150px; height: 150px; object-fit: contain; border-radius: 20px;" alt="شعار العروبة">
+        <div style="font-size: 0.85rem; font-weight: bold; color: #1b4d2e; margin-top: 15px;">العروبة أونلاين - جاري تجهيز السوبر ماركت... 🛒</div>
+    </div>
+</div>
 
 <div class="store-container">
     <!-- الهيدر -->
@@ -269,6 +288,17 @@
     let cart = [];
     let currentCategory = "الكل";
 
+    // دالة إخفاء شاشة الترحيب بسلاسة
+    function hideSplashScreen() {
+        const splash = document.getElementById('splashScreen');
+        if (splash && splash.style.display !== 'none') {
+            splash.style.opacity = '0';
+            setTimeout(() => {
+                splash.style.display = 'none';
+            }, 500);
+        }
+    }
+
     // دالة محسنة ومضمونة لفرز وترتيب المنتجات تصاعدياً حسب رقم الظهور مع معالجة كافة الاحتمالات
     function sortProducts() {
         products.sort((a, b) => {
@@ -309,6 +339,7 @@
             renderCategoriesScroll();
             requestAnimationFrame(() => {
                 renderMainStoreContent();
+                hideSplashScreen(); // إخفاء شاشة الترحيب عند توفر البيانات المحلية فوراً
             });
         }
     }
@@ -328,14 +359,6 @@
         loadUserProfileData();
         loadCartFromLocalStorage();
         loadCachedData(); // رسم فوري لحظي
-
-        if (products.length === 0) {
-            document.getElementById('storeMainContent').innerHTML = `
-                <div style="text-align: center; color: var(--primary-green); font-size: 0.85rem; padding: 40px; font-weight: bold;">
-                    ⚡ جاري فتح المتجر...
-                </div>
-            `;
-        }
 
         await loadStaticSettingsFromCloud();
         initRealtimeListeners(); 
@@ -367,6 +390,7 @@
             localStorage.setItem('aloroba_cached_products', JSON.stringify(products));
             requestAnimationFrame(() => {
                 renderMainStoreContent();
+                hideSplashScreen(); // إخفاء شاشة الترحيب بمجرد تدفق بيانات المنتجات من السحابة
             });
             updateCartStateUI();
         });
@@ -385,6 +409,7 @@
             renderCategoriesScroll();
             requestAnimationFrame(() => {
                 renderMainStoreContent();
+                hideSplashScreen(); // إخفاء شاشة الترحيب عند تدفق التصنيفات
             });
         });
     }
