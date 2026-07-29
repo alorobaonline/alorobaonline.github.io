@@ -53,7 +53,7 @@
         }
         .products-horizontal-scroll::-webkit-scrollbar { display: none; }
 
-        /* بطاقة المنتج (تصميم مسطح ونظيف بدون ظلال معقدة) */
+        /* بطاقة المنتج */
         .product-card { 
             min-width: 145px; 
             max-width: 145px; 
@@ -266,8 +266,9 @@
             <h3 style="font-size: 0.9rem; color: var(--primary-green);">🛒 سلة المشتريات</h3>
             <button onclick="closeCartModal()" style="background:none; border:none; font-size: 1rem; cursor:pointer;">✕</button>
         </div>
-        <div id="cartItemsList" style="max-height: 180px; overflow-y: auto; margin-bottom: 10px;"></div>
-        <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+        <div id="cartItemsList" style="max-height: 150px; overflow-y: auto; margin-bottom: 6px;"></div>
+        <div id="cartSummaryContainer"></div>
+        <hr style="border:0; border-top:1px solid #eee; margin:8px 0;">
         <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">معلومات التوصيل: (تعبئة تلقائية من حسابك)</div>
         <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم">
         <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف">
@@ -282,6 +283,12 @@
     let bannerSlides = [{ tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "logo.png" }];
     let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
     let cart = [];
+    
+    // إعدادات التوصيل والمناطق الجغرافية القادمة من فايربيس
+    let deliverySettings = { enabled: false, defaultFee: 0, freeThreshold: 0 };
+    let deliveryZones = [];
+    let selectedDeliveryFee = 0;
+    let selectedZoneName = "";
     
     let initialHash = decodeURIComponent(window.location.hash.replace('#', ''));
     let currentCategory = initialHash ? initialHash : "الكل";
@@ -362,14 +369,19 @@
 
     async function loadStaticSettingsFromCloud() {
         try {
-            const [layoutDoc, bannerDoc] = await Promise.all([
+            const [layoutDoc, bannerDoc, deliveryDoc] = await Promise.all([
                 window.getDoc(window.doc(window.db, "settings", "layout")),
-                window.getDoc(window.doc(window.db, "settings", "banner"))
+                window.getDoc(window.doc(window.db, "settings", "banner")),
+                window.getDoc(window.doc(window.db, "settings", "deliverySettings"))
             ]);
 
             if(layoutDoc.exists()) layoutData = layoutDoc.data();
             if(bannerDoc.exists() && bannerDoc.data().slides) {
                 bannerSlides = bannerDoc.data().slides;
+            }
+            if(deliveryDoc.exists()) {
+                deliverySettings = deliveryDoc.data();
+                selectedDeliveryFee = Number(deliverySettings.defaultFee || 0);
             }
             renderBanner();
         } catch(e) {}
@@ -406,6 +418,31 @@
                 renderMainStoreContent();
                 hideSplashScreen(); 
             });
+        });
+
+        // الاستماع الفوري لتحديثات مناطق التوصيل من لوحة التحكم
+        window.onSnapshot(window.collection(window.db, "deliveryZones"), (zoneSnap) => {
+            deliveryZones = [];
+            zoneSnap.forEach(docSnap => {
+                deliveryZones.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            if(document.getElementById('cartModal').style.display === 'flex') {
+                updateCartModalContent();
+            }
+        });
+
+        // الاستماع الفوري لإعدادات التوصيل العامة
+        window.onSnapshot(window.doc(window.db, "settings", "deliverySettings"), (docSnap) => {
+            if(docSnap.exists()) {
+                deliverySettings = docSnap.data();
+                if(selectedZoneName === "") {
+                    selectedDeliveryFee = Number(deliverySettings.defaultFee || 0);
+                }
+                updateCartStateUI();
+                if(document.getElementById('cartModal').style.display === 'flex') {
+                    updateCartModalContent();
+                }
+            }
         });
     }
 
@@ -740,13 +777,36 @@
         });
     }
 
+    // حسابات السلة والتوصيل
+    function calculateCartSubtotal() {
+        let subtotal = 0;
+        cart.forEach(item => {
+            subtotal += item.price * item.quantity;
+        });
+        return subtotal;
+    }
+
+    function calculateDeliveryFee(subtotal) {
+        if (!deliverySettings.enabled) return 0;
+        let freeThreshold = Number(deliverySettings.freeThreshold || 0);
+        if (freeThreshold > 0 && subtotal >= freeThreshold) {
+            return 0;
+        }
+        if (selectedDeliveryFee !== null && selectedDeliveryFee !== undefined && !isNaN(selectedDeliveryFee)) {
+            return Number(selectedDeliveryFee);
+        }
+        return Number(deliverySettings.defaultFee || 0);
+    }
+
     function updateCartStateUI() {
         let totalCount = 0;
-        let totalPrice = 0;
         cart.forEach(item => {
             totalCount += item.quantity;
-            totalPrice += item.price * item.quantity;
         });
+        let subtotal = calculateCartSubtotal();
+        let deliveryFee = calculateDeliveryFee(subtotal);
+        let totalPrice = subtotal + deliveryFee;
+
         document.getElementById('cartTotalText').innerText = totalPrice.toFixed(2) + " ₪";
         document.getElementById('cartCountBadge').innerText = totalCount;
     }
@@ -757,8 +817,15 @@
             return;
         }
         loadUserProfileData();
+        updateCartModalContent();
+        document.getElementById('cartModal').style.display = 'flex';
+    }
+
+    function updateCartModalContent() {
         let listContainer = document.getElementById('cartItemsList');
         listContainer.innerHTML = '';
+        
+        let subtotal = calculateCartSubtotal();
         cart.forEach((item) => {
             let itemTotal = item.price * item.quantity;
             listContainer.innerHTML += `
@@ -768,7 +835,71 @@
                 </div>
             `;
         });
-        document.getElementById('cartModal').style.display = 'flex';
+
+        let deliverySectionHtml = '';
+        if (deliverySettings.enabled) {
+            let currentFee = calculateDeliveryFee(subtotal);
+            let freeThreshold = Number(deliverySettings.freeThreshold || 0);
+            let freeNotice = '';
+            
+            if (freeThreshold > 0) {
+                if (subtotal >= freeThreshold) {
+                    freeNotice = `<div style="color: var(--accent-green); font-size: 0.7rem; font-weight: bold; margin-top: 4px;">🎉 مبروك! لقد حصلت على توصيل مجاني (الحد الأدنى للتوصيل المجاني ${freeThreshold} ₪)</div>`;
+                } else {
+                    let diff = freeThreshold - subtotal;
+                    freeNotice = `<div style="color: #d97706; font-size: 0.7rem; margin-top: 4px;">أضف منتجات بقيمة ${diff.toFixed(2)} ₪ أخرى لتحصل على توصيل مجاني!</div>`;
+                }
+            }
+
+            let zonesOptions = `<option value="">اختر منطقة التوصيل (الافتراضي: ${deliverySettings.defaultFee || 0} ₪)</option>`;
+            deliveryZones.forEach(z => {
+                let selected = selectedZoneName === z.name ? 'selected' : '';
+                zonesOptions += `<option value="${z.name}" data-fee="${z.fee}" ${selected}>${z.name} (${z.fee} ₪)</option>`;
+            });
+
+            deliverySectionHtml = `
+                <div style="background: #f1f5f9; padding: 8px; border-radius: 8px; margin-bottom: 8px; font-size: 0.75rem;">
+                    <div style="font-weight: bold; margin-bottom: 4px; color: var(--primary-green);">🚗 تفاصيل التوصيل:</div>
+                    ${deliveryZones.length > 0 ? `
+                        <label style="font-size: 0.68rem; font-weight: bold; display: block; margin-bottom: 2px;">منطقة التوصيل:</label>
+                        <select id="deliveryZoneSelect" class="form-control" onchange="onDeliveryZoneChange(this)" style="margin-bottom: 4px;">
+                            ${zonesOptions}
+                        </select>
+                    ` : ''}
+                    <div style="display: flex; justify-content: space-between; margin-top: 4px; font-weight: bold;">
+                        <span>رسوم التوصيل:</span>
+                        <span>${currentFee.toFixed(2)} ₪</span>
+                    </div>
+                    ${freeNotice}
+                </div>
+            `;
+        }
+
+        let deliveryFee = calculateDeliveryFee(subtotal);
+        let finalTotal = subtotal + deliveryFee;
+
+        let summaryHtml = `
+            ${deliverySectionHtml}
+            <div style="display: flex; justify-content: space-between; font-size: 0.82rem; font-weight: bold; margin-bottom: 6px; padding-top: 4px; border-top: 1px dashed #cbd5e1;">
+                <span>المجموع الكلي (مع التوصيل):</span>
+                <span style="color: var(--primary-green);">${finalTotal.toFixed(2)} ₪</span>
+            </div>
+        `;
+
+        let summaryContainer = document.getElementById('cartSummaryContainer');
+        summaryContainer.innerHTML = summaryHtml;
+    }
+
+    function onDeliveryZoneChange(selectEl) {
+        let selectedOpt = selectEl.options[selectEl.selectedIndex];
+        selectedZoneName = selectEl.value;
+        if (selectedZoneName === "") {
+            selectedDeliveryFee = Number(deliverySettings.defaultFee || 0);
+        } else {
+            selectedDeliveryFee = Number(selectedOpt.getAttribute('data-fee') || 0);
+        }
+        updateCartModalContent();
+        updateCartStateUI();
     }
 
     function closeCartModal() {
@@ -789,8 +920,9 @@
         localStorage.setItem('aloroba_user_phone', phone);
         localStorage.setItem('aloroba_user_address', address);
 
-        let total = 0;
-        cart.forEach(i => total += (i.price * i.quantity));
+        let subtotal = calculateCartSubtotal();
+        let deliveryFee = calculateDeliveryFee(subtotal);
+        let finalTotal = subtotal + deliveryFee;
 
         const newOrder = {
             customerName: name,
@@ -802,7 +934,10 @@
                 price: Number(i.price) || 0, 
                 quantity: Number(i.quantity) || 1 
             })),
-            total: Number(total) || 0,
+            subtotal: Number(subtotal) || 0,
+            deliveryFee: Number(deliveryFee) || 0,
+            deliveryZone: selectedZoneName || 'افتراضي',
+            total: Number(finalTotal) || 0,
             status: "جديد",
             timestamp: new Date().toISOString()
         };
