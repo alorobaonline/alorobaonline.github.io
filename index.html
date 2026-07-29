@@ -269,12 +269,24 @@
     let cart = [];
     let currentCategory = "الكل";
 
-    // دالة لفرز وترتيب المنتجات تصاعدياً حسب رقم الظهور
+    // دالة محسنة ومضمونة لفرز وترتيب المنتجات تصاعدياً حسب رقم الظهور مع معالجة كافة الاحتمالات
     function sortProducts() {
         products.sort((a, b) => {
-            let orderA = (a.displayOrder !== undefined && a.displayOrder !== "") ? Number(a.displayOrder) : 9999;
-            let orderB = (b.displayOrder !== undefined && b.displayOrder !== "") ? Number(b.displayOrder) : 9999;
-            return orderA - orderB;
+            let valA = (a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "") ? a.displayOrder : 
+                       ((a.order !== undefined && a.order !== null && a.order !== "") ? a.order : 
+                       ((a.sortOrder !== undefined && a.sortOrder !== null && a.sortOrder !== "") ? a.sortOrder : 9999));
+            
+            let valB = (b.displayOrder !== undefined && b.displayOrder !== null && b.displayOrder !== "") ? b.displayOrder : 
+                       ((b.order !== undefined && b.order !== null && b.order !== "") ? b.order : 
+                       ((b.sortOrder !== undefined && b.sortOrder !== null && b.sortOrder !== "") ? b.sortOrder : 9999));
+
+            let numA = !isNaN(Number(valA)) ? Number(valA) : 9999;
+            let numB = !isNaN(Number(valB)) ? Number(valB) : 9999;
+
+            if (numA !== numB) {
+                return numA - numB;
+            }
+            return (a.name || "").localeCompare(b.name || "");
         });
     }
 
@@ -351,7 +363,7 @@
             prodSnap.forEach(docSnap => {
                 products.push({ id: docSnap.id, ...docSnap.data() });
             });
-            sortProducts(); // ترتيب المنتجات الواردة من قاعدة البيانات حسب رقم الظهور
+            sortProducts(); // ترتيب المنتجات الواردة من قاعدة البيانات حسب رقم الظهور بدقة
             localStorage.setItem('aloroba_cached_products', JSON.stringify(products));
             requestAnimationFrame(() => {
                 renderMainStoreContent();
