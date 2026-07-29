@@ -97,7 +97,6 @@
 
         .banner-slide-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
 
-        /* تصميم زر التحكم On/Off */
         .switch { position: relative; display: inline-block; width: 46px; height: 24px; flex-shrink: 0; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .3s; border-radius: 24px; }
@@ -105,7 +104,6 @@
         input:checked + .slider { background-color: var(--primary-green); }
         input:checked + .slider:before { transform: translateX(22px); }
 
-        /* تنسيقات نافذة التعديل السريع المنبثقة */
         .quick-modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center;
@@ -183,10 +181,15 @@
         <button onclick="askNotificationPermission()" style="background: #2563eb; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.7rem;">تفعيل</button>
     </div>
 
-    <!-- زر الانتقال السريع لشاشة المطبخ والطلبات الواردة -->
-    <a href="kitchen.html" target="_blank" style="display: block; text-align: center; background: var(--accent-green); color: white; padding: 10px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 0.85rem; margin-bottom: 12px; box-shadow: var(--shadow-card);">
-        🍳 فتح شاشة المطبخ والطلبات الواردة (مباشر)
-    </a>
+    <!-- أزرار الانتقال السريع لشاشة المطبخ والسائق -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+        <a href="kitchen.html" target="_blank" style="display: block; text-align: center; background: var(--accent-green); color: white; padding: 10px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 0.8rem; box-shadow: var(--shadow-card);">
+            🍳 شاشة المطبخ
+        </a>
+        <a href="driver.html" target="_blank" style="display: block; text-align: center; background: #2563eb; color: white; padding: 10px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 0.8rem; box-shadow: var(--shadow-card);">
+            🏍️ شاشة السائق
+        </a>
+    </div>
 
     <!-- ملخص المبيعات -->
     <div class="sales-summary-box">
@@ -349,7 +352,7 @@
         </div>
     </div>
 
-    <!-- 5. إضافة وإدارة فئات الأقسام الجديدة (مع دعم الترتيب الرقمي وزر التعديل) -->
+    <!-- 5. إضافة وإدارة فئات الأقسام الجديدة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('categoriesSectionContent', this)">
             <span>🗂️ إضافة وإدارة الفئات والأقسام الجديدة</span>
@@ -364,7 +367,6 @@
             </div>
             <button id="saveCategoryBtn" class="btn-main" onclick="saveOrUpdateCategory()">إضافة القسم ➕</button>
             
-            <!-- زر تحكم On/Off لفئة "أخرى غير مصنفة" -->
             <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <div style="font-size: 0.8rem; font-weight: 900; color: var(--primary-green);">📦 فئة "أخرى غير مصنفة"</div>
@@ -405,16 +407,13 @@
     <div class="quick-modal-body">
       <div class="quick-product-preview">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <!-- النقر على الصورة يكبرها الآن -->
           <img id="modalProductImage" src="" alt="صورة المنتج" style="width: 45px; height: 45px; object-fit: contain; border-radius: 6px; background: white; border: 1px solid #ddd; padding: 2px; cursor: pointer;" onclick="openModal(this)" title="اضغط لتكبير الصورة">
           
           <div style="display: flex; flex-direction: column; gap: 3px;">
             <span id="modalProductId" class="quick-product-id"></span>
-            <!-- زر منفصل لتغيير الصورة -->
             <button type="button" onclick="document.getElementById('modalImageFileInput').click();" style="background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 3px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; cursor: pointer;">📁 تغيير الصورة</button>
           </div>
         </div>
-        <!-- حقل رفع الملف المخفي لتغيير الصورة -->
         <input type="file" id="modalImageFileInput" accept="image/*" style="display: none;" onchange="handleModalImageChange(event)">
       </div>
 
@@ -1416,12 +1415,14 @@
         const archiveContainer = document.getElementById('adminArchiveList');
         if(!container || !archiveContainer) return;
 
-        const activeOrders = orders.filter(o => o.status !== "مكتمل");
-        const archivedOrders = orders.filter(o => o.status === "مكتمل");
+        // الطلبات النشطة هي التي لم يتم تسليمها أو إكماتها
+        const activeOrders = orders.filter(o => o.status !== "مكتمل" && o.status !== "delivered");
+        // الأرشيف يشمل الطلبات المسلمة من السائق (delivered) أو المكتملة يدوياً (مكتمل)
+        const archivedOrders = orders.filter(o => o.status === "مكتمل" || o.status === "delivered");
 
         document.getElementById('ordersCountTitle').innerText = activeOrders.length;
         document.getElementById('archiveCountTitle').innerText = archivedOrders.length;
-        document.getElementById('newOrdersCountBadge').innerText = activeOrders.filter(o => !o.status || o.status === "جديد").length;
+        document.getElementById('newOrdersCountBadge').innerText = activeOrders.filter(o => !o.status || o.status === "جديد" || o.status === "new").length;
 
         if(activeOrders.length === 0) {
             container.innerHTML = '<p style="color: #666; text-align: center; font-size: 0.75rem;">لا توجد طلبات واردة حالياً.</p>';
@@ -1434,20 +1435,25 @@
                         itemsStr += `▪️ ${it.name} (${it.price} ₪)<br>`;
                     });
                 }
+                
+                let statusBadge = ord.status || 'جديد';
+                if(statusBadge === 'preparing') statusBadge = 'قيد التحضير (المطبخ)';
+                if(statusBadge === 'ready') statusBadge = 'جاهز للتوصيل (السائق)';
+
                 html += `
                     <div class="order-card">
                         <div class="order-header">
                             <span>طلب #${ord.id || (index+1)}</span>
-                            <span>${ord.status || 'جديد'}</span>
+                            <span style="color: #d97706;">${statusBadge}</span>
                         </div>
                         <div><b>الزبون:</b> ${ord.customerName}</div>
                         <div><b>الهاتف:</b> ${ord.customerPhone}</div>
-                        <div><b>العنوان:</b> ${ord.customerAddress}</div>
+                        <div><b>العنوان:</b> ${ord.customerAddress || ord.address || ''}</div>
                         <div style="margin: 4px 0;"><b>المنتجات:<br></b> ${itemsStr}</div>
                         <div style="font-weight: bold;">المجموع: ${ord.total || 0} ₪</div>
                         <div class="order-action-btns">
                             <a href="tel:${ord.customerPhone}" class="btn-call">📞 اتصال</a>
-                            <button class="btn-status" onclick="updateOrderStatus('${ord.id}', 'مكتمل')">تم ✓</button>
+                            <button class="btn-status" onclick="updateOrderStatus('${ord.id}', 'مكتمل')">تم ✓ (أرشيف)</button>
                             <button class="btn-delete" onclick="deleteOrder('${ord.id}')">حذف ✕</button>
                         </div>
                     </div>
@@ -1467,8 +1473,8 @@
                                 <th>#</th>
                                 <th>اسم الزبون</th>
                                 <th>رقم الهاتف</th>
-                                <th>العنوان (الحارة والبيت)</th>
-                                <th>السعر الإجمالي</th>
+                                <th>العنوان</th>
+                                <th>الإجمالي</th>
                                 <th>الإجراءات</th>
                             </tr>
                         </thead>
@@ -1481,7 +1487,7 @@
                         <td style="font-weight: bold;">${index + 1}</td>
                         <td>${ord.customerName || ''}</td>
                         <td>${ord.customerPhone || ''}</td>
-                        <td>${ord.customerAddress || ''}</td>
+                        <td>${ord.customerAddress || ord.address || ''}</td>
                         <td style="font-weight: bold; color: #16a34a;">${ord.total || 0} ₪</td>
                         <td>
                             <button class="btn-status" style="background: #3b82f6; padding: 2px 6px; font-size: 0.6rem;" onclick="updateOrderStatus('${ord.id}', 'جديد')">استعادة ↩</button>
@@ -1501,7 +1507,7 @@
     }
 
     function exportArchiveToExcel() {
-        const archivedOrders = orders.filter(o => o.status === "مكتمل");
+        const archivedOrders = orders.filter(o => o.status === "مكتمل" || o.status === "delivered");
         if(archivedOrders.length === 0) {
             alert("لا توجد طلبات في الأرشيف لتنزيلها.");
             return;
@@ -1511,7 +1517,7 @@
         archivedOrders.forEach(ord => {
             let name = `"${(ord.customerName || '').replace(/"/g, '""')}"`;
             let phone = `"${(ord.customerPhone || '').replace(/"/g, '""')}"`;
-            let address = `"${(ord.customerAddress || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`;
+            let address = `"${(ord.customerAddress || ord.address || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`;
             let total = ord.total || 0;
             csvContent += `${name},${phone},${address},${total}\n`;
         });
@@ -1555,7 +1561,7 @@
 
     function updateSalesSummary() {
         let total = 0;
-        orders.forEach(o => { if(o.status === "مكتمل" || !o.status) total += parseFloat(o.total || 0); });
+        orders.forEach(o => { if(o.status === "مكتمل" || o.status === "delivered") total += parseFloat(o.total || 0); });
         const elem = document.getElementById('totalSalesAmount');
         if(elem) elem.innerText = total.toFixed(2) + " ₪";
     }
