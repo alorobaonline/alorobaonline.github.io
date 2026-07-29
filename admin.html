@@ -173,38 +173,38 @@
 
 <div class="dashboard-container">
     <div class="dash-header">
-        <h1>⚙️ لوحة التحكم - العروبة أونلاين</h1>
-        <a href="index.html" class="back-btn">← المتجر الرئيسي</a>
+        <h1>⚙️ لوحة التحكم - العروبة أونلاين[cite: 3]</h1>
+        <a href="index.html" class="back-btn">← المتجر الرئيسي[cite: 3]</a>
     </div>
 
     <!-- شريط تفعيل إشعارات المتصفح والتنبيهات الفورية -->
     <div class="section-box" id="notifBanner" style="background: #eff6ff; border-color: #bfdbfe; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; margin-bottom: 12px;">
-        <span style="font-size: 0.75rem; color: #1e40af; font-weight: bold;">🔔 تفعيل التنبيهات الصوتية والفورية للطلبات الجديدة</span>
-        <button onclick="askNotificationPermission()" style="background: #2563eb; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.7rem;">تفعيل</button>
+        <span style="font-size: 0.75rem; color: #1e40af; font-weight: bold;">🔔 تفعيل التنبيهات الصوتية والفورية للطلبات الجديدة[cite: 3]</span>
+        <button onclick="askNotificationPermission()" style="background: #2563eb; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.7rem;">تفعيل[cite: 3]</button>
     </div>
 
     <!-- زر الانتقال السريع لشاشة المطبخ والطلبات الواردة -->
     <a href="kitchen.html" target="_blank" style="display: block; text-align: center; background: var(--accent-green); color: white; padding: 10px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 0.85rem; margin-bottom: 12px; box-shadow: var(--shadow-card);">
-        🍳 فتح شاشة المطبخ والطلبات الواردة (مباشر)
+        🍳 فتح شاشة المطبخ والطلبات الواردة (مباشر)[cite: 3]
     </a>
 
     <!-- ملخص المبيعات -->
     <div class="sales-summary-box">
         <div>
-            <div style="font-size: 0.65rem; opacity: 0.85;">إجمالي المبيعات المؤكدة</div>
-            <div id="totalSalesAmount" style="font-size: 1.1rem;">0.00 ₪</div>
+            <div style="font-size: 0.65rem; opacity: 0.85;">إجمالي المبيعات المؤكدة[cite: 3]</div>
+            <div id="totalSalesAmount" style="font-size: 1.1rem;">0.00 ₪[cite: 3]</div>
         </div>
         <div style="text-align: left;">
-            <div style="font-size: 0.65rem; opacity: 0.85;">الطلبات الجديدة</div>
-            <div id="newOrdersCountBadge" style="font-size: 1.1rem;">0</div>
+            <div style="font-size: 0.65rem; opacity: 0.85;">الطلبات الجديدة[cite: 3]</div>
+            <div id="newOrdersCountBadge" style="font-size: 1.1rem;">0[cite: 3]</div>
         </div>
     </div>
 
     <!-- 1. إدارة الطلبات الواردة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('ordersSectionContent', this)">
-            <span>📦 طلبات الزبائن الواردة (<span id="ordersCountTitle">0</span>)</span>
-            <span class="toggle-arrow">▼</span>
+            <span>📦 طلبات الزبائن الواردة (<span id="ordersCountTitle">0</span>)[cite: 3]</span>
+            <span class="toggle-arrow">▼[cite: 3]</span>
         </div>
         <div class="section-content" id="ordersSectionContent">
             <div id="adminOrdersList" style="margin-top: 8px; max-height: 300px; overflow-y: auto;"></div>
@@ -214,11 +214,11 @@
     <!-- أرشيف الطلبات المكتملة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('archiveSectionContent', this)">
-            <span>📂 أرشيف الطلبات المكتملة (<span id="archiveCountTitle">0</span>)</span>
-            <span class="toggle-arrow">▼</span>
+            <span>📂 أرشيف الطلبات المكتملة (<span id="archiveCountTitle">0</span>)[cite: 3]</span>
+            <span class="toggle-arrow">▼[cite: 3]</span>
         </div>
         <div class="section-content" id="archiveSectionContent">
-            <button class="btn-main" style="background: #059669; margin-bottom: 8px; font-size: 0.75rem;" onclick="exportArchiveToExcel()">📥 تنزيل الأرشيف كملف إكسل (CSV)</button>
+            <button class="btn-main" style="background: #059669; margin-bottom: 8px; font-size: 0.75rem;" onclick="exportArchiveToExcel()">📥 تنزيل الأرشيف كملف إكسل (CSV)[cite: 3]</button>
             <div id="adminArchiveList"></div>
         </div>
     </div>
@@ -226,99 +226,149 @@
     <!-- 2. إضافة منتج جديد -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('addProductSectionContent', this)">
-            <span>➕ إضافة منتج جديد</span>
-            <span class="toggle-arrow">▼</span>
+            <span>➕ إضافة منتج جديد[cite: 3]</span>
+            <span class="toggle-arrow">▼[cite: 3]</span>
         </div>
         <div class="section-content" id="addProductSectionContent">
             <div class="form-group">
-                <label>اسم المنتج</label>
+                <label>اسم المنتج[cite: 3]</label>
                 <input type="text" id="newProdName" class="form-control" placeholder="مثال: أرز بسمتي">
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                 <div class="form-group">
-                    <label>السعر الأساسي (₪)</label>
+                    <label>السعر الأساسي (₪)[cite: 3]</label>
                     <input type="number" id="newProdPrice" class="form-control" placeholder="0">
                 </div>
                 <div class="form-group">
-                    <label>سعر العرض (اختياري)</label>
+                    <label>سعر العرض (اختياري)[cite: 3]</label>
                     <input type="number" id="newProdSalePrice" class="form-control" placeholder="فارغ إذا لم يوجد">
                 </div>
             </div>
             <div class="form-group">
-                <label>الوزن / الحجم</label>
+                <label>الوزن / الحجم[cite: 3]</label>
                 <input type="text" id="newProdWeight" class="form-control" placeholder="مثال: 5 كجم أو حبة">
             </div>
             <div class="form-group">
-                <label>أقسام المنتج (اختر قسم واحد أو أكثر)</label>
+                <label>أقسام المنتج (اختر قسم واحد أو أكثر)[cite: 3]</label>
                 <div class="categories-checkbox-container" id="newProdCategoriesContainer"></div>
             </div>
             <div class="form-group">
-                <label>صورة المنتج (رابط أو رفع من الجهاز)</label>
+                <label>صورة المنتج (رابط أو رفع من الجهاز)[cite: 3]</label>
                 <div class="file-upload-box">
                     <input type="text" id="newProdImg" class="form-control" placeholder="رابط الصورة أو اختر ملف" style="flex: 2;">
                     <label class="camera-btn">
-                        📁 اختر صورة
+                        📁 اختر صورة[cite: 3]
                         <input type="file" accept="image/*" onchange="handleImageUpload(event, 'newProdImg', 'newProdPreview')">
                     </label>
                 </div>
                 <img id="newProdPreview" class="preview-thumb" src="" alt="معاينة" style="display: none; margin-top: 5px;" onclick="openModal(this)">
             </div>
-            <button class="btn-main" onclick="addNewProduct()">حفظ وإضافة المنتج 🚀</button>
+            <button class="btn-main" onclick="addNewProduct()">حفظ وإضافة المنتج 🚀[cite: 3]</button>
         </div>
     </div>
 
     <!-- 2.5 رفع صور المنتجات دفعة واحدة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('bulkImagesSectionContent', this)">
-            <span>📸 رفع صور المنتجات دفعة واحدة</span>
-            <span class="toggle-arrow">▼</span>
+            <span>📸 رفع صور المنتجات دفعة واحدة[cite: 3]</span>
+            <span class="toggle-arrow">▼[cite: 3]</span>
         </div>
         <div class="section-content" id="bulkImagesSectionContent">
             <div style="font-size: 0.7rem; color: #4b5563; margin-bottom: 8px; line-height: 1.4;">
-                اختر عدة صور دفعة واحدة من جهازك. سيتم إنشاء منتج جديد لكل صورة تلقائياً (بعنوان افتراضي وسعر 0)، ويمكنك تعديل بياناتها لاحقاً بسرعة باستخدام نافذة التعديل السريع!
+                اختر عدة صور دفعة واحدة من جهازك. سيتم إنشاء منتج جديد لكل صورة تلقائياً (بعنوان افتراضي وسعر 0)، ويمكنك تعديل بياناتها لاحقاً بسرعة باستخدام نافذة التعديل السريع![cite: 3]
             </div>
             <div class="form-group">
-                <label>اختر صور المنتجات (يمكنك اختيار صور متعددة معاً)</label>
+                <label>اختر صور المنتجات (يمكنك اختيار صور متعددة معاً)[cite: 3]</label>
                 <div class="file-upload-box">
                     <input type="file" id="bulkImagesFile" accept="image/*" multiple class="form-control" style="font-size: 0.7rem; padding: 5px;">
                 </div>
             </div>
-            <button class="btn-main" style="background: #16a34a;" onclick="processBulkImagesUpload()">رفع وإنشاء المنتجات دفعة واحدة 🚀</button>
+            <button class="btn-main" style="background: #16a34a;" onclick="processBulkImagesUpload()">رفع وإنشاء المنتجات دفعة واحدة 🚀[cite: 3]</button>
             <div id="bulkImagesProgress" style="font-size: 0.7rem; margin-top: 6px; font-weight: bold; color: var(--primary-green);"></div>
+        </div>
+    </div>
+
+    <!-- 3. إعدادات التوصيل والمناطق الجغرافية -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('deliverySectionContent', this)">
+            <span>🚚 إعدادات التوصيل والمناطق الجغرافية[cite: 3]</span>
+            <span class="toggle-arrow">▼[cite: 3]</span>
+        </div>
+        <div class="section-content" id="deliverySectionContent">
+            <div class="form-group">
+                <label>السعر الافتراضي للتوصيل (₪)[cite: 3]</label>
+                <input type="number" id="defaultDeliveryFee" class="form-control" placeholder="مثال: 20">
+            </div>
+            <div class="form-group">
+                <label>الحد الأدنى للتوصيل المجاني (₪)[cite: 3]</label>
+                <input type="number" id="freeDeliveryThreshold" class="form-control" placeholder="مثال: 150">
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: #4b5563;">تفعيل نظام التوصيل حسب المناطق[cite: 3]</div>
+                <label class="switch">
+                    <input type="checkbox" id="toggleDeliverySystem" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 10px 0;">
+
+            <div style="font-size: 0.75rem; font-weight: 800; color: var(--primary-green); margin-bottom: 6px;">تخصيص أسعار المناطق والأحياء[cite: 3]</div>
+            <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 6px; margin-bottom: 8px;">
+                <input type="text" id="newZoneName" class="form-control" placeholder="اسم المنطقة / الحي">
+                <input type="number" id="newZonePrice" class="form-control" placeholder="السعر (₪)">
+            </div>
+            <button class="btn-main" style="background: var(--accent-green); margin-bottom: 10px;" onclick="addDeliveryZone()">إضافة المنطقة ➕[cite: 3]</button>
+
+            <div class="archive-table-wrapper" style="margin-top: 8px;">
+                <table class="archive-table">
+                    <thead>
+                        <tr>
+                            <th>المنطقة / الحي[cite: 3]</th>
+                            <th>سعر التوصيل[cite: 3]</th>
+                            <th>الإجراءات[cite: 3]</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminZonesListBody">
+                        <!-- تعبئة ديناميكية للمناطق -->
+                    </tbody>
+                </table>
+            </div>
+            <button class="btn-main" style="margin-top: 10px;" onclick="saveDeliverySettings()">حفظ إعدادات التوصيل 💾[cite: 3]</button>
         </div>
     </div>
 
     <!-- 4. إدارة المنتجات وتعديلها -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('manageProductsSectionContent', this)">
-            <span>📋 إدارة وتعديل المنتجات (مقسمة حسب الأقسام)</span>
-            <span class="toggle-arrow">▼</span>
+            <span>📋 إدارة وتعديل المنتجات (مقسمة حسب الأقسام)[cite: 3]</span>
+            <span class="toggle-arrow">▼[cite: 3]</span>
         </div>
         <div class="section-content" id="manageProductsSectionContent">
             <div id="adminGroupedProductsContainer" style="margin-top: 8px;"></div>
         </div>
     </div>
 
-    <!-- 5. إضافة وإدارة فئات الأقسام الجديدة (مع دعم الترتيب الرقمي وزر التعديل) -->
+    <!-- 5. إضافة وإدارة فئات الأقسام الجديدة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('categoriesSectionContent', this)">
-            <span>🗂️ إضافة وإدارة الفئات والأقسام الجديدة</span>
-            <span class="toggle-arrow">▼</span>
+            <span>🗂️ إضافة وإدارة الفئات والأقسام الجديدة[cite: 3]</span>
+            <span class="toggle-arrow">▼[cite: 3]</span>
         </div>
         <div class="section-content" id="categoriesSectionContent">
-            <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">إضافة أو تعديل قسم (الترتيب برقم تصاعدي):</div>
+            <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">إضافة أو تعديل قسم (الترتيب برقم تصاعدي):[cite: 3]</div>
             <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 5px; margin-bottom: 8px;">
                 <input type="text" id="newCatName" class="form-control" placeholder="اسم القسم الجديد">
                 <input type="text" id="newCatIcon" class="form-control" placeholder="إيموجي 🏷️" style="text-align: center;">
                 <input type="number" id="newCatOrder" class="form-control" placeholder="الترتيب (1,2..)" style="text-align: center;">
             </div>
-            <button id="saveCategoryBtn" class="btn-main" onclick="saveOrUpdateCategory()">إضافة القسم ➕</button>
+            <button id="saveCategoryBtn" class="btn-main" onclick="saveOrUpdateCategory()">إضافة القسم ➕[cite: 3]</button>
             
             <!-- زر تحكم On/Off لفئة "أخرى غير مصنفة" -->
             <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <div style="font-size: 0.8rem; font-weight: 900; color: var(--primary-green);">📦 فئة "أخرى غير مصنفة"</div>
-                    <div style="font-size: 0.65rem; color: #6b7280; margin-top: 2px;">إظهار أو إخفاء هذه الفئة في المتجر</div>
+                    <div style="font-size: 0.8rem; font-weight: 900; color: var(--primary-green);">📦 فئة "أخرى غير مصنفة"[cite: 3]</div>
+                    <div style="font-size: 0.65rem; color: #6b7280; margin-top: 2px;">إظهار أو إخفاء هذه الفئة في المتجر[cite: 3]</div>
                 </div>
                 <label class="switch">
                     <input type="checkbox" id="toggleUncategorized" onchange="saveUncategorizedToggle()">
@@ -333,13 +383,13 @@
     <!-- 6. تخصيص شرائح البانر المتحركة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('bannerSectionContent', this)">
-            <span>🎨 تخصيص شرائح البانر المتحركة (Slider)</span>
-            <span class="toggle-arrow">▼</span>
+            <span>🎨 تخصيص شرائح البانر المتحركة (Slider)[cite: 3]</span>
+            <span class="toggle-arrow">▼[cite: 3]</span>
         </div>
         <div class="section-content" id="bannerSectionContent">
             <div id="bannerSlidesContainer"></div>
-            <button class="btn-main" style="background: #059669; margin-bottom: 8px;" onclick="addNewBannerSlide()">➕ إضافة شريحة بانر جديدة</button>
-            <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث شرائح البانر ✨</button>
+            <button class="btn-main" style="background: #059669; margin-bottom: 8px;" onclick="addNewBannerSlide()">➕ إضافة شريحة بانر جديدة[cite: 3]</button>
+            <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث شرائح البانر ✨[cite: 3]</button>
         </div>
     </div>
 </div>
@@ -348,48 +398,45 @@
 <div id="quickEditModal" class="quick-modal-overlay" style="display: none;">
   <div class="quick-modal-content">
     <div class="quick-modal-header">
-      <h3>⚡ تعديل سريع للمنتج</h3>
+      <h3>⚡ تعديل سريع للمنتج[cite: 3]</h3>
       <span class="quick-close-btn" onclick="closeQuickModal()">&times;</span>
     </div>
     
     <div class="quick-modal-body">
       <div class="quick-product-preview">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <!-- النقر على الصورة يكبرها الآن -->
           <img id="modalProductImage" src="" alt="صورة المنتج" style="width: 45px; height: 45px; object-fit: contain; border-radius: 6px; background: white; border: 1px solid #ddd; padding: 2px; cursor: pointer;" onclick="openModal(this)" title="اضغط لتكبير الصورة">
           
           <div style="display: flex; flex-direction: column; gap: 3px;">
             <span id="modalProductId" class="quick-product-id"></span>
-            <!-- زر منفصل لتغيير الصورة -->
-            <button type="button" onclick="document.getElementById('modalImageFileInput').click();" style="background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 3px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; cursor: pointer;">📁 تغيير الصورة</button>
+            <button type="button" onclick="document.getElementById('modalImageFileInput').click();" style="background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 3px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; cursor: pointer;">📁 تغيير الصورة[cite: 3]</button>
           </div>
         </div>
-        <!-- حقل رفع الملف المخفي لتغيير الصورة -->
         <input type="file" id="modalImageFileInput" accept="image/*" style="display: none;" onchange="handleModalImageChange(event)">
       </div>
 
       <form id="quickEditForm" onsubmit="event.preventDefault();">
         <div class="form-row-compact">
           <div class="form-group">
-            <label>اسم المنتج</label>
+            <label>اسم المنتج[cite: 3]</label>
             <input type="text" id="modalProductName" class="form-control" required>
           </div>
           <div class="form-group">
-            <label class="highlight-price">السعر (₪)</label>
+            <label class="highlight-price">السعر (₪)[cite: 3]</label>
             <input type="number" step="0.01" id="modalProductPrice" class="form-control" required>
           </div>
           <div class="form-group">
-            <label>سعر العرض</label>
+            <label>سعر العرض[cite: 3]</label>
             <input type="number" step="0.01" id="modalProductSalePrice" class="form-control">
           </div>
           <div class="form-group">
-            <label>الوزن / الحجم</label>
+            <label>الوزن / الحجم[cite: 3]</label>
             <input type="text" id="modalProductWeight" class="form-control">
           </div>
         </div>
 
         <div class="form-group" style="margin-top: 10px;">
-            <label>أقسام الفئات</label>
+            <label>أقسام الفئات[cite: 3]</label>
             <div class="categories-checkbox-container" id="modalCategoriesGrid"></div>
         </div>
       </form>
@@ -397,12 +444,12 @@
 
     <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; gap: 4px; flex-wrap: wrap;">
       <div style="display: flex; gap: 4px;">
-        <button type="button" onclick="prevQuickProduct()" style="background: #3b82f6; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">⬅️ السابق</button>
-        <button type="button" onclick="nextQuickProduct()" style="background: #3b82f6; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">التالي ➡️</button>
+        <button type="button" onclick="prevQuickProduct()" style="background: #3b82f6; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">⬅️ السابق[cite: 3]</button>
+        <button type="button" onclick="nextQuickProduct()" style="background: #3b82f6; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">التالي ➡️[cite: 3]</button>
       </div>
       <div style="display: flex; gap: 4px;">
-        <button type="button" onclick="saveCurrentQuick()" style="background: #16a34a; color: #fff; border: none; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">💾 حفظ</button>
-        <button type="button" onclick="closeQuickModal()" style="background: #ef4444; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">إغلاق ✕</button>
+        <button type="button" onclick="saveCurrentQuick()" style="background: #16a34a; color: #fff; border: none; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">💾 حفظ[cite: 3]</button>
+        <button type="button" onclick="closeQuickModal()" style="background: #ef4444; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">إغلاق ✕[cite: 3]</button>
       </div>
     </div>
   </div>
@@ -423,6 +470,12 @@
     ];
     let bannerSlides = [];
     let orders = [];
+    let deliveryZones = [];
+    let deliverySettings = {
+        defaultFee: 20,
+        freeThreshold: 150,
+        enabled: true
+    };
 
     let currentProductIndex = 0;
     let flatProductsList = [];
@@ -610,6 +663,26 @@
                 console.log("لم يتم العثور على إعدادات سابقة للمتجر");
             }
 
+            try {
+                const deliverySettingSnap = await window.getDoc(window.doc(window.db, "settings", "deliverySettings"));
+                if(deliverySettingSnap.exists()) {
+                    let dData = deliverySettingSnap.data();
+                    deliverySettings = { ...deliverySettings, ...dData };
+                    document.getElementById('defaultDeliveryFee').value = deliverySettings.defaultFee;
+                    document.getElementById('freeDeliveryThreshold').value = deliverySettings.freeThreshold;
+                    document.getElementById('toggleDeliverySystem').checked = deliverySettings.enabled !== false;
+                }
+
+                const zoneSnap = await window.getDocs(window.collection(window.db, "deliveryZones"));
+                deliveryZones = [];
+                zoneSnap.forEach(docSnap => {
+                    deliveryZones.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                renderAdminDeliveryZones();
+            } catch(e) {
+                console.log("خطأ في جلب إعدادات التوصيل:", e);
+            }
+
             renderNewProdCategoriesCheckboxes();
             renderAdminGroupedProducts();
             renderAdminCategoriesList();
@@ -630,6 +703,77 @@
             alert("تم تحديث حالة عرض فئة 'أخرى غير مصنفة' بنجاح! ✨");
         } catch(e) {
             console.error("خطأ في حفظ الإعداد:", e);
+        }
+    }
+
+    async function addDeliveryZone() {
+        const name = document.getElementById('newZoneName').value.trim();
+        const price = parseFloat(document.getElementById('newZonePrice').value);
+
+        if(!name || isNaN(price)) {
+            alert("الرجاء إدخال اسم المنطقة وسعر التوصيل بشكل صحيح.");
+            return;
+        }
+
+        const newZone = { name, price };
+        try {
+            const docRef = await window.addDoc(window.collection(window.db, "deliveryZones"), newZone);
+            newZone.id = docRef.id;
+            deliveryZones.push(newZone);
+            renderAdminDeliveryZones();
+            document.getElementById('newZoneName').value = '';
+            document.getElementById('newZonePrice').value = '';
+            alert("تم إضافة المنطقة بنجاح! ✨");
+        } catch(e) {
+            console.error(e);
+            alert("خطأ في حفظ المنطقة بالسحابة.");
+        }
+    }
+
+    async function deleteDeliveryZone(id) {
+        if(confirm("هل أنت متأكد من حذف هذه المنطقة؟")) {
+            try {
+                await window.deleteDoc(window.doc(window.db, "deliveryZones", id));
+                deliveryZones = deliveryZones.filter(z => z.id != id);
+                renderAdminDeliveryZones();
+            } catch(e) {
+                alert("خطأ أثناء الحذف.");
+            }
+        }
+    }
+
+    function renderAdminDeliveryZones() {
+        const tbody = document.getElementById('adminZonesListBody');
+        if(!tbody) return;
+        tbody.innerHTML = '';
+        if(deliveryZones.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #888; padding: 10px;">لا توجد مناطق مضافة حالياً</td></tr>`;
+            return;
+        }
+        deliveryZones.forEach(zone => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>${zone.name}</b></td>
+                    <td style="color: #16a34a; font-weight: bold;">${zone.price} ₪</td>
+                    <td>
+                        <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteDeliveryZone('${zone.id}')">حذف ✕</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    async function saveDeliverySettings() {
+        deliverySettings.defaultFee = parseFloat(document.getElementById('defaultDeliveryFee').value) || 0;
+        deliverySettings.freeThreshold = parseFloat(document.getElementById('freeDeliveryThreshold').value) || 0;
+        deliverySettings.enabled = document.getElementById('toggleDeliverySystem').checked;
+
+        try {
+            await window.setDoc(window.doc(window.db, "settings", "deliverySettings"), deliverySettings);
+            alert("تم حفظ إعدادات التوصيل في السحابة بنجاح! 🚀");
+        } catch(e) {
+            console.error(e);
+            alert("خطأ في حفظ الإعدادات.");
         }
     }
 
@@ -1442,3 +1586,4 @@
 </script>
 </body>
 </html>
+```[cite: 3]
