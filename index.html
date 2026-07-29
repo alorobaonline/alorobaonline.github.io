@@ -269,7 +269,7 @@
     let cart = [];
     let currentCategory = "الكل";
 
-    // استرجاع المنتجات المخزنة محلياً لتظهر فوراً دون أي انتظار
+    // تحميل فوري من الذاكرة المحلية دون أي انتظار
     function loadCachedData() {
         let cachedProds = localStorage.getItem('aloroba_cached_products');
         let cachedCats = localStorage.getItem('aloroba_cached_categories');
@@ -283,7 +283,10 @@
 
         if (products.length > 0) {
             renderCategoriesScroll();
-            renderMainStoreContent();
+            // استخدام requestAnimationFrame لجعل المتجر يرسم العناصر دون تجميد الشاشة إطلاقاً (سرعة كالبرق)
+            requestAnimationFrame(() => {
+                renderMainStoreContent();
+            });
         }
     }
 
@@ -301,12 +304,12 @@
     window.addEventListener('firebase-ready', async function() {
         loadUserProfileData();
         loadCartFromLocalStorage();
-        loadCachedData(); // عرض فوري من الذاكرة المحلية أولاً
+        loadCachedData(); // رسم فوري لحظي
 
         if (products.length === 0) {
             document.getElementById('storeMainContent').innerHTML = `
                 <div style="text-align: center; color: var(--primary-green); font-size: 0.85rem; padding: 40px; font-weight: bold;">
-                    ⏳ جاري تحميل المتجر...
+                    ⚡ جاري فتح المتجر...
                 </div>
             `;
         }
@@ -328,24 +331,22 @@
                 bannerSlides = bannerDoc.data().slides;
             }
             renderBanner();
-        } catch(e) {
-            console.error("خطأ في جلب الإعدادات: ", e);
-        }
+        } catch(e) {}
     }
 
     function initRealtimeListeners() {
-        // جلب المنتجات وتخزينها محلياً لتسريع الفتح المستقبلي
         window.onSnapshot(window.collection(window.db, "products"), (prodSnap) => {
             products = [];
             prodSnap.forEach(docSnap => {
                 products.push({ id: docSnap.id, ...docSnap.data() });
             });
             localStorage.setItem('aloroba_cached_products', JSON.stringify(products));
-            renderMainStoreContent();
+            requestAnimationFrame(() => {
+                renderMainStoreContent();
+            });
             updateCartStateUI();
         });
 
-        // جلب الأقسام
         window.onSnapshot(window.collection(window.db, "categories"), (catSnap) => {
             if(!catSnap.empty) {
                 categories = [{ name: "الكل", icon: "🛍️" }];
@@ -358,7 +359,9 @@
                 localStorage.setItem('aloroba_cached_categories', JSON.stringify(categories));
             }
             renderCategoriesScroll();
-            renderMainStoreContent();
+            requestAnimationFrame(() => {
+                renderMainStoreContent();
+            });
         });
     }
 
@@ -517,7 +520,7 @@
     function selectCategory(catName) {
         currentCategory = catName;
         renderCategoriesScroll();
-        renderMainStoreContent();
+        requestAnimationFrame(() => { renderMainStoreContent(); });
     }
 
     function productBelongsToCategory(p, catName) {
@@ -616,7 +619,6 @@
             <div class="product-card" data-product-id="${p.id}">
                 <div>
                     <div class="product-img-box" onclick='openImageModal("${p.img}", "${p.name}")'>
-                        <!-- إضافة loading="lazy" لتسريع عرض الصور تدريجياً وتحріك الصفحة بسلاسة -->
                         <img src="${p.img}" class="product-img" loading="lazy" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081840.png'">
                     </div>
                     <div class="product-name">${p.name}</div>
@@ -645,7 +647,7 @@
     }
 
     function filterProducts() {
-        renderMainStoreContent();
+        requestAnimationFrame(() => { renderMainStoreContent(); });
     }
 
     function increaseCartQty(prodId) {
