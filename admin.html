@@ -394,7 +394,7 @@
     </div>
 </div>
 
-<!-- نافذة التعديل السريع المنبثقة لكل منتج (مع ميزة تغيير الصورة مباشرة) -->
+<!-- نافذة التعديل السريع المنبثقة لكل منتج -->
 <div id="quickEditModal" class="quick-modal-overlay" style="display: none;">
   <div class="quick-modal-content">
     <div class="quick-modal-header">
@@ -405,12 +405,14 @@
     <div class="quick-modal-body">
       <div class="quick-product-preview">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <!-- حاوية الصورة مع زر تغيير الصورة مباشرة -->
-          <div style="position: relative; display: inline-block; cursor: pointer;" onclick="document.getElementById('modalImageFileInput').click();" title="اضغط لتغيير الصورة">
-            <img id="modalProductImage" src="" alt="صورة المنتج" style="width: 45px; height: 45px; object-fit: contain; border-radius: 6px; background: white; border: 1px solid #ddd; padding: 2px;">
-            <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: #fff; font-size: 9px; text-align: center; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;">تغيير</div>
+          <!-- النقر على الصورة يكبرها الآن -->
+          <img id="modalProductImage" src="" alt="صورة المنتج" style="width: 45px; height: 45px; object-fit: contain; border-radius: 6px; background: white; border: 1px solid #ddd; padding: 2px; cursor: pointer;" onclick="openModal(this)" title="اضغط لتكبير الصورة">
+          
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <span id="modalProductId" class="quick-product-id"></span>
+            <!-- زر منفصل لتغيير الصورة -->
+            <button type="button" onclick="document.getElementById('modalImageFileInput').click();" style="background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 3px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; cursor: pointer;">📁 تغيير الصورة</button>
           </div>
-          <span id="modalProductId" class="quick-product-id"></span>
         </div>
         <!-- حقل رفع الملف المخفي لتغيير الصورة -->
         <input type="file" id="modalImageFileInput" accept="image/*" style="display: none;" onchange="handleModalImageChange(event)">
@@ -482,7 +484,7 @@
     let flatProductsList = [];
     let isInitialOrdersLoad = true;
     let editingCategoryOriginalName = null;
-    let modalNewImageBase64 = null; // متغير لحفظ الصورة الجديدة مؤقتاً أثناء التعديل السريع
+    let modalNewImageBase64 = null;
     
     let openCategoryNames = new Set();
 
@@ -492,7 +494,6 @@
         initRealtimeOrdersListener();
     });
 
-    // دالة التعامل مع تغيير وتحديث الصورة داخل نافذة التعديل السريع
     function handleModalImageChange(event) {
         const file = event.target.files[0];
         if(!file) return;
@@ -1083,7 +1084,7 @@
     }
 
     function openQuickEdit(productId, categoryName) {
-        modalNewImageBase64 = null; // إعادة تعيين الصورة المؤقتة عند فتح نافذة جديدة
+        modalNewImageBase64 = null;
         let list = [];
         if (categoryName === 'أخرى غير مصنفة') {
             list = products.filter(p => {
