@@ -1122,12 +1122,37 @@
     }
 
     async function nextQuickProduct() {
+        const product = flatProductsList[currentProductIndex];
+        let wasUnclassified = !product.categories || product.categories.length === 0 || (product.categories.length === 1 && product.categories[0] === "عام");
+
         await collectAndSaveCurrentModalData();
-        if (currentProductIndex + 1 < flatProductsList.length) {
-            currentProductIndex++;
+
+        let selectedCats = [];
+        document.querySelectorAll('input[name="modalCatCheckbox"]:checked').forEach(cb => {
+            selectedCats.push(cb.value);
+        });
+        let isNowClassified = selectedCats.length > 0 && !selectedCats.includes("عام");
+
+        // إذا كان المنتج غير مصنف وتم تصنيفه، يتم إزالته من قائمة التنقل المؤقتة للمودال لكي لا يظهر عند الضغط على السابق
+        if (wasUnclassified && isNowClassified) {
+            flatProductsList.splice(currentProductIndex, 1);
+            if (currentProductIndex >= flatProductsList.length) {
+                currentProductIndex = Math.max(0, flatProductsList.length - 1);
+            }
+        } else {
+            if (currentProductIndex + 1 < flatProductsList.length) {
+                currentProductIndex++;
+            } else {
+                alert("هذا هو المنتج الأخير.");
+                return;
+            }
+        }
+
+        if (flatProductsList.length > 0) {
             renderQuickEditModalData(currentProductIndex);
         } else {
-            alert("هذا هو المنتج الأخير.");
+            closeQuickModal();
+            alert("تم الانتهاء من جميع المنتجات في هذه القائمة!");
         }
     }
 
