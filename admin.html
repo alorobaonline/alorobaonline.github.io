@@ -475,6 +475,9 @@
     let flatProductsList = [];
     let isInitialOrdersLoad = true;
     let editingCategoryOriginalName = null;
+    
+    // لتخزين أسماء الأقسام المفتوحة حتى لا تغلق تلقائياً عند التعديل
+    let openCategoryNames = new Set();
 
     window.addEventListener('firebase-ready', async function() {
         checkNotificationPermissionUI();
@@ -975,13 +978,17 @@
             // ترتيب المنتجات تصاعدياً حسب رقم الترتيب اليدوي (sortOrder)
             list.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
+            // الحفاظ على حالة القسم إن كان مفتوحاً مسبقاً
+            let isOpen = openCategoryNames.has(catName);
+            let displayStyle = isOpen ? 'block' : 'none';
+
             let groupHtml = `
                 <div class="category-group-box">
-                    <div class="category-group-title" onclick="toggleCategoryGroup(this)">
+                    <div class="category-group-title" onclick="toggleCategoryGroup(this, '${catName}')">
                         <span>🏷️ ${catName}</span>
                         <span class="category-toggle-badge">${list.length} منتج ▾</span>
                     </div>
-                    <div class="category-group-items" style="display: none; margin-top: 6px;">
+                    <div class="category-group-items" style="display: ${displayStyle}; margin-top: 6px;">
             `;
 
             list.forEach(p => {
@@ -1018,9 +1025,15 @@
         });
     }
 
-    function toggleCategoryGroup(headerElem) {
+    function toggleCategoryGroup(headerElem, catName) {
         const items = headerElem.nextElementSibling;
-        items.style.display = items.style.display === 'block' ? 'none' : 'block';
+        if(items.style.display === 'block') {
+            items.style.display = 'none';
+            openCategoryNames.delete(catName);
+        } else {
+            items.style.display = 'block';
+            openCategoryNames.add(catName);
+        }
     }
 
     function openQuickEdit(productId) {
