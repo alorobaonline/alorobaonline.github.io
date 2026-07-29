@@ -30,7 +30,7 @@
         .banner-card { background: linear-gradient(135deg, #1b4d2e, #3a7d44); color: white; border-radius: 14px; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
         .banner-text h2 { font-size: 0.95rem; font-weight: 900; margin-bottom: 4px; }
         .banner-text p { font-size: 0.75rem; opacity: 0.9; }
-        .banner-img { width: 50px; height: 50px; object-fit: contain; background: white; border-radius: 50%; padding: 5px; }
+        .banner-img { width: 60px; height: 60px; object-fit: contain; background: white; border-radius: 50%; padding: 3px; }
 
         /* الأقسام الدائرية السريعة */
         .categories-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 0 15px 10px 15px; scrollbar-width: none; }
@@ -163,10 +163,10 @@
 </head>
 <body>
 
-<!-- شاشة الترحيب المتحركة (Splash Screen) -->
+<!-- شاشة الترحيب المتحركة (Splash Screen) بالشعار الرسمي -->
 <div id="splashScreen" style="position: fixed; inset: 0; background: #ffffff; display: flex; align-items: center; justify-content: center; z-index: 9999; max-width: 480px; margin: 0 auto; transition: opacity 0.5s ease;">
     <div style="background: white; padding: 30px; border-radius: 30px; text-align: center;">
-        <img src="https://cdn-icons-png.flaticon.com/512/3081/3081840.png" class="dancing-logo" style="width: 150px; height: 150px; object-fit: contain; border-radius: 20px;" alt="شعار العروبة">
+        <img src="IMG-20260729-WA0001.jpg" class="dancing-logo" style="width: 160px; height: 160px; object-fit: contain; border-radius: 20px;" alt="شعار العروبة أونلاين">
         <div style="font-size: 0.85rem; font-weight: bold; color: #1b4d2e; margin-top: 15px;">العروبة أونلاين - جاري تجهيز السوبر ماركت... 🛒</div>
     </div>
 </div>
@@ -194,7 +194,7 @@
                 <h2 id="bannerTitle">أهلاً بك في متجرنا</h2>
                 <p>تسوّق أفضل المنتجات الطازجة</p>
             </div>
-            <img src="https://cdn-icons-png.flaticon.com/512/3081/3081840.png" class="banner-img" id="bannerImg">
+            <img src="IMG-20260729-WA0001.jpg" class="banner-img" id="bannerImg">
         </div>
     </div>
 
@@ -283,7 +283,7 @@
 <script>
     let products = [];
     let categories = [{ name: "الكل", icon: "🛍️" }];
-    let bannerSlides = [{ tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "https://cdn-icons-png.flaticon.com/512/3081/3081840.png" }];
+    let bannerSlides = [{ tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "IMG-20260729-WA0001.jpg" }];
     let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
     let cart = [];
     let currentCategory = "الكل";
@@ -328,7 +328,7 @@
         if (cachedProds) {
             try { 
                 products = JSON.parse(cachedProds); 
-                sortProducts(); // ترتيب المنتجات المحفوظة محلياً
+                sortProducts(); 
             } catch(e) {}
         }
         if (cachedCats) {
@@ -339,7 +339,7 @@
             renderCategoriesScroll();
             requestAnimationFrame(() => {
                 renderMainStoreContent();
-                hideSplashScreen(); // إخفاء شاشة الترحيب عند توفر البيانات المحلية فوراً
+                hideSplashScreen(); 
             });
         }
     }
@@ -358,7 +358,7 @@
     window.addEventListener('firebase-ready', async function() {
         loadUserProfileData();
         loadCartFromLocalStorage();
-        loadCachedData(); // رسم فوري لحظي
+        loadCachedData(); 
 
         await loadStaticSettingsFromCloud();
         initRealtimeListeners(); 
@@ -386,11 +386,11 @@
             prodSnap.forEach(docSnap => {
                 products.push({ id: docSnap.id, ...docSnap.data() });
             });
-            sortProducts(); // ترتيب المنتجات الواردة من قاعدة البيانات حسب رقم الظهور بدقة
+            sortProducts(); 
             localStorage.setItem('aloroba_cached_products', JSON.stringify(products));
             requestAnimationFrame(() => {
                 renderMainStoreContent();
-                hideSplashScreen(); // إخفاء شاشة الترحيب بمجرد تدفق بيانات المنتجات من السحابة
+                hideSplashScreen(); 
             });
             updateCartStateUI();
         });
@@ -409,7 +409,7 @@
             renderCategoriesScroll();
             requestAnimationFrame(() => {
                 renderMainStoreContent();
-                hideSplashScreen(); // إخفاء شاشة الترحيب عند تدفق التصنيفات
+                hideSplashScreen(); 
             });
         });
     }
@@ -668,7 +668,7 @@
             <div class="product-card" data-product-id="${p.id}">
                 <div>
                     <div class="product-img-box" onclick='openImageModal("${p.img}", "${p.name}")'>
-                        <img src="${p.img}" class="product-img" loading="lazy" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3081/3081840.png'">
+                        <img src="${p.img}" class="product-img" loading="lazy" onerror="this.src='IMG-20260729-WA0001.jpg'">
                     </div>
                     <div class="product-name">${p.name}</div>
                     <div class="product-weight">${p.weight || 'حبة'}</div>
