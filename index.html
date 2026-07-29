@@ -269,13 +269,25 @@
     let cart = [];
     let currentCategory = "الكل";
 
+    // دالة لفرز وترتيب المنتجات تصاعدياً حسب رقم الظهور
+    function sortProducts() {
+        products.sort((a, b) => {
+            let orderA = (a.displayOrder !== undefined && a.displayOrder !== "") ? Number(a.displayOrder) : 9999;
+            let orderB = (b.displayOrder !== undefined && b.displayOrder !== "") ? Number(b.displayOrder) : 9999;
+            return orderA - orderB;
+        });
+    }
+
     // تحميل فوري من الذاكرة المحلية دون أي انتظار
     function loadCachedData() {
         let cachedProds = localStorage.getItem('aloroba_cached_products');
         let cachedCats = localStorage.getItem('aloroba_cached_categories');
         
         if (cachedProds) {
-            try { products = JSON.parse(cachedProds); } catch(e) {}
+            try { 
+                products = JSON.parse(cachedProds); 
+                sortProducts(); // ترتيب المنتجات المحفوظة محلياً
+            } catch(e) {}
         }
         if (cachedCats) {
             try { categories = JSON.parse(cachedCats); } catch(e) {}
@@ -283,7 +295,6 @@
 
         if (products.length > 0) {
             renderCategoriesScroll();
-            // استخدام requestAnimationFrame لجعل المتجر يرسم العناصر دون تجميد الشاشة إطلاقاً (سرعة كالبرق)
             requestAnimationFrame(() => {
                 renderMainStoreContent();
             });
@@ -340,6 +351,7 @@
             prodSnap.forEach(docSnap => {
                 products.push({ id: docSnap.id, ...docSnap.data() });
             });
+            sortProducts(); // ترتيب المنتجات الواردة من قاعدة البيانات حسب رقم الظهور
             localStorage.setItem('aloroba_cached_products', JSON.stringify(products));
             requestAnimationFrame(() => {
                 renderMainStoreContent();
