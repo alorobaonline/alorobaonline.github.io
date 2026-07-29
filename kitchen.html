@@ -142,7 +142,6 @@
             let itemsHtml = "";
             if(ord.items && Array.isArray(ord.items)) {
                 ord.items.forEach((item, itemIdx) => {
-                    // جلب الصورة إما من بيانات الطلب أو مطابقة الاسم مع جدول المنتجات
                     let imgSrc = item.img;
                     if(!imgSrc || imgSrc === "") {
                         let foundProd = productsList.find(p => p.name === item.name);
