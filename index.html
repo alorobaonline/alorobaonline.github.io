@@ -632,25 +632,30 @@
     }
 
     function openProfileModal() {
+        document.body.style.overflow = 'hidden'; // تثبيت الشاشة الخلفية عن الحركة
         document.getElementById('profileModal').style.display = 'flex';
         loadUserProfileData();
     }
 
     function closeProfileModal() {
+        document.body.style.overflow = ''; // إعادة حركة الشاشة الخلفية
         document.getElementById('profileModal').style.display = 'none';
     }
 
     function openImageModal(imgUrl, title) {
+        document.body.style.overflow = 'hidden'; // تثبيت الشاشة الخلفية عن الحركة
         document.getElementById('zoomImageSrc').src = imgUrl || 'logo.png';
         document.getElementById('zoomImageTitle').innerText = title;
         document.getElementById('imageModal').style.display = 'flex';
     }
 
     function closeImageModal() {
+        document.body.style.overflow = ''; // إعادة حركة الشاشة الخلفية
         document.getElementById('imageModal').style.display = 'none';
     }
 
     function openMapModal() {
+        document.body.style.overflow = 'hidden'; // تثبيت الشاشة الخلفية عن الحركة
         document.getElementById('mapModal').style.display = 'flex';
         setTimeout(() => {
             if (!map) {
@@ -696,7 +701,6 @@
         });
     }
 
-    /* دالة احترافية لجلب موقع الزبون الحالي عبر GPS الجهاز وتحديث الخريطة فوراً */
     function panToCurrentLocation() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -720,11 +724,11 @@
     }
 
     function closeMapModal() {
+        document.body.style.overflow = ''; // إعادة حركة الشاشة الخلفية
         document.getElementById('mapModal').style.display = 'none';
     }
 
     function confirmMapLocation() {
-        // رابط توجيه مباشر للسائق (Turn-by-turn navigation) ليفتح خرائط جوجل مباشرة ويوجهه لباب الزبون بدقة
         let mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${selectedLat},${selectedLng}`;
         document.getElementById('customerGpsLocation').value = mapsUrl;
         document.getElementById('selectedLocationText').innerText = `✅ تم اعتماد إحداثيات موقعك بدقة عالية للسائق`;
@@ -1064,6 +1068,7 @@
             alert("السلة فارغة حالياً!");
             return;
         }
+        document.body.style.overflow = 'hidden'; // تثبيت الشاشة الخلفية عن الحركة
         loadUserProfileData();
         goToStep1();
         document.getElementById('cartModal').style.display = 'flex';
@@ -1187,6 +1192,7 @@
     }
 
     function closeCartModal() {
+        document.body.style.overflow = ''; // إعادة حركة الشاشة الخلفية
         document.getElementById('cartModal').style.display = 'none';
     }
 
