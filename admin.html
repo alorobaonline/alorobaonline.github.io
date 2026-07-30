@@ -139,7 +139,6 @@
         }
         .highlight-price { color: #16a34a; font-weight: bold; }
 
-        /* تنسيق دائرة التحميل (Spinner) للتصميم المسطح */
         .spinner {
             display: inline-block;
             width: 16px;
@@ -224,7 +223,7 @@
         </div>
     </div>
 
-    <!-- أرشيف الطلبات المكتملة (مفعل مع Lazy Loading & Caching) -->
+    <!-- أرشيف الطلبات المكتملة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('archiveSectionContent', this, 'archive')">
             <span>📂 أرشيف الطلبات المكتملة (<span id="archiveCountTitle">0</span>)</span>
@@ -236,7 +235,39 @@
         </div>
     </div>
 
-    <!-- 2. إضافة منتج جديد (بدون إجبارية الحقول) -->
+    <!-- إدارة عروض الباقات المخصصة (اشتري 3 بسعر 30₪) -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('bundleSectionContent', this)">
+            <span>📦 إدارة عروض الباقات (اشتري 3 بـ 30₪)</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="bundleSectionContent">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: #4b5563;">تفعيل عرض الباقات في المتجر</div>
+                <label class="switch">
+                    <input type="checkbox" id="toggleBundleOffer">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                <div class="form-group">
+                    <label>عدد القطع المطلوبة (X)</label>
+                    <input type="number" id="bundleRequiredQty" class="form-control" value="3">
+                </div>
+                <div class="form-group">
+                    <label>سعر الباقة الثابت (₪) (Y)</label>
+                    <input type="number" id="bundleFixedPrice" class="form-control" value="30">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>المنتجات المشمولة في العرض (اختر المنتجات المتاحة للباقة)</label>
+                <div class="categories-checkbox-container" id="bundleProductsContainer" style="grid-template-columns: 1fr; max-height: 200px; overflow-y: auto;"></div>
+            </div>
+            <button class="btn-main" style="background: var(--accent-green);" onclick="saveBundleSettings()">حفظ إعدادات الباقة 💾</button>
+        </div>
+    </div>
+
+    <!-- إضافة منتج جديد (بدون إجبارية الحقول) -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('addProductSectionContent', this)">
             <span>➕ إضافة منتج جديد</span>
@@ -280,7 +311,7 @@
         </div>
     </div>
 
-    <!-- 2.5 رفع صور المنتجات دفعة واحدة -->
+    <!-- رفع صور المنتجات دفعة واحدة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('bulkImagesSectionContent', this)">
             <span>📸 رفع صور المنتجات دفعة واحدة</span>
@@ -301,7 +332,7 @@
         </div>
     </div>
 
-    <!-- 3. إعدادات التوصيل والمناطق الجغرافية -->
+    <!-- إعدادات التوصيل والمناطق الجغرافية -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('deliverySectionContent', this)">
             <span>🚚 إعدادات التوصيل والمناطق الجغرافية</span>
@@ -342,16 +373,14 @@
                             <th>الإجراءات</th>
                         </tr>
                     </thead>
-                    <tbody id="adminZonesListBody">
-                        <!-- تعبئة ديناميكية للمناطق -->
-                    </tbody>
+                    <tbody id="adminZonesListBody"></tbody>
                 </table>
             </div>
             <button class="btn-main" style="margin-top: 10px;" onclick="saveDeliverySettings()">حفظ إعدادات التوصيل 💾</button>
         </div>
     </div>
 
-    <!-- 4. إدارة المنتجات وتعديلها (مفعل مع Lazy Loading & Caching) -->
+    <!-- إدارة وتعديل المنتجات -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('manageProductsSectionContent', this, 'products')">
             <span>📋 إدارة وتعديل المنتجات (مقسمة حسب الأقسام)</span>
@@ -362,7 +391,7 @@
         </div>
     </div>
 
-    <!-- 5. إضافة وإدارة فئات الأقسام الجديدة -->
+    <!-- إضافة وإدارة فئات الأقسام الجديدة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('categoriesSectionContent', this)">
             <span>🗂️ إضافة وإدارة الفئات والأقسام الجديدة</span>
@@ -392,7 +421,7 @@
         </div>
     </div>
 
-    <!-- 6. تخصيص شرائح البانر المتحركة -->
+    <!-- تخصيص شرائح البانر المتحركة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('bannerSectionContent', this)">
             <span>🎨 تخصيص شرائح البانر المتحركة (Slider)</span>
@@ -406,7 +435,7 @@
     </div>
 </div>
 
-<!-- نافذة التعديل السريع المنبثقة لكل منتج (بدون إجبارية الحقول) -->
+<!-- نافذة التعديل السريع المنبثقة لكل منتج -->
 <div id="quickEditModal" class="quick-modal-overlay" style="display: none;">
   <div class="quick-modal-content">
     <div class="quick-modal-header">
@@ -488,6 +517,12 @@
         freeThreshold: 150,
         enabled: true
     };
+    let bundleOfferConfig = {
+        enabled: false,
+        requiredQuantity: 3,
+        fixedPrice: 30,
+        allowedProductIds: []
+    };
 
     let currentProductIndex = 0;
     let flatProductsList = [];
@@ -496,8 +531,6 @@
     let modalNewImageBase64 = null;
     
     let openCategoryNames = new Set();
-
-    // كائن للذاكرة المؤقتة (Caching) لمنع تكرار جلب البيانات ولتسريع التصفح
     let controlPanelCache = {
         archive: false,
         products: false
@@ -653,6 +686,12 @@
                 categories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
             }
 
+            const prodSnap = await window.getDocs(window.collection(window.db, "products"));
+            products = [];
+            prodSnap.forEach(docSnap => {
+                products.push({ id: docSnap.id, ...docSnap.data() });
+            });
+
             try {
                 const settingSnap = await window.getDoc(window.doc(window.db, "settings", "storeSettings"));
                 if(settingSnap.exists()) {
@@ -687,12 +726,64 @@
                 console.log("خطأ في جلب إعدادات التوصيل:", e);
             }
 
+            try {
+                const bundleSnap = await window.getDoc(window.doc(window.db, "settings", "bundleOffer"));
+                if(bundleSnap.exists()) {
+                    bundleOfferConfig = { ...bundleOfferConfig, ...bundleSnap.data() };
+                    document.getElementById('toggleBundleOffer').checked = bundleOfferConfig.enabled || false;
+                    document.getElementById('bundleRequiredQty').value = bundleOfferConfig.requiredQuantity || 3;
+                    document.getElementById('bundleFixedPrice').value = bundleOfferConfig.fixedPrice || 30;
+                }
+            } catch(e) {
+                console.log("لم يتم العثور على إعدادات سابقة للباقة");
+            }
+
+            renderBundleProductsCheckboxes();
             renderNewProdCategoriesCheckboxes();
             renderAdminCategoriesList();
             initBannerForm();
             updateSalesSummary();
         } catch (e) {
             console.error("خطأ في جلب البيانات من السحابة: ", e);
+        }
+    }
+
+    function renderBundleProductsCheckboxes() {
+        const container = document.getElementById('bundleProductsContainer');
+        if(!container) return;
+        container.innerHTML = '';
+        if(products.length === 0) {
+            container.innerHTML = '<span style="font-size:0.7rem; color:#888;">لا توجد منتجات مضافة بعد</span>';
+            return;
+        }
+        products.forEach(p => {
+            const isChecked = bundleOfferConfig.allowedProductIds && bundleOfferConfig.allowedProductIds.includes(p.id) ? 'checked' : '';
+            container.innerHTML += `
+                <label class="checkbox-item" style="width: 100%; white-space: normal;">
+                    <input type="checkbox" name="bundleProdCheckbox" value="${p.id}" ${isChecked}>
+                    <span>${p.name} (${p.price} ₪)</span>
+                </label>
+            `;
+        });
+    }
+
+    async function saveBundleSettings() {
+        bundleOfferConfig.enabled = document.getElementById('toggleBundleOffer').checked;
+        bundleOfferConfig.requiredQuantity = parseInt(document.getElementById('bundleRequiredQty').value) || 3;
+        bundleOfferConfig.fixedPrice = parseFloat(document.getElementById('bundleFixedPrice').value) || 30;
+        
+        let selectedIds = [];
+        document.querySelectorAll('input[name="bundleProdCheckbox"]:checked').forEach(cb => {
+            selectedIds.push(cb.value);
+        });
+        bundleOfferConfig.allowedProductIds = selectedIds;
+
+        try {
+            await window.setDoc(window.doc(window.db, "settings", "bundleOffer"), bundleOfferConfig);
+            alert("تم حفظ إعدادات عروض الباقات في السحابة بنجاح! 🚀");
+        } catch(e) {
+            console.error(e);
+            alert("خطأ في حفظ إعدادات الباقة.");
         }
     }
 
@@ -779,7 +870,6 @@
         }
     }
 
-    // دالة فتح وإغلاق الأقسام المدعومة بـ Lazy Loading والتخزين المؤقت (Caching)
     async function toggleSection(contentId, headerElem, sectionKey) {
         const content = document.getElementById(contentId);
         const arrow = headerElem.querySelector('.toggle-arrow');
@@ -789,7 +879,6 @@
             content.style.display = 'block';
             arrow.style.transform = 'rotate(180deg)';
 
-            // إذا كان القسم يتطلب جلب بيانات عند الطلب (Lazy Loading) ولم يتم تخزينه مؤقتاً
             if (sectionKey && !controlPanelCache[sectionKey]) {
                 const containerId = sectionKey === 'archive' ? 'adminArchiveList' : 'adminGroupedProductsContainer';
                 const container = document.getElementById(containerId);
@@ -812,14 +901,8 @@
                         renderAdminOrders();
                         updateSalesSummary();
                     } else if (sectionKey === 'products') {
-                        const prodSnap = await window.getDocs(window.collection(window.db, "products"));
-                        products = [];
-                        prodSnap.forEach(docSnap => {
-                            products.push({ id: docSnap.id, ...docSnap.data() });
-                        });
                         renderAdminGroupedProducts();
                     }
-                    // حفظ البيانات في الذاكرة المؤقتة لمنع تكرار جلبها
                     controlPanelCache[sectionKey] = true;
                 } catch (error) {
                     console.error("خطأ أثناء جلب البيانات:", error);
@@ -929,6 +1012,7 @@
             newProd.id = docRef.id;
             products.push(newProd);
             renderAdminGroupedProducts();
+            renderBundleProductsCheckboxes();
 
             document.getElementById('newProdName').value = '';
             document.getElementById('newProdPrice').value = '';
@@ -964,7 +1048,6 @@
             const file = files[i];
             try {
                 let dataUrl = await resizeAndConvertImage(file);
-                
                 let baseName = file.name.substring(0, file.name.lastIndexOf('.')) || "منتج جديد";
                 baseName = baseName.replace(/[-_]/g, ' ');
 
@@ -990,8 +1073,9 @@
         }
 
         renderAdminGroupedProducts();
+        renderBundleProductsCheckboxes();
         progressDiv.innerText = `تم الانتهاء! نجاح: ${successCount} | فشل: ${failCount} 🚀`;
-        alert(`تم رفع وإنشاء ${successCount} منتج بنجاح! يمكنك الآن تعديل بياناتها سريعاً من قائمة المنتجات.`);
+        alert(`تم رفع وإنشاء ${successCount} منتج بنجاح!`);
         fileInput.value = '';
     }
 
@@ -1228,6 +1312,7 @@
         try {
             await window.updateDoc(window.doc(window.db, "products", product.id), updateData);
             renderAdminGroupedProducts();
+            renderBundleProductsCheckboxes();
         } catch(e) {
             console.error(e);
         }
@@ -1271,6 +1356,7 @@
                 await window.deleteDoc(window.doc(window.db, "products", id));
                 products = products.filter(p => p.id != id);
                 renderAdminGroupedProducts();
+                renderBundleProductsCheckboxes();
             } catch(e) {
                 alert("خطأ أثناء الحذف");
             }
