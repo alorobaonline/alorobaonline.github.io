@@ -206,7 +206,7 @@
 </head>
 <body>
 
-<!-- شاشة الترحيب المتحركة مع مؤمان أمان لسرعة التحميل -->
+<!-- شاشة الترحيب المتحركة (تبقى لمدة 3 ثوانٍ) -->
 <div id="splashScreen" style="position: fixed; inset: 0; background: #ffffff; display: flex; align-items: center; justify-content: center; z-index: 9999; max-width: 480px; margin: 0 auto; transition: opacity 0.5s ease;">
     <div style="background: white; padding: 30px; border-radius: 30px; text-align: center;">
         <img src="logo.png" class="dancing-logo" style="width: 160px; height: 160px; object-fit: contain; border-radius: 20px;" alt="شعار العروبة أونلاين">
@@ -418,10 +418,10 @@
     let initialHash = decodeURIComponent(window.location.hash.replace('#', ''));
     let currentCategory = initialHash ? initialHash : "الكل";
 
-    // ضمان إخفاء شاشة الترحيب كحد أقصى خلال ثانية ونصف لمنع أي تعليق أو بطء
+    // شاشة الترحيب تبقى لمدة 3 ثوانٍ كاملة
     setTimeout(() => {
         hideSplashScreen();
-    }, 1500);
+    }, 3000);
 
     window.addEventListener('hashchange', () => {
         let hash = decodeURIComponent(window.location.hash.replace('#', ''));
@@ -471,7 +471,6 @@
             renderCategoriesScroll();
             requestAnimationFrame(() => {
                 renderMainStoreContent();
-                hideSplashScreen(); 
             });
         }
     }
@@ -522,7 +521,6 @@
             localStorage.setItem('aloroba_cached_products', JSON.stringify(products));
             requestAnimationFrame(() => {
                 renderMainStoreContent();
-                hideSplashScreen(); 
             });
             updateCartStateUI();
         });
@@ -541,7 +539,6 @@
             renderCategoriesScroll();
             requestAnimationFrame(() => {
                 renderMainStoreContent();
-                hideSplashScreen(); 
             });
         });
     }
@@ -814,7 +811,8 @@
         let displayedCount = 0;
 
         sectionsToShow.forEach(secName => {
-            let secProds = products.filter(p => productBelongsToCategory(p, secName));
+            // احضار أول 9 منتجات فقط من كل فئة في العرض الأفقى
+            let secProds = products.filter(p => productBelongsToCategory(p, secName)).slice(0, 9);
             if(secProds.length === 0) return;
 
             displayedCount++;
@@ -837,7 +835,8 @@
         if(displayedCount === 0 && products.length > 0) {
             categories.forEach(cat => {
                 if(cat.name === "الكل") return;
-                let secProds = products.filter(p => productBelongsToCategory(p, cat.name));
+                // احضار أول 9 منتجات فقط للفئات في العرض الأفقى
+                let secProds = products.filter(p => productBelongsToCategory(p, cat.name)).slice(0, 9);
                 if(secProds.length === 0) return;
 
                 let secHtml = `
