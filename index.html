@@ -53,11 +53,25 @@
 
         /* أقسام العرض الأفقي للمتجر */
         .horizontal-section { margin-bottom: 20px; padding: 0 15px; }
-        .horizontal-section-title { font-size: 0.95rem; font-weight: 900; color: var(--primary-green); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .horizontal-section-title { font-size: 0.95rem; font-weight: 900; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* تنسيق زر عرض الكل بنفس لون وشكل سعر المنتج */
+        /* تنسيق اسم الفئة بنفس أناقة وشكل سعر المنتج ولكن بلون أسود متدرج مع لمعة */
+        .section-category-title {
+            font-size: 0.95rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #2c3e50 0%, #000000 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* تنسيق زر عرض الكل بنفس لون وشكل سعر المنتج (مع تصغير الحجم قليلاً) */
         .section-view-all {
-            font-size: 0.85rem;
+            font-size: 0.76rem;
             font-weight: 900;
             background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%);
             -webkit-background-clip: text;
@@ -805,7 +819,7 @@
             let secHtml = `
                 <div class="horizontal-section">
                     <div class="horizontal-section-title">
-                        <span>${icon} ${secName}</span>
+                        <span class="section-category-title">${icon} ${secName}</span>
                         <span class="section-view-all" onclick="selectCategory('${secName}')">عرض الكل ←</span>
                     </div>
                     <div class="products-horizontal-scroll">
@@ -824,7 +838,7 @@
                 let secHtml = `
                     <div class="horizontal-section">
                         <div class="horizontal-section-title">
-                            <span>${cat.icon || '🏷️'} ${cat.name}</span>
+                            <span class="section-category-title">${cat.icon || '🏷️'} ${cat.name}</span>
                             <span class="section-view-all" onclick="selectCategory('${cat.name}')">عرض الكل ←</span>
                         </div>
                         <div class="products-horizontal-scroll">
