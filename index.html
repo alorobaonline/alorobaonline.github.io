@@ -91,6 +91,17 @@
         }
         .products-horizontal-scroll::-webkit-scrollbar { display: none; }
 
+        /* تأثير اللمعة والنبض (Glow & Pulse Animation) لسعر العرض وشارة العرض */
+        @keyframes priceGlow {
+            0%, 100% { transform: scale(1); text-shadow: 0 0 0px rgba(211, 47, 47, 0); }
+            50% { transform: scale(1.03); text-shadow: 0 0 8px rgba(211, 47, 47, 0.6); }
+        }
+
+        @keyframes badgeGlow {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0px rgba(211, 47, 47, 0); }
+            50% { transform: scale(1.06); box-shadow: 0 0 10px rgba(211, 47, 47, 0.8); }
+        }
+
         /* بطاقة المنتج */
         .product-card { 
             min-width: 145px; 
@@ -103,10 +114,10 @@
             flex-direction: column; 
             justify-content: space-between; 
             flex-shrink: 0; 
-            position: relative; /* ضروري لتثبيت شارة العرض */
+            position: relative; 
         }
         
-        /* تصميم شارة العرض (الخيار 1) */
+        /* شارة العرض مع اللمعة */
         .discount-badge {
             position: absolute;
             top: 8px;
@@ -118,6 +129,7 @@
             padding: 2px 6px;
             border-radius: 4px;
             z-index: 2;
+            animation: badgeGlow 1.8s infinite ease-in-out;
         }
 
         .product-img-box { width: 100%; height: 110px; position: relative; display: flex; align-items: center; justify-content: center; background: #ffffff; border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
@@ -137,19 +149,22 @@
             letter-spacing: -0.3px;
         }
 
-        /* تنسيق سعر العرض الجديد باللون الأحمر (الخيار 2) */
+        /* تنسيق سعر العرض الجديد (أكبر حجماً وأكثر وضوحاً مع اللمعة) */
         .price-text.sale-price {
             background: none;
             -webkit-background-clip: initial;
             -webkit-text-fill-color: initial;
             color: #d32f2f;
+            font-size: 1.35rem; 
+            font-weight: 900;
+            animation: priceGlow 1.8s infinite ease-in-out;
         }
 
-        /* تنسيق السعر القديم المشطوب باللون الأسود (الخيار 2) */
+        /* تنسيق السعر القديم المشطوب (واضح وكبير نسبياً باللون الأسود الداكن) */
         .old-price { 
-            font-size: 0.75rem; 
-            font-weight: 700; 
-            color: #212121; 
+            font-size: 0.85rem; 
+            font-weight: 800; 
+            color: #111111; 
             text-decoration: line-through; 
         }
         
