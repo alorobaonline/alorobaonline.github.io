@@ -29,8 +29,13 @@
 
         .form-group { margin-bottom: 8px; }
         .form-group label { display: block; font-size: 0.7rem; font-weight: 700; margin-bottom: 3px; color: #4b5563; }
-        .form-control { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; outline: none; background: white; }
+        .form-control { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; outline: none; background: white; }
         .form-control:focus { border-color: var(--accent-green); }
+
+        /* منع تكبير الشاشة تلقائياً عند الكتابة في الحقول على الهواتف المحمولة */
+        input, select, textarea {
+            font-size: 16px;
+        }
 
         .categories-checkbox-container {
             border: 1px solid #cbd5e1;
