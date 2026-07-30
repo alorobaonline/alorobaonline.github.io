@@ -3,230 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>شاشة المطبخ والطلبات - العروبة أونلاين</title>
+    <title>شاشة المطبخ - العروبة أونلاين</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-green: #1b4d2e;
-            --secondary-green: #2d6a4f;
-            --accent-green: #52b788;
-            --light-bg: #f8fafc;
-            --card-bg: #ffffff;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --shadow-subtle: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-            --radius-main: 20px;
+            --accent-green: #68a633;
+            --light-bg: #f3f4f6;
+            --shadow-card: none;
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
-        body { background-color: var(--light-bg); color: var(--text-main); padding: 16px; padding-bottom: 60px; }
-
-        .container { max-width: 500px; margin: 0 auto; }
+        body { background-color: var(--light-bg); color: #1f2937; padding: 12px; padding-bottom: 50px; }
+        .container { max-width: 480px; margin: 0 auto; background: white; border-radius: 20px; padding: 15px; border: 1px solid #e5e7eb; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 15px; }
+        .header h1 { font-size: 0.95rem; color: var(--primary-green); font-weight: 900; }
+        .back-btn { background: #e5e7eb; color: #374151; padding: 5px 12px; border-radius: 8px; text-decoration: none; font-size: 0.7rem; font-weight: 700; border: 1px solid #cbd5e1; }
         
-        .header { 
-            background: linear-gradient(135deg, var(--primary-green), var(--secondary-green)); 
-            color: white; 
-            border-radius: var(--radius-main); 
-            padding: 20px; 
-            text-align: center; 
-            margin-bottom: 16px; 
-            box-shadow: var(--shadow-subtle); 
-        }
-        .header h1 { font-size: 1.25rem; font-weight: 900; margin-bottom: 10px; letter-spacing: -0.5px; }
+        .order-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 12px; margin-bottom: 10px; font-size: 0.75rem; }
+        .order-header { display: flex; justify-content: space-between; font-weight: bold; color: var(--primary-green); border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 8px; }
+        .order-items-list { margin-bottom: 8px; font-size: 0.7rem; color: #4b5563; }
+        .order-items-list div { padding: 2px 0; border-bottom: 1px dashed #e2e8f0; }
         
-        .header-controls {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .status-badge { 
-            display: inline-flex; 
-            align-items: center; 
-            justify-content: center;
-            background: rgba(255, 255, 255, 0.15); 
-            backdrop-filter: blur(4px);
-            padding: 4px 12px; 
-            border-radius: 30px; 
-            font-size: 0.9rem; 
-        }
-
-        .refresh-btn {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.4s ease;
-            font-size: 0.95rem;
-        }
-        .refresh-btn:hover { background: rgba(255, 255, 255, 0.3); }
-        .refresh-btn.spinning { transform: rotate(360deg); }
-
-        .notif-bar { 
-            background: #eff6ff; 
-            border: 1px solid #bfdbfe; 
-            border-radius: 14px; 
-            padding: 12px 16px; 
-            margin-bottom: 16px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            font-size: 0.8rem; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
-        .notif-bar span { color: #1e40af; font-weight: 700; }
-        .notif-bar button { 
-            background: #2563eb; 
-            color: white; 
-            border: none; 
-            padding: 6px 14px; 
-            border-radius: 8px; 
-            font-weight: 700; 
-            cursor: pointer; 
-            transition: background 0.2s;
-        }
-        .notif-bar button:hover { background: #1d4ed8; }
-
-        .order-card { 
-            background: var(--card-bg); 
-            border: 1px solid #e2e8f0; 
-            border-radius: var(--radius-main); 
-            padding: 18px; 
-            margin-bottom: 16px; 
-            box-shadow: var(--shadow-subtle); 
-            position: relative;
-            overflow: hidden;
-        }
-        .order-card::before {
-            content: '';
-            position: absolute;
-            top: 0; right: 0; bottom: 0;
-            width: 6px;
-            background: var(--accent-green);
-        }
-
-        .order-header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border-bottom: 1px solid #f1f5f9; 
-            padding-bottom: 10px; 
-            margin-bottom: 12px; 
-        }
-        .order-id { font-weight: 900; color: var(--primary-green); font-size: 0.95rem; }
-        
-        .timer-badge { background: #fef3c7; color: #b45309; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; direction: ltr; }
-        .clock-badge { background: #f8fafc; color: var(--text-muted); border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; }
-
-        .customer-info { 
-            background: #f8fafc; 
-            border: 1px solid #f1f5f9; 
-            border-radius: 12px; 
-            padding: 10px 12px; 
-            margin-bottom: 12px; 
-            font-size: 0.78rem; 
-        }
-        .customer-info div { margin-bottom: 4px; color: var(--text-main); }
-        .customer-info div:last-child { margin-bottom: 0; }
-
-        .items-title { font-size: 0.8rem; font-weight: 800; color: var(--text-muted); margin-bottom: 8px; }
-        
-        .kitchen-item-row { 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between; 
-            background: #ffffff; 
-            border: 1px solid #e5e7eb; 
-            border-radius: 12px; 
-            padding: 10px; 
-            margin-bottom: 8px; 
-            transition: all 0.2s ease; 
-        }
-        .kitchen-item-row:hover { border-color: #cbd5e1; }
-        .kitchen-item-row.checked { background: #f0fdf4; border-color: #bbf7d0; opacity: 0.8; }
-        .kitchen-item-row.checked .item-name-text { text-decoration: line-through; color: #166534; }
-
-        .item-left-side { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
-        .item-checkbox { width: 22px; height: 22px; accent-color: var(--accent-green); cursor: pointer; flex-shrink: 0; border-radius: 6px; }
-        .item-thumb { width: 44px; height: 44px; object-fit: contain; background: #f8fafc; border-radius: 8px; border: 1px solid #f1f5f9; padding: 2px; flex-shrink: 0; cursor: pointer; transition: transform 0.2s; }
-        .item-thumb:hover { transform: scale(1.05); }
-        
-        .item-details-box { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-        .item-name-text { font-size: 0.82rem; font-weight: 700; color: var(--text-main); white-space: normal; word-break: break-word; line-height: 1.3; }
-        .item-weight-badge { color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 1px 6px; border-radius: 6px; font-size: 0.68rem; font-weight: 700; width: fit-content; margin-top: 3px; }
-
-        .item-right-side { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-right: 8px; }
-        .item-price-badge { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; padding: 3px 8px; border-radius: 8px; font-size: 0.72rem; font-weight: 800; }
-        .item-qty-badge { background: var(--primary-green); color: white; padding: 3px 10px; border-radius: 8px; font-size: 0.78rem; font-weight: 900; }
-
-        .order-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 12px; margin-top: 12px; }
-        .total-price { font-size: 1rem; font-weight: 900; color: var(--primary-green); }
-        
-        .btn-action { background: var(--accent-green); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 0.82rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s, opacity 0.2s; box-shadow: 0 4px 12px rgba(82, 183, 136, 0.25); }
-        .btn-action:hover:not(:disabled) { background: #40916c; }
-        .btn-action:disabled { background: #94a3b8; cursor: not-allowed; opacity: 0.6; box-shadow: none; }
-        
-        .btn-start { background: #d97706; color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 0.82rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25); }
-        .btn-start:hover { background: #b45309; }
-        
-        .nav-back { display: block; text-align: center; background: #ffffff; color: var(--text-main); border: 1px solid #e2e8f0; padding: 12px; border-radius: 14px; text-decoration: none; font-weight: 800; font-size: 0.82rem; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: background 0.2s; }
-        .nav-back:hover { background: #f8fafc; }
-
-        /* نافذة تكبير الصورة (Modal) */
-        .img-modal {
-            display: none;
-            position: fixed;
-            z-index: 9999;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(5px);
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .img-modal-content {
-            max-width: 90%;
-            max-height: 90%;
-            object-fit: contain;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-            background: #ffffff;
-            padding: 10px;
-        }
-        .img-modal-close {
-            position: absolute;
-            top: 25px;
-            left: 25px;
-            color: #ffffff;
-            font-size: 2.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            background: rgba(0, 0, 0, 0.5);
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-        }
-        .img-modal-close:hover { background: rgba(255, 255, 255, 0.2); }
+        .form-control { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; outline: none; background: white; margin-top: 5px; margin-bottom: 8px; }
+        .btn-action { background: var(--accent-green); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 0.7rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; }
+        .btn-delay { background: #d97706; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 0.7rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; }
     </style>
 
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
@@ -243,10 +49,9 @@
 
         window.db = db;
         window.collection = collection;
-        window.getDocs = getDocs;
+        window.onSnapshot = onSnapshot;
         window.updateDoc = updateDoc;
         window.doc = doc;
-        window.onSnapshot = onSnapshot;
 
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
@@ -254,365 +59,113 @@
 <body>
 
 <div class="container">
-    <a href="admin.html" class="nav-back">← العودة إلى لوحة التحكم</a>
-    
     <div class="header">
-        <h1>🍳 شاشة المطبخ والطلبات</h1>
-        <div class="header-controls">
-            <div class="status-badge">🟢</div>
-            <button class="refresh-btn" onclick="manualRefreshOrders()" title="تحديث البيانات يدوياً">🔄</button>
-        </div>
+        <h1>🍳 شاشة المطبخ - العروبة أونلاين</h1>
+        <a href="admin.html" class="back-btn">← لوحة التحكم</a>
     </div>
 
-    <!-- شريط تفعيل التنبيهات الصوتية -->
-    <div class="notif-bar" id="notifBanner">
-        <span>🔔 انقر لتفعيل التنبيهات الصوتية للطلبات</span>
-        <button onclick="askNotificationPermission()">تفعيل</button>
+    <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 10px; color: #4b5563;">
+        الطلبات الواردة للتحضير النشط:
     </div>
 
-    <div id="kitchenOrdersList">
-        <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 30px;">جاري تحميل الطلبات...</p>
+    <div id="kitchenOrdersContainer">
+        <p style="text-align: center; color: #888; font-size: 0.75rem;">جاري تحميل الطلبات...</p>
     </div>
-</div>
-
-<!-- نافذة عرض الصورة المكبرة -->
-<div id="imageModal" class="img-modal" onclick="closeImageModal()">
-    <span class="img-modal-close">&times;</span>
-    <img class="img-modal-content" id="modalImg">
 </div>
 
 <script>
-    let orders = [];
-    let productsList = [];
-    let isInitialLoad = true;
-
-    window.addEventListener('firebase-ready', async function() {
-        checkNotificationPermissionUI();
-        await loadProductsList();
-        initKitchenRealtimeOrders();
-        
-        setInterval(updateOrderTimers, 1000);
+    window.addEventListener('firebase-ready', function() {
+        initKitchenOrdersListener();
     });
 
-    function checkNotificationPermissionUI() {
-        if ("Notification" in window && Notification.permission === "granted") {
-            const banner = document.getElementById('notifBanner');
-            if(banner) banner.style.display = 'none';
-        }
-    }
-
-    function askNotificationPermission() {
-        if ("Notification" in window) {
-            Notification.requestPermission().then(permission => {
-                if (permission === "granted") {
-                    const banner = document.getElementById('notifBanner');
-                    if(banner) banner.style.display = 'none';
-                    alert("تم تفعيل إشعارات المطبخ بنجاح!");
-                }
-            });
-        }
-    }
-
-    function playAlertSound() {
-        try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.4);
-        } catch(e) {
-            console.log("Audio blocked");
-        }
-    }
-
-    async function loadProductsList() {
-        try {
-            const querySnapshot = await window.getDocs(window.collection(window.db, "products"));
-            productsList = [];
-            querySnapshot.forEach(docSnap => {
-                productsList.push(docSnap.data());
-            });
-        } catch (e) {
-            console.error("خطأ في جلب المنتجات:", e);
-        }
-    }
-
-    async function manualRefreshOrders() {
-        const btn = document.querySelector('.refresh-btn');
-        if(btn) btn.classList.add('spinning');
-
-        await loadProductsList();
-        renderKitchenOrders();
-
-        setTimeout(() => {
-            if(btn) btn.classList.remove('spinning');
-        }, 600);
-    }
-
-    function initKitchenRealtimeOrders() {
+    function initKitchenOrdersListener() {
         window.onSnapshot(window.collection(window.db, "orders"), (snapshot) => {
-            if (isInitialLoad) {
-                isInitialLoad = false;
-                orders = [];
-                snapshot.forEach(docSnap => {
-                    let d = docSnap.data();
-                    orders.push({ id: docSnap.id, ...d });
-                });
-                renderKitchenOrders();
-                return;
-            }
-
-            snapshot.docChanges().forEach((change) => {
-                if (change.type === "added") {
-                    let newOrder = change.doc.data();
-                    playAlertSound();
-                    if ("Notification" in window && Notification.permission === "granted") {
-                        new Notification("طلب مطبخ جديد! 🍳", {
-                            body: `الزبون: ${newOrder.customerName || 'بدون اسم'} - الإجمالي: ${newOrder.total || 0} ₪`,
-                            icon: "https://i.ibb.co/3m1K2wP/basket.png"
-                        });
-                    }
-                }
-            });
-
-            orders = [];
+            let orders = [];
             snapshot.forEach(docSnap => {
-                let d = docSnap.data();
-                orders.push({ id: docSnap.id, ...d });
+                orders.push({ id: docSnap.id, ...docSnap.data() });
             });
-            renderKitchenOrders();
+            renderKitchenOrders(orders);
         });
     }
 
-    function formatClockTime(isoString) {
-        if (!isoString) return "--:--";
-        let date = new Date(isoString);
-        if (isNaN(date.getTime())) return "--:--";
-        let hours = date.getHours().toString().padStart(2, '0');
-        let minutes = date.getMinutes().toString().padStart(2, '0');
-        return `${hours}:${minutes}`;
-    }
-
-    function renderKitchenOrders() {
-        const scrollPos = window.pageYOffset || document.documentElement.scrollTop;
-
-        const checkedIds = new Set();
-        document.querySelectorAll('.item-checkbox:checked').forEach(chk => {
-            checkedIds.add(chk.id);
-        });
-
-        const container = document.getElementById('kitchenOrdersList');
+    function renderKitchenOrders(orders) {
+        const container = document.getElementById('kitchenOrdersContainer');
         if(!container) return;
-
-        const activeOrders = orders.filter(o => !o.status || o.status === "جديد" || o.status === "قيد التحضير" || o.status === "new");
+        
+        // تصفية الطلبات التي لم تكتمل بعد أو تخص المطبخ
+        let activeOrders = orders.filter(o => !o.status || o.status === "جديد" || o.status === "new" || o.status === "قيد التحضير");
 
         if(activeOrders.length === 0) {
-            container.innerHTML = '<div style="background: white; border-radius: var(--radius-main); padding: 40px; text-align: center; font-size: 0.95rem; color: var(--text-muted); box-shadow: var(--shadow-subtle);">🎉 لا توجد طلبات معلقة حالياً! كل شيء على ما يرام.</div>';
+            container.innerHTML = '<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 20px;">لا توجد طلبات جديدة حالياً ✨</p>';
             return;
         }
 
-        let html = "";
+        container.innerHTML = '';
         activeOrders.forEach((ord, index) => {
-            let itemsHtml = "";
-            
+            let itemsHtml = '';
             if(ord.items && Array.isArray(ord.items)) {
-                ord.items.forEach((item, itemIdx) => {
-                    let imgSrc = item.img;
-                    let itemPrice = item.price;
-                    let itemWeight = item.weight || item.size || item.unit || "";
-
-                    let foundProd = productsList.find(p => p.name === item.name);
-                    if(foundProd) {
-                        if(!imgSrc && foundProd.img) imgSrc = foundProd.img;
-                        if(itemPrice === undefined || itemPrice === null) itemPrice = foundProd.price;
-                        if(!itemWeight) itemWeight = foundProd.weight || foundProd.size || foundProd.unit || "";
-                    }
-                    if(!imgSrc) {
-                        imgSrc = "https://i.ibb.co/3m1K2wP/basket.png";
-                    }
-
-                    let formattedPrice = (itemPrice !== undefined && itemPrice !== null) ? `${itemPrice} ₪` : '';
-                    let weightBadgeHtml = itemWeight ? `<span class="item-weight-badge">${itemWeight}</span>` : '';
-
-                    let checkboxId = `chk_${ord.id}_${itemIdx}`;
-                    let isChecked = checkedIds.has(checkboxId) ? 'checked' : '';
-                    let rowCheckedClass = isChecked ? 'checked' : '';
-
-                    itemsHtml += `
-                        <div class="kitchen-item-row ${rowCheckedClass}" id="row_${checkboxId}">
-                            <div class="item-left-side">
-                                <input type="checkbox" class="item-checkbox" id="${checkboxId}" ${isChecked} onchange="toggleItemCheck('${checkboxId}', '${ord.id}')">
-                                <img src="${imgSrc}" class="item-thumb" onclick="openImageModal('${imgSrc}')" onerror="this.src='https://i.ibb.co/3m1K2wP/basket.png'" title="انقر لتكبير الصورة">
-                                <div class="item-details-box">
-                                    <span class="item-name-text">${item.name}</span>
-                                    ${weightBadgeHtml}
-                                </div>
-                            </div>
-                            <div class="item-right-side">
-                                ${formattedPrice ? `<span class="item-price-badge">${formattedPrice}</span>` : ''}
-                                <div class="item-qty-badge">${item.quantity || 1}</div>
-                            </div>
-                        </div>
-                    `;
+                ord.items.forEach(item => {
+                    itemsHtml += `<div>• ${item.name || 'منتج'} (الكمية: ${item.qty || 1})</div>`;
                 });
-            } else {
-                itemsHtml = '<p style="font-size: 0.78rem; color: var(--text-muted);">لا توجد تفاصيل للمنتجات</p>';
             }
 
-            let statusText = ord.status || 'جديد';
-            let badgeHtml = "";
-            let actionButtonHtml = "";
-
-            if (!ord.status || ord.status === "جديد" || ord.status === "new") {
-                let orderTime = formatClockTime(ord.createdAt);
-                badgeHtml = `<span class="clock-badge">🕒 استلام الطلبية: ${orderTime}</span>`;
-                actionButtonHtml = `<button class="btn-start" onclick="startPreparation('${ord.id}')">ابدأ بالتحضير ⏱️</button>`;
-            } else {
-                let startTime = ord.preparingAt || new Date().toISOString();
-                badgeHtml = `<span class="timer-badge preparing-timer" data-start="${startTime}">⏱️ 00:00:00</span>`;
-                
-                let allChecked = ord.items && ord.items.length > 0 && ord.items.every((_, i) => checkedIds.has(`chk_${ord.id}_${i}`));
-                let disabledAttr = allChecked ? '' : 'disabled';
-
-                actionButtonHtml = `<button class="btn-action" id="btn_send_${ord.id}" onclick="markOrderReady('${ord.id}')" ${disabledAttr}>إرسال للسائق 🚚</button>`;
-            }
-
-            html += `
-                <div class="order-card" id="order_card_${ord.id}">
+            container.innerHTML += `
+                <div class="order-card">
                     <div class="order-header">
-                        <span class="order-id">طلب #${ord.id ? ord.id.substring(0, 6) : (index + 1)}</span>
-                        <div style="display: flex; gap: 6px; align-items: center;">
-                            ${badgeHtml}
-                            <span style="font-size: 0.72rem; background: ${ord.status === 'قيد التحضير' ? '#fef3c7' : '#dcfce7'}; color: ${ord.status === 'قيد التحضير' ? '#b45309' : '#166534'}; padding: 3px 10px; border-radius: 6px; font-weight: 700;">${statusText}</span>
-                        </div>
+                        <span>طلب #${index + 1} - ${ord.customerName || 'زبون'}</span>
+                        <span style="color: #16a34a;">${ord.total || 0} ₪</span>
                     </div>
-
-                    <div class="customer-info">
-                        <div><b>👤 الزبون:</b> ${ord.customerName || 'بدون اسم'}</div>
-                        <div><b>📍 العنوان:</b> ${ord.customerAddress || 'بدون عنوان'}</div>
-                    </div>
-
-                    <div class="items-title">📦 قائمة المنتجات والتجهيز:</div>
-                    <div style="margin-bottom: 12px;">
+                    <div style="font-size: 0.7rem; margin-bottom: 5px;"><b>الهاتف:</b> ${ord.customerPhone || ''}</div>
+                    <div style="font-size: 0.7rem; margin-bottom: 5px;"><b>العنوان:</b> ${ord.customerAddress || ord.address || ''}</div>
+                    
+                    <div class="order-items-list">
+                        <b>المنتجات المطلوبة:</b>
                         ${itemsHtml}
                     </div>
 
-                    <div class="order-footer">
-                        <div class="total-price">المجموع: ${ord.total || 0} ₪</div>
-                        <div>
-                            ${actionButtonHtml}
-                        </div>
+                    <div class="form-group">
+                        <label style="font-size: 0.65rem; font-weight: bold; color: #4b5563;">سبب التأخير (إن وجد):</label>
+                        <select id="delayReason_${ord.id}" class="form-control">
+                            <option value="">بدون تأخير / طبيعي</option>
+                            <option value="تأخر تحضير المواد بالمطبخ">تأخر تحضير المواد بالمطبخ</option>
+                            <option value="نقص في بعض المواد الخام">نقص في بعض المواد الخام</option>
+                            <option value="ضغط طلبات عالية جداً">ضغط طلبات عالية جداً</option>
+                        </select>
+                        <button class="btn-delay" onclick="saveDelayReason('${ord.id}')">حفظ سبب التأخير ⚠️</button>
                     </div>
+
+                    <button class="btn-action" onclick="markOrderReady('${ord.id}')">تم التحضير - جاهز للتوصيل 🚀</button>
                 </div>
             `;
         });
-
-        container.innerHTML = html;
-        window.scrollTo(0, scrollPos);
-        updateOrderTimers();
     }
 
-    function updateOrderTimers() {
-        document.querySelectorAll('.preparing-timer').forEach(badge => {
-            let startStr = badge.getAttribute('data-start');
-            if (startStr) {
-                let startMs = new Date(startStr).getTime();
-                let nowMs = new Date().getTime();
-                let diff = nowMs - startMs;
-                if (diff < 0) diff = 0;
-
-                let totalSeconds = Math.floor(diff / 1000);
-                let hours = Math.floor(totalSeconds / 3600);
-                let minutes = Math.floor((totalSeconds % 3600) / 60);
-                let seconds = totalSeconds % 60;
-
-                let formatted = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                badge.innerHTML = `⏱️ ${formatted}`;
-            }
-        });
-    }
-
-    function toggleItemCheck(checkboxId, orderId) {
-        const checkbox = document.getElementById(checkboxId);
-        const row = document.getElementById(`row_${checkboxId}`);
-        if(checkbox && row) {
-            if(checkbox.checked) {
-                row.classList.add('checked');
-            } else {
-                row.classList.remove('checked');
-            }
-        }
-
-        const card = document.getElementById(`order_card_${orderId}`);
-        if(card) {
-            const checkboxes = card.querySelectorAll('.item-checkbox');
-            const sendBtn = document.getElementById(`btn_send_${orderId}`);
-            
-            if(sendBtn) {
-                let allChecked = true;
-                checkboxes.forEach(chk => {
-                    if(!chk.checked) allChecked = false;
-                });
-
-                if(allChecked) {
-                    sendBtn.removeAttribute('disabled');
-                } else {
-                    sendBtn.setAttribute('disabled', 'true');
-                }
-            }
-        }
-    }
-
-    async function startPreparation(orderId) {
+    async function saveDelayReason(orderId) {
+        const selectElem = document.getElementById(`delayReason_${orderId}`);
+        const reason = selectElem ? selectElem.value : "";
+        
         try {
-            await window.updateDoc(window.doc(window.db, "orders", orderId), { 
-                status: "قيد التحضير",
-                preparingAt: new Date().toISOString() 
+            await window.updateDoc(window.doc(window.db, "orders", orderId), {
+                delayReason: reason
             });
+            alert("تم حفظ سبب التأخير بنجاح وزامن مع النظام! ✨");
         } catch(e) {
-            alert("حدث خطأ أثناء تحديث حالة الطلب");
+            console.error(e);
+            alert("خطأ في حفظ سبب التأخير.");
         }
     }
 
     async function markOrderReady(orderId) {
-        const card = document.getElementById(`order_card_${orderId}`);
-        if(card) {
-            const checkboxes = card.querySelectorAll('.item-checkbox');
-            let allChecked = true;
-            checkboxes.forEach(chk => {
-                if(!chk.checked) allChecked = false;
-            });
-            if(!allChecked) {
-                alert("⚠️ تنبيه: يجب شطب جميع منتجات الطلب وتحديدها أولاً قبل إرساله للسائق!");
-                return;
-            }
-        }
-
-        if(confirm("هل أنت متأكد من انتهاء تجهيز الطلب وإرساله إلى السائق؟")) {
+        if(confirm("هل أنت متأكد من أن الطلب جاهز للتوصيل؟")) {
             try {
-                await window.updateDoc(window.doc(window.db, "orders", orderId), { status: "جاهز للتوصيل" });
-                alert("تم إرسال الطلب إلى لوحة السائق بنجاح! 🚚");
+                await window.updateDoc(window.doc(window.db, "orders", orderId), {
+                    status: "جاهز للتوصيل"
+                });
             } catch(e) {
-                alert("حدث خطأ أثناء تحديث حالة الطلب");
+                console.error(e);
+                alert("خطأ أثناء تحديث حالة الطلب.");
             }
         }
-    }
-
-    function openImageModal(imgSrc) {
-        const modal = document.getElementById('imageModal');
-        const modalImg = document.getElementById('modalImg');
-        modal.style.display = 'flex';
-        modalImg.src = imgSrc;
-    }
-
-    function closeImageModal() {
-        const modal = document.getElementById('imageModal');
-        modal.style.display = 'none';
     }
 </script>
 </body>
