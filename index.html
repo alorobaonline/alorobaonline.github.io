@@ -320,7 +320,7 @@
         <div id="cartStep2" style="display: none;">
             <div style="font-size: 0.8rem; margin-bottom: 10px; cursor: pointer; color: var(--primary-green); font-weight: 800;" onclick="backToCartStep1()">← عودة لمراجعة المنتجات</div>
             
-            <label style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">طريقة الاستلام:</label>
+            <label class="price-text" style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">طريقة الاستلام:</label>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
                 <label style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 700; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
                     <input type="radio" name="fulfillmentType" value="توصيل" checked onchange="toggleFulfillmentType()"> توصيل
@@ -345,14 +345,14 @@
                 <input type="text" id="customerBuilding" class="form-control" placeholder="رقم العمارة / الطابق / رقم الشقة">
             </div>
 
-            <label style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">طريقة الدفع:</label>
+            <label class="price-text" style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">طريقة الدفع:</label>
             <select id="paymentMethodSelect" class="form-control">
                 <option value="موزمان">موزمان</option>
                 <option value="اشراي">اشراي</option>
                 <option value="نقداً عند الاستلام">نقداً عند الاستلام</option>
             </select>
 
-            <label style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">كوبون للخصم:</label>
+            <label class="price-text" style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">كوبون للخصم:</label>
             <div style="display: flex; gap: 6px; margin-bottom: 8px;">
                 <input type="text" id="couponInput" class="form-control" placeholder="ادخل كود الكوبون" style="margin-bottom: 0;">
                 <button type="button" onclick="applyCoupon()" style="background: var(--accent-green); color: white; border: none; padding: 0 12px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer;">تطبيق</button>
