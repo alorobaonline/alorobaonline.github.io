@@ -301,7 +301,7 @@
     </div>
 </div>
 
-<!-- نافذة السلة والدفع (مرتبة على 3 خطوات متسلسلة) -->
+<!-- نافذة السلة والدفع -->
 <div class="cart-modal" id="cartModal">
     <div class="cart-modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -344,18 +344,18 @@
                     <input type="text" id="customerBuilding" class="form-control" placeholder="البيت / رقم الشقة" style="margin-bottom: 0;">
                 </div>
 
-                <!-- زر اختر موقعك -->
-                <button type="button" onclick="openMapModal()" style="width: 100%; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 8px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 5px;">
-                    📍 اختر موقعك بدقة على الخريطة 🗺️
+                <!-- زر اختر موقعك الاحترافي -->
+                <button type="button" onclick="openMapModal()" style="width: 100%; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 10px; border-radius: 8px; font-weight: 800; font-size: 0.85rem; cursor: pointer; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    📍 اختر موقعك بدقة عالية على الخريطة 🗺️
                 </button>
                 <input type="hidden" id="customerGpsLocation" value="">
-                <div id="selectedLocationText" style="font-size: 0.7rem; font-weight: 700; color: var(--accent-green); margin-bottom: 8px; text-align: center;"></div>
+                <div id="selectedLocationText" style="font-size: 0.75rem; font-weight: 700; color: var(--accent-green); margin-bottom: 8px; text-align: center;"></div>
             </div>
 
             <button class="btn-main" onclick="goToStep3()">التالي: الدفع والكوبون ➡️</button>
         </div>
 
-        <!-- الخطوة 3: قسم طريقة الدفع، الكوبون، والمجموع الكلي النهائي لارسال الطلبيه -->
+        <!-- الخطوة 3: قسم طريقة الدفع، الكوبون، والمجموع الكلي -->
         <div id="cartStep3" style="display: none;">
             <div style="font-size: 0.8rem; margin-bottom: 8px; cursor: pointer; color: var(--primary-green); font-weight: 800;" onclick="goToStep2()">← عودة للاستلام والبيانات</div>
             
@@ -397,16 +397,22 @@
     </div>
 </div>
 
-<!-- نافذة الخريطة التفاعلية -->
+<!-- نافذة الخريطة التفاعلية الاحترافية -->
 <div class="cart-modal" id="mapModal">
     <div class="cart-modal-content" style="padding: 15px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h3 style="font-size: 0.9rem; font-weight: 900; color: var(--primary-green);">📍 حدد مكانك على الخريطة</h3>
+            <h3 style="font-size: 0.95rem; font-weight: 900; color: var(--primary-green);">📍 تحديد موقع التوصيل بدقة</h3>
             <button onclick="closeMapModal()" style="background:none; border:none; font-size: 1.1rem; cursor:pointer; font-weight: 900;">✕</button>
         </div>
-        <div style="font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 8px; text-align: center;">انقر على الخريطة أو اسحب الدبوس لتحديد عنوان التوصيل بدقة:</div>
-        <div id="leafletMap" style="width: 100%; height: 320px; border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border-color);"></div>
-        <button type="button" class="btn-main" onclick="confirmMapLocation()">تأكيد واختيار هذا الموقع ✅</button>
+        <div style="font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 8px; text-align: center;">اضغط على زر الـ GPS أدناه للوصول لموقعك فوراً، أو اسحب الدبوس على الخريطة:</div>
+        
+        <!-- زر GPS السريع لتحديد مكان الزبون الحالي تلقائياً -->
+        <button type="button" onclick="panToCurrentLocation()" style="width: 100%; background: #f0fdf4; color: var(--primary-green); border: 1px solid #bbf7d0; padding: 8px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            🎯 استخدام موقعي الحالي تلقائياً عبر الـ GPS 🛰️
+        </button>
+
+        <div id="leafletMap" style="width: 100%; height: 290px; border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border-color);"></div>
+        <button type="button" class="btn-main" onclick="confirmMapLocation()">تأكيد واعتماد هذا الموقع للسائق ✅</button>
     </div>
 </div>
 
@@ -658,7 +664,7 @@
                         (error) => {
                             initLeafletMap(selectedLat, selectedLng);
                         },
-                        { timeout: 5000 }
+                        { timeout: 5000, enableHighAccuracy: true }
                     );
                 } else {
                     initLeafletMap(selectedLat, selectedLng);
@@ -670,7 +676,7 @@
     }
 
     function initLeafletMap(lat, lng) {
-        map = L.map('leafletMap').setView([lat, lng], 15);
+        map = L.map('leafletMap').setView([lat, lng], 16);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap'
         }).addTo(map);
@@ -690,14 +696,38 @@
         });
     }
 
+    /* دالة احترافية لجلب موقع الزبون الحالي عبر GPS الجهاز وتحديث الخريطة فوراً */
+    function panToCurrentLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    selectedLat = position.coords.latitude;
+                    selectedLng = position.coords.longitude;
+                    if (map && marker) {
+                        map.setView([selectedLat, selectedLng], 17);
+                        marker.setLatLng([selectedLat, selectedLng]);
+                    }
+                    alert("تم تحديد موقعك بدقة عالية بنجاح! 🎯");
+                },
+                (error) => {
+                    alert("تعذر تحديد الموقع تلقائياً، يرجى التأكد من تفعيل خدمة الـ GPS في هاتفك.");
+                },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        } else {
+            alert("متصفحك لا يدعم خاصية تحديد الموقع الجغرافي.");
+        }
+    }
+
     function closeMapModal() {
         document.getElementById('mapModal').style.display = 'none';
     }
 
     function confirmMapLocation() {
-        let mapsUrl = `https://maps.google.com/?q=${selectedLat},${selectedLng}`;
+        // رابط توجيه مباشر للسائق (Turn-by-turn navigation) ليفتح خرائط جوجل مباشرة ويوجهه لباب الزبون بدقة
+        let mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${selectedLat},${selectedLng}`;
         document.getElementById('customerGpsLocation').value = mapsUrl;
-        document.getElementById('selectedLocationText').innerText = `✅ تم تحديد وتثبيت موقعك على الخريطة بنجاح`;
+        document.getElementById('selectedLocationText').innerText = `✅ تم اعتماد إحداثيات موقعك بدقة عالية للسائق`;
         closeMapModal();
     }
 
