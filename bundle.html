@@ -243,7 +243,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";[cite: 1]
+        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";[cite: 1]
 
         const firebaseConfig = {
             apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
@@ -262,9 +262,9 @@
         let bundlesList = [];
         let editingId = null;
 
-        async function initBundlePage() {
+        function initBundlePage() {
             try {
-                // 1. محاولة تحميل المنتجات فورا من الذاكرة المحلية (localStorage) للسرعة الفائقة
+                // 1. التحميل الفوري من الذاكرة المحلية لسرعة العرض دون انتظار
                 const cachedProducts = localStorage.getItem('aloroba_products_cache');
                 if (cachedProducts) {
                     products = JSON.parse(cachedProducts);
@@ -274,29 +274,34 @@
                     document.getElementById('mainContent').style.display = 'block';
                 }
 
-                // 2. جلب المنتجات في الخلفية وتحديث التخزين المحلي لضمان دقة البيانات
-                const prodSnap = await getDocs(collection(db, "products"));
-                products = [];
-                prodSnap.forEach(docSnap => {
-                    products.push({ id: docSnap.id, ...docSnap.data() });
-                });
-                
-                // حفظ التحديث الجديد في ذاكرة المتصفح
-                localStorage.setItem('aloroba_products_cache', JSON.stringify(products));
+                // 2. المزامنة الذكية والحية مع سحابة Firebase في الخلفية (الأمان والدقة)
+                onSnapshot(collection(db, "products"), (prodSnap) => {
+                    products = [];
+                    prodSnap.forEach(docSnap => {
+                        products.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    
+                    // تحديث الكاش المحلي تلقائياً بأحدث البيانات
+                    localStorage.setItem('aloroba_products_cache', JSON.stringify(products));
 
-                renderProductsList();
-                filterProducts();
-                document.getElementById('loadingMsg').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'block';
+                    renderProductsList();
+                    filterProducts();
+                    document.getElementById('loadingMsg').style.display = 'none';
+                    document.getElementById('mainContent').style.display = 'block';
+                }, (error) => {
+                    console.error("خطأ في مزامنة المنتجات:", error);
+                    if(products.length === 0) {
+                        document.getElementById('loadingMsg').innerText = "حدث خطأ أثناء الاتصال بقاعدة البيانات.";
+                    }
+                });
 
                 // جلب العروض الحالية
                 fetchBundles();
 
             } catch (error) {
-                console.error("خطأ في جلب البيانات:", error);
-                // إذا حدث خطأ وتم جلب البيانات مسبقاً من التخزين المحلي، استمر في العمل بشكل طبيعي
+                console.error("خطأ في النظام:", error);
                 if(products.length === 0) {
-                    document.getElementById('loadingMsg').innerText = "حدث خطأ أثناء الاتصال بقاعدة البيانات.";
+                    document.getElementById('loadingMsg').innerText = "حدث خطأ أثناء تحميل الصفحة.";
                 }
             }
         }
