@@ -12,8 +12,8 @@
     
     <style>
         :root {
-            --primary-green: #22c55e; /* تم التحديث إلى أخضر فاتح وزاهي */
-            --accent-green: #16a34a;  /* تم التحديث ليتناسب مع الدرجة الزاهية */
+            --primary-green: #10b981; /* درجة أخضر متناسقة وطبيعية مطابقة لهوية الشعار */
+            --accent-green: #059669;  /* درجة أخضر غنية للزر والأيقونات */
             --light-bg: #f4f6f5;
             --border-color: #eaeaea;
         }
@@ -40,7 +40,7 @@
 
         /* البانر المتحرك */
         .banner-slider { padding: 0 15px; margin-bottom: 15px; }
-        .banner-card { background: #22c55e; color: white; border-radius: 16px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .banner-card { background: var(--primary-green); color: white; border-radius: 16px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
         .banner-text h2 { font-size: 1rem; font-weight: 900; margin-bottom: 4px; }
         .banner-text p { font-size: 0.8rem; font-weight: 600; opacity: 0.95; }
         .banner-img { width: 60px; height: 60px; object-fit: contain; background: white; border-radius: 50%; padding: 3px; }
@@ -205,7 +205,7 @@
 <div id="splashScreen" style="position: fixed; inset: 0; background: #ffffff; display: flex; align-items: center; justify-content: center; z-index: 9999; max-width: 480px; margin: 0 auto; transition: opacity 0.5s ease;">
     <div style="background: white; padding: 30px; border-radius: 30px; text-align: center;">
         <img src="logo.png" class="dancing-logo" style="width: 160px; height: 160px; object-fit: contain; border-radius: 20px;" alt="شعار العروبة أونلاين">
-        <div style="font-size: 0.9rem; font-weight: 800; color: #22c55e; margin-top: 15px;">العروبة أونلاين - جاري تجهيز السوبر ماركت... 🛒</div>
+        <div style="font-size: 0.9rem; font-weight: 800; color: var(--primary-green); margin-top: 15px;">العروبة أونلاين - جاري تجهيز السوبر ماركت... 🛒</div>
     </div>
 </div>
 
@@ -419,7 +419,6 @@
     let initialHash = decodeURIComponent(window.location.hash.replace('#', ''));
     let currentCategory = initialHash ? initialHash : "الكل";
 
-    // حد أقصى لأمان شاشة الترحيب (4 ثوانٍ كحد أعلى لكي لا تعلق أبداً)
     let splashTimeout = setTimeout(() => {
         hideSplashScreen();
     }, 4000);
@@ -496,7 +495,6 @@
             requestAnimationFrame(() => {
                 renderMainStoreContent();
             });
-            // إخفاء شاشة الترحيب فوراً لو توفرت البيانات محلياً بسلاسة
             clearTimeout(splashTimeout);
             hideSplashScreen();
         }
@@ -552,7 +550,6 @@
             });
             updateCartStateUI();
 
-            // بمجرد وصول البيانات من السحابة، نخفي شاشة الترحيب بسلاسة تامة
             clearTimeout(splashTimeout);
             hideSplashScreen();
         });
@@ -813,7 +810,7 @@
     function triggerCategoryLoadingAndRender() {
         const container = document.getElementById('storeMainContent');
         document.getElementById('loadMoreIndicator').style.display = 'none';
-        container.innerHTML = `<div style="text-align: center; padding: 45px; font-size: 0.85rem; color: #22c55e; font-weight: 800;">جاري تحميل منتجات القسم... ⏳</div>`;
+        container.innerHTML = `<div style="text-align: center; padding: 45px; font-size: 0.85rem; color: var(--primary-green); font-weight: 800;">جاري تحميل منتجات القسم... ⏳</div>`;
         
         setTimeout(() => {
             requestAnimationFrame(() => { renderMainStoreContent(); });
@@ -1199,4 +1196,4 @@
     }
 </script>
 </body>
-    </html>
+</html>
