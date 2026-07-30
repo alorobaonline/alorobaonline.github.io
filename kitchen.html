@@ -199,7 +199,8 @@
         const container = document.getElementById('kitchenOrdersList');
         if(!container) return;
 
-        const activeOrders = orders.filter(o => o.status !== "مكتمل");
+        // إظهار الطلبات الجديدة فقط (التي لم يتم تجهيزها بعد وليست مكتملة أو جاهزة للتوصيل)[cite: 8]
+        const activeOrders = orders.filter(o => !o.status || o.status === "جديد" || o.status === "new");
 
         if(activeOrders.length === 0) {
             container.innerHTML = '<div style="background: white; border-radius: 16px; padding: 30px; text-align: center; font-size: 0.9rem; color: #666; box-shadow: var(--shadow-card);">🎉 لا توجد طلبات جديدة معلقة حالياً!</div>';
@@ -260,7 +261,7 @@
                         <div class="total-price">المجموع: ${ord.total || 0} ₪</div>
                         <div style="display: flex; gap: 8px;">
                             <a href="tel:${ord.customerPhone}" class="btn-call">📞 اتصال</a>
-                            <button class="btn-action" onclick="completeOrder('${ord.id}')">إنجاز الطلب ✓</button>
+                            <button class="btn-action" onclick="markOrderReady('${ord.id}')">تجهيز وإرسال للسائق 🚚</button>
                         </div>
                     </div>
                 </div>
@@ -282,10 +283,12 @@
         }
     }
 
-    async function completeOrder(orderId) {
-        if(confirm("هل أنت متأكد من إنجاز هذا الطلب ونقله للأرشيف؟")) {
+    async function markOrderReady(orderId) {
+        if(confirm("هل أنت متأكد من تجهيز الطلب وإرساله إلى السائق؟")) {
             try {
-                await window.updateDoc(window.doc(window.db, "orders", orderId), { status: "مكتمل" });
+                // تحديث الحالة إلى "جاهز للتوصيل" لكي تظهر في لوحة السائق ولا تذهب للأرشيف مباشرة[cite: 8]
+                await window.updateDoc(window.doc(window.db, "orders", orderId), { status: "جاهز للتوصيل" });
+                alert("تم إرسال الطلب إلى السائق بنجاح! 🚚");
             } catch(e) {
                 alert("حدث خطأ أثناء تحديث حالة الطلب");
             }
