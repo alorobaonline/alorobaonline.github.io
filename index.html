@@ -270,7 +270,7 @@
             <button onclick="closeCartModal()" style="background:none; border:none; font-size: 1rem; cursor:pointer;">✕</button>
         </div>
         
-        <div id="cartItemsList" style="max-height: 110px; overflow-y: auto; margin-bottom: 8px;"></div>
+        <div id="cartItemsList" style="max-height: 150px; overflow-y: auto; margin-bottom: 8px;"></div>
         
         <!-- الحساب المالي الشفاف -->
         <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 8px; border-radius: 8px; margin-bottom: 10px; font-size: 0.75rem;">
@@ -847,6 +847,10 @@
         saveCartToLocalStorage();
         updateCartStateUI();
         updateProductCardDOM(prodId);
+        // تحديث محتوى نافذة السلة مباشرة إذا كانت مفتوحة
+        if(document.getElementById('cartModal').style.display === 'flex') {
+            renderCartModalItems();
+        }
     }
 
     function decreaseCartQty(prodId) {
@@ -861,6 +865,23 @@
         saveCartToLocalStorage();
         updateCartStateUI();
         updateProductCardDOM(prodId);
+        if(document.getElementById('cartModal').style.display === 'flex') {
+            renderCartModalItems();
+        }
+    }
+
+    // دالة حذف منتج بالكامل من السلة عبر زر الحذف المخصص
+    function removeCartItemCompletely(prodId) {
+        cart = cart.filter(item => item.id != prodId);
+        saveCartToLocalStorage();
+        updateCartStateUI();
+        updateProductCardDOM(prodId);
+        
+        if(cart.length === 0) {
+            closeCartModal();
+        } else {
+            renderCartModalItems();
+        }
     }
 
     function updateProductCardDOM(prodId) {
@@ -892,6 +913,12 @@
             return;
         }
         loadUserProfileData();
+        renderCartModalItems();
+        document.getElementById('cartModal').style.display = 'flex';
+    }
+
+    // دالة عرض وتحديث محتوى العناصر داخل نافذة السلة مع أزرار الحذف
+    function renderCartModalItems() {
         let listContainer = document.getElementById('cartItemsList');
         listContainer.innerHTML = '';
         
@@ -900,9 +927,13 @@
             let itemTotal = item.price * item.quantity;
             subtotal += itemTotal;
             listContainer.innerHTML += `
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; margin-bottom: 5px; background: #f8fafc; padding: 5px; border-radius: 6px;">
-                    <span>${item.name} (${item.quantity})</span>
-                    <span><b>${itemTotal.toFixed(2)} ₪</b></span>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; margin-bottom: 6px; background: #f8fafc; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 6px; overflow: hidden;">
+                        <button onclick='removeCartItemCompletely("${item.id}")' style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; font-weight: bold; padding: 0;" title="حذف المنتج">🗑️</button>
+                        <span style="font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">${item.name}</span>
+                        <span style="color: #64748b;">(الكمية: ${item.quantity})</span>
+                    </div>
+                    <span style="font-weight: bold; color: var(--primary-green); white-space: nowrap;">${itemTotal.toFixed(2)} ₪</span>
                 </div>
             `;
         });
@@ -911,8 +942,6 @@
         document.getElementById('cartSubtotalText').innerText = subtotal.toFixed(2) + " ₪";
         document.getElementById('deliveryFeeText').innerText = FIXED_DELIVERY_FEE.toFixed(2) + " ₪";
         document.getElementById('cartFinalTotalText').innerText = finalTotal.toFixed(2) + " ₪";
-
-        document.getElementById('cartModal').style.display = 'flex';
     }
 
     function closeCartModal() {
