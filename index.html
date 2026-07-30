@@ -232,7 +232,7 @@
                 <h2 id="bannerTitle">أهلاً بك في متجرنا</h2>
                 <p>تسوّق أفضل المنتجات الطازجة</p>
             </div>
-            <img src="logo.png" class="banner-img" id="bannerImg" onerror="this.src='logo.png'">
+            <img src="logo.png" class="banner-img" id="bannerImg" onerror="this.onerror=null; this.src='logo.png';">
         </div>
     </div>
 
@@ -261,7 +261,7 @@
             <h3 id="zoomImageTitle" style="font-size: 0.9rem; font-weight: 900; color: var(--primary-green);"></h3>
             <button onclick="closeImageModal()" style="background:none; border:none; font-size: 1.1rem; cursor:pointer; font-weight: 900;">✕</button>
         </div>
-        <img id="zoomImageSrc" src="" alt="صورة المنتج" onerror="this.src='logo.png'">
+        <img id="zoomImageSrc" src="" alt="صورة المنتج" onerror="this.onerror=null; this.src='logo.png';">
     </div>
 </div>
 
@@ -410,9 +410,7 @@
     const FIXED_DELIVERY_FEE = 10.00;
     let appliedDiscount = 0;
 
-    // البدء بعرض فئتين على الأقل في البداية لضمان وضوح المحتوى للمستخدم
     let visibleSectionsLimit = 2;
-
     let map = null;
     let marker = null;
     let selectedLat = 31.3916; 
@@ -421,10 +419,18 @@
     let initialHash = decodeURIComponent(window.location.hash.replace('#', ''));
     let currentCategory = initialHash ? initialHash : "الكل";
 
-    // شاشة الترحيب تبقى لمدة 3 ثوانٍ كاملة
-    setTimeout(() => {
+    // حد أقصى لأمان شاشة الترحيب (4 ثوانٍ كحد أعلى لكي لا تعلق أبداً)
+    let splashTimeout = setTimeout(() => {
         hideSplashScreen();
-    }, 3000);
+    }, 4000);
+
+    function hideSplashScreen() {
+        const splash = document.getElementById('splashScreen');
+        if (splash && splash.style.display !== 'none') {
+            splash.style.opacity = '0';
+            setTimeout(() => { splash.style.display = 'none'; }, 500);
+        }
+    }
 
     window.addEventListener('hashchange', () => {
         let hash = decodeURIComponent(window.location.hash.replace('#', ''));
@@ -434,7 +440,6 @@
         triggerCategoryLoadingAndRender();
     });
 
-    // مراقبة التمرير للأسفل لتحميل فئة إضافية تلقائياً
     window.addEventListener('scroll', () => {
         if (currentCategory === "الكل" && document.getElementById('searchInput').value.trim() === "") {
             if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 250) {
@@ -456,14 +461,6 @@
             }
         }
     });
-
-    function hideSplashScreen() {
-        const splash = document.getElementById('splashScreen');
-        if (splash && splash.style.display !== 'none') {
-            splash.style.opacity = '0';
-            setTimeout(() => { splash.style.display = 'none'; }, 500);
-        }
-    }
 
     function sortProducts() {
         products.sort((a, b) => {
@@ -499,6 +496,9 @@
             requestAnimationFrame(() => {
                 renderMainStoreContent();
             });
+            // إخفاء شاشة الترحيب فوراً لو توفرت البيانات محلياً بسلاسة
+            clearTimeout(splashTimeout);
+            hideSplashScreen();
         }
     }
 
@@ -546,10 +546,15 @@
             });
             sortProducts(); 
             localStorage.setItem('aloroba_cached_products', JSON.stringify(products));
+            
             requestAnimationFrame(() => {
                 renderMainStoreContent();
             });
             updateCartStateUI();
+
+            // بمجرد وصول البيانات من السحابة، نخفي شاشة الترحيب بسلاسة تامة
+            clearTimeout(splashTimeout);
+            hideSplashScreen();
         });
 
         window.onSnapshot(window.collection(window.db, "categories"), (catSnap) => {
@@ -621,7 +626,7 @@
     }
 
     function openImageModal(imgUrl, title) {
-        document.getElementById('zoomImageSrc').src = imgUrl;
+        document.getElementById('zoomImageSrc').src = imgUrl || 'logo.png';
         document.getElementById('zoomImageTitle').innerText = title;
         document.getElementById('imageModal').style.display = 'flex';
     }
@@ -771,7 +776,13 @@
         let slide = bannerSlides[0];
         document.getElementById('bannerTag').innerText = slide.tag || 'سوبر ماركت العروبة';
         document.getElementById('bannerTitle').innerText = slide.title || 'أهلاً بك';
-        if(slide.img) document.getElementById('bannerImg').src = slide.img;
+        
+        let bannerImgEl = document.getElementById('bannerImg');
+        if(slide.img && slide.img.trim() !== "") {
+            bannerImgEl.src = slide.img;
+        } else {
+            bannerImgEl.src = 'logo.png';
+        }
     }
 
     function renderCategoriesScroll() {
@@ -796,8 +807,6 @@
             window.location.hash = encodeURIComponent(catName);
         }
         renderCategoriesScroll();
-        
-        // إظهار مؤشر تحميل خفيف وسريع لحظة الضغط لتجنب أي ضغط أو تعليق
         triggerCategoryLoadingAndRender();
     }
 
@@ -828,7 +837,6 @@
         let query = document.getElementById('searchInput').value.trim().toLowerCase();
         let htmlParts = [];
 
-        // إذا كان هناك بحث أو اختيار فئة معينة، اعرض شبكة المنتجات العادية بسلاسة
         if(query !== "" || currentCategory !== "الكل") {
             document.getElementById('loadMoreIndicator').style.display = 'none';
             let filtered = products.filter(p => {
@@ -848,7 +856,6 @@
             return;
         }
 
-        // تجميع الفئات والأقسام المتاحة للرئيسية
         let sectionsList = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection].filter(Boolean);
         categories.forEach(cat => {
             if(cat.name !== "الكل" && !sectionsList.includes(cat.name)) {
@@ -856,7 +863,6 @@
             }
         });
 
-        // تصفية الفئات التي تحتوي على منتجات فعلياً لضمان ظهور فئتين على الأقل
         let nonEmpSections = sectionsList.filter(secName => {
             return products.some(p => productBelongsToCategory(p, secName));
         });
@@ -902,7 +908,7 @@
             <div class="product-card" data-product-id="${p.id}">
                 <div>
                     <div class="product-img-box" onclick='openImageModal("${p.img}", "${p.name}")'>
-                        <img src="${p.img}" class="product-img" loading="lazy" onerror="this.src='logo.png'">
+                        <img src="${p.img || 'logo.png'}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
                     </div>
                     <div class="product-name">${p.name}</div>
                     <div class="product-weight">${p.weight || 'حبة'}</div>
@@ -1036,7 +1042,7 @@
             listContainer.innerHTML += `
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; background: #f8fafc; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border-color);">
                     <div style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
-                        <img src="${item.img || 'logo.png'}" style="width: 40px; height: 40px; object-fit: contain; background: white; border-radius: 6px; border: 1px solid #eee;" onerror="this.src='logo.png'">
+                        <img src="${item.img || 'logo.png'}" style="width: 40px; height: 40px; object-fit: contain; background: white; border-radius: 6px; border: 1px solid #eee;" onerror="this.onerror=null; this.src='logo.png';">
                         <div>
                             <div style="font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">${item.name}</div>
                             <div style="color: #64748b; font-size: 0.7rem; font-weight: 600;">الكمية: ${item.quantity} × ${item.price.toFixed(2)} ₪</div>
