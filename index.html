@@ -12,8 +12,8 @@
     
     <style>
         :root {
-            --primary-green: #609b15; /* درجة أخضر مخففة الإضاءة وأكثر هدوءاً */
-            --accent-green: #4e8010;  /* درجة أخضر غنية ومتناسقة للزر والأيقونات */
+            --primary-green: #609b15;
+            --accent-green: #4e8010;
             --light-bg: #f4f6f5;
             --border-color: #eaeaea;
         }
@@ -301,7 +301,7 @@
     </div>
 </div>
 
-<!-- نافذة السلة والدفع -->
+<!-- نافذة السلة والدفع (مرتبة على 3 خطوات متسلسلة) -->
 <div class="cart-modal" id="cartModal">
     <div class="cart-modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -309,20 +309,19 @@
             <button onclick="closeCartModal()" style="background:none; border:none; font-size: 1.1rem; cursor:pointer; font-weight: 900;">✕</button>
         </div>
         
-        <!-- الخطوة الأولى -->
+        <!-- الخطوة 1: مراجعة المنتجات -->
         <div id="cartStep1">
             <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 8px;">تأكد من المنتجات والكميات المطلوبة:</div>
             <div id="cartItemsWithImagesList" style="max-height: 260px; overflow-y: auto; margin-bottom: 12px;"></div>
-            <button class="btn-main" onclick="goToPaymentStep()">إتمام الدفع ➡️</button>
+            <button class="btn-main" onclick="goToStep2()">التالي: الاستلام والبيانات ➡️</button>
         </div>
 
-        <!-- الخطوة الثانية (مُرتبة حسب الترتيب الجديد: طريقة الاستلام، البيانات الشخصية والموقع، طريقة الدفع، الكوبون، المجموع الكلي مع التوصيل والكوبون) -->
+        <!-- الخطوة 2: قسم الاستلام والبيانات -->
         <div id="cartStep2" style="display: none;">
-            <div style="font-size: 0.8rem; margin-bottom: 10px; cursor: pointer; color: var(--primary-green); font-weight: 800;" onclick="backToCartStep1()">← عودة لمراجعة المنتجات</div>
+            <div style="font-size: 0.8rem; margin-bottom: 8px; cursor: pointer; color: var(--primary-green); font-weight: 800;" onclick="goToStep1()">← عودة لمراجعة المنتجات</div>
             
-            <!-- 1. طريقة الاستلام -->
-            <label class="price-text" style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">طريقة الاستلام:</label>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
+            <label class="price-text" style="font-size: 0.85rem; font-weight: 900; display: block; margin-bottom: 6px;">طريقة الاستلام:</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px;">
                 <label style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 700; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
                     <input type="radio" name="fulfillmentType" value="توصيل" checked onchange="toggleFulfillmentType()"> توصيل
                 </label>
@@ -331,12 +330,11 @@
                 </label>
             </div>
 
-            <!-- 2. البيانات الشخصية والبيانات مع الموقع -->
-            <label class="price-text" style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">البيانات الشخصية مع الموقع:</label>
+            <label class="price-text" style="font-size: 0.85rem; font-weight: 900; display: block; margin-bottom: 6px;">البيانات الشخصية مع الموقع:</label>
             <div id="deliveryDetailsContainer">
                 <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم">
                 <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف (05xxxxxxxx)">
-                <button type="button" onclick="openMapModal()" style="width: 100%; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 8px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                <button type="button" onclick="openMapModal()" style="width: 100%; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 8px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 5px;">
                     📍 اختر موقعك بدقة على الخريطة 🗺️
                 </button>
                 <input type="hidden" id="customerGpsLocation" value="">
@@ -348,45 +346,47 @@
                 <input type="text" id="customerBuilding" class="form-control" placeholder="رقم العمارة / الطابق / رقم الشقة">
             </div>
 
-            <!-- 3. طريقة الدفع -->
-            <label class="price-text" style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">طريقة الدفع:</label>
-            <select id="paymentMethodSelect" class="form-control">
+            <button class="btn-main" onclick="goToStep3()">التالي: الدفع والكوبون ➡️</button>
+        </div>
+
+        <!-- الخطوة 3: قسم طريقة الدفع، الكوبون، والمجموع الكلي النهائي لارسال الطلبيه -->
+        <div id="cartStep3" style="display: none;">
+            <div style="font-size: 0.8rem; margin-bottom: 8px; cursor: pointer; color: var(--primary-green); font-weight: 800;" onclick="goToStep2()">← عودة للاستلام والبيانات</div>
+            
+            <label class="price-text" style="font-size: 0.85rem; font-weight: 900; display: block; margin-bottom: 6px;">طريقة الدفع:</label>
+            <select id="paymentMethodSelect" class="form-control" style="margin-bottom: 12px;">
                 <option value="موزمان">موزمان</option>
                 <option value="اشراي">اشراي</option>
                 <option value="نقداً عند الاستلام">نقداً عند الاستلام</option>
             </select>
 
-            <!-- 4. كوبون -->
-            <label class="price-text" style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">كوبون:</label>
-            <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+            <label class="price-text" style="font-size: 0.85rem; font-weight: 900; display: block; margin-bottom: 6px;">كوبون:</label>
+            <div style="display: flex; gap: 6px; margin-bottom: 12px;">
                 <input type="text" id="couponInput" class="form-control" placeholder="ادخل كود الكوبون" style="margin-bottom: 0;">
-                <button type="button" onclick="applyCoupon()" style="background: var(--accent-green); color: white; border: none; padding: 0 12px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer;">تطبيق</button>
+                <button type="button" onclick="applyCoupon()" style="background: var(--accent-green); color: white; border: none; padding: 0 14px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer;">تطبيق</button>
             </div>
-            <div id="couponMsg" style="font-size: 0.7rem; font-weight: 700; margin-bottom: 6px;"></div>
+            <div id="couponMsg" style="font-size: 0.7rem; font-weight: 700; margin-bottom: 8px;"></div>
 
-            <!-- 5. المجموع الكلي مع إظهار سعر التوصيل والكوبون -->
-            <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; font-weight: 600;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 0.8rem; font-weight: 600;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
                     <span>مجموع المنتجات:</span>
                     <span id="cartSubtotalText">0.00 ₪</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;" id="deliveryFeeRow">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;" id="deliveryFeeRow">
                     <span>سعر التوصيل:</span>
                     <span id="deliveryFeeText" style="font-weight: 800; color: var(--accent-green);">10.00 ₪</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #ef4444; display: none;" id="couponDiscountRow">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #ef4444; display: none;" id="couponDiscountRow">
                     <span>خصم الكوبون:</span>
                     <span id="couponDiscountText">-0.00 ₪</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-weight: 900; border-top: 1px solid #e2e8f0; padding-top: 6px; color: var(--primary-green); font-size: 0.85rem;">
-                    <span>المجموع الكلي:</span>
+                <div style="display: flex; justify-content: space-between; font-weight: 900; border-top: 1px solid #e2e8f0; padding-top: 8px; color: var(--primary-green); font-size: 0.9rem;">
+                    <span>المجموع الكلي النهائي:</span>
                     <span id="cartFinalTotalText">0.00 ₪</span>
                 </div>
             </div>
 
-            <div>
-                <button class="btn-main" onclick="submitOrder()" style="background: var(--accent-green); font-size: 0.95rem;">دفع 💳</button>
-            </div>
+            <button class="btn-main" onclick="submitOrder()" style="background: var(--accent-green); font-size: 0.95rem;">إرسال الطلبية والدفع 💳🚀</button>
         </div>
     </div>
 </div>
@@ -1029,10 +1029,7 @@
             return;
         }
         loadUserProfileData();
-        document.getElementById('cartStep1').style.display = 'block';
-        document.getElementById('cartStep2').style.display = 'none';
-        document.getElementById('cartModalTitle').innerText = '🛒 مراجعة السلة والمنتجات';
-        renderCartModalProducts();
+        goToStep1();
         document.getElementById('cartModal').style.display = 'flex';
     }
 
@@ -1060,17 +1057,42 @@
         });
     }
 
-    function goToPaymentStep() {
-        document.getElementById('cartStep1').style.display = 'none';
-        document.getElementById('cartStep2').style.display = 'block';
-        document.getElementById('cartModalTitle').innerText = '💳 إتمام الدفع والتفاصيل';
-        updateFinancialSummary();
+    function goToStep1() {
+        document.getElementById('cartStep1').style.display = 'block';
+        document.getElementById('cartStep2').style.display = 'none';
+        document.getElementById('cartStep3').style.display = 'none';
+        document.getElementById('cartModalTitle').innerText = '🛒 مراجعة السلة والمنتجات';
+        renderCartModalProducts();
     }
 
-    function backToCartStep1() {
+    function goToStep2() {
+        document.getElementById('cartStep1').style.display = 'none';
+        document.getElementById('cartStep2').style.display = 'block';
+        document.getElementById('cartStep3').style.display = 'none';
+        document.getElementById('cartModalTitle').innerText = '📍 الاستلام والبيانات الشخصية';
+    }
+
+    function goToStep3() {
+        let type = document.querySelector('input[name="fulfillmentType"]:checked').value;
+        const name = document.getElementById('customerName').value.trim();
+        const phone = document.getElementById('customerPhone').value.trim();
+        const city = document.getElementById('customerCity').value.trim();
+        const street = document.getElementById('customerStreet').value.trim();
+
+        if(type === 'توصيل' && (!name || !phone || !city || !street)) {
+            alert("الرجاء إكمال بيانات التوصيل الأساسية (الاسم، الهاتف، المدينة، والشارع).");
+            return;
+        }
+        if(type === 'استلام ذاتي' && (!name || !phone)) {
+            alert("الرجاء إدخال الاسم ورقم الهاتف للاستلام الذاتي.");
+            return;
+        }
+
+        document.getElementById('cartStep1').style.display = 'none';
         document.getElementById('cartStep2').style.display = 'none';
-        document.getElementById('cartStep1').style.display = 'block';
-        document.getElementById('cartModalTitle').innerText = '🛒 مراجعة السلة والمنتجات';
+        document.getElementById('cartStep3').style.display = 'block';
+        document.getElementById('cartModalTitle').innerText = '💳 طريقة الدفع مع الكوبون والمجموع الكلي';
+        updateFinancialSummary();
     }
 
     function toggleFulfillmentType() {
@@ -1141,15 +1163,6 @@
         const building = document.getElementById('customerBuilding').value.trim();
         const gpsUrl = document.getElementById('customerGpsLocation').value.trim();
         const paymentMethod = document.getElementById('paymentMethodSelect').value;
-
-        if(type === 'توصيل' && (!name || !phone || !city || !street)) {
-            alert("الرجاء إكمال بيانات التوصيل الأساسية (الاسم، الهاتف، المدينة، والشارع) قبل الدفع.");
-            return;
-        }
-        if(type === 'استلام ذاتي' && (!name || !phone)) {
-            alert("الرجاء إدخال الاسم ورقم الهاتف للاستلام الذاتي.");
-            return;
-        }
 
         if(type === 'توصيل') {
             localStorage.setItem('aloroba_user_name', name);
