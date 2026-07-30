@@ -203,17 +203,6 @@
         </div>
     </div>
 
-    <!-- 1. إدارة الطلبات الواردة -->
-    <div class="section-box">
-        <div class="section-header-toggle" onclick="toggleSection('ordersSectionContent', this)">
-            <span>📦 طلبات الزبائن الواردة (<span id="ordersCountTitle">0</span>)</span>
-            <span class="toggle-arrow">▼</span>
-        </div>
-        <div class="section-content" id="ordersSectionContent">
-            <div id="adminOrdersList" style="margin-top: 8px; max-height: 300px; overflow-y: auto;"></div>
-        </div>
-    </div>
-
     <!-- أرشيف الطلبات المكتملة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('archiveSectionContent', this)">
@@ -1411,56 +1400,12 @@
     }
 
     function renderAdminOrders() {
-        const container = document.getElementById('adminOrdersList');
         const archiveContainer = document.getElementById('adminArchiveList');
-        if(!container || !archiveContainer) return;
+        if(!archiveContainer) return;
 
-        // الطلبات النشطة هي التي لم يتم تسليمها أو إكماتها
-        const activeOrders = orders.filter(o => o.status !== "مكتمل" && o.status !== "delivered");
-        // الأرشيف يشمل الطلبات المسلمة من السائق (delivered) أو المكتملة يدوياً (مكتمل)
         const archivedOrders = orders.filter(o => o.status === "مكتمل" || o.status === "delivered");
-
-        document.getElementById('ordersCountTitle').innerText = activeOrders.length;
         document.getElementById('archiveCountTitle').innerText = archivedOrders.length;
-        document.getElementById('newOrdersCountBadge').innerText = activeOrders.filter(o => !o.status || o.status === "جديد" || o.status === "new").length;
-
-        if(activeOrders.length === 0) {
-            container.innerHTML = '<p style="color: #666; text-align: center; font-size: 0.75rem;">لا توجد طلبات واردة حالياً.</p>';
-        } else {
-            let html = "";
-            activeOrders.forEach((ord, index) => {
-                let itemsStr = "";
-                if(ord.items) {
-                    ord.items.forEach(it => {
-                        itemsStr += `▪️ ${it.name} (${it.price} ₪)<br>`;
-                    });
-                }
-                
-                let statusBadge = ord.status || 'جديد';
-                if(statusBadge === 'preparing') statusBadge = 'قيد التحضير (المطبخ)';
-                if(statusBadge === 'ready') statusBadge = 'جاهز للتوصيل (السائق)';
-
-                html += `
-                    <div class="order-card">
-                        <div class="order-header">
-                            <span>طلب #${ord.id || (index+1)}</span>
-                            <span style="color: #d97706;">${statusBadge}</span>
-                        </div>
-                        <div><b>الزبون:</b> ${ord.customerName}</div>
-                        <div><b>الهاتف:</b> ${ord.customerPhone}</div>
-                        <div><b>العنوان:</b> ${ord.customerAddress || ord.address || ''}</div>
-                        <div style="margin: 4px 0;"><b>المنتجات:<br></b> ${itemsStr}</div>
-                        <div style="font-weight: bold;">المجموع: ${ord.total || 0} ₪</div>
-                        <div class="order-action-btns">
-                            <a href="tel:${ord.customerPhone}" class="btn-call">📞 اتصال</a>
-                            <button class="btn-status" onclick="updateOrderStatus('${ord.id}', 'مكتمل')">تم ✓ (أرشيف)</button>
-                            <button class="btn-delete" onclick="deleteOrder('${ord.id}')">حذف ✕</button>
-                        </div>
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
-        }
+        document.getElementById('newOrdersCountBadge').innerText = orders.filter(o => !o.status || o.status === "جديد" || o.status === "new").length;
 
         if(archivedOrders.length === 0) {
             archiveContainer.innerHTML = '<p style="color: #666; text-align: center; font-size: 0.75rem; padding: 10px;">الأرشيف فارغ.</p>';
