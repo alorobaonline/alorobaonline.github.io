@@ -298,28 +298,6 @@
     <!-- الأقسام الدائرية -->
     <div class="categories-scroll" id="categoriesScrollContainer"></div>
 
-    <!-- قسم عروض الباقات للزبائن (Mix & Match) -->
-    <div id="bundleOfferSection" style="display: none; background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 15px; margin: 0 15px 15px 15px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <h3 style="font-size: 0.85rem; color: var(--primary-green); font-weight: 900;">🎁 عروض الباقات المميزة (Mix & Match)</h3>
-            <span id="bundlePriceBadge" style="background: #e6f4ea; color: var(--primary-green); padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800;"></span>
-        </div>
-        <p id="bundleInstruction" style="font-size: 0.75rem; color: #64748b; margin-bottom: 10px; font-weight: 600;"></p>
-        
-        <div id="customerBundleProducts" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-height: 200px; overflow-y: auto; margin-bottom: 10px; border: 1px solid var(--border-color); padding: 8px; border-radius: 8px; background: #fafafa;">
-            <!-- يتم تعبئتها برمجياً -->
-        </div>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; font-weight: 800; margin-bottom: 8px;">
-            <span id="bundleCounterText">تم اختيار: 0 من 0</span>
-            <span id="bundleTotalPriceText" style="color: var(--primary-green);">التكلفة: 0.00 ₪</span>
-        </div>
-
-        <button id="addBundleCartBtn" onclick="addBundleToCart()" style="width: 100%; background: var(--primary-green); color: white; border: none; padding: 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 900; cursor: pointer; opacity: 0.5;" disabled>
-            أضف الباقة إلى السلة 🛒
-        </button>
-    </div>
-
     <!-- المحتوى الرئيسي -->
     <div id="storeMainContent"></div>
     
@@ -628,7 +606,6 @@
         loadCachedData(); 
 
         await loadStaticSettingsFromCloud();
-        await initCustomerBundleOffer();
         initRealtimeListeners(); 
         updateCartStateUI(); 
     });
@@ -648,100 +625,6 @@
         } catch(e) {}
     }
 
-    async function initCustomerBundleOffer() {
-        try {
-            const bundleSnap = await window.getDoc(window.doc(window.db, "settings", "bundleOffer"));
-            if (!bundleSnap.exists()) return;
-            
-            bundleConfig = bundleSnap.data();
-            
-            if (!bundleConfig.enabled || !bundleConfig.productIds || bundleConfig.productIds.length === 0) {
-                document.getElementById('bundleOfferSection').style.display = 'none';
-                return;
-            }
-
-            document.getElementById('bundleOfferSection').style.display = 'block';
-            document.getElementById('bundlePriceBadge').innerText = `${bundleConfig.bundlePrice} ₪`;
-            document.getElementById('bundleInstruction').innerText = `اختر ${bundleConfig.targetCount} منتجات من القائمة أدناه بالسعر الثابت المذكور.`;
-
-            const container = document.getElementById('customerBundleProducts');
-            container.innerHTML = '';
-
-            products.forEach(prod => {
-                if (bundleConfig.productIds.includes(prod.id)) {
-                    const isChecked = selectedBundleItems.some(i => i.id === prod.id) ? 'checked' : '';
-                    container.innerHTML += `
-                        <label style="display: flex; align-items: center; gap: 6px; background: #ffffff; padding: 6px 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; border: 1px solid var(--border-color); font-weight: 700;">
-                            <input type="checkbox" value="${prod.id}" data-name="${prod.name || 'منتج'}" ${isChecked} onchange="handleBundleSelection(this)">
-                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #1f2937;">${prod.name || 'بدون اسم'}</span>
-                        </label>
-                    `;
-                }
-            });
-        } catch (error) {
-            console.error("خطأ في تحميل عرض الباقات:", error);
-        }
-    }
-
-    window.handleBundleSelection = function(checkbox) {
-        const productId = checkbox.value;
-        const productName = checkbox.getAttribute('data-name');
-
-        if (checkbox.checked) {
-            if (selectedBundleItems.length >= bundleConfig.targetCount) {
-                alert(`لقد وصلت الحد الأقصى المسموح به وهو ${bundleConfig.targetCount} منتجات.`);
-                checkbox.checked = false;
-                return;
-            }
-            selectedBundleItems.push({ id: productId, name: productName });
-        } else {
-            selectedBundleItems = selectedBundleItems.filter(item => item.id !== productId);
-        }
-
-        const currentCount = selectedBundleItems.length;
-        document.getElementById('bundleCounterText').innerText = `تم اختيار: ${currentCount} من ${bundleConfig.targetCount}`;
-        document.getElementById('bundleTotalPriceText').innerText = `التكلفة: ${bundleConfig.bundlePrice} ₪`;
-
-        const btn = document.getElementById('addBundleCartBtn');
-        if (currentCount === bundleConfig.targetCount) {
-            btn.disabled = false;
-            btn.style.opacity = '1';
-        } else {
-            btn.disabled = true;
-            btn.style.opacity = '0.5';
-        }
-    }
-
-    window.addBundleToCart = function() {
-        if (selectedBundleItems.length !== bundleConfig.targetCount) return;
-
-        const bundleCartItem = {
-            id: 'bundle_' + Date.now(),
-            isBundle: true,
-            name: `باقة توفير (${bundleConfig.targetCount} قطع)`,
-            price: Number(bundleConfig.bundlePrice),
-            items: [...selectedBundleItems],
-            quantity: 1,
-            img: 'logo.png'
-        };
-
-        cart.push(bundleCartItem);
-        saveCartToLocalStorage();
-        updateCartStateUI();
-        alert("تم إضافة الباقة إلى سلة التسوق بنجاح! 🛒");
-        
-        selectedBundleItems = [];
-        document.querySelectorAll('#customerBundleProducts input[type="checkbox"]').forEach(cb => cb.checked = false);
-        document.getElementById('bundleCounterText').innerText = `تم اختيار: 0 من ${bundleConfig.targetCount}`;
-        const btn = document.getElementById('addBundleCartBtn');
-        btn.disabled = true;
-        btn.style.opacity = '0.5';
-
-        if(document.getElementById('cartModal').style.display === 'flex') {
-            renderCartModalProducts();
-        }
-    }
-
     function initRealtimeListeners() {
         window.onSnapshot(window.collection(window.db, "products"), (prodSnap) => {
             products = [];
@@ -754,7 +637,6 @@
             requestAnimationFrame(() => {
                 renderMainStoreContent();
             });
-            initCustomerBundleOffer();
             updateCartStateUI();
 
             clearTimeout(splashTimeout);
