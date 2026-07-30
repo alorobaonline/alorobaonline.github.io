@@ -462,13 +462,11 @@
             try { categories = JSON.parse(cachedCats); } catch(e) {}
         }
 
-        if (products.length > 0) {
-            renderCategoriesScroll();
-            requestAnimationFrame(() => {
-                renderMainStoreContent();
-                hideSplashScreen(); 
-            });
-        }
+        renderCategoriesScroll();
+        requestAnimationFrame(() => {
+            renderMainStoreContent();
+            hideSplashScreen(); // إخفاء شاشة الترحيب فوراً اعتماداً على الكاش المحلي دون انتظار السيرفر[cite: 1, 2]
+        });
     }
 
     function loadCartFromLocalStorage() {
@@ -508,6 +506,7 @@
     }
 
     function initRealtimeListeners() {
+        // نقل استعلامات فايربيس للعمل في الخلفية بصمت لتحديث الكاش دون تجميد الواجهة[cite: 1, 2]
         window.onSnapshot(window.collection(window.db, "products"), (prodSnap) => {
             products = [];
             prodSnap.forEach(docSnap => {
@@ -515,9 +514,10 @@
             });
             sortProducts(); 
             localStorage.setItem('aloroba_cached_products', JSON.stringify(products));
+            
             requestAnimationFrame(() => {
                 renderMainStoreContent();
-                hideSplashScreen(); 
+                hideSplashScreen(); // للتأكد من إخفائها حتى في الزيارة الأولى عند جلب بيانات فايربيس
             });
             updateCartStateUI();
         });
@@ -536,7 +536,7 @@
             renderCategoriesScroll();
             requestAnimationFrame(() => {
                 renderMainStoreContent();
-                hideSplashScreen(); 
+                hideSplashScreen();
             });
         });
     }
@@ -1157,4 +1157,4 @@
     }
 </script>
 </body>
-</html>
+    </html>
