@@ -28,6 +28,9 @@
         .order-card { background: white; border: 2px solid #e2e8f0; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: var(--shadow-card); }
         .order-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 10px; font-weight: 900; color: var(--primary-green); font-size: 0.9rem; }
         
+        .timer-badge { background: #fef3c7; color: #d97706; padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 900; display: inline-flex; align-items: center; gap: 4px; direction: ltr; }
+        .clock-badge { background: #f1f5f9; color: #475569; padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 900; display: inline-flex; align-items: center; gap: 4px; }
+
         .customer-info { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; margin-bottom: 10px; font-size: 0.75rem; }
         .customer-info div { margin-bottom: 3px; }
 
@@ -47,7 +50,8 @@
         .order-footer { display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #f1f5f9; padding-top: 10px; margin-top: 10px; }
         .total-price { font-size: 0.95rem; font-weight: 900; color: var(--primary-green); }
         
-        .btn-action { background: var(--accent-green); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+        .btn-action { background: var(--accent-green); color: white; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+        .btn-start { background: #d97706; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
         .btn-call { background: #2563eb; color: white; text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; display: inline-flex; align-items: center; gap: 4px; }
         
         .nav-back { display: block; text-align: center; background: #e5e7eb; color: #374151; padding: 10px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 0.8rem; margin-bottom: 15px; }
@@ -111,6 +115,9 @@
         checkNotificationPermissionUI();
         await loadProductsList();
         initKitchenRealtimeOrders();
+        
+        // تحديث العدادات الزمنية قيد التحضير كل ثانية
+        setInterval(updateOrderTimers, 1000);
     });
 
     function checkNotificationPermissionUI() {
@@ -168,7 +175,8 @@
                 isInitialLoad = false;
                 orders = [];
                 snapshot.forEach(docSnap => {
-                    orders.push({ id: docSnap.id, ...docSnap.data() });
+                    let d = docSnap.data();
+                    orders.push({ id: docSnap.id, ...d });
                 });
                 renderKitchenOrders();
                 return;
@@ -189,21 +197,30 @@
 
             orders = [];
             snapshot.forEach(docSnap => {
-                orders.push({ id: docSnap.id, ...docSnap.data() });
+                let d = docSnap.data();
+                orders.push({ id: docSnap.id, ...d });
             });
             renderKitchenOrders();
         });
+    }
+
+    // تنسيق الوقت لعرض الساعة والدقائق (مثال: 03:35)
+    function formatClockTime(isoString) {
+        if (!isoString) return "--:--";
+        let date = new Date(isoString);
+        let hours = date.getHours().toString().padStart(2, '0');
+        let minutes = date.getMinutes().toString().padStart(2, '0');
+        return `${hours}:${minutes}`;
     }
 
     function renderKitchenOrders() {
         const container = document.getElementById('kitchenOrdersList');
         if(!container) return;
 
-        // إظهار الطلبات الجديدة فقط (التي لم يتم تجهيزها بعد وليست مكتملة أو جاهزة للتوصيل)[cite: 8]
-        const activeOrders = orders.filter(o => !o.status || o.status === "جديد" || o.status === "new");
+        const activeOrders = orders.filter(o => !o.status || o.status === "جديد" || o.status === "قيد التحضير" || o.status === "new");
 
         if(activeOrders.length === 0) {
-            container.innerHTML = '<div style="background: white; border-radius: 16px; padding: 30px; text-align: center; font-size: 0.9rem; color: #666; box-shadow: var(--shadow-card);">🎉 لا توجد طلبات جديدة معلقة حالياً!</div>';
+            container.innerHTML = '<div style="background: white; border-radius: 16px; padding: 30px; text-align: center; font-size: 0.9rem; color: #666; box-shadow: var(--shadow-card);">🎉 لا توجد طلبات معلقة حالياً!</div>';
             return;
         }
 
@@ -239,11 +256,28 @@
                 itemsHtml = '<p style="font-size: 0.75rem; color: #888;">لا توجد تفاصيل للمنتجات</p>';
             }
 
+            let statusText = ord.status || 'جديد';
+            let badgeHtml = "";
+            let actionButtonHtml = "";
+
+            if (!ord.status || ord.status === "جديد" || ord.status === "new") {
+                let orderTime = formatClockTime(ord.createdAt || new Date().toISOString());
+                badgeHtml = `<span class="clock-badge">🕒 وقت الطلب: ${orderTime}</span>`;
+                actionButtonHtml = `<button class="btn-start" onclick="startPreparation('${ord.id}')">ابدأ بالتحضير ⏱️</button>`;
+            } else {
+                let startTime = ord.preparingAt || new Date().toISOString();
+                badgeHtml = `<span class="timer-badge preparing-timer" data-start="${startTime}">⏱️ 00:00:00</span>`;
+                actionButtonHtml = `<button class="btn-action" onclick="markOrderReady('${ord.id}')">إرسال للسائق 🚚</button>`;
+            }
+
             html += `
                 <div class="order-card">
                     <div class="order-header">
                         <span>طلب #${ord.id ? ord.id.substring(0, 6) : (index + 1)}</span>
-                        <span style="font-size: 0.75rem; background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 6px;">${ord.status || 'جديد'}</span>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            ${badgeHtml}
+                            <span style="font-size: 0.75rem; background: ${ord.status === 'قيد التحضير' ? '#fef3c7' : '#dcfce7'}; color: ${ord.status === 'قيد التحضير' ? '#b45309' : '#166534'}; padding: 2px 8px; border-radius: 6px;">${statusText}</span>
+                        </div>
                     </div>
 
                     <div class="customer-info">
@@ -261,7 +295,7 @@
                         <div class="total-price">المجموع: ${ord.total || 0} ₪</div>
                         <div style="display: flex; gap: 8px;">
                             <a href="tel:${ord.customerPhone}" class="btn-call">📞 اتصال</a>
-                            <button class="btn-action" onclick="markOrderReady('${ord.id}')">تجهيز وإرسال للسائق 🚚</button>
+                            ${actionButtonHtml}
                         </div>
                     </div>
                 </div>
@@ -269,6 +303,28 @@
         });
 
         container.innerHTML = html;
+        updateOrderTimers();
+    }
+
+    // تحديث العداد التصاعدي بنظام (ساعات : دقائق : ثواني)
+    function updateOrderTimers() {
+        document.querySelectorAll('.preparing-timer').forEach(badge => {
+            let startStr = badge.getAttribute('data-start');
+            if (startStr) {
+                let startMs = new Date(startStr).getTime();
+                let nowMs = new Date().getTime();
+                let diff = nowMs - startMs;
+                if (diff < 0) diff = 0;
+
+                let totalSeconds = Math.floor(diff / 1000);
+                let hours = Math.floor(totalSeconds / 3600);
+                let minutes = Math.floor((totalSeconds % 3600) / 60);
+                let seconds = totalSeconds % 60;
+
+                let formatted = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                badge.innerHTML = `⏱️ ${formatted}`;
+            }
+        });
     }
 
     function toggleItemCheck(checkboxId) {
@@ -283,12 +339,22 @@
         }
     }
 
+    async function startPreparation(orderId) {
+        try {
+            await window.updateDoc(window.doc(window.db, "orders", orderId), { 
+                status: "قيد التحضير",
+                preparingAt: new Date().toISOString() 
+            });
+        } catch(e) {
+            alert("حدث خطأ أثناء تحديث حالة الطلب");
+        }
+    }
+
     async function markOrderReady(orderId) {
-        if(confirm("هل أنت متأكد من تجهيز الطلب وإرساله إلى السائق؟")) {
+        if(confirm("هل أنت متأكد من انتهاء تجهيز الطلب وإرساله إلى السائق؟")) {
             try {
-                // تحديث الحالة إلى "جاهز للتوصيل" لكي تظهر في لوحة السائق ولا تذهب للأرشيف مباشرة[cite: 8]
                 await window.updateDoc(window.doc(window.db, "orders", orderId), { status: "جاهز للتوصيل" });
-                alert("تم إرسال الطلب إلى السائق بنجاح! 🚚");
+                alert("تم إرسال الطلب إلى لوحة السائق بنجاح! 🚚");
             } catch(e) {
                 alert("حدث خطأ أثناء تحديث حالة الطلب");
             }
