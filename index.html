@@ -431,7 +431,7 @@
         currentCategory = hash ? hash : "الكل";
         visibleSectionsLimit = 2; 
         renderCategoriesScroll();
-        requestAnimationFrame(() => { renderMainStoreContent(); });
+        triggerCategoryLoadingAndRender();
     });
 
     // مراقبة التمرير للأسفل لتحميل فئة إضافية تلقائياً
@@ -448,7 +448,7 @@
                 if (visibleSectionsLimit < nonEmpSections.length) {
                     document.getElementById('loadMoreIndicator').style.display = 'block';
                     setTimeout(() => {
-                        visibleSectionsLimit += 1; // تحميل فئة إضافية عند النزول للأسفل
+                        visibleSectionsLimit += 1; 
                         renderMainStoreContent();
                         document.getElementById('loadMoreIndicator').style.display = 'none';
                     }, 400);
@@ -796,7 +796,19 @@
             window.location.hash = encodeURIComponent(catName);
         }
         renderCategoriesScroll();
-        requestAnimationFrame(() => { renderMainStoreContent(); });
+        
+        // إظهار مؤشر تحميل خفيف وسريع لحظة الضغط لتجنب أي ضغط أو تعليق
+        triggerCategoryLoadingAndRender();
+    }
+
+    function triggerCategoryLoadingAndRender() {
+        const container = document.getElementById('storeMainContent');
+        document.getElementById('loadMoreIndicator').style.display = 'none';
+        container.innerHTML = `<div style="text-align: center; padding: 45px; font-size: 0.85rem; color: #1b4d2e; font-weight: 800;">جاري تحميل منتجات القسم... ⏳</div>`;
+        
+        setTimeout(() => {
+            requestAnimationFrame(() => { renderMainStoreContent(); });
+        }, 120);
     }
 
     function productBelongsToCategory(p, catName) {
@@ -816,7 +828,7 @@
         let query = document.getElementById('searchInput').value.trim().toLowerCase();
         let htmlParts = [];
 
-        // إذا كان هناك بحث أو اختيار فئة معينة، اعرض شبكة المنتجات العادية
+        // إذا كان هناك بحث أو اختيار فئة معينة، اعرض شبكة المنتجات العادية بسلاسة
         if(query !== "" || currentCategory !== "الكل") {
             document.getElementById('loadMoreIndicator').style.display = 'none';
             let filtered = products.filter(p => {
