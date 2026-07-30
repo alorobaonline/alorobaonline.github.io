@@ -247,7 +247,7 @@
         <div class="cat-chip active" onclick="selectCategory('الكل')"><span>🛍️</span> الكل</div>
     </div>
 
-    <!-- المحتوى الرئيسي -->
+    <!-- المحتوى الرئيسي (الشكل العرضي المحسن بأداء سريع) -->
     <div id="storeMainContent">
         <div style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 30px;">جاري تحميل الأقسام...</div>
     </div>
@@ -407,14 +407,13 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // نظام الذاكرة المؤقتة والمنتجات المحملة جزئياً
     let categories = [{ name: "الكل", icon: "🛍️" }];
     let bannerSlides = [{ tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "logo.png" }];
     let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
     
-    // تخزين المنتجات حسب الأقسام (Lazy Loading / On-Demand)
+    // التخزين المؤقت للمنتجات حسب الأقسام للسرعة العالية
     let loadedProductsByCategory = {}; 
-    let allProductsMap = {}; // تخزين سريع بالـ ID للبحث والسلة
+    let allProductsMap = {}; 
     
     let cart = [];
     const FIXED_DELIVERY_FEE = 10.00;
@@ -441,7 +440,7 @@
         const splash = document.getElementById('splashScreen');
         if (splash && splash.style.display !== 'none') {
             const elapsedTime = Date.now() - splashStartTime;
-            const minDuration = 3000; // 3 ثوانٍ على الأقل كما طلبت سابقاً
+            const minDuration = 2500;
             
             if (elapsedTime < minDuration) {
                 setTimeout(hideSplashScreen, minDuration - elapsedTime);
@@ -452,22 +451,17 @@
         }
     }
 
-    // التهيئة الفورية عند جاهزية الفايربيس (تحميل الهيكل والأقسام أولاً فقط لتسريع العرض الفوري)
     window.addEventListener('firebase-ready', async function() {
         loadUserProfileData();
         loadCartFromLocalStorage();
         
-        // 1. عرض فوري من الذاكرة المحلية إن وجدت
         loadInitialCache();
-
-        // 2. سحب إعدادات التنسيق والأقسام السريعة من السحابة بدون انتظار كل المنتجات
         await fetchStoreMetadata();
-        
         updateCartStateUI();
     });
 
     function loadInitialCache() {
-        let cachedCats = localStorage.getItem('aloroba_lazy_categories');
+        let cachedCats = localStorage.getItem('aloroba_horizontal_categories');
         if (cachedCats) {
             try { categories = JSON.parse(cachedCats); } catch(e) {}
         }
@@ -498,11 +492,11 @@
                         categories.push(catData);
                     }
                 });
-                localStorage.setItem('aloroba_lazy_categories', JSON.stringify(categories));
+                localStorage.setItem('aloroba_horizontal_categories', JSON.stringify(categories));
             }
             renderCategoriesScroll();
             
-            // بعد جلب الأقسام، نقوم بتحميل منتجات القسم الافتراضي تدريجياً
+            // تحميل الدفعة الأولى لعرض الأقسام الأفقية فوراً
             await fetchProductsForCategory(currentCategory);
             hideSplashScreen();
         } catch(e) {
@@ -510,7 +504,6 @@
         }
     }
 
-    // التحميل التدريجي (Lazy Loading): جلب منتجات القسم الذي يتواجد فيه الزبون فقط أو الأقسام الرئيسية
     async function fetchProductsForCategory(catName) {
         if (loadedProductsByCategory[catName]) {
             renderMainStoreContent();
@@ -520,8 +513,8 @@
         try {
             let q;
             if (catName === "الكل") {
-                // جلب أول دفعة سريعة (مثلاً أحدث 30 منتج) لعدم إبطاء التحميل
-                q = window.query(window.collection(window.db, "products"), window.limit(35));
+                // جلب المنتجات دفعة واحدة عريضة للسرعة
+                q = window.query(window.collection(window.db, "products"), window.limit(60));
             } else {
                 q = window.query(window.collection(window.db, "products"), window.where("categories", "array-contains", catName));
             }
@@ -531,7 +524,7 @@
             snap.forEach(docSnap => {
                 let p = { id: docSnap.id, ...docSnap.data() };
                 prods.push(p);
-                allProductsMap[p.id] = p; // حفظ المرجع السريع
+                allProductsMap[p.id] = p;
             });
 
             loadedProductsByCategory[catName] = prods;
@@ -570,8 +563,6 @@
             window.location.hash = encodeURIComponent(catName);
         }
         renderCategoriesScroll();
-        
-        // تحميل تدريجي للقسم عند الضغط عليه إذا لم يكن محملاً مسبقاً
         await fetchProductsForCategory(catName);
     }
 
@@ -579,13 +570,12 @@
         const container = document.getElementById('storeMainContent');
         let queryText = document.getElementById('searchInput').value.trim().toLowerCase();
 
-        // إذا كان هناك بحث نشط
         if(queryText !== "") {
             renderSearchResults(queryText);
             return;
         }
 
-        // عرض القسم الحالي المختار
+        // إذا تم اختيار قسم معين، نعرضه بشكل شبكي مرتب
         if(currentCategory !== "الكل") {
             let prods = loadedProductsByCategory[currentCategory] || [];
             if(prods.length === 0) {
@@ -601,17 +591,17 @@
             return;
         }
 
-        // لو نحن في واجهة "الكل" الرئيسية، نعرض الأقسام المحددة تدريجياً
+        // الصفحة الرئيسية: **الشكل العرضي (Horizontal Rows)** المفضل
         let sectionsToShow = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection].filter(Boolean);
         if(sectionsToShow.length === 0) {
-            sectionsToShow = categories.filter(c => c.name !== "الكل").slice(0, 3).map(c => c.name);
+            sectionsToShow = categories.filter(c => c.name !== "الكل").slice(0, 4).map(c => c.name);
         }
 
         let mainHtml = '';
         let generalProds = loadedProductsByCategory["الكل"] || [];
 
         if(generalProds.length === 0) {
-            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 30px;">جاري تحميل المنتجات...</p>`;
+            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 30px;">جاري تحميل الأقسام...</p>`;
             return;
         }
 
@@ -639,7 +629,6 @@
         });
 
         if(mainHtml === '') {
-            // عرض عام لو لم تتطابق الأقسام
             mainHtml = `<div class="products-grid" style="margin-top: 10px;">`;
             generalProds.forEach(p => { mainHtml += createProductCardHtml(p); });
             mainHtml += `</div>`;
@@ -648,21 +637,19 @@
         container.innerHTML = mainHtml;
     }
 
-    // البحث التدريجي عند كتابة الزبون
     let searchTimeout = null;
     function handleSearchInput() {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
             renderMainStoreContent();
-        }, 300); // تأخير بسيط لمنع الضغط أثناء الكتابة السريعة
+        }, 300);
     }
 
     async function renderSearchResults(queryText) {
         const container = document.getElementById('storeMainContent');
-        container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 30px;">جاري البحث عن المنتجات...</p>`;
+        container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 30px;">جاري البحث...</p>`;
 
         try {
-            // بحث تدريجي عبر جلب المنتجات المطابقة بالاسم
             let snap = await window.getDocs(window.query(window.collection(window.db, "products"), window.limit(50)));
             let results = [];
             snap.forEach(docSnap => {
