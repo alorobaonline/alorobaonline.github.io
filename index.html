@@ -55,6 +55,18 @@
         .horizontal-section { margin-bottom: 20px; padding: 0 15px; }
         .horizontal-section-title { font-size: 0.95rem; font-weight: 900; color: var(--primary-green); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         
+        /* تنسيق زر عرض الكل بنفس لون وشكل سعر المنتج */
+        .section-view-all {
+            font-size: 0.85rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 1px 3px rgba(255, 140, 0, 0.25);
+            cursor: pointer;
+            letter-spacing: -0.2px;
+        }
+
         .products-horizontal-scroll { 
             display: flex; 
             gap: 10px; 
@@ -87,14 +99,14 @@
         .product-price-row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
         .product-price-top { margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
         
-        /* لون برتقالي جذاب مع تدرج ولمعة أنيقة */
+        /* لون برتقالي جذاب مع تدرج ولمعة أنيقة وحجم أكبر */
         .price-text { 
-            font-size: 0.95rem; 
+            font-size: 1.15rem; 
             font-weight: 900; 
             background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 1px 2px rgba(255, 140, 0, 0.25);
+            text-shadow: 0 1px 3px rgba(255, 140, 0, 0.25);
             letter-spacing: -0.3px;
         }
         .old-price { font-size: 0.7rem; font-weight: 600; color: #9ca3af; text-decoration: line-through; }
@@ -794,7 +806,7 @@
                 <div class="horizontal-section">
                     <div class="horizontal-section-title">
                         <span>${icon} ${secName}</span>
-                        <span style="font-size: 0.75rem; font-weight: 700; color: #6b7280; cursor: pointer;" onclick="selectCategory('${secName}')">عرض الكل ←</span>
+                        <span class="section-view-all" onclick="selectCategory('${secName}')">عرض الكل ←</span>
                     </div>
                     <div class="products-horizontal-scroll">
             `;
@@ -813,7 +825,7 @@
                     <div class="horizontal-section">
                         <div class="horizontal-section-title">
                             <span>${cat.icon || '🏷️'} ${cat.name}</span>
-                            <span style="font-size: 0.75rem; font-weight: 700; color: #6b7280; cursor: pointer;" onclick="selectCategory('${cat.name}')">عرض الكل ←</span>
+                            <span class="section-view-all" onclick="selectCategory('${cat.name}')">عرض الكل ←</span>
                         </div>
                         <div class="products-horizontal-scroll">
                 `;
