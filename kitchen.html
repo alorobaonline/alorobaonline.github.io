@@ -8,59 +8,158 @@
     <style>
         :root {
             --primary-green: #1b4d2e;
-            --accent-green: #68a633;
-            --light-bg: #f3f4f6;
-            --shadow-card: 0 4px 15px rgba(0,0,0,0.05);
+            --secondary-green: #2d6a4f;
+            --accent-green: #52b788;
+            --light-bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --shadow-subtle: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            --radius-main: 20px;
         }
+
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
-        body { background-color: var(--light-bg); color: #1f2937; padding: 12px; padding-bottom: 50px; }
+        body { background-color: var(--light-bg); color: var(--text-main); padding: 16px; padding-bottom: 60px; }
 
-        .container { max-width: 480px; margin: 0 auto; }
+        .container { max-width: 500px; margin: 0 auto; }
         
-        .header { background: var(--primary-green); color: white; border-radius: 20px; padding: 15px; text-align: center; margin-bottom: 15px; box-shadow: var(--shadow-card); }
-        .header h1 { font-size: 1.1rem; font-weight: 900; margin-bottom: 5px; }
-        .status-badge { display: inline-block; background: rgba(104, 166, 51, 0.3); color: #a3e635; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
+        /* الهيدر العصري */
+        .header { 
+            background: linear-gradient(135deg, var(--primary-green), var(--secondary-green)); 
+            color: white; 
+            border-radius: var(--radius-main); 
+            padding: 20px; 
+            text-align: center; 
+            margin-bottom: 16px; 
+            box-shadow: var(--shadow-subtle); 
+        }
+        .header h1 { font-size: 1.25rem; font-weight: 900; margin-bottom: 6px; letter-spacing: -0.5px; }
+        .status-badge { 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 6px; 
+            background: rgba(255, 255, 255, 0.15); 
+            backdrop-filter: blur(4px);
+            color: #d1fae5; 
+            padding: 4px 12px; 
+            border-radius: 30px; 
+            font-size: 0.75rem; 
+            font-weight: 700; 
+        }
 
-        .notif-bar { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 10px 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; }
-        .notif-bar span { color: #1e40af; font-weight: bold; }
-        .notif-bar button { background: #2563eb; color: white; border: none; padding: 5px 10px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        /* شريط التنبيهات */
+        .notif-bar { 
+            background: #eff6ff; 
+            border: 1px solid #bfdbfe; 
+            border-radius: 14px; 
+            padding: 12px 16px; 
+            margin-bottom: 16px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            font-size: 0.8rem; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .notif-bar span { color: #1e40af; font-weight: 700; }
+        .notif-bar button { 
+            background: #2563eb; 
+            color: white; 
+            border: none; 
+            padding: 6px 14px; 
+            border-radius: 8px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: background 0.2s;
+        }
+        .notif-bar button:hover { background: #1d4ed8; }
 
-        .order-card { background: white; border: 2px solid #e2e8f0; border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: var(--shadow-card); }
-        .order-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 10px; font-weight: 900; color: var(--primary-green); font-size: 0.9rem; }
+        /* بطاقة الطلب الحديثة */
+        .order-card { 
+            background: var(--card-bg); 
+            border: 1px solid #e2e8f0; 
+            border-radius: var(--radius-main); 
+            padding: 18px; 
+            margin-bottom: 16px; 
+            box-shadow: var(--shadow-subtle); 
+            position: relative;
+            overflow: hidden;
+        }
+        .order-card::before {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; bottom: 0;
+            width: 6px;
+            background: var(--accent-green);
+        }
+
+        .order-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid #f1f5f9; 
+            padding-bottom: 10px; 
+            margin-bottom: 12px; 
+        }
+        .order-id { font-weight: 900; color: var(--primary-green); font-size: 0.95rem; }
         
-        .timer-badge { background: #fef3c7; color: #d97706; padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 900; display: inline-flex; align-items: center; gap: 4px; direction: ltr; }
-        .clock-badge { background: #f1f5f9; color: #475569; padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 900; display: inline-flex; align-items: center; gap: 4px; }
+        .timer-badge { background: #fef3c7; color: #b45309; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; direction: ltr; }
+        .clock-badge { background: #f8fafc; color: var(--text-muted); border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; }
 
-        .customer-info { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; margin-bottom: 10px; font-size: 0.75rem; }
-        .customer-info div { margin-bottom: 3px; }
+        /* معلومات الزبون */
+        .customer-info { 
+            background: #f8fafc; 
+            border: 1px solid #f1f5f9; 
+            border-radius: 12px; 
+            padding: 10px 12px; 
+            margin-bottom: 12px; 
+            font-size: 0.78rem; 
+        }
+        .customer-info div { margin-bottom: 4px; color: var(--text-main); }
+        .customer-info div:last-child { margin-bottom: 0; }
 
-        .items-title { font-size: 0.8rem; font-weight: 800; color: #374151; margin-bottom: 6px; }
+        .items-title { font-size: 0.8rem; font-weight: 800; color: var(--text-muted); margin-bottom: 8px; }
         
-        .kitchen-item-row { display: flex; align-items: center; justify-content: space-between; background: #fafafa; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; transition: all 0.2s; }
-        .kitchen-item-row.checked { background: #f0fdf4; border-color: #bbf7d0; opacity: 0.75; }
+        /* صف المنتج داخل الطلب */
+        .kitchen-item-row { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            background: #ffffff; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 12px; 
+            padding: 10px; 
+            margin-bottom: 8px; 
+            transition: all 0.2s ease; 
+        }
+        .kitchen-item-row:hover { border-color: #cbd5e1; }
+        .kitchen-item-row.checked { background: #f0fdf4; border-color: #bbf7d0; opacity: 0.8; }
         .kitchen-item-row.checked .item-name-text { text-decoration: line-through; color: #166534; }
 
-        .item-left-side { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
-        .item-checkbox { width: 20px; height: 20px; accent-color: var(--accent-green); cursor: pointer; flex-shrink: 0; }
-        .item-thumb { width: 40px; height: 40px; object-fit: contain; background: white; border-radius: 6px; border: 1px solid #e5e7eb; padding: 2px; flex-shrink: 0; }
+        .item-left-side { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+        .item-checkbox { width: 22px; height: 22px; accent-color: var(--accent-green); cursor: pointer; flex-shrink: 0; border-radius: 6px; }
+        .item-thumb { width: 44px; height: 44px; object-fit: contain; background: #f8fafc; border-radius: 8px; border: 1px solid #f1f5f9; padding: 2px; flex-shrink: 0; }
         
         .item-details-box { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-        .item-name-text { font-size: 0.8rem; font-weight: 700; color: #1f2937; white-space: normal; word-break: break-word; line-height: 1.2; }
-        .item-weight-badge { color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 1px 5px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; width: fit-content; margin-top: 2px; }
+        .item-name-text { font-size: 0.82rem; font-weight: 700; color: var(--text-main); white-space: normal; word-break: break-word; line-height: 1.3; }
+        .item-weight-badge { color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 1px 6px; border-radius: 6px; font-size: 0.68rem; font-weight: 700; width: fit-content; margin-top: 3px; }
 
-        .item-right-side { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-right: 6px; }
-        .item-price-badge { background: #fef9c3; color: #854d0e; padding: 2px 6px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; }
-        .item-qty-badge { background: var(--primary-green); color: white; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 900; }
+        .item-right-side { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-right: 8px; }
+        .item-price-badge { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; padding: 3px 8px; border-radius: 8px; font-size: 0.72rem; font-weight: 800; }
+        .item-qty-badge { background: var(--primary-green); color: white; padding: 3px 10px; border-radius: 8px; font-size: 0.78rem; font-weight: 900; }
 
-        .order-footer { display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #f1f5f9; padding-top: 10px; margin-top: 10px; }
-        .total-price { font-size: 0.95rem; font-weight: 900; color: var(--primary-green); }
+        /* التذييل وإجمالي الطلب */
+        .order-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 12px; margin-top: 12px; }
+        .total-price { font-size: 1rem; font-weight: 900; color: var(--primary-green); }
         
-        .btn-action { background: var(--accent-green); color: white; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: opacity 0.2s; }
-        .btn-action:disabled { background: #9ca3af; cursor: not-allowed; opacity: 0.6; }
+        .btn-action { background: var(--accent-green); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 0.82rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s, opacity 0.2s; box-shadow: 0 4px 12px rgba(82, 183, 136, 0.25); }
+        .btn-action:hover:not(:disabled) { background: #40916c; }
+        .btn-action:disabled { background: #94a3b8; cursor: not-allowed; opacity: 0.6; box-shadow: none; }
         
-        .btn-start { background: #d97706; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+        .btn-start { background: #d97706; color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 0.82rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25); }
+        .btn-start:hover { background: #b45309; }
         
-        .nav-back { display: block; text-align: center; background: #e5e7eb; color: #374151; padding: 10px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 0.8rem; margin-bottom: 15px; }
+        .nav-back { display: block; text-align: center; background: #ffffff; color: var(--text-main); border: 1px solid #e2e8f0; padding: 12px; border-radius: 14px; text-decoration: none; font-weight: 800; font-size: 0.82rem; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: background 0.2s; }
+        .nav-back:hover { background: #f8fafc; }
     </style>
 
     <!-- Firebase SDKs -->
@@ -108,7 +207,7 @@
     </div>
 
     <div id="kitchenOrdersList">
-        <p style="text-align: center; color: #666; font-size: 0.8rem; padding: 20px;">جاري تحميل الطلبات...</p>
+        <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 30px;">جاري تحميل الطلبات...</p>
     </div>
 </div>
 
@@ -224,7 +323,7 @@
         const activeOrders = orders.filter(o => !o.status || o.status === "جديد" || o.status === "قيد التحضير" || o.status === "new");
 
         if(activeOrders.length === 0) {
-            container.innerHTML = '<div style="background: white; border-radius: 16px; padding: 30px; text-align: center; font-size: 0.9rem; color: #666; box-shadow: var(--shadow-card);">🎉 لا توجد طلبات معلقة حالياً!</div>';
+            container.innerHTML = '<div style="background: white; border-radius: var(--radius-main); padding: 40px; text-align: center; font-size: 0.95rem; color: var(--text-muted); box-shadow: var(--shadow-subtle);">🎉 لا توجد طلبات معلقة حالياً! كل شيء على ما يرام.</div>';
             return;
         }
 
@@ -238,7 +337,6 @@
                     let itemPrice = item.price;
                     let itemWeight = item.weight || item.size || item.unit || "";
 
-                    // البحث في قائمة المنتجات في المتجر لاستكمال بيانات الصورة، السعر، والوزن/الحجم
                     let foundProd = productsList.find(p => p.name === item.name);
                     if(foundProd) {
                         if(!imgSrc && foundProd.img) imgSrc = foundProd.img;
@@ -271,7 +369,7 @@
                     `;
                 });
             } else {
-                itemsHtml = '<p style="font-size: 0.75rem; color: #888;">لا توجد تفاصيل للمنتجات</p>';
+                itemsHtml = '<p style="font-size: 0.78rem; color: var(--text-muted);">لا توجد تفاصيل للمنتجات</p>';
             }
 
             let statusText = ord.status || 'جديد';
@@ -291,10 +389,10 @@
             html += `
                 <div class="order-card" id="order_card_${ord.id}">
                     <div class="order-header">
-                        <span>طلب #${ord.id ? ord.id.substring(0, 6) : (index + 1)}</span>
+                        <span class="order-id">طلب #${ord.id ? ord.id.substring(0, 6) : (index + 1)}</span>
                         <div style="display: flex; gap: 6px; align-items: center;">
                             ${badgeHtml}
-                            <span style="font-size: 0.75rem; background: ${ord.status === 'قيد التحضير' ? '#fef3c7' : '#dcfce7'}; color: ${ord.status === 'قيد التحضير' ? '#b45309' : '#166534'}; padding: 2px 8px; border-radius: 6px;">${statusText}</span>
+                            <span style="font-size: 0.72rem; background: ${ord.status === 'قيد التحضير' ? '#fef3c7' : '#dcfce7'}; color: ${ord.status === 'قيد التحضير' ? '#b45309' : '#166534'}; padding: 3px 10px; border-radius: 6px; font-weight: 700;">${statusText}</span>
                         </div>
                     </div>
 
