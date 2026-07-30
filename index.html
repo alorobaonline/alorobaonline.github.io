@@ -101,7 +101,7 @@
         .products-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 15px; }
         .products-grid .product-card { min-width: 100%; max-width: 100%; }
 
-        /* شريط السلة السفلي (مخفي افتراضياً ولا يظهر إلا عند وجود منتجات) */
+        /* شريط السلة السفلي */
         .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--primary-green); color: white; padding: 14px 20px; display: none; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 16px; border-top-right-radius: 16px; z-index: 100; cursor: pointer; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); }
         
         /* النوافذ العائمة */
@@ -204,7 +204,7 @@
     <div id="storeMainContent"></div>
 </div>
 
-<!-- شريط السلة السفلي المحدث (للذهاب للدفع يمينًا والمجموع فقط يسارًا) -->
+<!-- شريط السلة السفلي -->
 <div class="cart-bar" id="cartBar" onclick="openCartModal()">
     <div style="font-size: 0.85rem; font-weight: 800;">للذهاب للدفع 🛒</div>
     <div style="font-size: 0.95rem; font-weight: 900;" id="cartTotalText">0.00 ₪</div>
@@ -257,66 +257,92 @@
     </div>
 </div>
 
-<!-- نافذة تفاصيل السلة وتوصيل الطلب -->
+<!-- نافذة السلة والدفع المحدثة بناءً على الخطوات المطلوبة -->
 <div class="cart-modal" id="cartModal">
     <div class="cart-modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h3 style="font-size: 0.9rem; color: var(--primary-green);">🛒 سلة المشتريات وتفاصيل التوصيل</h3>
+            <h3 style="font-size: 0.9rem; color: var(--primary-green);" id="cartModalTitle">🛒 مراجعة السلة والمنتجات</h3>
             <button onclick="closeCartModal()" style="background:none; border:none; font-size: 1rem; cursor:pointer;">✕</button>
         </div>
         
-        <div id="cartItemsList" style="max-height: 150px; overflow-y: auto; margin-bottom: 8px;"></div>
-        
-        <!-- الحساب المالي الشفاف -->
-        <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 8px; border-radius: 8px; margin-bottom: 10px; font-size: 0.75rem;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-                <span>مجموع المنتجات:</span>
-                <span id="cartSubtotalText">0.00 ₪</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-                <span>رسوم التوصيل الثابتة:</span>
-                <span id="deliveryFeeText" style="font-weight: bold; color: var(--accent-green);">10.00 ₪</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px solid #e2e8f0; padding-top: 4px; color: var(--primary-green); font-size: 0.8rem;">
-                <span>المجموع النهائي للإرسال:</span>
-                <span id="cartFinalTotalText">0.00 ₪</span>
-            </div>
+        <!-- الخطوة الأولى: عرض المنتجات بالصور والسعر للتاكد -->
+        <div id="cartStep1">
+            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">تأكد من المنتجات والكميات المطلوبة:</div>
+            <div id="cartItemsWithImagesList" style="max-height: 260px; overflow-y: auto; margin-bottom: 12px;"></div>
+            <button class="btn-main" onclick="goToPaymentStep()">إتمام الدفع ➡️</button>
         </div>
 
-        <hr style="border:0; border-top:1px solid #eee; margin:8px 0;">
-        <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">معلومات التوصيل (تعبئة تلقائية من حسابك):</div>
-        
-        <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم">
-        <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف (05xxxxxxxx)">
+        <!-- الخطوة الثانية: خيارات التوصيل، الدفع، الكوبون، والمجاميع -->
+        <div id="cartStep2" style="display: none;">
+            <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 10px; cursor: pointer; color: var(--primary-green); font-weight: bold;" onclick="backToCartStep1()">← عودة لمراجعة المنتجات</div>
+            
+            <!-- توصيل أو استلام ذاتي -->
+            <label style="font-size: 0.75rem; font-weight: bold; display: block; margin-bottom: 4px;">طريقة الاستلام:</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
+                <label style="display: flex; align-items: center; gap: 5px; font-size: 0.75rem; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
+                    <input type="radio" name="fulfillmentType" value="توصيل" checked onchange="toggleFulfillmentType()"> توصيل
+                </label>
+                <label style="display: flex; align-items: center; gap: 5px; font-size: 0.75rem; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
+                    <input type="radio" name="fulfillmentType" value="استلام ذاتي" onchange="toggleFulfillmentType()"> استلام ذاتي
+                </label>
+            </div>
 
-        <!-- زر اختيار الموقع يدوياً على الخريطة -->
-        <button type="button" onclick="openMapModal()" style="width: 100%; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 7px; border-radius: 8px; font-weight: bold; font-size: 0.75rem; cursor: pointer; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 5px;">
-            📍 اختر موقعك بدقة على الخريطة 🗺️
-        </button>
-        <input type="hidden" id="customerGpsLocation" value="">
-        <div id="selectedLocationText" style="font-size: 0.65rem; color: var(--accent-green); margin-bottom: 8px; text-align: center; font-weight: bold;"></div>
+            <!-- معلومات التوصيل تظهر فقط إذا كان خيار توصيل مفعل -->
+            <div id="deliveryDetailsContainer">
+                <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم">
+                <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف (05xxxxxxxx)">
+                <button type="button" onclick="openMapModal()" style="width: 100%; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 7px; border-radius: 8px; font-weight: bold; font-size: 0.75rem; cursor: pointer; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    📍 اختر موقعك بدقة على الخريطة 🗺️
+                </button>
+                <input type="hidden" id="customerGpsLocation" value="">
+                <div id="selectedLocationText" style="font-size: 0.65rem; color: var(--accent-green); margin-bottom: 8px; text-align: center; font-weight: bold;"></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                    <input type="text" id="customerCity" class="form-control" placeholder="المدينة / الحي">
+                    <input type="text" id="customerStreet" class="form-control" placeholder="اسم الشارع">
+                </div>
+                <input type="text" id="customerBuilding" class="form-control" placeholder="رقم العمارة / الطابق / رقم الشقة">
+            </div>
 
-        <!-- تفاصيل العنوان المقسمة -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-            <input type="text" id="customerCity" class="form-control" placeholder="المدينة / الحي">
-            <input type="text" id="customerStreet" class="form-control" placeholder="اسم الشارع">
-        </div>
-        <input type="text" id="customerBuilding" class="form-control" placeholder="رقم العمارة / الطابق / رقم الشقة">
+            <!-- طريقة الدفع: موزمان او اشراي -->
+            <label style="font-size: 0.75rem; font-weight: bold; display: block; margin-bottom: 4px;">طريقة الدفع:</label>
+            <select id="paymentMethodSelect" class="form-control">
+                <option value="موزمان">موزمان</option>
+                <option value="اشراي">اشراي</option>
+                <option value="نقداً عند الاستلام">نقداً عند الاستلام</option>
+            </select>
 
-        <!-- وقت التوصيل المفضل -->
-        <label style="font-size: 0.7rem; font-weight: bold; display: block; margin-bottom: 3px;">وقت التوصيل المفضل:</label>
-        <select id="deliveryTimeSlot" class="form-control">
-            <option value="توصيل فوري (خلال 30-45 دقيقة)">⚡ توصيل فوري (خلال 30-45 دقيقة)</option>
-            <option value="اليوم - الفترة المسائية (4-8 مساءً)">🕒 اليوم - الفترة المسائية (4-8 مساءً)</option>
-            <option value="غداً صباحاً (9-12 ظهراً)">🌅 غداً صباحاً (9-12 ظهراً)</option>
-        </select>
+            <!-- كوبون للخصم -->
+            <label style="font-size: 0.75rem; font-weight: bold; display: block; margin-bottom: 4px;">كوبون للخصم:</label>
+            <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                <input type="text" id="couponInput" class="form-control" placeholder="ادخل كود الكوبون" style="margin-bottom: 0;">
+                <button type="button" onclick="applyCoupon()" style="background: var(--accent-green); color: white; border: none; padding: 0 12px; border-radius: 8px; font-weight: bold; font-size: 0.75rem; cursor: pointer;">تطبيق</button>
+            </div>
+            <div id="couponMsg" style="font-size: 0.65rem; margin-bottom: 6px;"></div>
 
-        <!-- ملاحظات خاصة للمندوب -->
-        <textarea id="customerNotes" class="form-control" placeholder="ملاحظات للمندوب (اختياري، مثلاً: اترك الطلب عند الباب...)" style="resize: none; height: 40px;"></textarea>
+            <!-- المجموع + التوصيل + خصم الكوبون اذا فيه -->
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 8px; border-radius: 8px; margin-bottom: 10px; font-size: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                    <span>المجموع:</span>
+                    <span id="cartSubtotalText">0.00 ₪</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 3px;" id="deliveryFeeRow">
+                    <span>التوصيل:</span>
+                    <span id="deliveryFeeText" style="font-weight: bold; color: var(--accent-green);">10.00 ₪</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 3px; color: #ef4444; display: none;" id="couponDiscountRow">
+                    <span>خصم الكوبون:</span>
+                    <span id="couponDiscountText">-0.00 ₪</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px solid #e2e8f0; padding-top: 4px; color: var(--primary-green); font-size: 0.8rem;">
+                    <span>المجموع النهائي:</span>
+                    <span id="cartFinalTotalText">0.00 ₪</span>
+                </div>
+            </div>
 
-        <!-- زر إتمام وإرسال الطلب مباشرة -->
-        <div>
-            <button class="btn-main" onclick="submitOrder()">إتمام وإرسال الطلب 🚀</button>
+            <!-- زر دفع وتتسكر الطلبيه -->
+            <div>
+                <button class="btn-main" onclick="submitOrder()" style="background: var(--accent-green); font-size: 0.9rem;">دفع 💳</button>
+            </div>
         </div>
     </div>
 </div>
@@ -344,6 +370,7 @@
     let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
     let cart = [];
     const FIXED_DELIVERY_FEE = 10.00;
+    let appliedDiscount = 0;
 
     // متغيرات الخريطة التفاعلية
     let map = null;
@@ -482,14 +509,20 @@
         let savedPhone = localStorage.getItem('aloroba_user_phone') || '';
         let savedAddress = localStorage.getItem('aloroba_user_address') || '';
 
-        document.getElementById('userProfileName').value = savedName;
-        document.getElementById('userProfilePhone').value = savedPhone;
-        document.getElementById('userProfileAddress').value = savedAddress;
+        let profileNameEl = document.getElementById('userProfileName');
+        let profilePhoneEl = document.getElementById('userProfilePhone');
+        let profileAddressEl = document.getElementById('userProfileAddress');
+        let custNameEl = document.getElementById('customerName');
+        let custPhoneEl = document.getElementById('customerPhone');
+        let custCityEl = document.getElementById('customerCity');
 
-        document.getElementById('customerName').value = savedName;
-        document.getElementById('customerPhone').value = savedPhone;
-        if(savedAddress) {
-            document.getElementById('customerCity').value = savedAddress;
+        if(profileNameEl) profileNameEl.value = savedName;
+        if(profilePhoneEl) profilePhoneEl.value = savedPhone;
+        if(profileAddressEl) profileAddressEl.value = savedAddress;
+        if(custNameEl) custNameEl.value = savedName;
+        if(custPhoneEl) custPhoneEl.value = savedPhone;
+        if(savedAddress && custCityEl) {
+            custCityEl.value = savedAddress;
         }
     }
 
@@ -842,7 +875,7 @@
         updateCartStateUI();
         updateProductCardDOM(prodId);
         if(document.getElementById('cartModal').style.display === 'flex') {
-            renderCartModalItems();
+            renderCartModalProducts();
         }
     }
 
@@ -859,7 +892,7 @@
         updateCartStateUI();
         updateProductCardDOM(prodId);
         if(document.getElementById('cartModal').style.display === 'flex') {
-            renderCartModalItems();
+            renderCartModalProducts();
         }
     }
 
@@ -872,7 +905,7 @@
         if(cart.length === 0) {
             closeCartModal();
         } else {
-            renderCartModalItems();
+            renderCartModalProducts();
         }
     }
 
@@ -894,10 +927,12 @@
             totalCount += item.quantity;
             totalPrice += item.price * item.quantity;
         });
-        let finalDisplayTotal = totalPrice + (cart.length > 0 ? FIXED_DELIVERY_FEE : 0);
+        let currentDelivery = (document.querySelector('input[name="fulfillmentType"]:checked') && document.querySelector('input[name="fulfillmentType"]:checked').value === 'استلام ذاتي') ? 0 : FIXED_DELIVERY_FEE;
+        let finalDisplayTotal = totalPrice + (cart.length > 0 ? currentDelivery : 0) - appliedDiscount;
+        if(finalDisplayTotal < 0) finalDisplayTotal = 0;
+
         document.getElementById('cartTotalText').innerText = finalDisplayTotal.toFixed(2) + " ₪";
 
-        // إظهار الشريط الأخضر عند وجود منتجات بالسلة وإخفاؤه إذا كانت فارغة
         const cartBar = document.getElementById('cartBar');
         if (totalCount > 0) {
             cartBar.style.display = 'flex';
@@ -912,33 +947,103 @@
             return;
         }
         loadUserProfileData();
-        renderCartModalItems();
+        // العودة للخطوة الأولى دائماً عند فتح السلة
+        document.getElementById('cartStep1').style.display = 'block';
+        document.getElementById('cartStep2').style.display = 'none';
+        document.getElementById('cartModalTitle').innerText = '🛒 مراجعة السلة والمنتجات';
+        renderCartModalProducts();
         document.getElementById('cartModal').style.display = 'flex';
     }
 
-    function renderCartModalItems() {
-        let listContainer = document.getElementById('cartItemsList');
+    function renderCartModalProducts() {
+        let listContainer = document.getElementById('cartItemsWithImagesList');
         listContainer.innerHTML = '';
         
-        let subtotal = 0;
         cart.forEach((item) => {
             let itemTotal = item.price * item.quantity;
-            subtotal += itemTotal;
             listContainer.innerHTML += `
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; margin-bottom: 6px; background: #f8fafc; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border-color);">
-                    <div style="display: flex; align-items: center; gap: 6px; overflow: hidden;">
-                        <button onclick='removeCartItemCompletely("${item.id}")' style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; font-weight: bold; padding: 0;" title="حذف المنتج">🗑️</button>
-                        <span style="font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">${item.name}</span>
-                        <span style="color: #64748b;">(الكمية: ${item.quantity})</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; margin-bottom: 6px; background: #f8fafc; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
+                        <img src="${item.img || 'logo.png'}" style="width: 40px; height: 40px; object-fit: contain; background: white; border-radius: 6px; border: 1px solid #eee;" onerror="this.src='logo.png'">
+                        <div>
+                            <div style="font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">${item.name}</div>
+                            <div style="color: #64748b; font-size: 0.65rem;">الكمية: ${item.quantity} × ${item.price.toFixed(2)} ₪</div>
+                        </div>
                     </div>
-                    <span style="font-weight: bold; color: var(--primary-green); white-space: nowrap;">${itemTotal.toFixed(2)} ₪</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-weight: bold; color: var(--primary-green); white-space: nowrap;">${itemTotal.toFixed(2)} ₪</span>
+                        <button onclick='removeCartItemCompletely("${item.id}")' style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; font-weight: bold;" title="حذف">🗑️</button>
+                    </div>
                 </div>
             `;
         });
+    }
 
-        let finalTotal = subtotal + FIXED_DELIVERY_FEE;
+    function goToPaymentStep() {
+        document.getElementById('cartStep1').style.display = 'none';
+        document.getElementById('cartStep2').style.display = 'block';
+        document.getElementById('cartModalTitle').innerText = '💳 إتمام الدفع والتفاصيل';
+        updateFinancialSummary();
+    }
+
+    function backToCartStep1() {
+        document.getElementById('cartStep2').style.display = 'none';
+        document.getElementById('cartStep1').style.display = 'block';
+        document.getElementById('cartModalTitle').innerText = '🛒 مراجعة السلة والمنتجات';
+    }
+
+    function toggleFulfillmentType() {
+        let type = document.querySelector('input[name="fulfillmentType"]:checked').value;
+        let deliveryContainer = document.getElementById('deliveryDetailsContainer');
+        let deliveryFeeRow = document.getElementById('deliveryFeeRow');
+
+        if(type === 'استلام ذاتي') {
+            deliveryContainer.style.display = 'none';
+            deliveryFeeRow.style.display = 'none';
+        } else {
+            deliveryContainer.style.display = 'block';
+            deliveryFeeRow.style.display = 'flex';
+        }
+        updateFinancialSummary();
+    }
+
+    function applyCoupon() {
+        let code = document.getElementById('couponInput').value.trim();
+        let msg = document.getElementById('couponMsg');
+        let discountRow = document.getElementById('couponDiscountRow');
+        let discountText = document.getElementById('couponDiscountText');
+
+        if(code === "ALOROBA5" || code === "DISCOUNT5") {
+            appliedDiscount = 5.00;
+            msg.style.color = "var(--accent-green)";
+            msg.innerText = "✅ تم تطبيق الكوبون بنجاح (خصم 5 ₪)";
+            discountRow.style.display = "flex";
+            discountText.innerText = `-${appliedDiscount.toFixed(2)} ₪`;
+        } else if(code === "") {
+            appliedDiscount = 0;
+            msg.innerText = "";
+            discountRow.style.display = "none";
+        } else {
+            appliedDiscount = 0;
+            msg.style.color = "red";
+            msg.innerText = "❌ كوبون غير صالح";
+            discountRow.style.display = "none";
+        }
+        updateFinancialSummary();
+    }
+
+    function updateFinancialSummary() {
+        let subtotal = 0;
+        cart.forEach(i => subtotal += (i.price * i.quantity));
+        
+        let type = document.querySelector('input[name="fulfillmentType"]:checked') ? document.querySelector('input[name="fulfillmentType"]:checked').value : 'توصيل';
+        let currentDelivery = (type === 'استلام ذاتي') ? 0 : FIXED_DELIVERY_FEE;
+        
+        let finalTotal = subtotal + currentDelivery - appliedDiscount;
+        if(finalTotal < 0) finalTotal = 0;
+
         document.getElementById('cartSubtotalText').innerText = subtotal.toFixed(2) + " ₪";
-        document.getElementById('deliveryFeeText').innerText = FIXED_DELIVERY_FEE.toFixed(2) + " ₪";
+        document.getElementById('deliveryFeeText').innerText = currentDelivery.toFixed(2) + " ₪";
         document.getElementById('cartFinalTotalText').innerText = finalTotal.toFixed(2) + " ₪";
     }
 
@@ -947,40 +1052,45 @@
     }
 
     function submitOrder() {
+        let type = document.querySelector('input[name="fulfillmentType"]:checked').value;
         const name = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('customerPhone').value.trim();
         const city = document.getElementById('customerCity').value.trim();
         const street = document.getElementById('customerStreet').value.trim();
         const building = document.getElementById('customerBuilding').value.trim();
         const gpsUrl = document.getElementById('customerGpsLocation').value.trim();
-        const deliveryTime = document.getElementById('deliveryTimeSlot').value;
-        const notes = document.getElementById('customerNotes').value.trim();
+        const paymentMethod = document.getElementById('paymentMethodSelect').value;
 
-        if(!name || !phone || !city || !street) {
-            alert("الرجاء إكمال بيانات التوصيل الأساسية (الاسم، الهاتف، المدينة، والشارع) قبل إرسال الطلب.");
+        if(type === 'توصيل' && (!name || !phone || !city || !street)) {
+            alert("الرجاء إكمال بيانات التوصيل الأساسية (الاسم، الهاتف، المدينة، والشارع) قبل الدفع.");
+            return;
+        }
+        if(type === 'استلام ذاتي' && (!name || !phone)) {
+            alert("الرجاء إدخال الاسم ورقم الهاتف للاستلام الذاتي.");
             return;
         }
 
-        localStorage.setItem('aloroba_user_name', name);
-        localStorage.setItem('aloroba_user_phone', phone);
-        localStorage.setItem('aloroba_user_address', `${city} - ${street}`);
+        if(type === 'توصيل') {
+            localStorage.setItem('aloroba_user_name', name);
+            localStorage.setItem('aloroba_user_phone', phone);
+            localStorage.setItem('aloroba_user_address', `${city} - ${street}`);
+        }
 
         let subtotal = 0;
         cart.forEach(i => subtotal += (i.price * i.quantity));
-        let finalTotal = subtotal + FIXED_DELIVERY_FEE;
+        let currentDelivery = (type === 'استلام ذاتي') ? 0 : FIXED_DELIVERY_FEE;
+        let finalTotal = subtotal + currentDelivery - appliedDiscount;
+        if(finalTotal < 0) finalTotal = 0;
 
-        const fullAddress = `${city} - شارع ${street} - ${building || 'بدون تفاصيل إضافية'}`;
+        const fullAddress = type === 'استلام ذاتي' ? 'استلام ذاتي من المتجر' : `${city} - شارع ${street} - ${building || 'بدون تفاصيل إضافية'}`;
 
         const newOrder = {
+            fulfillmentType: type,
             customerName: name,
             customerPhone: phone,
-            customerCity: city,
-            customerStreet: street,
-            customerBuilding: building,
             customerAddress: fullAddress,
-            customerGps: gpsUrl || 'لم يتم اختيار الموقع على الخريطة',
-            deliveryTime: deliveryTime,
-            notes: notes || 'لا توجد ملاحظات',
+            customerGps: gpsUrl || 'غير متوفر',
+            paymentMethod: paymentMethod,
             items: cart.map(i => ({ 
                 id: i.id || '', 
                 name: i.name || '', 
@@ -988,7 +1098,8 @@
                 quantity: Number(i.quantity) || 1 
             })),
             subtotal: Number(subtotal) || 0,
-            deliveryFee: FIXED_DELIVERY_FEE,
+            deliveryFee: currentDelivery,
+            discount: appliedDiscount,
             total: Number(finalTotal) || 0,
             status: "جديد",
             timestamp: new Date().toISOString()
@@ -996,8 +1107,9 @@
 
         window.addDoc(window.collection(window.db, "orders"), newOrder)
         .then(() => {
-            alert("تم إرسال وتأكيد طلبك بنجاح! سيتم تجهيزه وتوصيله في الوقت المحدد 🚀");
+            alert("تم إتمام الدفع وتسجيل الطلب بنجاح! 🚀");
             cart = [];
+            appliedDiscount = 0;
             saveCartToLocalStorage();
             updateCartStateUI();
             products.forEach(p => updateProductCardDOM(p.id));
