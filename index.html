@@ -103,14 +103,30 @@
             flex-direction: column; 
             justify-content: space-between; 
             flex-shrink: 0; 
+            position: relative; /* ضروري لتثبيت شارة العرض */
         }
+        
+        /* تصميم شارة العرض (الخيار 1) */
+        .discount-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: #d32f2f;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            z-index: 2;
+        }
+
         .product-img-box { width: 100%; height: 110px; position: relative; display: flex; align-items: center; justify-content: center; background: #ffffff; border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
         .product-img { max-width: 100%; max-height: 100%; object-fit: contain; }
         .product-name { font-size: 0.8rem; font-weight: 700; color: #222; margin-bottom: 4px; height: 30px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         .product-weight { font-size: 0.7rem; font-weight: 600; color: #666; margin-bottom: 8px; }
         
         .product-price-row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
-        .product-price-top { margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+        .product-price-top { margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
         
         .price-text { 
             font-size: 1.15rem; 
@@ -120,7 +136,22 @@
             -webkit-text-fill-color: transparent;
             letter-spacing: -0.3px;
         }
-        .old-price { font-size: 0.7rem; font-weight: 600; color: #9ca3af; text-decoration: line-through; }
+
+        /* تنسيق سعر العرض الجديد باللون الأحمر (الخيار 2) */
+        .price-text.sale-price {
+            background: none;
+            -webkit-background-clip: initial;
+            -webkit-text-fill-color: initial;
+            color: #d32f2f;
+        }
+
+        /* تنسيق السعر القديم المشطوب باللون الأسود (الخيار 2) */
+        .old-price { 
+            font-size: 0.75rem; 
+            font-weight: 700; 
+            color: #212121; 
+            text-decoration: line-through; 
+        }
         
         .add-to-cart-btn { background: var(--accent-green); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 1.1rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         
@@ -946,12 +977,11 @@
     }
 
     function createProductCardHtml(p) {
-        let priceDisplay = `${p.price} ₪`;
-        let oldPriceDisplay = "";
-        if(p.salePrice !== undefined && p.salePrice !== "") {
-            priceDisplay = `${p.salePrice} ₪`;
-            oldPriceDisplay = `<span class="old-price">${p.price} ₪</span>`;
-        }
+        let hasSale = (p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null);
+        let priceDisplay = hasSale ? `${p.salePrice} ₪` : `${p.price} ₪`;
+        let oldPriceDisplay = hasSale ? `<span class="old-price">${p.price} ₪</span>` : "";
+        let badgeHtml = hasSale ? `<span class="discount-badge">عرض خاص</span>` : "";
+        let priceClass = hasSale ? "price-text sale-price" : "price-text";
 
         let cartItem = cart.find(item => item.id == p.id);
         let qty = cartItem ? cartItem.quantity : 0;
@@ -959,6 +989,7 @@
 
         return `
             <div class="product-card" data-product-id="${p.id}">
+                ${badgeHtml}
                 <div>
                     <div class="product-img-box" onclick='openImageModal("${p.img}", "${p.name}")'>
                         <img src="${p.img || 'logo.png'}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
@@ -966,14 +997,14 @@
                     <div class="product-name">${p.name}</div>
                     <div class="product-weight">${p.weight || 'حبة'}</div>
                     <div class="product-price-top" style="${hasQty ? 'display: flex;' : 'display: none;'}">
-                        <span class="price-text">${priceDisplay}</span>
+                        <span class="${priceClass}">${priceDisplay}</span>
                         ${oldPriceDisplay}
                     </div>
                 </div>
                 <div>
                     <div class="product-price-row" style="${hasQty ? 'display: none;' : 'display: flex;'}">
                         <div>
-                            <span class="price-text">${priceDisplay}</span>
+                            <span class="${priceClass}">${priceDisplay}</span>
                             ${oldPriceDisplay}
                         </div>
                         <button class="add-to-cart-btn" onclick='increaseCartQty("${p.id}")'>+</button>
@@ -1121,7 +1152,7 @@
         document.getElementById('cartStep2').style.display = 'block';
         document.getElementById('cartStep3').style.display = 'none';
         document.getElementById('cartModalTitle').innerText = '📍 الاستلام والبيانات الشخصية';
-        loadUserProfileData(); // التأكد من تحميل البيانات المحفوظة تلقائياً
+        loadUserProfileData();
     }
 
     function goToStep3() {
@@ -1140,7 +1171,6 @@
             return;
         }
 
-        // حفظ البيانات تلقائياً دائماً لكي لا يضطر الزبون لإدخالها في المرة القادمة ولتنحفظ في الحساب
         localStorage.setItem('aloroba_user_name', name);
         localStorage.setItem('aloroba_user_phone', phone);
         localStorage.setItem('aloroba_user_address', neighborhood);
@@ -1222,7 +1252,6 @@
         const gpsUrl = document.getElementById('customerGpsLocation').value.trim();
         const paymentMethod = document.getElementById('paymentMethodSelect').value;
 
-        // حفظ البيانات في الحساب وفي الذاكرة عند الطلب أيضاً لضمان التثبيت الدائم
         localStorage.setItem('aloroba_user_name', name);
         localStorage.setItem('aloroba_user_phone', phone);
         localStorage.setItem('aloroba_user_address', neighborhood);
