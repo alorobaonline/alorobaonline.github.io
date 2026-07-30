@@ -316,10 +316,11 @@
             <button class="btn-main" onclick="goToPaymentStep()">إتمام الدفع ➡️</button>
         </div>
 
-        <!-- الخطوة الثانية -->
+        <!-- الخطوة الثانية (مُرتبة حسب الترتيب الجديد: طريقة الاستلام، البيانات الشخصية والموقع، طريقة الدفع، الكوبون، المجموع الكلي مع التوصيل والكوبون) -->
         <div id="cartStep2" style="display: none;">
             <div style="font-size: 0.8rem; margin-bottom: 10px; cursor: pointer; color: var(--primary-green); font-weight: 800;" onclick="backToCartStep1()">← عودة لمراجعة المنتجات</div>
             
+            <!-- 1. طريقة الاستلام -->
             <label class="price-text" style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">طريقة الاستلام:</label>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
                 <label style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 700; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
@@ -330,6 +331,8 @@
                 </label>
             </div>
 
+            <!-- 2. البيانات الشخصية والبيانات مع الموقع -->
+            <label class="price-text" style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">البيانات الشخصية مع الموقع:</label>
             <div id="deliveryDetailsContainer">
                 <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم">
                 <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف (05xxxxxxxx)">
@@ -345,6 +348,7 @@
                 <input type="text" id="customerBuilding" class="form-control" placeholder="رقم العمارة / الطابق / رقم الشقة">
             </div>
 
+            <!-- 3. طريقة الدفع -->
             <label class="price-text" style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">طريقة الدفع:</label>
             <select id="paymentMethodSelect" class="form-control">
                 <option value="موزمان">موزمان</option>
@@ -352,20 +356,22 @@
                 <option value="نقداً عند الاستلام">نقداً عند الاستلام</option>
             </select>
 
-            <label class="price-text" style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">كوبون للخصم:</label>
+            <!-- 4. كوبون -->
+            <label class="price-text" style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">كوبون:</label>
             <div style="display: flex; gap: 6px; margin-bottom: 8px;">
                 <input type="text" id="couponInput" class="form-control" placeholder="ادخل كود الكوبون" style="margin-bottom: 0;">
                 <button type="button" onclick="applyCoupon()" style="background: var(--accent-green); color: white; border: none; padding: 0 12px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer;">تطبيق</button>
             </div>
             <div id="couponMsg" style="font-size: 0.7rem; font-weight: 700; margin-bottom: 6px;"></div>
 
+            <!-- 5. المجموع الكلي مع إظهار سعر التوصيل والكوبون -->
             <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; font-weight: 600;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                    <span>المجموع:</span>
+                    <span>مجموع المنتجات:</span>
                     <span id="cartSubtotalText">0.00 ₪</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px;" id="deliveryFeeRow">
-                    <span>التوصيل:</span>
+                    <span>سعر التوصيل:</span>
                     <span id="deliveryFeeText" style="font-weight: 800; color: var(--accent-green);">10.00 ₪</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #ef4444; display: none;" id="couponDiscountRow">
@@ -373,7 +379,7 @@
                     <span id="couponDiscountText">-0.00 ₪</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-weight: 900; border-top: 1px solid #e2e8f0; padding-top: 6px; color: var(--primary-green); font-size: 0.85rem;">
-                    <span>المجموع النهائي:</span>
+                    <span>المجموع الكلي:</span>
                     <span id="cartFinalTotalText">0.00 ₪</span>
                 </div>
             </div>
