@@ -436,13 +436,13 @@
         const splash = document.getElementById('splashScreen');
         if (splash && splash.style.display !== 'none') {
             const elapsedTime = Date.now() - splashStartTime;
-            const minDuration = 2500;
+            const minDuration = 1000;
             
             if (elapsedTime < minDuration) {
                 setTimeout(hideSplashScreen, minDuration - elapsedTime);
             } else {
                 splash.style.opacity = '0';
-                setTimeout(() => { splash.style.display = 'none'; }, 500);
+                setTimeout(() => { splash.style.display = 'none'; }, 300);
             }
         }
     }
@@ -456,11 +456,32 @@
         updateCartStateUI();
     });
 
+    // تحميل فوري من الذاكرة المحلية لمنع أي بطء أو تأخير
     function loadInitialCache() {
         let cachedCats = localStorage.getItem('aloroba_horizontal_categories');
         if (cachedCats) {
             try { categories = JSON.parse(cachedCats); } catch(e) {}
         }
+        
+        let cachedLayout = localStorage.getItem('aloroba_layout_data');
+        if (cachedLayout) {
+            try { layoutData = JSON.parse(cachedLayout); } catch(e) {}
+        }
+
+        let cachedBanner = localStorage.getItem('aloroba_banner_data');
+        if (cachedBanner) {
+            try { bannerSlides = JSON.parse(cachedBanner); renderBanner(); } catch(e) {}
+        }
+
+        let cachedProds = localStorage.getItem('aloroba_products_cache');
+        if (cachedProds) {
+            try {
+                let parsedProds = JSON.parse(cachedProds);
+                loadedProductsByCategory["الكل"] = parsedProds;
+                parsedProds.forEach(p => { allProductsMap[p.id] = p; });
+            } catch(e) {}
+        }
+
         renderCategoriesScroll();
         hideSplashScreen();
         renderMainStoreContent();
@@ -474,9 +495,14 @@
                 window.getDocs(window.collection(window.db, "categories"))
             ]);
 
-            if(layoutDoc.exists()) layoutData = layoutDoc.data();
+            if(layoutDoc.exists()) {
+                layoutData = layoutDoc.data();
+                localStorage.setItem('aloroba_layout_data', JSON.stringify(layoutData));
+            }
+            
             if(bannerDoc.exists() && bannerDoc.data().slides) {
                 bannerSlides = bannerDoc.data().slides;
+                localStorage.setItem('aloroba_banner_data', JSON.stringify(bannerSlides));
             }
             renderBanner();
 
@@ -508,7 +534,7 @@
         try {
             let q;
             if (catName === "الكل") {
-                q = window.query(window.collection(window.db, "products"), window.limit(80));
+                q = window.query(window.collection(window.db, "products"), window.limit(100));
             } else {
                 q = window.query(window.collection(window.db, "products"), window.where("categories", "array-contains", catName));
             }
@@ -522,6 +548,9 @@
             });
 
             loadedProductsByCategory[catName] = prods;
+            if (catName === "الكل") {
+                localStorage.setItem('aloroba_products_cache', JSON.stringify(prods));
+            }
             renderMainStoreContent();
         } catch(e) {
             console.error("Error loading products:", e);
@@ -585,7 +614,7 @@
             return;
         }
 
-        // الصفحة الرئيسية ("الكل"): إجبار عرض الواجهة بشكل أقسام أفقية (Horizontal Rows) حصرياً
+        // الصفحة الرئيسية ("الكل"): إجبار عرض الواجهة بشكل أقسام أفقية (Horizontal Rows) حصرياً حسب الترتيب المحدد في لوحة التحكم بدقة
         let sectionsToShow = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection].filter(Boolean);
         if(sectionsToShow.length === 0) {
             sectionsToShow = categories.filter(c => c.name !== "الكل").map(c => c.name);
@@ -600,7 +629,7 @@
 
         let mainHtml = '';
         
-        // بناء الصفوف الأفقية للأقسام المحددة
+        // بناء الصفوف الأفقية بناءً على الترتيب الدقيق من لوحة التحكم
         sectionsToShow.forEach(secName => {
             let secProds = generalProds.filter(p => {
                 if(!p.categories) return false;
@@ -623,28 +652,6 @@
             secProds.forEach(p => { mainHtml += createProductCardHtml(p); });
             mainHtml += `</div></div>`;
         });
-
-        // إذا لم تكن هناك أقسام مخصصة جاهزة، نقسم المنتجات أفقياً حسب التصنيفات الموجودة في قاعدة البيانات
-        if(mainHtml === '') {
-            let availableCats = [...new Set(generalProds.flatMap(p => p.categories || []))].filter(c => c && c !== "الكل");
-            availableCats.forEach(secName => {
-                let secProds = generalProds.filter(p => p.categories && (Array.isArray(p.categories) ? p.categories.includes(secName) : p.categories.includes(secName)));
-                if(secProds.length === 0) return;
-                let catObj = categories.find(c => c.name === secName);
-                let icon = catObj ? catObj.icon : '🏷️';
-
-                mainHtml += `
-                    <div class="horizontal-section">
-                        <div class="horizontal-section-title">
-                            <span class="section-category-title"><span>${icon}</span> <span class="category-text-gradient">${secName}</span></span>
-                            <span class="section-view-all" onclick="selectCategory('${secName}')">عرض الكل ←</span>
-                        </div>
-                        <div class="products-horizontal-scroll">
-                `;
-                secProds.forEach(p => { mainHtml += createProductCardHtml(p); });
-                mainHtml += `</div></div>`;
-            });
-        }
 
         // ملاذ أخير: صف أفقي واحد يضم المنتجات في حال عدم توفر تصنيفات
         if(mainHtml === '') {
