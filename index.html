@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>العروبة أونلاين - السوبر ماركت الذكي</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS للخرائط التفاعلية -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
     <style>
         :root {
             --primary-green: #1b4d2e;
@@ -290,11 +294,12 @@
         <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم">
         <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف (05xxxxxxxx)">
 
-        <!-- زر تحديد الموقع الجغرافي GPS -->
-        <button type="button" onclick="getCurrentLocation()" style="width: 100%; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 7px; border-radius: 8px; font-weight: bold; font-size: 0.75rem; cursor: pointer; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 5px;">
-            📍 تحديد موقعي الحالي تلقائياً (GPS)
+        <!-- زر اختيار الموقع يدوياً على الخريطة -->
+        <button type="button" onclick="openMapModal()" style="width: 100%; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 7px; border-radius: 8px; font-weight: bold; font-size: 0.75rem; cursor: pointer; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            📍 اختر موقعك بدقة على الخريطة 🗺️
         </button>
         <input type="hidden" id="customerGpsLocation" value="">
+        <div id="selectedLocationText" style="font-size: 0.65rem; color: var(--accent-green); margin-bottom: 8px; text-align: center; font-weight: bold;"></div>
 
         <!-- تفاصيل العنوان المقسمة -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
@@ -328,6 +333,22 @@
     </div>
 </div>
 
+<!-- نافذة الخريطة التفاعلية لاختيار الموقع -->
+<div class="cart-modal" id="mapModal">
+    <div class="cart-modal-content" style="padding: 15px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="font-size: 0.85rem; color: var(--primary-green);">📍 حدد مكانك على الخريطة</h3>
+            <button onclick="closeMapModal()" style="background:none; border:none; font-size: 1rem; cursor:pointer;">✕</button>
+        </div>
+        <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 8px; text-align: center;">انقر على الخريطة أو اسحب الدبوس لتحديد عنوان التوصيل بدقة:</div>
+        <div id="leafletMap" style="width: 100%; height: 320px; border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border-color);"></div>
+        <button type="button" class="btn-main" onclick="confirmMapLocation()">تأكيد واختيار هذا الموقع ✅</button>
+    </div>
+</div>
+
+<!-- Leaflet JS للخرائط -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
     let products = [];
     let categories = [{ name: "الكل", icon: "🛍️" }];
@@ -337,6 +358,12 @@
     const FIXED_DELIVERY_FEE = 10.00;
     
     let generatedOtp = ""; // لتخزين الكود المؤقت
+
+    // متغيرات الخريطة التفاعلية
+    let map = null;
+    let marker = null;
+    let selectedLat = 31.3916; // إحداثيات افتراضية مركزية
+    let selectedLng = 34.7531;
 
     let initialHash = decodeURIComponent(window.location.hash.replace('#', ''));
     let currentCategory = initialHash ? initialHash : "الكل";
@@ -516,6 +543,66 @@
 
     function closeImageModal() {
         document.getElementById('imageModal').style.display = 'none';
+    }
+
+    // دوال الخريطة التفاعلية
+    function openMapModal() {
+        document.getElementById('mapModal').style.display = 'flex';
+        setTimeout(() => {
+            if (!map) {
+                // محاولة أخذ الموقع الحالي كمركز مبدئي للخريطة إن أمكن
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            selectedLat = position.coords.latitude;
+                            selectedLng = position.coords.longitude;
+                            initLeafletMap(selectedLat, selectedLng);
+                        },
+                        (error) => {
+                            initLeafletMap(selectedLat, selectedLng);
+                        },
+                        { timeout: 5000 }
+                    );
+                } else {
+                    initLeafletMap(selectedLat, selectedLng);
+                }
+            } else {
+                map.invalidateSize();
+            }
+        }, 200);
+    }
+
+    function initLeafletMap(lat, lng) {
+        map = L.map('leafletMap').setView([lat, lng], 15);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+
+        marker.on('dragend', function(e) {
+            let pos = marker.getLatLng();
+            selectedLat = pos.lat;
+            selectedLng = pos.lng;
+        });
+
+        map.on('click', function(e) {
+            selectedLat = e.latlng.lat;
+            selectedLng = e.latlng.lng;
+            marker.setLatLng([selectedLat, selectedLng]);
+        });
+    }
+
+    function closeMapModal() {
+        document.getElementById('mapModal').style.display = 'none';
+    }
+
+    function confirmMapLocation() {
+        let mapsUrl = `https://maps.google.com/?q=${selectedLat},${selectedLng}`;
+        document.getElementById('customerGpsLocation').value = mapsUrl;
+        document.getElementById('selectedLocationText').innerText = `✅ تم تحديد وتثبيت موقعك على الخريطة بنجاح`;
+        closeMapModal();
     }
 
     function switchProfileTab(tab) {
@@ -835,7 +922,6 @@
         document.getElementById('deliveryFeeText').innerText = FIXED_DELIVERY_FEE.toFixed(2) + " ₪";
         document.getElementById('cartFinalTotalText').innerText = finalTotal.toFixed(2) + " ₪";
 
-        // إعادة إظهار زر الإرسال وإخفاء قسم الرمز عند فتح السلة
         document.getElementById('order-btn-container').style.display = 'block';
         document.getElementById('otp-section').style.display = 'none';
         document.getElementById('otp-input').value = '';
@@ -847,26 +933,7 @@
         document.getElementById('cartModal').style.display = 'none';
     }
 
-    function getCurrentLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    let lat = position.coords.latitude;
-                    let lng = position.coords.longitude;
-                    let mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
-                    document.getElementById('customerGpsLocation').value = mapsUrl;
-                    alert("تم تحديد موقعك الجغرافي (GPS) بنجاح! 📍");
-                },
-                (error) => {
-                    alert("تعذّر تحديد الموقع. يرجى التأكد من السماح للمتصفح بالوصول للموقع، أو إدخال العنوان يدوياً.");
-                }
-            );
-        } else {
-            alert("متصفحك لا يدعم تحديد الموقع الجغرافي.");
-        }
-    }
-
-    // إرسال رمز التحقق عبر UpSend باستخدام بيانات الاعتماد المشفرة (Basic Auth)[cite: 4]
+    // إرسال رمز التحقق عبر UpSend باستخدام Basic Auth
     function sendOtpViaUpsend() {
         const name = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('customerPhone').value.trim();
@@ -878,12 +945,9 @@
             return;
         }
 
-        // 1. توليد رمز تحقق عشوائي من 4 أرقام
         generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
         const apiUrl = "https://api.upsend.co.il/v1/sms/send";
-        
-        // 2. بيانات الاعتماد المشفرة الناتجة من لوحة تحكم UpSend
         const base64Credentials = "VVBTRU5EMTZnNzA4NmU4MjYxZjQtNmExMS00YzQ5LWJkYmEtMTM5MDczNmQwOTBm=="; 
 
         const messageText = `رمز التحقق الخاص بطلبك في متجر عروبة أونلاين هو: ${generatedOtp}`;
@@ -893,7 +957,6 @@
             message: messageText
         };
 
-        // 3. إرسال الطلب عبر الـ API مع ترويسة التوثيق الصحيحة
         fetch(apiUrl, {
             method: 'POST',
             headers: {
@@ -911,7 +974,6 @@
             console.log("استجابة UpSend:", data);
             alert("تم إرسال رمز التحقق (SMS) إلى هاتفك بنجاح.");
             
-            // إظهار خانة إدخال الرمز للعميل وإخفاء زر الطلب مؤقتاً
             document.getElementById('otp-section').style.display = 'block';
             document.getElementById('order-btn-container').style.display = 'none';
         })
@@ -921,12 +983,10 @@
         });
     }
 
-    // التحقق من الكود المدخل وإتمام حفظ الطلب في Firebase
     function verifyOtpAndOrder() {
         const userEnteredCode = document.getElementById('otp-input').value.trim();
 
         if (userEnteredCode === generatedOtp) {
-            // الكود صحيح! قم بحفظ الطلب في قاعدة البيانات (Firebase)
             submitOrderToFirebase();
         } else {
             alert("رمز التحقق غير صحيح، يرجى التأكد وإعادة المحاولة.");
@@ -960,7 +1020,7 @@
             customerStreet: street,
             customerBuilding: building,
             customerAddress: fullAddress,
-            customerGps: gpsUrl || 'لم يتم مشاركة موقع GPS',
+            customerGps: gpsUrl || 'لم يتم اختيار الموقع على الخريطة',
             deliveryTime: deliveryTime,
             notes: notes || 'لا توجد ملاحظات',
             items: cart.map(i => ({ 
