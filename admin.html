@@ -261,6 +261,8 @@
             </div>
             <div class="form-group">
                 <label>المنتجات المشمولة في العرض (اختر المنتجات المتاحة للباقة)</label>
+                <!-- حقل البحث الجديد المضاف للباقات -->
+                <input type="text" id="bundleSearchInput" class="form-control" placeholder="🔍 ابحث عن اسم أو سعر المنتج..." style="margin-bottom: 6px;" oninput="filterBundleProducts()">
                 <div class="categories-checkbox-container" id="bundleProductsContainer" style="grid-template-columns: 1fr; max-height: 200px; overflow-y: auto;"></div>
             </div>
             <button class="btn-main" style="background: var(--accent-green);" onclick="saveBundleSettings()">حفظ إعدادات الباقة 💾</button>
@@ -759,11 +761,28 @@
         products.forEach(p => {
             const isChecked = bundleOfferConfig.allowedProductIds && bundleOfferConfig.allowedProductIds.includes(p.id) ? 'checked' : '';
             container.innerHTML += `
-                <label class="checkbox-item" style="width: 100%; white-space: normal;">
+                <label class="checkbox-item product-bundle-item" style="width: 100%; white-space: normal;">
                     <input type="checkbox" name="bundleProdCheckbox" value="${p.id}" ${isChecked}>
                     <span>${p.name} (${p.price} ₪)</span>
                 </label>
             `;
+        });
+        filterBundleProducts();
+    }
+
+    // دالة تصفية المنتجات داخل قسم الباقات حسب البحث
+    function filterBundleProducts() {
+        const searchInput = document.getElementById('bundleSearchInput');
+        if (!searchInput) return;
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const items = document.querySelectorAll('.product-bundle-item');
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
         });
     }
 
