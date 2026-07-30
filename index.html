@@ -288,6 +288,9 @@
             
             <label style="font-size: 0.75rem; font-weight: 700;">عنوان التوصيل (افتراضي):</label>
             <input type="text" id="userProfileAddress" class="form-control" placeholder="الحارة / الحي">
+
+            <label style="font-size: 0.75rem; font-weight: 700;">رقم البيت / الشقة:</label>
+            <input type="text" id="userProfileBuilding" class="form-control" placeholder="رقم البيت أو الشقة">
             
             <button class="btn-main" onclick="saveUserProfile()">حفظ البيانات 💾</button>
         </div>
@@ -594,28 +597,34 @@
         let savedName = localStorage.getItem('aloroba_user_name') || '';
         let savedPhone = localStorage.getItem('aloroba_user_phone') || '';
         let savedAddress = localStorage.getItem('aloroba_user_address') || '';
+        let savedBuilding = localStorage.getItem('aloroba_user_building') || '';
 
         let profileNameEl = document.getElementById('userProfileName');
         let profilePhoneEl = document.getElementById('userProfilePhone');
         let profileAddressEl = document.getElementById('userProfileAddress');
+        let profileBuildingEl = document.getElementById('userProfileBuilding');
+
         let custNameEl = document.getElementById('customerName');
         let custPhoneEl = document.getElementById('customerPhone');
         let custNeighborhoodEl = document.getElementById('customerNeighborhood');
+        let custBuildingEl = document.getElementById('customerBuilding');
 
         if(profileNameEl) profileNameEl.value = savedName;
         if(profilePhoneEl) profilePhoneEl.value = savedPhone;
         if(profileAddressEl) profileAddressEl.value = savedAddress;
+        if(profileBuildingEl) profileBuildingEl.value = savedBuilding;
+
         if(custNameEl) custNameEl.value = savedName;
         if(custPhoneEl) custPhoneEl.value = savedPhone;
-        if(savedAddress && custNeighborhoodEl) {
-            custNeighborhoodEl.value = savedAddress;
-        }
+        if(custNeighborhoodEl) custNeighborhoodEl.value = savedAddress;
+        if(custBuildingEl) custBuildingEl.value = savedBuilding;
     }
 
     function saveUserProfile() {
         let name = document.getElementById('userProfileName').value.trim();
         let phone = document.getElementById('userProfilePhone').value.trim();
         let address = document.getElementById('userProfileAddress').value.trim();
+        let building = document.getElementById('userProfileBuilding').value.trim();
 
         if(!name || !phone) {
             alert("الرجاء تعبئة الاسم ورقم الهاتف.");
@@ -625,6 +634,7 @@
         localStorage.setItem('aloroba_user_name', name);
         localStorage.setItem('aloroba_user_phone', phone);
         localStorage.setItem('aloroba_user_address', address);
+        localStorage.setItem('aloroba_user_building', building);
 
         loadUserProfileData();
         alert("تم حفظ بياناتك بنجاح! 💾");
@@ -632,30 +642,30 @@
     }
 
     function openProfileModal() {
-        document.body.style.overflow = 'hidden'; // تثبيت الشاشة الخلفية عن الحركة
+        document.body.style.overflow = 'hidden'; 
         document.getElementById('profileModal').style.display = 'flex';
         loadUserProfileData();
     }
 
     function closeProfileModal() {
-        document.body.style.overflow = ''; // إعادة حركة الشاشة الخلفية
+        document.body.style.overflow = ''; 
         document.getElementById('profileModal').style.display = 'none';
     }
 
     function openImageModal(imgUrl, title) {
-        document.body.style.overflow = 'hidden'; // تثبيت الشاشة الخلفية عن الحركة
+        document.body.style.overflow = 'hidden'; 
         document.getElementById('zoomImageSrc').src = imgUrl || 'logo.png';
         document.getElementById('zoomImageTitle').innerText = title;
         document.getElementById('imageModal').style.display = 'flex';
     }
 
     function closeImageModal() {
-        document.body.style.overflow = ''; // إعادة حركة الشاشة الخلفية
+        document.body.style.overflow = ''; 
         document.getElementById('imageModal').style.display = 'none';
     }
 
     function openMapModal() {
-        document.body.style.overflow = 'hidden'; // تثبيت الشاشة الخلفية عن الحركة
+        document.body.style.overflow = 'hidden'; 
         document.getElementById('mapModal').style.display = 'flex';
         setTimeout(() => {
             if (!map) {
@@ -724,7 +734,7 @@
     }
 
     function closeMapModal() {
-        document.body.style.overflow = ''; // إعادة حركة الشاشة الخلفية
+        document.body.style.overflow = ''; 
         document.getElementById('mapModal').style.display = 'none';
     }
 
@@ -1068,7 +1078,7 @@
             alert("السلة فارغة حالياً!");
             return;
         }
-        document.body.style.overflow = 'hidden'; // تثبيت الشاشة الخلفية عن الحركة
+        document.body.style.overflow = 'hidden'; 
         loadUserProfileData();
         goToStep1();
         document.getElementById('cartModal').style.display = 'flex';
@@ -1111,6 +1121,7 @@
         document.getElementById('cartStep2').style.display = 'block';
         document.getElementById('cartStep3').style.display = 'none';
         document.getElementById('cartModalTitle').innerText = '📍 الاستلام والبيانات الشخصية';
+        loadUserProfileData(); // التأكد من تحميل البيانات المحفوظة تلقائياً
     }
 
     function goToStep3() {
@@ -1128,6 +1139,12 @@
             alert("الرجاء إدخال الاسم ورقم الهاتف للاستلام الذاتي.");
             return;
         }
+
+        // حفظ البيانات تلقائياً دائماً لكي لا يضطر الزبون لإدخالها في المرة القادمة ولتنحفظ في الحساب
+        localStorage.setItem('aloroba_user_name', name);
+        localStorage.setItem('aloroba_user_phone', phone);
+        localStorage.setItem('aloroba_user_address', neighborhood);
+        localStorage.setItem('aloroba_user_building', building);
 
         document.getElementById('cartStep1').style.display = 'none';
         document.getElementById('cartStep2').style.display = 'none';
@@ -1192,7 +1209,7 @@
     }
 
     function closeCartModal() {
-        document.body.style.overflow = ''; // إعادة حركة الشاشة الخلفية
+        document.body.style.overflow = ''; 
         document.getElementById('cartModal').style.display = 'none';
     }
 
@@ -1205,11 +1222,11 @@
         const gpsUrl = document.getElementById('customerGpsLocation').value.trim();
         const paymentMethod = document.getElementById('paymentMethodSelect').value;
 
-        if(type === 'توصيل') {
-            localStorage.setItem('aloroba_user_name', name);
-            localStorage.setItem('aloroba_user_phone', phone);
-            localStorage.setItem('aloroba_user_address', neighborhood);
-        }
+        // حفظ البيانات في الحساب وفي الذاكرة عند الطلب أيضاً لضمان التثبيت الدائم
+        localStorage.setItem('aloroba_user_name', name);
+        localStorage.setItem('aloroba_user_phone', phone);
+        localStorage.setItem('aloroba_user_address', neighborhood);
+        localStorage.setItem('aloroba_user_building', building);
 
         let subtotal = 0;
         cart.forEach(i => subtotal += (i.price * i.quantity));
@@ -1217,7 +1234,7 @@
         let finalTotal = subtotal + currentDelivery - appliedDiscount;
         if(finalTotal < 0) finalTotal = 0;
 
-        const fullAddress = type === 'استلام ذاتي' ? 'استلام ذاتي من المتجر' : `الحارة: ${neighborhood} - البيت: ${building || 'بدون تفاصيل'}`;
+        const fullAddress = type === 'استلام ذاتي' ? 'استلام ذاتي من المتجر' : `الحارة: ${neighborhood} - البيت/الشقة: ${building || 'بدون تفاصيل'}`;
 
         const newOrder = {
             fulfillmentType: type,
