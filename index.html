@@ -67,7 +67,6 @@
             background: linear-gradient(135deg, #2c3e50 0%, #000000 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
             letter-spacing: -0.3px;
         }
 
@@ -77,7 +76,6 @@
             background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 1px 3px rgba(255, 140, 0, 0.25);
             cursor: pointer;
             letter-spacing: -0.2px;
         }
@@ -120,7 +118,6 @@
             background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 1px 3px rgba(255, 140, 0, 0.25);
             letter-spacing: -0.3px;
         }
         .old-price { font-size: 0.7rem; font-weight: 600; color: #9ca3af; text-decoration: line-through; }
@@ -146,13 +143,11 @@
         .products-grid .product-card { min-width: 100%; max-width: 100%; }
 
         /* شريط السلة السفلي */
-        .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--primary-green); color: white; padding: 14px 20px; display: none; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 16px; border-top-right-radius: 16px; z-index: 100; cursor: pointer; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); }
+        .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--primary-green); color: white; padding: 14px 20px; display: none; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 16px; border-top-right-radius: 16px; z-index: 100; cursor: pointer; }
         
-        /* النوافذ العائمة */
         .cart-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; max-width: 480px; margin: 0 auto; }
         .cart-modal-content { background: white; width: 100%; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; max-height: 90vh; overflow-y: auto; }
         
-        /* نافذة تكبير الصورة */
         .image-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 300; max-width: 480px; margin: 0 auto; padding: 20px; }
         .image-modal-content { background: white; width: 100%; border-radius: 16px; padding: 15px; text-align: center; position: relative; }
         .image-modal-content img { max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 8px; margin-bottom: 10px; }
@@ -206,7 +201,7 @@
 </head>
 <body>
 
-<!-- شاشة الترحيب المتحركة (تبقى لمدة 3 ثوانٍ) -->
+<!-- شاشة الترحيب المتحركة -->
 <div id="splashScreen" style="position: fixed; inset: 0; background: #ffffff; display: flex; align-items: center; justify-content: center; z-index: 9999; max-width: 480px; margin: 0 auto; transition: opacity 0.5s ease;">
     <div style="background: white; padding: 30px; border-radius: 30px; text-align: center;">
         <img src="logo.png" class="dancing-logo" style="width: 160px; height: 160px; object-fit: contain; border-radius: 20px;" alt="شعار العروبة أونلاين">
@@ -246,6 +241,11 @@
 
     <!-- المحتوى الرئيسي -->
     <div id="storeMainContent"></div>
+    
+    <!-- مؤشر التحميل عند النزول للأسفل -->
+    <div id="loadMoreIndicator" style="text-align: center; padding: 15px; font-size: 0.75rem; color: #64748b; font-weight: 700; display: none;">
+        جاري تحميل المزيد من الفئات... ⬇️
+    </div>
 </div>
 
 <!-- شريط السلة السفلي -->
@@ -410,6 +410,9 @@
     const FIXED_DELIVERY_FEE = 10.00;
     let appliedDiscount = 0;
 
+    // متغيرات التحميل التدريجي (Lazy Loading للأسفل)
+    let visibleSectionsLimit = 4;
+
     let map = null;
     let marker = null;
     let selectedLat = 31.3916; 
@@ -426,8 +429,28 @@
     window.addEventListener('hashchange', () => {
         let hash = decodeURIComponent(window.location.hash.replace('#', ''));
         currentCategory = hash ? hash : "الكل";
+        visibleSectionsLimit = 4; // إعادة تعيين الحد عند تغيير الفئة
         renderCategoriesScroll();
         requestAnimationFrame(() => { renderMainStoreContent(); });
+    });
+
+    // مراقبة التمرير للأسفل لتحميل فئة إضافية تلقائياً
+    window.addEventListener('scroll', () => {
+        if (currentCategory === "الكل" && document.getElementById('searchInput').value.trim() === "") {
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 250) {
+                let allAvailSecs = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection].filter(Boolean);
+                categories.forEach(c => { if(c.name !== "الكل" && !allAvailSecs.includes(c.name)) allAvailSecs.push(c.name); });
+
+                if (visibleSectionsLimit < allAvailSecs.length) {
+                    document.getElementById('loadMoreIndicator').style.display = 'block';
+                    setTimeout(() => {
+                        visibleSectionsLimit += 1; // تحميل فئة إضافية واحدة عند النزول
+                        renderMainStoreContent();
+                        document.getElementById('loadMoreIndicator').style.display = 'none';
+                    }, 400);
+                }
+            }
+        }
     });
 
     function hideSplashScreen() {
@@ -630,7 +653,6 @@
 
     function initLeafletMap(lat, lng) {
         map = L.map('leafletMap').setView([lat, lng], 15);
-        
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap'
         }).addTo(map);
@@ -763,6 +785,7 @@
 
     function selectCategory(catName) {
         currentCategory = catName;
+        visibleSectionsLimit = 4; // إعادة تعيين الحد
         if (catName === "الكل") {
             history.pushState("", document.title, window.location.pathname + window.location.search);
         } else {
@@ -787,9 +810,11 @@
         if (products.length === 0) return;
 
         let query = document.getElementById('searchInput').value.trim().toLowerCase();
-        let htmlParts = []; // مصفوفة لتجميع الأجزاء بكفاءة وتقليل الضغط على الـ DOM
+        let htmlParts = [];
 
+        // إذا كان هناك بحث أو اختيار فئة معينة، اعرض شبكة المنتجات العادية
         if(query !== "" || currentCategory !== "الكل") {
+            document.getElementById('loadMoreIndicator').style.display = 'none';
             let filtered = products.filter(p => {
                 let matchesQuery = p.name.toLowerCase().includes(query);
                 let matchesCat = currentCategory === "الكل" || productBelongsToCategory(p, currentCategory);
@@ -807,10 +832,19 @@
             return;
         }
 
-        let sectionsToShow = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection].filter(Boolean);
+        // تجميع الفئات والأقسام المتاحة للرئيسية
+        let sectionsList = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection].filter(Boolean);
+        categories.forEach(cat => {
+            if(cat.name !== "الكل" && !sectionsList.includes(cat.name)) {
+                sectionsList.push(cat.name);
+            }
+        });
+
+        // أخذ أول 4 فئات (أو العدد المحدد بالتحميل التدريجي)
+        let activeSections = sectionsList.slice(0, visibleSectionsLimit);
         let displayedCount = 0;
 
-        sectionsToShow.forEach(secName => {
+        activeSections.forEach(secName => {
             let secProds = products.filter(p => productBelongsToCategory(p, secName)).slice(0, 9);
             if(secProds.length === 0) return;
 
@@ -831,27 +865,6 @@
             htmlParts.push(secHtml);
         });
 
-        if(displayedCount === 0 && products.length > 0) {
-            categories.forEach(cat => {
-                if(cat.name === "الكل") return;
-                let secProds = products.filter(p => productBelongsToCategory(p, cat.name)).slice(0, 9);
-                if(secProds.length === 0) return;
-
-                let secHtml = `
-                    <div class="horizontal-section">
-                        <div class="horizontal-section-title">
-                            <span class="section-category-title"><span>${cat.icon || '🏷️'}</span> <span class="category-text-gradient">${cat.name}</span></span>
-                            <span class="section-view-all" onclick="selectCategory('${cat.name}')">عرض الكل ←</span>
-                        </div>
-                        <div class="products-horizontal-scroll">
-                `;
-                secProds.forEach(p => { secHtml += createProductCardHtml(p); });
-                secHtml += `</div></div>`;
-                htmlParts.push(secHtml);
-            });
-        }
-
-        // حقن الحزمة كاملة مرة واحدة لتفادي تكرار عمليات الـ Reflow وتحسين الأداء
         container.innerHTML = htmlParts.join('');
     }
 
