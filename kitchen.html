@@ -24,7 +24,7 @@
         
         .order-info { margin-bottom: 8px; color: #333; }
         .order-info p { margin: 3px 0; }
-        .order-time { background: #eef2f7; padding: 4px 8px; border-radius: 6px; display: inline-block; font-weight: bold; color: #d97706; margin-top: 4px; font-size: 0.7rem; }
+        .order-time { background: #fef3c7; color: #b45309; padding: 5px 10px; border-radius: 6px; display: inline-block; font-weight: bold; margin-top: 6px; font-size: 0.75rem; border: 1px solid #fde68a; }
 
         .products-section { margin-top: 8px; border-top: 1px dashed #cbd5e1; padding-top: 8px; }
         .section-label { font-weight: bold; margin-bottom: 6px; color: #4b5563; font-size: 0.75rem; }
@@ -116,13 +116,20 @@
         let timeVal = ord.createdAt || ord.time || ord.timestamp || ord.date || ord.orderTime;
         if (!timeVal) return 'الوقت غير مسجل';
         
-        // إذا كان مخزن ككائن توقيت من فايربيس (Timestamp)
+        let date;
         if (typeof timeVal === 'object' && timeVal.seconds) {
-            let date = new Date(timeVal.seconds * 1000);
-            return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' (' + date.toLocaleDateString('en-GB') + ')';
+            date = new Date(timeVal.seconds * 1000);
+        } else {
+            date = new Date(timeVal);
         }
         
-        return timeVal;
+        if (isNaN(date.getTime())) {
+            return timeVal;
+        }
+        
+        let timeStr = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        let dateStr = date.toLocaleDateString('en-GB');
+        return `${timeStr} | ${dateStr}`;
     }
 
     function renderKitchenOrders(orders) {
@@ -174,7 +181,7 @@
                     <div class="order-info">
                         <p><strong>الهاتف:</strong> ${ord.customerPhone || ord.phone || ''}</p>
                         <p><strong>العنوان:</strong> ${ord.customerAddress || ord.address || ''}</p>
-                        <div class="order-time">⏰ وقت الطلب: ${orderTimeFormatted}</div>
+                        <div class="order-time">⏰ وقت الطلب: <span dir="ltr" style="display:inline-block;">${orderTimeFormatted}</span></div>
                     </div>
                     
                     <div class="products-section">
