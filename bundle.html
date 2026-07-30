@@ -13,6 +13,7 @@
             --text-secondary: #64748b;
             --border-color: #cbd5e1;
             --danger-color: #ef4444;
+            --warning-color: #f59e0b;
         }
         * {
             box-sizing: border-box;
@@ -58,6 +59,15 @@
             padding: 14px;
             margin-bottom: 12px;
         }
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
         .form-group {
             margin-bottom: 12px;
         }
@@ -82,7 +92,7 @@
             border-color: var(--primary-color);
         }
         
-        /* تصميم حقل البحث الجديد */
+        /* تصميم حقل البحث */
         .search-container {
             position: relative;
             margin-bottom: 8px;
@@ -95,11 +105,9 @@
             font-size: 0.85rem;
             background: #fff;
             outline: none;
-            transition: all 0.2s ease;
         }
         .search-input:focus {
             border-color: var(--primary-color);
-            background-color: #ffffff;
         }
         .search-icon {
             position: absolute;
@@ -115,8 +123,8 @@
         .switch {
             position: relative;
             display: inline-block;
-            width: 44px;
-            height: 24px;
+            width: 40px;
+            height: 22px;
         }
         .switch input { 
             opacity: 0;
@@ -129,13 +137,13 @@
             top: 0; left: 0; right: 0; bottom: 0;
             background-color: #cbd5e1;
             transition: .3s;
-            border-radius: 24px;
+            border-radius: 22px;
         }
         .slider:before {
             position: absolute;
             content: "";
-            height: 18px;
-            width: 18px;
+            height: 16px;
+            width: 16px;
             left: 3px;
             bottom: 3px;
             background-color: white;
@@ -146,10 +154,11 @@
             background-color: var(--primary-color);
         }
         input:checked + .slider:before {
-            transform: translateX(20px);
+            transform: translateX(18px);
         }
+
         .products-checklist {
-            max-height: 250px;
+            max-height: 200px;
             overflow-y: auto;
             border: 1px solid var(--border-color);
             border-radius: 6px;
@@ -167,6 +176,49 @@
         .checkbox-item:last-child {
             border-bottom: none;
         }
+
+        /* بطاقات العروض المضافة في القائمة أسفل */
+        .bundle-card {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+        .bundle-info h4 {
+            font-size: 0.85rem;
+            color: var(--text-main);
+            margin-bottom: 2px;
+        }
+        .bundle-info p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .bundle-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-action {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-edit {
+            background: #e2e8f0;
+            color: var(--text-main);
+        }
+        .btn-delete {
+            background: #fee2e2;
+            color: var(--danger-color);
+        }
         .btn-main {
             width: 100%;
             background: var(--primary-color);
@@ -179,7 +231,13 @@
             cursor: pointer;
             text-align: center;
         }
-        .btn-main:active {
+        .btn-cancel {
+            background: #64748b;
+            color: white;
+            margin-top: 6px;
+            display: none;
+        }
+        .btn-main:active, .btn-cancel:active {
             opacity: 0.9;
         }
         #loadingMsg {
@@ -193,7 +251,7 @@
     <!-- استدعاء Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
@@ -209,32 +267,20 @@
         const db = getFirestore(app);
 
         let products = [];
-        let bundleSettings = {
-            enabled: true,
-            targetCount: 6,
-            bundlePrice: 19.90,
-            productIds: []
-        };
+        let bundlesList = [];
+        let editingId = null; // لتتبع العرض الجاري تعديله
 
         async function initBundlePage() {
             try {
-                // 1. جلب المنتجات المتاحة[cite: 1]
+                // 1. جلب المنتجات المتاحة
                 const prodSnap = await getDocs(collection(db, "products"));
                 products = [];
                 prodSnap.forEach(docSnap => {
                     products.push({ id: docSnap.id, ...docSnap.data() });
                 });
 
-                // 2. جلب إعدادات الباقة الحالية من Firebase[cite: 1]
-                const bundleSnap = await getDoc(doc(db, "settings", "bundleOffer"));
-                if(bundleSnap.exists()) {
-                    bundleSettings = { ...bundleSettings, ...bundleSnap.data() };
-                }
-
-                // تعبئة الحقول بالقيم المسترجعة[cite: 1]
-                document.getElementById('toggleBundle').checked = bundleSettings.enabled !== false;
-                document.getElementById('targetCount').value = bundleSettings.targetCount || 6;
-                document.getElementById('bundlePrice').value = bundleSettings.bundlePrice || 19.90;
+                // 2. جلب جميع العروض من مجموعة bundleOffers
+                await fetchBundles();
 
                 renderProductsList();
                 document.getElementById('loadingMsg').style.display = 'none';
@@ -244,6 +290,15 @@
                 console.error("خطأ في جلب البيانات:", error);
                 document.getElementById('loadingMsg').innerText = "حدث خطأ أثناء الاتصال بقاعدة البيانات.";
             }
+        }
+
+        async function fetchBundles() {
+            const bundleSnap = await getDocs(collection(db, "bundleOffers"));
+            bundlesList = [];
+            bundleSnap.forEach(docSnap => {
+                bundlesList.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            renderBundlesList();
         }
 
         function renderProductsList() {
@@ -256,19 +311,18 @@
             }
 
             products.forEach(p => {
-                const isChecked = bundleSettings.productIds && bundleSettings.productIds.includes(p.id) ? 'checked' : '';
                 const searchString = `${p.id} ${p.name || ''}`.toLowerCase();
                 container.innerHTML += `
                     <label class="checkbox-item" data-search="${searchString}">
-                        <input type="checkbox" name="prodCheck" value="${p.id}" ${isChecked}>
+                        <input type="checkbox" name="prodCheck" value="${p.id}">
                         <span>${p.name || 'بدون اسم'} - <span style="color:var(--primary-color);">${p.price || 0} ₪</span></span>
                     </label>
                 `;
             });
         }
 
-        // دالة تصفية المنتجات الفورية عند البحث
-        function filterProducts() {
+        // تصفية المنتجات في الحقل
+        window.filterProducts = function() {
             const query = document.getElementById('productSearchInput').value.toLowerCase().trim();
             const items = document.querySelectorAll('.checkbox-item');
             items.forEach(item => {
@@ -279,38 +333,150 @@
                     item.style.display = 'none';
                 }
             });
+        };
+
+        // عرض العروض الحالية في الأسفل
+        function renderBundlesList() {
+            const container = document.getElementById('bundlesListContainer');
+            container.innerHTML = '';
+
+            if (bundlesList.length === 0) {
+                container.innerHTML = '<div style="font-size:0.75rem; color:#888; text-align:center; padding:10px;">لا توجد عروض باقات مضافة حالياً</div>';
+                return;
+            }
+
+            bundlesList.forEach(b => {
+                const isChecked = b.enabled ? 'checked' : '';
+                container.innerHTML += `
+                    <div class="bundle-card">
+                        <div class="bundle-info">
+                            <h4>${b.title || 'عرض بدون اسم'}</h4>
+                            <p>القطع: ${b.targetCount} | السعر: ${b.bundlePrice} ₪ | المنتجات: ${b.productIds ? b.productIds.length : 0}</p>
+                        </div>
+                        <div class="bundle-actions">
+                            <label class="switch">
+                                <input type="checkbox" ${isChecked} onchange="toggleBundleStatus('${b.id}', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                            <button class="btn-action btn-edit" onclick="startEditBundle('${b.id}')">تعديل ✏️</button>
+                            <button class="btn-action btn-delete" onclick="deleteBundle('${b.id}')">حذف 🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
         }
 
-        async function saveBundleData() {
-            bundleSettings.enabled = document.getElementById('toggleBundle').checked;
-            bundleSettings.targetCount = parseInt(document.getElementById('targetCount').value) || 6;
-            bundleSettings.bundlePrice = parseFloat(document.getElementById('bundlePrice').value) || 19.90;
+        // حفظ أو تحديث عرض باقة
+        window.saveBundleData = async function() {
+            const title = document.getElementById('bundleTitle').value.trim();
+            const targetCount = parseInt(document.getElementById('targetCount').value) || 6;
+            const bundlePrice = parseFloat(document.getElementById('bundlePrice').value) || 19.90;
+
+            if(!title) {
+                alert("يرجى إدخال عنوان أو اسم العرض.");
+                return;
+            }
 
             let selectedIds = [];
             document.querySelectorAll('input[name="prodCheck"]:checked').forEach(cb => {
                 selectedIds.push(cb.value);
             });
-            bundleSettings.productIds = selectedIds;
+
+            const bundleData = {
+                title,
+                targetCount,
+                bundlePrice,
+                productIds: selectedIds,
+                enabled: true
+            };
 
             const saveBtn = document.getElementById('saveBtn');
             saveBtn.innerText = "جاري الحفظ...";
             saveBtn.disabled = true;
 
             try {
-                await setDoc(doc(db, "settings", "bundleOffer"), bundleSettings);
-                alert("تم حفظ وتحديث إعدادات عروض الباقات بنجاح! 🚀");
+                if (editingId) {
+                    // تحديث عرض موجود
+                    await updateDoc(doc(db, "bundleOffers", editingId), bundleData);
+                    alert("تم تحديث العرض بنجاح! 🚀");
+                    cancelEdit();
+                } else {
+                    // إضافة عرض جديد
+                    await addDoc(collection(db, "bundleOffers"), bundleData);
+                    alert("تم إضافة العرض الجديد بنجاح تحت في القائمة! 🚀");
+                    resetForm();
+                }
+                await fetchBundles();
             } catch (error) {
                 console.error(error);
                 alert("فشل حفظ البيانات، يرجى المحاولة مرة أخرى.");
             } finally {
-                saveBtn.innerText = "حفظ الإعدادات 💾";
+                saveBtn.innerText = editingId ? "تعديل العرض 💾" : "حفظ وإضافة عرض جديد ➕";
                 saveBtn.disabled = false;
             }
         }
 
+        // تفعيل أو تعطيل العرض مباشرة من زر التشغيل/الإيقاف
+        window.toggleBundleStatus = async function(id, newStatus) {
+            try {
+                await updateDoc(doc(db, "bundleOffers", id), { enabled: newStatus });
+            } catch (error) {
+                console.error("خطأ في تحديث الحالة:", error);
+                alert("فشل تحديث حالة العرض.");
+            }
+        }
+
+        // بدء تعديل عرض
+        window.startEditBundle = function(id) {
+            const bundle = bundlesList.find(b => b.id === id);
+            if (!bundle) return;
+
+            editingId = id;
+            document.getElementById('bundleTitle').value = bundle.title || '';
+            document.getElementById('targetCount').value = bundle.targetCount || 6;
+            document.getElementById('bundlePrice').value = bundle.bundlePrice || 19.90;
+
+            // تحديد مربعات المنتجات الخاصة بهذا العرض
+            document.querySelectorAll('input[name="prodCheck"]').forEach(cb => {
+                cb.checked = bundle.productIds && bundle.productIds.includes(cb.value);
+            });
+
+            document.getElementById('saveBtn').innerText = "تعديل العرض 💾";
+            document.getElementById('cancelBtn').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // إلغاء التعديل
+        window.cancelEdit = function() {
+            editingId = null;
+            resetForm();
+            document.getElementById('saveBtn').innerText = "حفظ وإضافة عرض جديد ➕";
+            document.getElementById('cancelBtn').style.display = 'none';
+        }
+
+        function resetForm() {
+            document.getElementById('bundleTitle').value = '';
+            document.getElementById('targetCount').value = '6';
+            document.getElementById('bundlePrice').value = '19.90';
+            document.getElementById('productSearchInput').value = '';
+            document.querySelectorAll('input[name="prodCheck"]').forEach(cb => cb.checked = false);
+            window.filterProducts();
+        }
+
+        // حذف عرض
+        window.deleteBundle = async function(id) {
+            if(!confirm("هل أنت متأكد من حذف هذا العرض نهائياً؟")) return;
+            try {
+                await deleteDoc(doc(db, "bundleOffers", id));
+                await fetchBundles();
+                alert("تم حذف العرض بنجاح.");
+            } catch (error) {
+                console.error("خطأ في الحذف:", error);
+                alert("فشل حذف العرض.");
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', initBundlePage);
-        window.saveBundleData = saveBundleData;
-        window.filterProducts = filterProducts;
     </script>
 </head>
 <body>
@@ -323,13 +489,14 @@
     <div id="loadingMsg">جاري تحميل البيانات من النظام...</div>
 
     <div id="mainContent" style="display: none;">
+        
+        <!-- قسم إضافة / تعديل عرض -->
         <div class="section-box">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <label style="font-size: 0.8rem; font-weight: 700;">تفعيل ميزة عروض الباقات في المتجر</label>
-                <label class="switch">
-                    <input type="checkbox" id="toggleBundle">
-                    <span class="slider"></span>
-                </label>
+            <div class="section-title">إضافة / تعديل عرض باقة جديد</div>
+
+            <div class="form-group">
+                <label>اسم أو عنوان العرض (مثال: عرض المشروبات، عروض السوبر...)</label>
+                <input type="text" id="bundleTitle" class="form-control" placeholder="أدخل عنوان العرض...">
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
@@ -346,7 +513,7 @@
             <div class="form-group">
                 <label>حدد المنتجات المشمولة في الباقة:</label>
                 
-                <!-- حقل البحث الجديد بتصميم مسطح -->
+                <!-- حقل البحث -->
                 <div class="search-container">
                     <span class="search-icon">🔍</span>
                     <input type="text" id="productSearchInput" class="search-input" placeholder="ابحث برقم المنتج أو الاسم..." onkeyup="filterProducts()">
@@ -357,8 +524,18 @@
                 </div>
             </div>
 
-            <button id="saveBtn" class="btn-main" onclick="saveBundleData()">حفظ الإعدادات 💾</button>
+            <button id="saveBtn" class="btn-main" onclick="saveBundleData()">حفظ وإضافة عرض جديد ➕</button>
+            <button id="cancelBtn" class="btn-main btn-cancel" onclick="cancelEdit()">إلغاء التعديل</button>
         </div>
+
+        <!-- قسم عرض قائمة العروض المضافة في الأسفل -->
+        <div class="section-box">
+            <div class="section-title">عروض الباقات الحالية في المتجر</div>
+            <div id="bundlesListContainer">
+                <!-- يتم عرض الباقات المضافة هنا ديناميكياً مع زر تشغيل/إيقاف وتعديل وحذف -->
+            </div>
+        </div>
+
     </div>
 
 </body>
