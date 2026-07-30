@@ -50,9 +50,10 @@
         .order-footer { display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #f1f5f9; padding-top: 10px; margin-top: 10px; }
         .total-price { font-size: 0.95rem; font-weight: 900; color: var(--primary-green); }
         
-        .btn-action { background: var(--accent-green); color: white; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+        .btn-action { background: var(--accent-green); color: white; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: opacity 0.2s; }
+        .btn-action:disabled { background: #9ca3af; cursor: not-allowed; opacity: 0.6; }
+        
         .btn-start { background: #d97706; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
-        .btn-call { background: #2563eb; color: white; text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; display: inline-flex; align-items: center; gap: 4px; }
         
         .nav-back { display: block; text-align: center; background: #e5e7eb; color: #374151; padding: 10px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 0.8rem; margin-bottom: 15px; }
     </style>
@@ -116,7 +117,6 @@
         await loadProductsList();
         initKitchenRealtimeOrders();
         
-        // تحديث العدادات الزمنية قيد التحضير كل ثانية
         setInterval(updateOrderTimers, 1000);
     });
 
@@ -139,7 +139,6 @@
         }
     }
 
-    // تنبيه صوتي عبر Web Audio API
     function playAlertSound() {
         try {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -204,7 +203,6 @@
         });
     }
 
-    // تنسيق الوقت لعرض الساعة والدقائق (مثال: 03:35)
     function formatClockTime(isoString) {
         if (!isoString) return "--:--";
         let date = new Date(isoString);
@@ -227,6 +225,7 @@
         let html = "";
         activeOrders.forEach((ord, index) => {
             let itemsHtml = "";
+            
             if(ord.items && Array.isArray(ord.items)) {
                 ord.items.forEach((item, itemIdx) => {
                     let imgSrc = item.img;
@@ -244,7 +243,7 @@
                     itemsHtml += `
                         <div class="kitchen-item-row" id="row_${checkboxId}">
                             <div class="item-left-side">
-                                <input type="checkbox" class="item-checkbox" id="${checkboxId}" onchange="toggleItemCheck('${checkboxId}')">
+                                <input type="checkbox" class="item-checkbox" id="${checkboxId}" onchange="toggleItemCheck('${checkboxId}', '${ord.id}')">
                                 <img src="${imgSrc}" class="item-thumb" onerror="this.src='https://i.ibb.co/3m1K2wP/basket.png'">
                                 <span class="item-name-text">${item.name}</span>
                             </div>
@@ -267,11 +266,11 @@
             } else {
                 let startTime = ord.preparingAt || new Date().toISOString();
                 badgeHtml = `<span class="timer-badge preparing-timer" data-start="${startTime}">⏱️ 00:00:00</span>`;
-                actionButtonHtml = `<button class="btn-action" onclick="markOrderReady('${ord.id}')">إرسال للسائق 🚚</button>`;
+                actionButtonHtml = `<button class="btn-action" id="btn_send_${ord.id}" onclick="markOrderReady('${ord.id}')" disabled>إرسال للسائق 🚚</button>`;
             }
 
             html += `
-                <div class="order-card">
+                <div class="order-card" id="order_card_${ord.id}">
                     <div class="order-header">
                         <span>طلب #${ord.id ? ord.id.substring(0, 6) : (index + 1)}</span>
                         <div style="display: flex; gap: 6px; align-items: center;">
@@ -282,7 +281,6 @@
 
                     <div class="customer-info">
                         <div><b>👤 الزبون:</b> ${ord.customerName || 'بدون اسم'}</div>
-                        <div><b>📞 الهاتف:</b> <a href="tel:${ord.customerPhone}" style="color: #2563eb; text-decoration: none;">${ord.customerPhone || ''}</a></div>
                         <div><b>📍 العنوان:</b> ${ord.customerAddress || 'بدون عنوان'}</div>
                     </div>
 
@@ -293,8 +291,7 @@
 
                     <div class="order-footer">
                         <div class="total-price">المجموع: ${ord.total || 0} ₪</div>
-                        <div style="display: flex; gap: 8px;">
-                            <a href="tel:${ord.customerPhone}" class="btn-call">📞 اتصال</a>
+                        <div>
                             ${actionButtonHtml}
                         </div>
                     </div>
@@ -306,7 +303,6 @@
         updateOrderTimers();
     }
 
-    // تحديث العداد التصاعدي بنظام (ساعات : دقائق : ثواني)
     function updateOrderTimers() {
         document.querySelectorAll('.preparing-timer').forEach(badge => {
             let startStr = badge.getAttribute('data-start');
@@ -327,7 +323,7 @@
         });
     }
 
-    function toggleItemCheck(checkboxId) {
+    function toggleItemCheck(checkboxId, orderId) {
         const checkbox = document.getElementById(checkboxId);
         const row = document.getElementById(`row_${checkboxId}`);
         if(checkbox && row) {
@@ -335,6 +331,25 @@
                 row.classList.add('checked');
             } else {
                 row.classList.remove('checked');
+            }
+        }
+
+        const card = document.getElementById(`order_card_${orderId}`);
+        if(card) {
+            const checkboxes = card.querySelectorAll('.item-checkbox');
+            const sendBtn = document.getElementById(`btn_send_${orderId}`);
+            
+            if(sendBtn) {
+                let allChecked = true;
+                checkboxes.forEach(chk => {
+                    if(!chk.checked) allChecked = false;
+                });
+
+                if(allChecked) {
+                    sendBtn.removeAttribute('disabled');
+                } else {
+                    sendBtn.setAttribute('disabled', 'true');
+                }
             }
         }
     }
@@ -351,6 +366,19 @@
     }
 
     async function markOrderReady(orderId) {
+        const card = document.getElementById(`order_card_${orderId}`);
+        if(card) {
+            const checkboxes = card.querySelectorAll('.item-checkbox');
+            let allChecked = true;
+            checkboxes.forEach(chk => {
+                if(!chk.checked) allChecked = false;
+            });
+            if(!allChecked) {
+                alert("⚠️ تنبيه: يجب شطب جميع منتجات الطلب وتحديدها أولاً قبل إرساله للسائق!");
+                return;
+            }
+        }
+
         if(confirm("هل أنت متأكد من انتهاء تجهيز الطلب وإرساله إلى السائق؟")) {
             try {
                 await window.updateDoc(window.doc(window.db, "orders", orderId), { status: "جاهز للتوصيل" });
