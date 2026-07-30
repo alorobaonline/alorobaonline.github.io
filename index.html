@@ -543,6 +543,13 @@
 
     function sortProducts() {
         products.sort((a, b) => {
+            // الأولوية الأولى: المنتجات التي عليها عروض (تخفيضات) تكون في الصدارة دائماً
+            let hasSaleA = (a.salePrice !== undefined && a.salePrice !== "" && a.salePrice !== null);
+            let hasSaleB = (b.salePrice !== undefined && b.salePrice !== "" && b.salePrice !== null);
+
+            if (hasSaleA && !hasSaleB) return -1;
+            if (!hasSaleA && hasSaleB) return 1;
+
             let valA = (a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "") ? a.displayOrder : 
                        ((a.order !== undefined && a.order !== null && a.order !== "") ? a.order : 
                        ((a.sortOrder !== undefined && a.sortOrder !== null && a.sortOrder !== "") ? a.sortOrder : 9999));
