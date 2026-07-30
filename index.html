@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>العروبة أونلاين - السوبر ماركت الذكي</title>
-    <!-- استدعاء خط تجوال الواضح والغامق -->
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
+    <!-- استدعاء خط كايرو (Cairo) الأنيق والمريح للعين -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     
     <!-- Leaflet CSS للخرائط التفاعلية -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -21,7 +21,7 @@
             box-sizing: border-box; 
             margin: 0; 
             padding: 0; 
-            font-family: 'Tajawal', sans-serif; 
+            font-family: 'Cairo', sans-serif; 
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             text-rendering: optimizeLegibility;
@@ -33,22 +33,22 @@
         .store-header { background: var(--primary-green); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
         .store-title { font-size: 1.15rem; font-weight: 900; }
         .header-actions { display: flex; gap: 6px; align-items: center; }
-        .admin-link { background: rgba(255,255,255,0.2); color: white; padding: 5px 10px; border-radius: 8px; text-decoration: none; font-size: 0.75rem; font-weight: 800; cursor: pointer; border: none; }
+        .admin-link { background: rgba(255,255,255,0.2); color: white; padding: 5px 10px; border-radius: 8px; text-decoration: none; font-size: 0.75rem; font-weight: 700; cursor: pointer; border: none; }
 
         .search-bar-container { padding: 12px 15px; background: white; }
-        .search-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 0.85rem; font-weight: 700; outline: none; background: #fafafa; }
+        .search-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 0.85rem; font-weight: 600; outline: none; background: #fafafa; }
 
         /* البانر المتحرك */
         .banner-slider { padding: 0 15px; margin-bottom: 15px; }
         .banner-card { background: #1e5642; color: white; border-radius: 16px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
         .banner-text h2 { font-size: 1rem; font-weight: 900; margin-bottom: 4px; }
-        .banner-text p { font-size: 0.8rem; font-weight: 700; opacity: 0.95; }
+        .banner-text p { font-size: 0.8rem; font-weight: 600; opacity: 0.95; }
         .banner-img { width: 60px; height: 60px; object-fit: contain; background: white; border-radius: 50%; padding: 3px; }
 
         /* الأقسام الدائرية السريعة */
         .categories-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 0 15px 10px 15px; scrollbar-width: none; }
         .categories-scroll::-webkit-scrollbar { display: none; }
-        .cat-chip { background: white; border: 1px solid var(--border-color); padding: 7px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 800; white-space: nowrap; cursor: pointer; color: #334155; display: flex; align-items: center; gap: 4px; }
+        .cat-chip { background: white; border: 1px solid var(--border-color); padding: 7px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; white-space: nowrap; cursor: pointer; color: #334155; display: flex; align-items: center; gap: 4px; }
         .cat-chip.active { background: var(--primary-green); color: white; border-color: var(--primary-green); }
 
         /* أقسام العرض الأفقي للمتجر */
@@ -81,14 +81,23 @@
         }
         .product-img-box { width: 100%; height: 110px; position: relative; display: flex; align-items: center; justify-content: center; background: #ffffff; border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
         .product-img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .product-name { font-size: 0.8rem; font-weight: 800; color: #222; margin-bottom: 4px; height: 30px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .product-weight { font-size: 0.7rem; font-weight: 700; color: #666; margin-bottom: 8px; }
+        .product-name { font-size: 0.8rem; font-weight: 700; color: #222; margin-bottom: 4px; height: 30px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .product-weight { font-size: 0.7rem; font-weight: 600; color: #666; margin-bottom: 8px; }
         
         .product-price-row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
         .product-price-top { margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
         
-        .price-text { font-size: 0.9rem; font-weight: 900; color: var(--primary-green); }
-        .old-price { font-size: 0.7rem; font-weight: 700; color: #9ca3af; text-decoration: line-through; }
+        /* لون برتقالي جذاب مع تدرج ولمعة أنيقة */
+        .price-text { 
+            font-size: 0.95rem; 
+            font-weight: 900; 
+            background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 1px 2px rgba(255, 140, 0, 0.25);
+            letter-spacing: -0.3px;
+        }
+        .old-price { font-size: 0.7rem; font-weight: 600; color: #9ca3af; text-decoration: line-through; }
         
         .add-to-cart-btn { background: var(--accent-green); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 1.1rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         
@@ -122,11 +131,11 @@
         .image-modal-content { background: white; width: 100%; border-radius: 16px; padding: 15px; text-align: center; position: relative; }
         .image-modal-content img { max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 8px; margin-bottom: 10px; }
 
-        .form-control { width: 100%; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.8rem; font-weight: 700; margin-bottom: 8px; outline: none; background: #fafafa; }
-        .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 11px; border-radius: 8px; font-weight: 900; font-size: 0.9rem; cursor: pointer; margin-top: 5px; }
+        .form-control { width: 100%; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.8rem; font-weight: 600; margin-bottom: 8px; outline: none; background: #fafafa; }
+        .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 11px; border-radius: 8px; font-weight: 800; font-size: 0.9rem; cursor: pointer; margin-top: 5px; }
         
         .profile-tabs { display: flex; gap: 5px; margin-bottom: 12px; background: #f1f5f9; padding: 4px; border-radius: 8px; }
-        .profile-tab { flex: 1; text-align: center; padding: 6px; font-size: 0.8rem; font-weight: 800; cursor: pointer; border-radius: 6px; color: #64748b; }
+        .profile-tab { flex: 1; text-align: center; padding: 6px; font-size: 0.8rem; font-weight: 700; cursor: pointer; border-radius: 6px; color: #64748b; }
         .profile-tab.active { background: white; color: var(--primary-green); }
 
         @keyframes logoDance {
@@ -175,7 +184,7 @@
 <div id="splashScreen" style="position: fixed; inset: 0; background: #ffffff; display: flex; align-items: center; justify-content: center; z-index: 9999; max-width: 480px; margin: 0 auto; transition: opacity 0.5s ease;">
     <div style="background: white; padding: 30px; border-radius: 30px; text-align: center;">
         <img src="logo.png" class="dancing-logo" style="width: 160px; height: 160px; object-fit: contain; border-radius: 20px;" alt="شعار العروبة أونلاين">
-        <div style="font-size: 0.9rem; font-weight: 900; color: #1b4d2e; margin-top: 15px;">العروبة أونلاين - جاري تجهيز السوبر ماركت... 🛒</div>
+        <div style="font-size: 0.9rem; font-weight: 800; color: #1b4d2e; margin-top: 15px;">العروبة أونلاين - جاري تجهيز السوبر ماركت... 🛒</div>
     </div>
 </div>
 
@@ -198,7 +207,7 @@
     <div class="banner-slider" id="bannerContainer">
         <div class="banner-card">
             <div class="banner-text">
-                <span style="font-size: 0.7rem; font-weight: 800; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;" id="bannerTag">سوبر ماركت العروبة</span>
+                <span style="font-size: 0.7rem; font-weight: 700; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;" id="bannerTag">سوبر ماركت العروبة</span>
                 <h2 id="bannerTitle">أهلاً بك في متجرنا</h2>
                 <p>تسوّق أفضل المنتجات الطازجة</p>
             </div>
@@ -244,29 +253,29 @@
         </div>
 
         <div id="profileInfoSection">
-            <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 8px;">قم بحفظ بياناتك لتسهيل وتسريع عملية الطلب في كل مرة:</div>
-            <label style="font-size: 0.75rem; font-weight: 800;">الاسم الكريم:</label>
+            <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 8px;">قم بحفظ بياناتك لتسهيل وتسريع عملية الطلب في كل مرة:</div>
+            <label style="font-size: 0.75rem; font-weight: 700;">الاسم الكريم:</label>
             <input type="text" id="userProfileName" class="form-control" placeholder="ادخل اسمك الكامل">
             
-            <label style="font-size: 0.75rem; font-weight: 800;">رقم الهاتف:</label>
+            <label style="font-size: 0.75rem; font-weight: 700;">رقم الهاتف:</label>
             <input type="tel" id="userProfilePhone" class="form-control" placeholder="05xxxxxxxx">
             
-            <label style="font-size: 0.75rem; font-weight: 800;">عنوان التوصيل (افتراضي):</label>
+            <label style="font-size: 0.75rem; font-weight: 700;">عنوان التوصيل (افتراضي):</label>
             <input type="text" id="userProfileAddress" class="form-control" placeholder="المدينة، الحي، الشارع">
             
             <button class="btn-main" onclick="saveUserProfile()">حفظ البيانات 💾</button>
         </div>
 
         <div id="profileOrdersSection" style="display: none;">
-            <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 8px;">الطلبات المرتبطة برقم هاتفك المسجل من السحابة:</div>
+            <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 8px;">الطلبات المرتبطة برقم هاتفك المسجل من السحابة:</div>
             <div id="myPreviousOrdersList" style="max-height: 250px; overflow-y: auto;">
-                <p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 700; padding: 15px;">الرجاء حفظ رقم هاتفك أولاً أو لا توجد طلبات سابقة.</p>
+                <p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">الرجاء حفظ رقم هاتفك أولاً أو لا توجد طلبات سابقة.</p>
             </div>
         </div>
     </div>
 </div>
 
-<!-- نافذة السلة والدفع المحدثة بناءً على الخطوات المطلوبة -->
+<!-- نافذة السلة والدفع -->
 <div class="cart-modal" id="cartModal">
     <div class="cart-modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -274,37 +283,35 @@
             <button onclick="closeCartModal()" style="background:none; border:none; font-size: 1.1rem; cursor:pointer; font-weight: 900;">✕</button>
         </div>
         
-        <!-- الخطوة الأولى: عرض المنتجات بالصور والسعر للتاكد -->
+        <!-- الخطوة الأولى -->
         <div id="cartStep1">
-            <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 8px;">تأكد من المنتجات والكميات المطلوبة:</div>
+            <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 8px;">تأكد من المنتجات والكميات المطلوبة:</div>
             <div id="cartItemsWithImagesList" style="max-height: 260px; overflow-y: auto; margin-bottom: 12px;"></div>
             <button class="btn-main" onclick="goToPaymentStep()">إتمام الدفع ➡️</button>
         </div>
 
-        <!-- الخطوة الثانية: خيارات التوصيل، الدفع، الكوبون، والمجاميع -->
+        <!-- الخطوة الثانية -->
         <div id="cartStep2" style="display: none;">
-            <div style="font-size: 0.8rem; margin-bottom: 10px; cursor: pointer; color: var(--primary-green); font-weight: 900;" onclick="backToCartStep1()">← عودة لمراجعة المنتجات</div>
+            <div style="font-size: 0.8rem; margin-bottom: 10px; cursor: pointer; color: var(--primary-green); font-weight: 800;" onclick="backToCartStep1()">← عودة لمراجعة المنتجات</div>
             
-            <!-- توصيل أو استلام ذاتي -->
-            <label style="font-size: 0.8rem; font-weight: 900; display: block; margin-bottom: 4px;">طريقة الاستلام:</label>
+            <label style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">طريقة الاستلام:</label>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
-                <label style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 800; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
+                <label style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 700; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
                     <input type="radio" name="fulfillmentType" value="توصيل" checked onchange="toggleFulfillmentType()"> توصيل
                 </label>
-                <label style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 800; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
+                <label style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 700; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
                     <input type="radio" name="fulfillmentType" value="استلام ذاتي" onchange="toggleFulfillmentType()"> استلام ذاتي
                 </label>
             </div>
 
-            <!-- معلومات التوصيل تظهر فقط إذا كان خيار توصيل مفعل -->
             <div id="deliveryDetailsContainer">
                 <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم">
                 <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف (05xxxxxxxx)">
-                <button type="button" onclick="openMapModal()" style="width: 100%; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 8px; border-radius: 8px; font-weight: 900; font-size: 0.8rem; cursor: pointer; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                <button type="button" onclick="openMapModal()" style="width: 100%; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 8px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 5px;">
                     📍 اختر موقعك بدقة على الخريطة 🗺️
                 </button>
                 <input type="hidden" id="customerGpsLocation" value="">
-                <div id="selectedLocationText" style="font-size: 0.7rem; font-weight: 800; color: var(--accent-green); margin-bottom: 8px; text-align: center;"></div>
+                <div id="selectedLocationText" style="font-size: 0.7rem; font-weight: 700; color: var(--accent-green); margin-bottom: 8px; text-align: center;"></div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
                     <input type="text" id="customerCity" class="form-control" placeholder="المدينة / الحي">
                     <input type="text" id="customerStreet" class="form-control" placeholder="اسم الشارع">
@@ -312,31 +319,28 @@
                 <input type="text" id="customerBuilding" class="form-control" placeholder="رقم العمارة / الطابق / رقم الشقة">
             </div>
 
-            <!-- طريقة الدفع: موزمان او اشراي -->
-            <label style="font-size: 0.8rem; font-weight: 900; display: block; margin-bottom: 4px;">طريقة الدفع:</label>
+            <label style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">طريقة الدفع:</label>
             <select id="paymentMethodSelect" class="form-control">
                 <option value="موزمان">موزمان</option>
                 <option value="اشراي">اشراي</option>
                 <option value="نقداً عند الاستلام">نقداً عند الاستلام</option>
             </select>
 
-            <!-- كوبون للخصم -->
-            <label style="font-size: 0.8rem; font-weight: 900; display: block; margin-bottom: 4px;">كوبون للخصم:</label>
+            <label style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">كوبون للخصم:</label>
             <div style="display: flex; gap: 6px; margin-bottom: 8px;">
                 <input type="text" id="couponInput" class="form-control" placeholder="ادخل كود الكوبون" style="margin-bottom: 0;">
-                <button type="button" onclick="applyCoupon()" style="background: var(--accent-green); color: white; border: none; padding: 0 12px; border-radius: 8px; font-weight: 900; font-size: 0.8rem; cursor: pointer;">تطبيق</button>
+                <button type="button" onclick="applyCoupon()" style="background: var(--accent-green); color: white; border: none; padding: 0 12px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer;">تطبيق</button>
             </div>
-            <div id="couponMsg" style="font-size: 0.7rem; font-weight: 800; margin-bottom: 6px;"></div>
+            <div id="couponMsg" style="font-size: 0.7rem; font-weight: 700; margin-bottom: 6px;"></div>
 
-            <!-- المجموع + التوصيل + خصم الكوبون اذا فيه -->
-            <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; font-weight: 700;">
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; font-weight: 600;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                     <span>المجموع:</span>
                     <span id="cartSubtotalText">0.00 ₪</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px;" id="deliveryFeeRow">
                     <span>التوصيل:</span>
-                    <span id="deliveryFeeText" style="font-weight: 900; color: var(--accent-green);">10.00 ₪</span>
+                    <span id="deliveryFeeText" style="font-weight: 800; color: var(--accent-green);">10.00 ₪</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #ef4444; display: none;" id="couponDiscountRow">
                     <span>خصم الكوبون:</span>
@@ -348,7 +352,6 @@
                 </div>
             </div>
 
-            <!-- زر دفع وتتسكر الطلبيه -->
             <div>
                 <button class="btn-main" onclick="submitOrder()" style="background: var(--accent-green); font-size: 0.95rem;">دفع 💳</button>
             </div>
@@ -356,14 +359,14 @@
     </div>
 </div>
 
-<!-- نافذة الخريطة التفاعلية لاختيار الموقع -->
+<!-- نافذة الخريطة التفاعلية -->
 <div class="cart-modal" id="mapModal">
     <div class="cart-modal-content" style="padding: 15px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h3 style="font-size: 0.9rem; font-weight: 900; color: var(--primary-green);">📍 حدد مكانك على الخريطة</h3>
             <button onclick="closeMapModal()" style="background:none; border:none; font-size: 1.1rem; cursor:pointer; font-weight: 900;">✕</button>
         </div>
-        <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 8px; text-align: center;">انقر على الخريطة أو اسحب الدبوس لتحديد عنوان التوصيل بدقة:</div>
+        <div style="font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 8px; text-align: center;">انقر على الخريطة أو اسحب الدبوس لتحديد عنوان التوصيل بدقة:</div>
         <div id="leafletMap" style="width: 100%; height: 320px; border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border-color);"></div>
         <button type="button" class="btn-main" onclick="confirmMapLocation()">تأكيد واختيار هذا الموقع ✅</button>
     </div>
@@ -650,18 +653,18 @@
         let container = document.getElementById('myPreviousOrdersList');
         
         if(!phone) {
-            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 700; padding: 15px;">الرجاء حفظ رقم هاتفك في تبويب "بيانات العميل" أولاً لعرض طلباتك.</p>`;
+            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">الرجاء حفظ رقم هاتفك في تبويب "بيانات العميل" أولاً لعرض طلباتك.</p>`;
             return;
         }
 
-        container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 700; padding: 15px;">جاري جلب الطلبات من السحابة...</p>`;
+        container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">جاري جلب الطلبات من السحابة...</p>`;
 
         try {
             const q = window.query(window.collection(window.db, "orders"), window.where("customerPhone", "==", phone));
             const querySnapshot = await window.getDocs(q);
             
             if(querySnapshot.empty) {
-                container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 700; padding: 15px;">لا توجد طلبات سابقة مسجلة بهذا الرقم.</p>`;
+                container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">لا توجد طلبات سابقة مسجلة بهذا الرقم.</p>`;
                 return;
             }
 
@@ -672,21 +675,21 @@
                 let itemsListHtml = order.items.map(i => `${i.name} (${i.quantity})`).join('، ');
 
                 container.innerHTML += `
-                    <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 8px; border-radius: 8px; margin-bottom: 8px; font-size: 0.8rem; font-weight: 700;">
-                        <div style="display: flex; justify-content: space-between; font-weight: 900; margin-bottom: 4px;">
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 8px; border-radius: 8px; margin-bottom: 8px; font-size: 0.8rem; font-weight: 600;">
+                        <div style="display: flex; justify-content: space-between; font-weight: 800; margin-bottom: 4px;">
                             <span>الحالة: <span style="color: var(--accent-green);">${order.status || 'جديد'}</span></span>
                             <span>${dateStr}</span>
                         </div>
                         <div style="color: #64748b; margin-bottom: 4px;">المنتجات: ${itemsListHtml}</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 4px; font-weight: 900;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 4px; font-weight: 800;">
                             <span>المجموع: ${order.total.toFixed(2)} ₪</span>
-                            <button onclick='reorderPrevious(${JSON.stringify(order.items)})' style="background: var(--accent-green); color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 900; cursor: pointer;">إعادة الطلب 🔄</button>
+                            <button onclick='reorderPrevious(${JSON.stringify(order.items)})' style="background: var(--accent-green); color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; cursor: pointer;">إعادة الطلب 🔄</button>
                         </div>
                     </div>
                 `;
             });
         } catch(e) {
-            container.innerHTML = `<p style="text-align: center; color: red; font-size: 0.8rem; font-weight: 800; padding: 15px;">حدث خطأ أثناء جلب الطلبات.</p>`;
+            container.innerHTML = `<p style="text-align: center; color: red; font-size: 0.8rem; font-weight: 700; padding: 15px;">حدث خطأ أثناء جلب الطلبات.</p>`;
         }
     }
 
@@ -767,7 +770,7 @@
 
             let gridHtml = `<div class="products-grid" style="margin-top: 10px;">`;
             if(filtered.length === 0) {
-                gridHtml = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 700; padding: 20px;">لا توجد منتجات مطابقة</p>`;
+                gridHtml = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 20px;">لا توجد منتجات مطابقة</p>`;
             } else {
                 filtered.forEach(p => { gridHtml += createProductCardHtml(p); });
                 gridHtml += `</div>`;
@@ -791,7 +794,7 @@
                 <div class="horizontal-section">
                     <div class="horizontal-section-title">
                         <span>${icon} ${secName}</span>
-                        <span style="font-size: 0.75rem; font-weight: 800; color: #6b7280; cursor: pointer;" onclick="selectCategory('${secName}')">عرض الكل ←</span>
+                        <span style="font-size: 0.75rem; font-weight: 700; color: #6b7280; cursor: pointer;" onclick="selectCategory('${secName}')">عرض الكل ←</span>
                     </div>
                     <div class="products-horizontal-scroll">
             `;
@@ -810,7 +813,7 @@
                     <div class="horizontal-section">
                         <div class="horizontal-section-title">
                             <span>${cat.icon || '🏷️'} ${cat.name}</span>
-                            <span style="font-size: 0.75rem; font-weight: 800; color: #6b7280; cursor: pointer;" onclick="selectCategory('${cat.name}')">عرض الكل ←</span>
+                            <span style="font-size: 0.75rem; font-weight: 700; color: #6b7280; cursor: pointer;" onclick="selectCategory('${cat.name}')">عرض الكل ←</span>
                         </div>
                         <div class="products-horizontal-scroll">
                 `;
@@ -969,12 +972,12 @@
         cart.forEach((item) => {
             let itemTotal = item.price * item.quantity;
             listContainer.innerHTML += `
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 700; margin-bottom: 6px; background: #f8fafc; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; background: #f8fafc; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border-color);">
                     <div style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
                         <img src="${item.img || 'logo.png'}" style="width: 40px; height: 40px; object-fit: contain; background: white; border-radius: 6px; border: 1px solid #eee;" onerror="this.src='logo.png'">
                         <div>
-                            <div style="font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">${item.name}</div>
-                            <div style="color: #64748b; font-size: 0.7rem; font-weight: 700;">الكمية: ${item.quantity} × ${item.price.toFixed(2)} ₪</div>
+                            <div style="font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">${item.name}</div>
+                            <div style="color: #64748b; font-size: 0.7rem; font-weight: 600;">الكمية: ${item.quantity} × ${item.price.toFixed(2)} ₪</div>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
