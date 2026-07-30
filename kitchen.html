@@ -19,14 +19,29 @@
         .header h1 { font-size: 0.95rem; color: var(--primary-green); font-weight: 900; }
         .back-btn { background: #e5e7eb; color: #374151; padding: 5px 12px; border-radius: 8px; text-decoration: none; font-size: 0.7rem; font-weight: 700; border: 1px solid #cbd5e1; }
         
-        .order-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 12px; margin-bottom: 10px; font-size: 0.75rem; }
-        .order-header { display: flex; justify-content: space-between; font-weight: bold; color: var(--primary-green); border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 8px; }
-        .order-items-list { margin-bottom: 8px; font-size: 0.7rem; color: #4b5563; }
-        .order-items-list div { padding: 2px 0; border-bottom: 1px dashed #e2e8f0; }
+        .order-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 12px; margin-bottom: 12px; font-size: 0.75rem; }
+        .order-header { display: flex; justify-content: space-between; font-weight: bold; color: var(--primary-green); border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 8px; font-size: 0.8rem; }
         
-        .form-control { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; outline: none; background: white; margin-top: 5px; margin-bottom: 8px; }
-        .btn-action { background: var(--accent-green); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 0.7rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; }
-        .btn-delay { background: #d97706; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 0.7rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; }
+        .order-info { margin-bottom: 8px; color: #333; }
+        .order-info p { margin: 3px 0; }
+
+        .products-section { margin-top: 8px; border-top: 1px dashed #cbd5e1; padding-top: 8px; }
+        .section-label { font-weight: bold; margin-bottom: 6px; color: #4b5563; font-size: 0.75rem; }
+        
+        .product-item-row { display: flex; align-items: center; gap: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px; margin-bottom: 6px; }
+        .product-thumb { width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; cursor: pointer; transition: opacity 0.2s; }
+        .product-thumb:hover { opacity: 0.85; }
+        .product-details { display: flex; flex-direction: column; }
+        .product-name { font-weight: 600; color: #1f2937; font-size: 0.75rem; }
+        .product-qty { font-size: 0.7rem; color: #6b7280; }
+
+        .btn-action { background: var(--accent-green); color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+        .btn-action:hover { background: #558b2f; }
+
+        /* نافذة تكبير الصورة (Modal) */
+        .image-modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); justify-content: center; align-items: center; }
+        .image-modal img { max-width: 90%; max-height: 90%; border-radius: 8px; border: 2px solid white; object-fit: contain; }
+        .image-modal.active { display: flex; }
     </style>
 
     <!-- Firebase SDKs -->
@@ -73,6 +88,11 @@
     </div>
 </div>
 
+<!-- نافذة تكبير الصورة -->
+<div id="imageModal" class="image-modal" onclick="closeImageModal()">
+    <img id="modalImage" src="" alt="صورة مكبرة">
+</div>
+
 <script>
     window.addEventListener('firebase-ready', function() {
         initKitchenOrdersListener();
@@ -92,7 +112,6 @@
         const container = document.getElementById('kitchenOrdersContainer');
         if(!container) return;
         
-        // تصفية الطلبات التي لم تكتمل بعد أو تخص المطبخ
         let activeOrders = orders.filter(o => !o.status || o.status === "جديد" || o.status === "new" || o.status === "قيد التحضير");
 
         if(activeOrders.length === 0) {
@@ -105,33 +124,34 @@
             let itemsHtml = '';
             if(ord.items && Array.isArray(ord.items)) {
                 ord.items.forEach(item => {
-                    itemsHtml += `<div>• ${item.name || 'منتج'} (الكمية: ${item.qty || 1})</div>`;
+                    let imgSrc = item.image || item.img || 'https://via.placeholder.com/50';
+                    itemsHtml += `
+                        <div class="product-item-row">
+                            <img src="${imgSrc}" alt="${item.name || 'منتج'}" class="product-thumb" onclick="openImageModal('${imgSrc}')">
+                            <div class="product-details">
+                                <span class="product-name">${item.name || 'منتج'}</span>
+                                <span class="product-qty">الكمية: (${item.qty || item.quantity || 1})</span>
+                            </div>
+                        </div>
+                    `;
                 });
             }
 
             container.innerHTML += `
                 <div class="order-card">
                     <div class="order-header">
-                        <span>طلب #${index + 1} - ${ord.customerName || 'زبون'}</span>
+                        <span>طلب #${index + 1} - ${ord.customerName || ord.clientName || 'زبون'}</span>
                         <span style="color: #16a34a;">${ord.total || 0} ₪</span>
                     </div>
-                    <div style="font-size: 0.7rem; margin-bottom: 5px;"><b>الهاتف:</b> ${ord.customerPhone || ''}</div>
-                    <div style="font-size: 0.7rem; margin-bottom: 5px;"><b>العنوان:</b> ${ord.customerAddress || ord.address || ''}</div>
                     
-                    <div class="order-items-list">
-                        <b>المنتجات المطلوبة:</b>
-                        ${itemsHtml}
+                    <div class="order-info">
+                        <p><strong>الهاتف:</strong> ${ord.customerPhone || ord.phone || ''}</p>
+                        <p><strong>العنوان:</strong> ${ord.customerAddress || ord.address || ''}</p>
                     </div>
-
-                    <div class="form-group">
-                        <label style="font-size: 0.65rem; font-weight: bold; color: #4b5563;">سبب التأخير (إن وجد):</label>
-                        <select id="delayReason_${ord.id}" class="form-control">
-                            <option value="">بدون تأخير / طبيعي</option>
-                            <option value="تأخر تحضير المواد بالمطبخ">تأخر تحضير المواد بالمطبخ</option>
-                            <option value="نقص في بعض المواد الخام">نقص في بعض المواد الخام</option>
-                            <option value="ضغط طلبات عالية جداً">ضغط طلبات عالية جداً</option>
-                        </select>
-                        <button class="btn-delay" onclick="saveDelayReason('${ord.id}')">حفظ سبب التأخير ⚠️</button>
+                    
+                    <div class="products-section">
+                        <div class="section-label">المنتجات المطلوبة:</div>
+                        ${itemsHtml}
                     </div>
 
                     <button class="btn-action" onclick="markOrderReady('${ord.id}')">تم التحضير - جاهز للتوصيل 🚀</button>
@@ -140,19 +160,16 @@
         });
     }
 
-    async function saveDelayReason(orderId) {
-        const selectElem = document.getElementById(`delayReason_${orderId}`);
-        const reason = selectElem ? selectElem.value : "";
-        
-        try {
-            await window.updateDoc(window.doc(window.db, "orders", orderId), {
-                delayReason: reason
-            });
-            alert("تم حفظ سبب التأخير بنجاح وزامن مع النظام! ✨");
-        } catch(e) {
-            console.error(e);
-            alert("خطأ في حفظ سبب التأخير.");
-        }
+    function openImageModal(imageSrc) {
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImage');
+        modalImg.src = imageSrc;
+        modal.classList.add('active');
+    }
+
+    function closeImageModal() {
+        const modal = document.getElementById('imageModal');
+        modal.classList.remove('active');
     }
 
     async function markOrderReady(orderId) {
