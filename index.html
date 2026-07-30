@@ -287,7 +287,7 @@
             <input type="tel" id="userProfilePhone" class="form-control" placeholder="05xxxxxxxx">
             
             <label style="font-size: 0.75rem; font-weight: 700;">عنوان التوصيل (افتراضي):</label>
-            <input type="text" id="userProfileAddress" class="form-control" placeholder="المدينة، الحي، الشارع">
+            <input type="text" id="userProfileAddress" class="form-control" placeholder="الحارة / الحي">
             
             <button class="btn-main" onclick="saveUserProfile()">حفظ البيانات 💾</button>
         </div>
@@ -316,7 +316,7 @@
             <button class="btn-main" onclick="goToStep2()">التالي: الاستلام والبيانات ➡️</button>
         </div>
 
-        <!-- الخطوة 2: قسم الاستلام والبيانات -->
+        <!-- الخطوة 2: قسم الاستلام والبيانات الشخصية والموقع -->
         <div id="cartStep2" style="display: none;">
             <div style="font-size: 0.8rem; margin-bottom: 8px; cursor: pointer; color: var(--primary-green); font-weight: 800;" onclick="goToStep1()">← عودة لمراجعة المنتجات</div>
             
@@ -330,20 +330,26 @@
                 </label>
             </div>
 
-            <label class="price-text" style="font-size: 0.85rem; font-weight: 900; display: block; margin-bottom: 6px;">البيانات الشخصية مع الموقع:</label>
+            <label class="price-text" style="font-size: 0.85rem; font-weight: 900; display: block; margin-bottom: 6px;">البيانات الشخصية وموقع التوصيل:</label>
             <div id="deliveryDetailsContainer">
-                <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم">
-                <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف (05xxxxxxxx)">
+                <!-- الصف الأول: الاسم وبجانبه رقم الهاتف -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
+                    <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم" style="margin-bottom: 0;">
+                    <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف (05xxxxxxxx)" style="margin-bottom: 0;">
+                </div>
+
+                <!-- الصف الثاني: الحارة وبجانبه البيت -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
+                    <input type="text" id="customerNeighborhood" class="form-control" placeholder="الحارة / الحي" style="margin-bottom: 0;">
+                    <input type="text" id="customerBuilding" class="form-control" placeholder="البيت / رقم الشقة" style="margin-bottom: 0;">
+                </div>
+
+                <!-- زر اختر موقعك -->
                 <button type="button" onclick="openMapModal()" style="width: 100%; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 8px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 5px;">
                     📍 اختر موقعك بدقة على الخريطة 🗺️
                 </button>
                 <input type="hidden" id="customerGpsLocation" value="">
                 <div id="selectedLocationText" style="font-size: 0.7rem; font-weight: 700; color: var(--accent-green); margin-bottom: 8px; text-align: center;"></div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                    <input type="text" id="customerCity" class="form-control" placeholder="المدينة / الحي">
-                    <input type="text" id="customerStreet" class="form-control" placeholder="اسم الشارع">
-                </div>
-                <input type="text" id="customerBuilding" class="form-control" placeholder="رقم العمارة / الطابق / رقم الشقة">
             </div>
 
             <button class="btn-main" onclick="goToStep3()">التالي: الدفع والكوبون ➡️</button>
@@ -588,15 +594,15 @@
         let profileAddressEl = document.getElementById('userProfileAddress');
         let custNameEl = document.getElementById('customerName');
         let custPhoneEl = document.getElementById('customerPhone');
-        let custCityEl = document.getElementById('customerCity');
+        let custNeighborhoodEl = document.getElementById('customerNeighborhood');
 
         if(profileNameEl) profileNameEl.value = savedName;
         if(profilePhoneEl) profilePhoneEl.value = savedPhone;
         if(profileAddressEl) profileAddressEl.value = savedAddress;
         if(custNameEl) custNameEl.value = savedName;
         if(custPhoneEl) custPhoneEl.value = savedPhone;
-        if(savedAddress && custCityEl) {
-            custCityEl.value = savedAddress;
+        if(savedAddress && custNeighborhoodEl) {
+            custNeighborhoodEl.value = savedAddress;
         }
     }
 
@@ -1076,11 +1082,11 @@
         let type = document.querySelector('input[name="fulfillmentType"]:checked').value;
         const name = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('customerPhone').value.trim();
-        const city = document.getElementById('customerCity').value.trim();
-        const street = document.getElementById('customerStreet').value.trim();
+        const neighborhood = document.getElementById('customerNeighborhood').value.trim();
+        const building = document.getElementById('customerBuilding').value.trim();
 
-        if(type === 'توصيل' && (!name || !phone || !city || !street)) {
-            alert("الرجاء إكمال بيانات التوصيل الأساسية (الاسم، الهاتف، المدينة، والشارع).");
+        if(type === 'توصيل' && (!name || !phone || !neighborhood)) {
+            alert("الرجاء إكمال بيانات التوصيل الأساسية (الاسم، الهاتف، والحارة).");
             return;
         }
         if(type === 'استلام ذاتي' && (!name || !phone)) {
@@ -1158,8 +1164,7 @@
         let type = document.querySelector('input[name="fulfillmentType"]:checked').value;
         const name = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('customerPhone').value.trim();
-        const city = document.getElementById('customerCity').value.trim();
-        const street = document.getElementById('customerStreet').value.trim();
+        const neighborhood = document.getElementById('customerNeighborhood').value.trim();
         const building = document.getElementById('customerBuilding').value.trim();
         const gpsUrl = document.getElementById('customerGpsLocation').value.trim();
         const paymentMethod = document.getElementById('paymentMethodSelect').value;
@@ -1167,7 +1172,7 @@
         if(type === 'توصيل') {
             localStorage.setItem('aloroba_user_name', name);
             localStorage.setItem('aloroba_user_phone', phone);
-            localStorage.setItem('aloroba_user_address', `${city} - ${street}`);
+            localStorage.setItem('aloroba_user_address', neighborhood);
         }
 
         let subtotal = 0;
@@ -1176,7 +1181,7 @@
         let finalTotal = subtotal + currentDelivery - appliedDiscount;
         if(finalTotal < 0) finalTotal = 0;
 
-        const fullAddress = type === 'استلام ذاتي' ? 'استلام ذاتي من المتجر' : `${city} - شارع ${street} - ${building || 'بدون تفاصيل إضافية'}`;
+        const fullAddress = type === 'استلام ذاتي' ? 'استلام ذاتي من المتجر' : `الحارة: ${neighborhood} - البيت: ${building || 'بدون تفاصيل'}`;
 
         const newOrder = {
             fulfillmentType: type,
