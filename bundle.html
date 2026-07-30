@@ -262,33 +262,46 @@
         let bundlesList = [];
         let editingId = null;
 
-        function initBundlePage() {
+        async function initBundlePage() {
             try {
-                // استخدام onSnapshot لجلب ومزامنة المنتجات لحظياً ومنع مشكلة اختفائها المؤقت
-                onSnapshot(collection(db, "products"), (prodSnap) => {
-                    products = [];
-                    prodSnap.forEach(docSnap => {
-                        products.push({ id: docSnap.id, ...docSnap.data() });
-                    });
+                // 1. محاولة تحميل المنتجات فورا من الذاكرة المحلية (localStorage) للسرعة الفائقة
+                const cachedProducts = localStorage.getItem('aloroba_products_cache');
+                if (cachedProducts) {
+                    products = JSON.parse(cachedProducts);
                     renderProductsList();
                     filterProducts();
                     document.getElementById('loadingMsg').style.display = 'none';
                     document.getElementById('mainContent').style.display = 'block';
-                }, (error) => {
-                    console.error("خطأ في مزامنة المنتجات:", error);
-                    document.getElementById('loadingMsg').innerText = "حدث خطأ أثناء الاتصال بقاعدة البيانات.";
-                });
+                }
 
+                // 2. جلب المنتجات في الخلفية وتحديث التخزين المحلي لضمان دقة البيانات
+                const prodSnap = await getDocs(collection(db, "products"));
+                products = [];
+                prodSnap.forEach(docSnap => {
+                    products.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                
+                // حفظ التحديث الجديد في ذاكرة المتصفح
+                localStorage.setItem('aloroba_products_cache', JSON.stringify(products));
+
+                renderProductsList();
+                filterProducts();
+                document.getElementById('loadingMsg').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+
+                // جلب العروض الحالية
                 fetchBundles();
 
             } catch (error) {
                 console.error("خطأ في جلب البيانات:", error);
-                document.getElementById('loadingMsg').innerText = "حدث خطأ أثناء الاتصال بقاعدة البيانات.";
+                // إذا حدث خطأ وتم جلب البيانات مسبقاً من التخزين المحلي، استمر في العمل بشكل طبيعي
+                if(products.length === 0) {
+                    document.getElementById('loadingMsg').innerText = "حدث خطأ أثناء الاتصال بقاعدة البيانات.";
+                }
             }
         }
 
         function fetchBundles() {
-            // استخدام onSnapshot لعروض الباقات أيضاً لضمان الاستقرار الفوري
             onSnapshot(collection(db, "bundleOffers"), (bundleSnap) => {
                 bundlesList = [];
                 bundleSnap.forEach(docSnap => {
@@ -302,7 +315,6 @@
 
         function renderProductsList() {
             const container = document.getElementById('productsListContainer');
-            // حفظ المنتجات المحددة مسبقاً قبل إعادة الرسم
             const checkedIds = Array.from(document.querySelectorAll('input[name="prodCheck"]:checked')).map(cb => cb.value);
             
             container.innerHTML = '';
@@ -477,7 +489,7 @@
         <a href="admin.html" class="btn-back">لوحة التحكم 🔙</a>
     </header>
 
-    <div id="loadingMsg">جاري تحميل البيانات من النظام...</div>
+    <div id="loadingMsg">جاري التحميل الفوري...</div>
 
     <div id="mainContent" style="display: none;">
         
