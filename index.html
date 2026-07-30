@@ -786,8 +786,8 @@
         const container = document.getElementById('storeMainContent');
         if (products.length === 0) return;
 
-        container.innerHTML = '';
         let query = document.getElementById('searchInput').value.trim().toLowerCase();
+        let htmlParts = []; // مصفوفة لتجميع الأجزاء بكفاءة وتقليل الضغط على الـ DOM
 
         if(query !== "" || currentCategory !== "الكل") {
             let filtered = products.filter(p => {
@@ -811,7 +811,6 @@
         let displayedCount = 0;
 
         sectionsToShow.forEach(secName => {
-            // احضار أول 9 منتجات فقط من كل فئة في العرض الأفقى
             let secProds = products.filter(p => productBelongsToCategory(p, secName)).slice(0, 9);
             if(secProds.length === 0) return;
 
@@ -829,13 +828,12 @@
             `;
             secProds.forEach(p => { secHtml += createProductCardHtml(p); });
             secHtml += `</div></div>`;
-            container.innerHTML += secHtml;
+            htmlParts.push(secHtml);
         });
 
         if(displayedCount === 0 && products.length > 0) {
             categories.forEach(cat => {
                 if(cat.name === "الكل") return;
-                // احضار أول 9 منتجات فقط للفئات في العرض الأفقى
                 let secProds = products.filter(p => productBelongsToCategory(p, cat.name)).slice(0, 9);
                 if(secProds.length === 0) return;
 
@@ -849,9 +847,12 @@
                 `;
                 secProds.forEach(p => { secHtml += createProductCardHtml(p); });
                 secHtml += `</div></div>`;
-                container.innerHTML += secHtml;
+                htmlParts.push(secHtml);
             });
         }
+
+        // حقن الحزمة كاملة مرة واحدة لتفادي تكرار عمليات الـ Reflow وتحسين الأداء
+        container.innerHTML = htmlParts.join('');
     }
 
     function createProductCardHtml(p) {
