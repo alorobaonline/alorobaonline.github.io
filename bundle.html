@@ -243,7 +243,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";[cite: 1]
 
         const firebaseConfig = {
             apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
@@ -253,29 +253,33 @@
             messagingSenderId: "880642361344",
             appId: "1:880642361344:web:9dddec05f81125f0fc30e5",
             measurementId: "G-NL9CS2135V"
-        };
+        };[cite: 1]
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        const app = initializeApp(firebaseConfig);[cite: 1]
+        const db = getFirestore(app);[cite: 1]
 
         let products = [];
         let bundlesList = [];
         let editingId = null;
 
-        async function initBundlePage() {
+        function initBundlePage() {
             try {
-                // جلب المنتجات من مجموعة products (قم بتعديل اسم المجموعة إذا كان مختلفاً لديك مثل "items")
-                const prodSnap = await getDocs(collection(db, "products"));
-                products = [];
-                prodSnap.forEach(docSnap => {
-                    products.push({ id: docSnap.id, ...docSnap.data() });
+                // استخدام onSnapshot لجلب ومزامنة المنتجات لحظياً ومنع مشكلة اختفائها المؤقت
+                onSnapshot(collection(db, "products"), (prodSnap) => {
+                    products = [];
+                    prodSnap.forEach(docSnap => {
+                        products.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    renderProductsList();
+                    filterProducts();
+                    document.getElementById('loadingMsg').style.display = 'none';
+                    document.getElementById('mainContent').style.display = 'block';
+                }, (error) => {
+                    console.error("خطأ في مزامنة المنتجات:", error);
+                    document.getElementById('loadingMsg').innerText = "حدث خطأ أثناء الاتصال بقاعدة البيانات.";
                 });
 
-                await fetchBundles();
-
-                renderProductsList();
-                document.getElementById('loadingMsg').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'block';
+                fetchBundles();
 
             } catch (error) {
                 console.error("خطأ في جلب البيانات:", error);
@@ -283,17 +287,24 @@
             }
         }
 
-        async function fetchBundles() {
-            const bundleSnap = await getDocs(collection(db, "bundleOffers"));
-            bundlesList = [];
-            bundleSnap.forEach(docSnap => {
-                bundlesList.push({ id: docSnap.id, ...docSnap.data() });
+        function fetchBundles() {
+            // استخدام onSnapshot لعروض الباقات أيضاً لضمان الاستقرار الفوري
+            onSnapshot(collection(db, "bundleOffers"), (bundleSnap) => {
+                bundlesList = [];
+                bundleSnap.forEach(docSnap => {
+                    bundlesList.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                renderBundlesList();
+            }, (error) => {
+                console.error("خطأ في جلب العروض:", error);
             });
-            renderBundlesList();
         }
 
         function renderProductsList() {
             const container = document.getElementById('productsListContainer');
+            // حفظ المنتجات المحددة مسبقاً قبل إعادة الرسم
+            const checkedIds = Array.from(document.querySelectorAll('input[name="prodCheck"]:checked')).map(cb => cb.value);
+            
             container.innerHTML = '';
             
             if(products.length === 0) {
@@ -303,9 +314,10 @@
 
             products.forEach(p => {
                 const searchString = `${p.id} ${p.name || ''}`.toLowerCase();
+                const isChecked = checkedIds.includes(p.id) ? 'checked' : '';
                 container.innerHTML += `
                     <label class="checkbox-item" data-search="${searchString}">
-                        <input type="checkbox" name="prodCheck" value="${p.id}">
+                        <input type="checkbox" name="prodCheck" value="${p.id}" ${isChecked}>
                         <span>${p.name || 'بدون اسم'} - <span style="color:var(--primary-color);">${p.price || 0} ₪</span></span>
                     </label>
                 `;
@@ -392,7 +404,6 @@
                     alert("تم إضافة العرض الجديد بنجاح تحت في القائمة! 🚀");
                     resetForm();
                 }
-                await fetchBundles();
             } catch (error) {
                 console.error(error);
                 alert("فشل حفظ البيانات، يرجى المحاولة مرة أخرى.");
@@ -449,7 +460,6 @@
             if(!confirm("هل أنت متأكد من حذف هذا العرض نهائياً؟")) return;
             try {
                 await deleteDoc(doc(db, "bundleOffers", id));
-                await fetchBundles();
                 alert("تم حذف العرض بنجاح.");
             } catch (error) {
                 console.error("خطأ في الحذف:", error);
