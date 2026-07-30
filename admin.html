@@ -3,34 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم - العروبة أونلاين</title>[cite: 2]
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">[cite: 2]
+    <title>لوحة التحكم - العروبة أونلاين</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-green: #1b4d2e;
             --accent-green: #68a633;
             --light-bg: #f3f4f6;
-            --shadow-card: none; /* إزالة الظلال نهائياً بناءً على طلب التسطيح */
+            --shadow-card: none; /* تم إلغاء الظلال بناءً على طلب التعديل */
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }[cite: 2]
-        body { background-color: var(--light-bg); color: #1f2937; padding: 12px; padding-bottom: 50px; }[cite: 2]
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+        body { background-color: var(--light-bg); color: #1f2937; padding: 12px; padding-bottom: 50px; }
 
-        .dashboard-container { max-width: 480px; margin: 0 auto; background: white; border-radius: 20px; padding: 15px; box-shadow: var(--shadow-card); border: 1px solid #e5e7eb; }[cite: 2]
+        .dashboard-container { max-width: 480px; margin: 0 auto; background: white; border-radius: 20px; padding: 15px; border: 1px solid #e5e7eb; }
         
-        .dash-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 15px; }[cite: 2]
-        .dash-header h1 { font-size: 0.95rem; color: var(--primary-green); font-weight: 900; }[cite: 2]
-        .back-btn { background: #e5e7eb; color: #374151; padding: 5px 12px; border-radius: 8px; text-decoration: none; font-size: 0.7rem; font-weight: 700; }[cite: 2]
+        .dash-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 15px; }
+        .dash-header h1 { font-size: 0.95rem; color: var(--primary-green); font-weight: 900; }
+        .back-btn { background: #e5e7eb; color: #374151; padding: 5px 12px; border-radius: 8px; text-decoration: none; font-size: 0.7rem; font-weight: 700; border: 1px solid #cbd5e1; }
 
-        .sales-summary-box { background: linear-gradient(135deg, #1b4d2e, #2e6930); color: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: bold; }[cite: 2]
+        .sales-summary-box { background: var(--primary-green); color: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: bold; }
         
-        .section-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 12px; }[cite: 2]
-        .section-header-toggle { font-size: 0.85rem; color: var(--primary-green); font-weight: 800; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }[cite: 2]
-        .section-content { margin-top: 10px; display: none; }[cite: 2]
+        .section-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+        .section-header-toggle { font-size: 0.85rem; color: var(--primary-green); font-weight: 800; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+        .section-content { margin-top: 10px; display: none; }
 
-        .form-group { margin-bottom: 8px; }[cite: 2]
-        .form-group label { display: block; font-size: 0.7rem; font-weight: 700; margin-bottom: 3px; color: #4b5563; }[cite: 2]
-        .form-control { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; outline: none; background: white; }[cite: 2]
-        .form-control:focus { border-color: var(--accent-green); }[cite: 2]
+        .form-group { margin-bottom: 8px; }
+        .form-group label { display: block; font-size: 0.7rem; font-weight: 700; margin-bottom: 3px; color: #4b5563; }
+        .form-control { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; outline: none; background: white; }
+        .form-control:focus { border-color: var(--accent-green); }
 
         .categories-checkbox-container {
             border: 1px solid #cbd5e1;
@@ -40,7 +40,7 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 5px;
-        }[cite: 2]
+        }
         .checkbox-item {
             display: flex;
             align-items: center;
@@ -57,83 +57,82 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-        }[cite: 2]
-        .checkbox-item input { accent-color: var(--primary-green); width: 13px; height: 13px; cursor: pointer; flex-shrink: 0; }[cite: 2]
+        }
+        .checkbox-item input { accent-color: var(--primary-green); width: 13px; height: 13px; cursor: pointer; flex-shrink: 0; }
 
-        .file-upload-box { display: flex; align-items: center; gap: 8px; }[cite: 2]
-        .camera-btn { background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; flex: 1; }[cite: 2]
+        .file-upload-box { display: flex; align-items: center; gap: 8px; }
+        .camera-btn { background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 7px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; flex: 1; }
 
-        .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 9px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; margin-top: 5px; }[cite: 2]
-        .product-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }[cite: 2]
-        .btn-delete { background: #ef4444; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; }[cite: 2]
-        .btn-edit { background: #3b82f6; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; }[cite: 2]
+        .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 9px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; margin-top: 5px; }
+        .product-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+        .btn-delete { background: #ef4444; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; }
+        .btn-edit { background: #3b82f6; color: white; border: none; padding: 5px 8px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; font-weight: bold; }
 
-        .list-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 0.7rem; }[cite: 2]
-        #adminCategoriesList { max-height: 220px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px; background: #fff; margin-top: 10px; }[cite: 2]
+        .list-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 0.7rem; }
+        #adminCategoriesList { max-height: 220px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px; background: #fff; margin-top: 10px; }
 
-        .category-group-box { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; margin-bottom: 10px; }[cite: 2]
-        .category-group-title { font-size: 0.8rem; font-weight: 900; color: var(--primary-green); border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 8px; display: flex; align-items: center; cursor: pointer; user-select: none; }[cite: 2]
-        .category-toggle-badge { margin-right: auto; font-size: 0.7rem; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; color: #334155; font-weight: bold; }[cite: 2]
+        .category-group-box { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
+        .category-group-title { font-size: 0.8rem; font-weight: 900; color: var(--primary-green); border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 8px; display: flex; align-items: center; cursor: pointer; user-select: none; }
+        .category-toggle-badge { margin-right: auto; font-size: 0.7rem; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; color: #334155; font-weight: bold; border: 1px solid #cbd5e1; }
         
-        .product-card-container { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }[cite: 2]
-        .product-mini-row { display: flex; justify-content: space-between; align-items: center; padding: 8px; font-size: 0.7rem; gap: 8px; }[cite: 2]
-        .product-mini-info { display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; }[cite: 2]
-        .product-mini-thumb { width: 32px; height: 32px; object-fit: contain; background: white; border-radius: 4px; border: 1px solid #ddd; padding: 2px; flex-shrink: 0; cursor: pointer; }[cite: 2]
-        .preview-thumb { width: 45px; height: 45px; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 6px; background: white; padding: 2px; cursor: pointer; }[cite: 2]
-        .toggle-arrow { font-size: 0.75rem; transition: transform 0.2s; }[cite: 2]
+        .product-card-container { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+        .product-mini-row { display: flex; justify-content: space-between; align-items: center; padding: 8px; font-size: 0.7rem; gap: 8px; }
+        .product-mini-info { display: flex; align-items: center; gap: 6px; overflow: hidden; flex: 1; }
+        .product-mini-thumb { width: 32px; height: 32px; object-fit: contain; background: white; border-radius: 4px; border: 1px solid #ddd; padding: 2px; flex-shrink: 0; cursor: pointer; }
+        .preview-thumb { width: 45px; height: 45px; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 6px; background: white; padding: 2px; cursor: pointer; }
+        .toggle-arrow { font-size: 0.75rem; transition: transform 0.2s; }
         
-        .order-card { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 0.75rem; }[cite: 2]
-        .order-header { display: flex; justify-content: space-between; font-weight: bold; color: var(--primary-green); border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; }[cite: 2]
-        .order-action-btns { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }[cite: 2]
-        .btn-call { background: #2563eb; color: white; text-decoration: none; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; display: inline-flex; align-items: center; gap: 3px; }[cite: 2]
-        .btn-status { background: #16a34a; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; cursor: pointer; }[cite: 2]
+        .order-card { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 0.75rem; }
+        .order-header { display: flex; justify-content: space-between; font-weight: bold; color: var(--primary-green); border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; }
+        .order-action-btns { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+        .btn-call { background: #2563eb; color: white; text-decoration: none; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; display: inline-flex; align-items: center; gap: 3px; }
+        .btn-status { background: #16a34a; color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; cursor: pointer; }
         
-        .archive-table-wrapper { width: 100%; overflow-x: auto; margin-top: 8px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; }[cite: 2]
-        .archive-table { width: 100%; border-collapse: collapse; font-size: 0.65rem; text-align: right; white-space: nowrap; }[cite: 2]
-        .archive-table th, .archive-table td { border-bottom: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; padding: 6px 8px; }[cite: 2]
-        .archive-table th { background: var(--primary-green); color: white; font-weight: bold; }[cite: 2]
-        .archive-table tr:nth-child(even) { background: #f8fafc; }[cite: 2]
-        .archive-table tr:hover { background: #f1f5f9; }[cite: 2]
+        .archive-table-wrapper { width: 100%; overflow-x: auto; margin-top: 8px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; }
+        .archive-table { width: 100%; border-collapse: collapse; font-size: 0.65rem; text-align: right; white-space: nowrap; }
+        .archive-table th, .archive-table td { border-bottom: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0; padding: 6px 8px; }
+        .archive-table th { background: var(--primary-green); color: white; font-weight: bold; }
+        .archive-table tr:nth-child(even) { background: #f8fafc; }
+        .archive-table tr:hover { background: #f1f5f9; }
 
-        .banner-slide-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 10px; }[cite: 2]
+        .banner-slide-box { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
 
-        .switch { position: relative; display: inline-block; width: 46px; height: 24px; flex-shrink: 0; }[cite: 2]
-        .switch input { opacity: 0; width: 0; height: 0; }[cite: 2]
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .3s; border-radius: 24px; }[cite: 2]
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }[cite: 2]
-        input:checked + .slider { background-color: var(--primary-green); }[cite: 2]
-        input:checked + .slider:before { transform: translateX(22px); }[cite: 2]
+        .switch { position: relative; display: inline-block; width: 46px; height: 24px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .3s; border-radius: 24px; border: 1px solid #b2b2b2; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 2px; bottom: 2px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary-green); }
+        input:checked + .slider:before { transform: translateX(22px); }
 
         .quick-modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center;
             z-index: 10000;
-        }[cite: 2]
+        }
         .quick-modal-content {
             background: #fff; padding: 15px; border-radius: 12px;
-            width: 95%; max-width: 520px; box-shadow: none;
+            width: 95%; max-width: 520px; border: 1px solid #cbd5e1;
             direction: rtl; font-family: 'Cairo', sans-serif;
             max-height: 90vh; overflow-y: auto;
-            border: 1px solid #cbd5e1;
-        }[cite: 2]
-        .quick-modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 10px; }[cite: 2]
-        .quick-modal-header h3 { font-size: 0.9rem; color: var(--primary-green); font-weight: 800; }[cite: 2]
-        .quick-close-btn { font-size: 22px; cursor: pointer; color: #888; font-weight: bold; }[cite: 2]
-        .quick-product-preview { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; }[cite: 2]
-        .quick-product-id { font-weight: bold; color: #4b5563; font-size: 0.7rem; }[cite: 2]
+        }
+        .quick-modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 10px; }
+        .quick-modal-header h3 { font-size: 0.9rem; color: var(--primary-green); font-weight: 800; }
+        .quick-close-btn { font-size: 22px; cursor: pointer; color: #888; font-weight: bold; }
+        .quick-product-preview { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .quick-product-id { font-weight: bold; color: #4b5563; font-size: 0.7rem; }
         
         .form-row-compact {
             display: grid;
             grid-template-columns: 1.5fr 1fr 1fr 1fr;
             gap: 6px;
             margin-bottom: 10px;
-        }[cite: 2]
+        }
         @media (max-width: 480px) {
             .form-row-compact {
                 grid-template-columns: 1fr 1fr;
             }
         }
-        .highlight-price { color: #16a34a; font-weight: bold; }[cite: 2]
+        .highlight-price { color: #16a34a; font-weight: bold; }
     </style>
 
     <!-- Firebase SDKs -->
@@ -149,7 +148,7 @@
             messagingSenderId: "880642361344",
             appId: "1:880642361344:web:9dddec05f81125f0fc30e5",
             measurementId: "G-NL9CS2135V"
-        };[cite: 2]
+        };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -172,154 +171,154 @@
 
 <div class="dashboard-container">
     <div class="dash-header">
-        <h1>⚙️ لوحة التحكم - العروبة أونلاين</h1>[cite: 2]
-        <a href="index.html" class="back-btn">← المتجر الرئيسي</a>[cite: 2]
+        <h1>⚙️ لوحة التحكم - العروبة أونلاين</h1>
+        <a href="index.html" class="back-btn">← المتجر الرئيسي</a>
     </div>
 
     <!-- شريط تفعيل إشعارات المتصفح والتنبيهات الفورية -->
     <div class="section-box" id="notifBanner" style="background: #eff6ff; border-color: #bfdbfe; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; margin-bottom: 12px;">
-        <span style="font-size: 0.75rem; color: #1e40af; font-weight: bold;">🔔 تفعيل التنبيهات الصوتية والفورية للطلبات الجديدة</span>[cite: 2]
-        <button onclick="askNotificationPermission()" style="background: #2563eb; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.7rem;">تفعيل</button>[cite: 2]
+        <span style="font-size: 0.75rem; color: #1e40af; font-weight: bold;">🔔 تفعيل التنبيهات الصوتية والفورية للطلبات الجديدة</span>
+        <button onclick="askNotificationPermission()" style="background: #2563eb; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.7rem;">تفعيل</button>
     </div>
 
     <!-- أزرار الانتقال السريع لشاشة المطبخ والسائق -->
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
-        <a href="kitchen.html" target="_blank" style="display: block; text-align: center; background: var(--accent-green); color: white; padding: 10px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 0.8rem; box-shadow: none; border: 1px solid #559325;">
+        <a href="kitchen.html" target="_blank" style="display: block; text-align: center; background: var(--accent-green); color: white; padding: 10px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 0.8rem; border: 1px solid #558c28;">
             🍳 شاشة المطبخ
-        </a>[cite: 2]
-        <a href="driver.html" target="_blank" style="display: block; text-align: center; background: #2563eb; color: white; padding: 10px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 0.8rem; box-shadow: none; border: 1px solid #1d4ed8;">
+        </a>
+        <a href="driver.html" target="_blank" style="display: block; text-align: center; background: #2563eb; color: white; padding: 10px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 0.8rem; border: 1px solid #1d4ed8;">
             🏍️ شاشة السائق
-        </a>[cite: 2]
+        </a>
     </div>
 
     <!-- ملخص المبيعات -->
     <div class="sales-summary-box">
         <div>
-            <div style="font-size: 0.65rem; opacity: 0.85;">إجمالي المبيعات المؤكدة</div>[cite: 2]
-            <div id="totalSalesAmount" style="font-size: 1.1rem;">0.00 ₪</div>[cite: 2]
+            <div style="font-size: 0.65rem; opacity: 0.85;">إجمالي المبيعات المؤكدة</div>
+            <div id="totalSalesAmount" style="font-size: 1.1rem;">0.00 ₪</div>
         </div>
         <div style="text-align: left;">
-            <div style="font-size: 0.65rem; opacity: 0.85;">الطلبات الجديدة</div>[cite: 2]
-            <div id="newOrdersCountBadge" style="font-size: 1.1rem;">0</div>[cite: 2]
+            <div style="font-size: 0.65rem; opacity: 0.85;">الطلبات الجديدة</div>
+            <div id="newOrdersCountBadge" style="font-size: 1.1rem;">0</div>
         </div>
     </div>
 
     <!-- أرشيف الطلبات المكتملة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('archiveSectionContent', this)">
-            <span>📂 أرشيف الطلبات المكتملة (<span id="archiveCountTitle">0</span>)</span>[cite: 2]
-            <span class="toggle-arrow">▼</span>[cite: 2]
+            <span>📂 أرشيف الطلبات المكتملة (<span id="archiveCountTitle">0</span>)</span>
+            <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="archiveSectionContent">
-            <button class="btn-main" style="background: #059669; margin-bottom: 8px; font-size: 0.75rem;" onclick="exportArchiveToExcel()">📥 تنزيل الأرشيف كملف إكسل (CSV)</button>[cite: 2]
-            <div id="adminArchiveList"></div>[cite: 2]
+            <button class="btn-main" style="background: #059669; margin-bottom: 8px; font-size: 0.75rem;" onclick="exportArchiveToExcel()">📥 تنزيل الأرشيف كملف إكسل (CSV)</button>
+            <div id="adminArchiveList"></div>
         </div>
     </div>
 
-    <!-- 2. إضافة منتج جديد (تم إزالة القيود الإجبارية لتتوافق مع تفضيلاتك) -->
+    <!-- 2. إضافة منتج جديد (بدون إجبارية الحقول) -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('addProductSectionContent', this)">
-            <span>➕ إضافة منتج جديد</span>[cite: 2]
-            <span class="toggle-arrow">▼</span>[cite: 2]
+            <span>➕ إضافة منتج جديد</span>
+            <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="addProductSectionContent">
             <div class="form-group">
                 <label>اسم المنتج (اختياري)</label>
-                <input type="text" id="newProdName" class="form-control" placeholder="مثال: أرز بسمتي">[cite: 2]
+                <input type="text" id="newProdName" class="form-control" placeholder="مثال: أرز بسمتي">
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                 <div class="form-group">
                     <label>السعر الأساسي (₪) (اختياري)</label>
-                    <input type="number" id="newProdPrice" class="form-control" placeholder="0">[cite: 2]
+                    <input type="number" id="newProdPrice" class="form-control" placeholder="0">
                 </div>
                 <div class="form-group">
                     <label>سعر العرض (اختياري)</label>
-                    <input type="number" id="newProdSalePrice" class="form-control" placeholder="فارغ إذا لم يوجد">[cite: 2]
+                    <input type="number" id="newProdSalePrice" class="form-control" placeholder="فارغ إذا لم يوجد">
                 </div>
             </div>
             <div class="form-group">
                 <label>الوزن / الحجم</label>
-                <input type="text" id="newProdWeight" class="form-control" placeholder="مثال: 5 كجم أو حبة">[cite: 2]
+                <input type="text" id="newProdWeight" class="form-control" placeholder="مثال: 5 كجم أو حبة">
             </div>
             <div class="form-group">
-                <label>أقسام المنتج (اختر قسم واحد أو أكثر)</label>[cite: 2]
-                <div class="categories-checkbox-container" id="newProdCategoriesContainer"></div>[cite: 2]
+                <label>أقسام المنتج (اختر قسم واحد أو أكثر)</label>
+                <div class="categories-checkbox-container" id="newProdCategoriesContainer"></div>
             </div>
             <div class="form-group">
-                <label>صورة المنتج (رابط أو رفع من الجهاز) (اختياري)</label>[cite: 2]
+                <label>صورة المنتج (رابط أو رفع من الجهاز - اختياري)</label>
                 <div class="file-upload-box">
-                    <input type="text" id="newProdImg" class="form-control" placeholder="رابط الصورة أو اختر ملف" style="flex: 2;">[cite: 2]
+                    <input type="text" id="newProdImg" class="form-control" placeholder="رابط الصورة أو اختر ملف" style="flex: 2;">
                     <label class="camera-btn">
                         📁 اختر صورة
-                        <input type="file" accept="image/*" onchange="handleImageUpload(event, 'newProdImg', 'newProdPreview')">[cite: 2]
+                        <input type="file" accept="image/*" onchange="handleImageUpload(event, 'newProdImg', 'newProdPreview')">
                     </label>
                 </div>
-                <img id="newProdPreview" class="preview-thumb" src="" alt="معاينة" style="display: none; margin-top: 5px;" onclick="openModal(this)">[cite: 2]
+                <img id="newProdPreview" class="preview-thumb" src="" alt="معاينة" style="display: none; margin-top: 5px;" onclick="openModal(this)">
             </div>
-            <button class="btn-main" onclick="addNewProduct()">حفظ وإضافة المنتج 🚀</button>[cite: 2]
+            <button class="btn-main" onclick="addNewProduct()">حفظ وإضافة المنتج 🚀</button>
         </div>
     </div>
 
     <!-- 2.5 رفع صور المنتجات دفعة واحدة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('bulkImagesSectionContent', this)">
-            <span>📸 رفع صور المنتجات دفعة واحدة</span>[cite: 2]
-            <span class="toggle-arrow">▼</span>[cite: 2]
+            <span>📸 رفع صور المنتجات دفعة واحدة</span>
+            <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="bulkImagesSectionContent">
             <div style="font-size: 0.7rem; color: #4b5563; margin-bottom: 8px; line-height: 1.4;">
-                اختر عدة صور دفعة واحدة من جهازك. سيتم إنشاء منتج جديد لكل صورة تلقائياً (بعنوان افتراضي وسعر 0)، ويمكنك تعديل بياناتها لاحقاً بسرعة باستخدام نافذة التعديل السريع!
-            </div>[cite: 2]
+                اختر عدة صور دفعة واحدة من جهازك. سيتم إنشاء منتج جديد لكل صورة تلقائياً، ويمكنك تعديل بياناتها لاحقاً بسرعة باستخدام نافذة التعديل السريع!
+            </div>
             <div class="form-group">
-                <label>اختر صور المنتجات (يمكنك اختيار صور متعددة معاً)</label>[cite: 2]
+                <label>اختر صور المنتجات (يمكنك اختيار صور متعددة معاً)</label>
                 <div class="file-upload-box">
-                    <input type="file" id="bulkImagesFile" accept="image/*" multiple class="form-control" style="font-size: 0.7rem; padding: 5px;">[cite: 2]
+                    <input type="file" id="bulkImagesFile" accept="image/*" multiple class="form-control" style="font-size: 0.7rem; padding: 5px;">
                 </div>
             </div>
-            <button class="btn-main" style="background: #16a34a;" onclick="processBulkImagesUpload()">رفع وإنشاء المنتجات دفعة واحدة 🚀</button>[cite: 2]
-            <div id="bulkImagesProgress" style="font-size: 0.7rem; margin-top: 6px; font-weight: bold; color: var(--primary-green);"></div>[cite: 2]
+            <button class="btn-main" style="background: #16a34a;" onclick="processBulkImagesUpload()">رفع وإنشاء المنتجات دفعة واحدة 🚀</button>
+            <div id="bulkImagesProgress" style="font-size: 0.7rem; margin-top: 6px; font-weight: bold; color: var(--primary-green);"></div>
         </div>
     </div>
 
     <!-- 3. إعدادات التوصيل والمناطق الجغرافية -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('deliverySectionContent', this)">
-            <span>🚚 إعدادات التوصيل والمناطق الجغرافية</span>[cite: 2]
-            <span class="toggle-arrow">▼</span>[cite: 2]
+            <span>🚚 إعدادات التوصيل والمناطق الجغرافية</span>
+            <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="deliverySectionContent">
             <div class="form-group">
-                <label>السعر الافتراضي للتوصيل (₪)</label>[cite: 2]
-                <input type="number" id="defaultDeliveryFee" class="form-control" placeholder="مثال: 20">[cite: 2]
+                <label>السعر الافتراضي للتوصيل (₪)</label>
+                <input type="number" id="defaultDeliveryFee" class="form-control" placeholder="مثال: 20">
             </div>
             <div class="form-group">
-                <label>الحد الأدنى للتوصيل المجاني (₪)</label>[cite: 2]
-                <input type="number" id="freeDeliveryThreshold" class="form-control" placeholder="مثال: 150">[cite: 2]
+                <label>الحد الأدنى للتوصيل المجاني (₪)</label>
+                <input type="number" id="freeDeliveryThreshold" class="form-control" placeholder="مثال: 150">
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px;">
-                <div style="font-size: 0.75rem; font-weight: 700; color: #4b5563;">تفعيل نظام التوصيل حسب المناطق</div>[cite: 2]
+                <div style="font-size: 0.75rem; font-weight: 700; color: #4b5563;">تفعيل نظام التوصيل حسب المناطق</div>
                 <label class="switch">
-                    <input type="checkbox" id="toggleDeliverySystem" checked>[cite: 2]
-                    <span class="slider"></span>[cite: 2]
+                    <input type="checkbox" id="toggleDeliverySystem" checked>
+                    <span class="slider"></span>
                 </label>
             </div>
 
-            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 10px 0;">[cite: 2]
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 10px 0;">
 
-            <div style="font-size: 0.75rem; font-weight: 800; color: var(--primary-green); margin-bottom: 6px;">تخصيص أسعار المناطق والأحياء</div>[cite: 2]
+            <div style="font-size: 0.75rem; font-weight: 800; color: var(--primary-green); margin-bottom: 6px;">تخصيص أسعار المناطق والأحياء</div>
             <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 6px; margin-bottom: 8px;">
-                <input type="text" id="newZoneName" class="form-control" placeholder="اسم المنطقة / الحي">[cite: 2]
-                <input type="number" id="newZonePrice" class="form-control" placeholder="السعر (₪)">[cite: 2]
+                <input type="text" id="newZoneName" class="form-control" placeholder="اسم المنطقة / الحي">
+                <input type="number" id="newZonePrice" class="form-control" placeholder="السعر (₪)">
             </div>
-            <button class="btn-main" style="background: var(--accent-green); margin-bottom: 10px;" onclick="addDeliveryZone()">إضافة المنطقة ➕</button>[cite: 2]
+            <button class="btn-main" style="background: var(--accent-green); margin-bottom: 10px;" onclick="addDeliveryZone()">إضافة المنطقة ➕</button>
 
             <div class="archive-table-wrapper" style="margin-top: 8px;">
                 <table class="archive-table">
                     <thead>
                         <tr>
-                            <th>المنطقة / الحي</th>[cite: 2]
-                            <th>سعر التوصيل</th>[cite: 2]
-                            <th>الإجراءات</th>[cite: 2]
+                            <th>المنطقة / الحي</th>
+                            <th>سعر التوصيل</th>
+                            <th>الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody id="adminZonesListBody">
@@ -327,121 +326,121 @@
                     </tbody>
                 </table>
             </div>
-            <button class="btn-main" style="margin-top: 10px;" onclick="saveDeliverySettings()">حفظ إعدادات التوصيل 💾</button>[cite: 2]
+            <button class="btn-main" style="margin-top: 10px;" onclick="saveDeliverySettings()">حفظ إعدادات التوصيل 💾</button>
         </div>
     </div>
 
     <!-- 4. إدارة المنتجات وتعديلها -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('manageProductsSectionContent', this)">
-            <span>📋 إدارة وتعديل المنتجات (مقسمة حسب الأقسام)</span>[cite: 2]
-            <span class="toggle-arrow">▼</span>[cite: 2]
+            <span>📋 إدارة وتعديل المنتجات (مقسمة حسب الأقسام)</span>
+            <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="manageProductsSectionContent">
-            <div id="adminGroupedProductsContainer" style="margin-top: 8px;"></div>[cite: 2]
+            <div id="adminGroupedProductsContainer" style="margin-top: 8px;"></div>
         </div>
     </div>
 
     <!-- 5. إضافة وإدارة فئات الأقسام الجديدة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('categoriesSectionContent', this)">
-            <span>🗂️ إضافة وإدارة الفئات والأقسام الجديدة</span>[cite: 2]
-            <span class="toggle-arrow">▼</span>[cite: 2]
+            <span>🗂️ إضافة وإدارة الفئات والأقسام الجديدة</span>
+            <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="categoriesSectionContent">
-            <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">إضافة أو تعديل قسم (الترتيب برقم تصاعدي):</div>[cite: 2]
+            <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 6px;">إضافة أو تعديل قسم (الترتيب برقم تصاعدي):</div>
             <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 5px; margin-bottom: 8px;">
-                <input type="text" id="newCatName" class="form-control" placeholder="اسم القسم الجديد">[cite: 2]
-                <input type="text" id="newCatIcon" class="form-control" placeholder="إيموجي 🏷️" style="text-align: center;">[cite: 2]
-                <input type="number" id="newCatOrder" class="form-control" placeholder="الترتيب (1,2..)" style="text-align: center;">[cite: 2]
+                <input type="text" id="newCatName" class="form-control" placeholder="اسم القسم الجديد">
+                <input type="text" id="newCatIcon" class="form-control" placeholder="إيموجي 🏷️" style="text-align: center;">
+                <input type="number" id="newCatOrder" class="form-control" placeholder="الترتيب (1,2..)" style="text-align: center;">
             </div>
-            <button id="saveCategoryBtn" class="btn-main" onclick="saveOrUpdateCategory()">إضافة القسم ➕</button>[cite: 2]
+            <button id="saveCategoryBtn" class="btn-main" onclick="saveOrUpdateCategory()">إضافة القسم ➕</button>
             
             <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <div style="font-size: 0.8rem; font-weight: 900; color: var(--primary-green);">📦 فئة "أخرى غير مصنفة"</div>[cite: 2]
-                    <div style="font-size: 0.65rem; color: #6b7280; margin-top: 2px;">إظهار أو إخفاء هذه الفئة في المتجر</div>[cite: 2]
+                    <div style="font-size: 0.8rem; font-weight: 900; color: var(--primary-green);">📦 فئة "أخرى غير مصنفة"</div>
+                    <div style="font-size: 0.65rem; color: #6b7280; margin-top: 2px;">إظهار أو إخفاء هذه الفئة في المتجر</div>
                 </div>
                 <label class="switch">
-                    <input type="checkbox" id="toggleUncategorized" onchange="saveUncategorizedToggle()">[cite: 2]
-                    <span class="slider"></span>[cite: 2]
+                    <input type="checkbox" id="toggleUncategorized" onchange="saveUncategorizedToggle()">
+                    <span class="slider"></span>
                 </label>
             </div>
 
-            <div id="adminCategoriesList"></div>[cite: 2]
+            <div id="adminCategoriesList"></div>
         </div>
     </div>
 
     <!-- 6. تخصيص شرائح البانر المتحركة -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('bannerSectionContent', this)">
-            <span>🎨 تخصيص شرائح البانر المتحركة (Slider)</span>[cite: 2]
-            <span class="toggle-arrow">▼</span>[cite: 2]
+            <span>🎨 تخصيص شرائح البانر المتحركة (Slider)</span>
+            <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="bannerSectionContent">
-            <div id="bannerSlidesContainer"></div>[cite: 2]
-            <button class="btn-main" style="background: #059669; margin-bottom: 8px;" onclick="addNewBannerSlide()">➕ إضافة شريحة بانر جديدة</button>[cite: 2]
-            <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث شرائح البانر ✨</button>[cite: 2]
+            <div id="bannerSlidesContainer"></div>
+            <button class="btn-main" style="background: #059669; margin-bottom: 8px;" onclick="addNewBannerSlide()">➕ إضافة شريحة بانر جديدة</button>
+            <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث شرائح البانر ✨</button>
         </div>
     </div>
 </div>
 
-<!-- نافذة التعديل السريع المنبثقة لكل منتج (تم إلغاء القيود الإجبارية) -->
+<!-- نافذة التعديل السريع المنبثقة لكل منتج (بدون إجبارية الحقول) -->
 <div id="quickEditModal" class="quick-modal-overlay" style="display: none;">
   <div class="quick-modal-content">
     <div class="quick-modal-header">
-      <h3>⚡ تعديل سريع للمنتج</h3>[cite: 2]
-      <span class="quick-close-btn" onclick="closeQuickModal()">&times;</span>[cite: 2]
+      <h3>⚡ تعديل سريع للمنتج</h3>
+      <span class="quick-close-btn" onclick="closeQuickModal()">&times;</span>
     </div>
     
     <div class="quick-modal-body">
       <div class="quick-product-preview">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <img id="modalProductImage" src="" alt="صورة المنتج" style="width: 45px; height: 45px; object-fit: contain; border-radius: 6px; background: white; border: 1px solid #ddd; padding: 2px; cursor: pointer;" onclick="openModal(this)" title="اضغط لتكبير الصورة">[cite: 2]
+          <img id="modalProductImage" src="" alt="صورة المنتج" style="width: 45px; height: 45px; object-fit: contain; border-radius: 6px; background: white; border: 1px solid #ddd; padding: 2px; cursor: pointer;" onclick="openModal(this)" title="اضغط لتكبير الصورة">
           
           <div style="display: flex; flex-direction: column; gap: 3px;">
-            <span id="modalProductId" class="quick-product-id"></span>[cite: 2]
-            <button type="button" onclick="document.getElementById('modalImageFileInput').click();" style="background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 3px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; cursor: pointer;">📁 تغيير الصورة</button>[cite: 2]
+            <span id="modalProductId" class="quick-product-id"></span>
+            <button type="button" onclick="document.getElementById('modalImageFileInput').click();" style="background: #e2e8f0; color: var(--primary-green); border: 1px solid #cbd5e1; padding: 3px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: bold; cursor: pointer;">📁 تغيير الصورة</button>
           </div>
         </div>
-        <input type="file" id="modalImageFileInput" accept="image/*" style="display: none;" onchange="handleModalImageChange(event)">[cite: 2]
+        <input type="file" id="modalImageFileInput" accept="image/*" style="display: none;" onchange="handleModalImageChange(event)">
       </div>
 
       <form id="quickEditForm" onsubmit="event.preventDefault();">
         <div class="form-row-compact">
           <div class="form-group">
             <label>اسم المنتج</label>
-            <input type="text" id="modalProductName" class="form-control">[cite: 2]
+            <input type="text" id="modalProductName" class="form-control">
           </div>
           <div class="form-group">
             <label class="highlight-price">السعر (₪)</label>
-            <input type="number" step="0.01" id="modalProductPrice" class="form-control">[cite: 2]
+            <input type="number" step="0.01" id="modalProductPrice" class="form-control">
           </div>
           <div class="form-group">
             <label>سعر العرض</label>
-            <input type="number" step="0.01" id="modalProductSalePrice" class="form-control">[cite: 2]
+            <input type="number" step="0.01" id="modalProductSalePrice" class="form-control">
           </div>
           <div class="form-group">
             <label>الوزن / الحجم</label>
-            <input type="text" id="modalProductWeight" class="form-control">[cite: 2]
+            <input type="text" id="modalProductWeight" class="form-control">
           </div>
         </div>
 
         <div class="form-group" style="margin-top: 10px;">
-            <label>أقسام الفئات</label>[cite: 2]
-            <div class="categories-checkbox-container" id="modalCategoriesGrid"></div>[cite: 2]
+            <label>أقسام الفئات</label>
+            <div class="categories-checkbox-container" id="modalCategoriesGrid"></div>
         </div>
       </form>
     </div>
 
     <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; gap: 4px; flex-wrap: wrap;">
       <div style="display: flex; gap: 4px;">
-        <button type="button" onclick="prevQuickProduct()" style="background: #3b82f6; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">⬅️ السابق</button>[cite: 2]
-        <button type="button" onclick="nextQuickProduct()" style="background: #3b82f6; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">التالي ➡️</button>[cite: 2]
+        <button type="button" onclick="prevQuickProduct()" style="background: #3b82f6; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">⬅️ السابق</button>
+        <button type="button" onclick="nextQuickProduct()" style="background: #3b82f6; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">التالي ➡️</button>
       </div>
       <div style="display: flex; gap: 4px;">
-        <button type="button" onclick="saveCurrentQuick()" style="background: #16a34a; color: #fff; border: none; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">💾 حفظ</button>[cite: 2]
-        <button type="button" onclick="closeQuickModal()" style="background: #ef4444; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">إغلاق ✕</button>[cite: 2]
+        <button type="button" onclick="saveCurrentQuick()" style="background: #16a34a; color: #fff; border: none; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">💾 حفظ</button>
+        <button type="button" onclick="closeQuickModal()" style="background: #ef4444; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold;">إغلاق ✕</button>
       </div>
     </div>
   </div>
@@ -450,8 +449,8 @@
 <!-- نافذة عرض الصورة بالحجم الكامل -->
 <div id="imageModal" style="display: none; position: fixed; z-index: 20000; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); justify-content: center; align-items: center;">
     <div style="position: relative; max-width: 90%; max-height: 90%;">
-        <span onclick="closeModal()" style="position: absolute; top: -12px; right: -12px; background-color: #ff4d4d; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; font-weight: bold; cursor: pointer; border: 1px solid #fff; z-index: 20001;">&times;</span>[cite: 2]
-        <img id="modalImg" style="max-width: 100%; max-height: 85vh; border-radius: 8px; display: block;" />[cite: 2]
+        <span onclick="closeModal()" style="position: absolute; top: -12px; right: -12px; background-color: #ff4d4d; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; font-weight: bold; cursor: pointer; border: 1px solid #fff; z-index: 20001;">&times;</span>
+        <img id="modalImg" style="max-width: 100%; max-height: 85vh; border-radius: 8px; display: block;" />
     </div>
 </div>
 
@@ -459,7 +458,7 @@
     let products = [];
     let categories = [
         { name: "الكل", icon: "🛍️", sortOrder: -1 }
-    ];[cite: 2]
+    ];
     let bannerSlides = [];
     let orders = [];
     let deliveryZones = [];
@@ -467,7 +466,7 @@
         defaultFee: 20,
         freeThreshold: 150,
         enabled: true
-    };[cite: 2]
+    };
 
     let currentProductIndex = 0;
     let flatProductsList = [];
@@ -481,7 +480,7 @@
         checkNotificationPermissionUI();
         await loadDataFromCloud();
         initRealtimeOrdersListener();
-    });[cite: 2]
+    });
 
     function handleModalImageChange(event) {
         const file = event.target.files[0];
@@ -520,7 +519,7 @@
             img.src = e.target.result;
         };
         reader.readAsDataURL(file);
-    }[cite: 2]
+    }
 
     document.addEventListener('change', async (e) => {
         if (e.target.classList.contains('sort-order-input')) {
@@ -542,14 +541,14 @@
                 alert("حدث خطأ أثناء حفظ الترتيب.");
             }
         }
-    });[cite: 2]
+    });
 
     function checkNotificationPermissionUI() {
         if ("Notification" in window && Notification.permission === "granted") {
             const banner = document.getElementById('notifBanner');
             if(banner) banner.style.display = 'none';
         }
-    }[cite: 2]
+    }
 
     function askNotificationPermission() {
         if ("Notification" in window) {
@@ -561,7 +560,7 @@
                 }
             });
         }
-    }[cite: 2]
+    }
 
     function playAlertSound() {
         try {
@@ -578,7 +577,7 @@
         } catch(e) {
             console.log("Audio Context blocked or not supported");
         }
-    }[cite: 2]
+    }
 
     function initRealtimeOrdersListener() {
         window.onSnapshot(window.collection(window.db, "orders"), (snapshot) => {
@@ -613,7 +612,7 @@
             renderAdminOrders();
             updateSalesSummary();
         });
-    }[cite: 2]
+    }
 
     async function loadDataFromCloud() {
         try {
@@ -684,7 +683,7 @@
         } catch (e) {
             console.error("خطأ في جلب البيانات من السحابة: ", e);
         }
-    }[cite: 2]
+    }
 
     async function saveUncategorizedToggle() {
         const toggleElem = document.getElementById('toggleUncategorized');
@@ -696,7 +695,7 @@
         } catch(e) {
             console.error("خطأ في حفظ الإعداد:", e);
         }
-    }[cite: 2]
+    }
 
     async function addDeliveryZone() {
         const name = document.getElementById('newZoneName').value.trim();
@@ -720,7 +719,7 @@
             console.error(e);
             alert("خطأ في حفظ المنطقة بالسحابة.");
         }
-    }[cite: 2]
+    }
 
     async function deleteDeliveryZone(id) {
         if(confirm("هل أنت متأكد من حذف هذه المنطقة؟")) {
@@ -732,7 +731,7 @@
                 alert("خطأ أثناء الحذف.");
             }
         }
-    }[cite: 2]
+    }
 
     function renderAdminDeliveryZones() {
         const tbody = document.getElementById('adminZonesListBody');
@@ -753,7 +752,7 @@
                 </tr>
             `;
         });
-    }[cite: 2]
+    }
 
     async function saveDeliverySettings() {
         deliverySettings.defaultFee = parseFloat(document.getElementById('defaultDeliveryFee').value) || 0;
@@ -767,7 +766,7 @@
             console.error(e);
             alert("خطأ في حفظ الإعدادات.");
         }
-    }[cite: 2]
+    }
 
     function toggleSection(contentId, headerElem) {
         const content = document.getElementById(contentId);
@@ -779,7 +778,7 @@
             content.style.display = 'block';
             arrow.style.transform = 'rotate(180deg)';
         }
-    }[cite: 2]
+    }
 
     function handleImageUpload(event, inputId, previewId) {
         const file = event.target.files[0];
@@ -822,7 +821,7 @@
             img.src = e.target.result;
         };
         reader.readAsDataURL(file);
-    }[cite: 2]
+    }
 
     function renderNewProdCategoriesCheckboxes(selectedCategories = []) {
         const container = document.getElementById('newProdCategoriesContainer');
@@ -842,10 +841,10 @@
                 </label>
             `;
         });
-    }[cite: 2]
+    }
 
     async function addNewProduct() {
-        const name = document.getElementById('newProdName').value.trim() || "منتج جديد";
+        const name = document.getElementById('newProdName').value.trim() || "منتج بدون اسم";
         const priceInput = document.getElementById('newProdPrice').value.trim();
         const price = priceInput !== "" ? parseFloat(priceInput) : 0;
         let salePrice = document.getElementById('newProdSalePrice').value.trim();
@@ -886,7 +885,7 @@
             console.error("خطأ الحفظ:", e);
             alert("حدث خطأ أثناء الحفظ بالسحابة");
         }
-    }[cite: 2]
+    }
 
     async function processBulkImagesUpload() {
         const fileInput = document.getElementById('bulkImagesFile');
@@ -936,7 +935,7 @@
         progressDiv.innerText = `تم الانتهاء! نجاح: ${successCount} | فشل: ${failCount} 🚀`;
         alert(`تم رفع وإنشاء ${successCount} منتج بنجاح! يمكنك الآن تعديل بياناتها سريعاً من قائمة المنتجات.`);
         fileInput.value = '';
-    }[cite: 2]
+    }
 
     function resizeAndConvertImage(file) {
         return new Promise((resolve, reject) => {
@@ -976,7 +975,7 @@
             reader.onerror = reject;
             reader.readAsDataURL(file);
         });
-    }[cite: 2]
+    }
 
     function renderAdminGroupedProducts() {
         const container = document.getElementById('adminGroupedProductsContainer');
@@ -1059,7 +1058,7 @@
             groupHtml += `</div></div>`;
             container.innerHTML += groupHtml;
         });
-    }[cite: 2]
+    }
 
     function toggleCategoryGroup(headerElem, catName) {
         const items = headerElem.nextElementSibling;
@@ -1070,7 +1069,7 @@
             items.style.display = 'block';
             openCategoryNames.add(catName);
         }
-    }[cite: 2]
+    }
 
     function openQuickEdit(productId, categoryName) {
         modalNewImageBase64 = null;
@@ -1102,7 +1101,7 @@
             renderQuickEditModalData(currentProductIndex);
             document.getElementById('quickEditModal').style.display = 'flex';
         }
-    }[cite: 2]
+    }
 
     function renderQuickEditModalData(index) {
         const product = flatProductsList[index];
@@ -1117,7 +1116,7 @@
         document.getElementById('modalProductWeight').value = product.weight || '';
 
         renderModalCategoriesCheckboxes(product.categories || []);
-    }[cite: 2]
+    }
 
     function renderModalCategoriesCheckboxes(selectedCats) {
         const container = document.getElementById('modalCategoriesGrid');
@@ -1133,17 +1132,18 @@
                 </label>
             `;
         });
-    }[cite: 2]
+    }
 
     async function collectAndSaveCurrentModalData() {
         const product = flatProductsList[currentProductIndex];
         if(!product) return;
 
-        product.name = document.getElementById('modalProductName').value.trim();
-        product.price = parseFloat(document.getElementById('modalProductPrice').value) || 0;
+        product.name = document.getElementById('modalProductName').value.trim() || "منتج بدون اسم";
+        const priceVal = document.getElementById('modalProductPrice').value.trim();
+        product.price = priceVal !== "" ? parseFloat(priceVal) : 0;
         let sp = document.getElementById('modalProductSalePrice').value.trim();
         product.salePrice = sp !== "" ? parseFloat(sp) : "";
-        product.weight = document.getElementById('modalProductWeight').value.trim();
+        product.weight = document.getElementById('modalProductWeight').value.trim() || "حبة";
 
         if (modalNewImageBase64) {
             product.img = modalNewImageBase64;
@@ -1173,12 +1173,12 @@
         } catch(e) {
             console.error(e);
         }
-    }[cite: 2]
+    }
 
     async function saveCurrentQuick() {
         await collectAndSaveCurrentModalData();
         alert("تم حفظ التعديلات بنجاح! ✨");
-    }[cite: 2]
+    }
 
     async function prevQuickProduct() {
         await collectAndSaveCurrentModalData();
@@ -1188,7 +1188,7 @@
         } else {
             alert("هذا هو المنتج الأول في هذا القسم.");
         }
-    }[cite: 2]
+    }
 
     async function nextQuickProduct() {
         await collectAndSaveCurrentModalData();
@@ -1198,14 +1198,14 @@
         } else {
             alert("هذا هو المنتج الأخير في هذا القسم.");
         }
-    }[cite: 2]
+    }
 
     function closeQuickModal() {
         const modal = document.getElementById('quickEditModal');
         if(modal) {
             modal.style.display = 'none';
         }
-    }[cite: 2]
+    }
 
     async function deleteProduct(id) {
         if(confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
@@ -1217,7 +1217,7 @@
                 alert("خطأ أثناء الحذف");
             }
         }
-    }[cite: 2]
+    }
 
     function renderAdminCategoriesList() {
         const container = document.getElementById('adminCategoriesList');
@@ -1239,7 +1239,7 @@
                 </div>
             `;
         });
-    }[cite: 2]
+    }
 
     async function saveOrUpdateCategory() {
         const name = document.getElementById('newCatName').value.trim();
@@ -1296,7 +1296,7 @@
                 alert("خطأ أثناء تحديث القسم");
             }
         }
-    }[cite: 2]
+    }
 
     function editCategory(name, icon, sortOrder) {
         editingCategoryOriginalName = name;
@@ -1309,7 +1309,7 @@
         btn.style.backgroundColor = '#3b82f6';
         
         document.getElementById('categoriesSectionContent').style.display = 'block';
-    }[cite: 2]
+    }
 
     function resetCategoryForm() {
         editingCategoryOriginalName = null;
@@ -1320,7 +1320,7 @@
         const btn = document.getElementById('saveCategoryBtn');
         btn.innerText = 'إضافة القسم ➕';
         btn.style.backgroundColor = '';
-    }[cite: 2]
+    }
 
     async function deleteCategory(catName) {
         if(confirm(`هل أنت متأكد من حذف القسم "${catName}"؟`)) {
@@ -1335,7 +1335,7 @@
                 alert("خطأ أثناء الحذف");
             }
         }
-    }[cite: 2]
+    }
 
     function initBannerForm() {
         const container = document.getElementById('bannerSlidesContainer');
@@ -1363,19 +1363,19 @@
                 </div>
             `;
         });
-    }[cite: 2]
+    }
 
     function addNewBannerSlide() {
         collectCurrentBannerData();
         bannerSlides.push({ tag: "عروض جديدة", title: "تسوق أفضل المنتجات", img: "https://i.ibb.co/3m1K2wP/basket.png" });
         initBannerForm();
-    }[cite: 2]
+    }
 
     function removeBannerSlide(index) {
         collectCurrentBannerData();
         bannerSlides.splice(index, 1);
         initBannerForm();
-    }[cite: 2]
+    }
 
     function collectCurrentBannerData() {
         bannerSlides = [];
@@ -1388,7 +1388,7 @@
             bannerSlides.push({ tag: tagInput.value.trim(), title: titleInput.value.trim(), img: imgInput.value.trim() });
             index++;
         }
-    }[cite: 2]
+    }
 
     async function saveBannerSettings() {
         collectCurrentBannerData();
@@ -1398,7 +1398,7 @@
         } catch(e) {
             alert("خطأ في حفظ البانر");
         }
-    }[cite: 2]
+    }
 
     function renderAdminOrders() {
         const archiveContainer = document.getElementById('adminArchiveList');
@@ -1450,7 +1450,7 @@
             `;
             archiveContainer.innerHTML = tableHtml;
         }
-    }[cite: 2]
+    }
 
     function exportArchiveToExcel() {
         const archivedOrders = orders.filter(o => o.status === "مكتمل" || o.status === "delivered");
@@ -1476,7 +1476,7 @@
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-    }[cite: 2]
+    }
 
     async function updateOrderStatus(id, status) {
         let o = orders.find(ord => ord.id == id);
@@ -1490,7 +1490,7 @@
                 alert("خطأ في تحديث الحالة");
             }
         }
-    }[cite: 2]
+    }
 
     async function deleteOrder(id) {
         if(confirm("هل أنت متأكد من حذف هذا الطلب؟")) {
@@ -1503,14 +1503,14 @@
                 alert("خطأ أثناء الحذف");
             }
         }
-    }[cite: 2]
+    }
 
     function updateSalesSummary() {
         let total = 0;
         orders.forEach(o => { if(o.status === "مكتمل" || o.status === "delivered") total += parseFloat(o.total || 0); });
         const elem = document.getElementById('totalSalesAmount');
         if(elem) elem.innerText = total.toFixed(2) + " ₪";
-    }[cite: 2]
+    }
 
     function openModal(imgElement) {
         const modal = document.getElementById('imageModal');
@@ -1520,7 +1520,7 @@
             modalImg.src = imgElement.src;
             document.body.style.overflow = 'hidden';
         }
-    }[cite: 2]
+    }
 
     function closeModal() {
         const modal = document.getElementById('imageModal');
@@ -1528,7 +1528,7 @@
             modal.style.display = 'none';
             document.body.style.overflow = 'auto';
         }
-    }[cite: 2]
+    }
 
     const modalElem = document.getElementById('imageModal');
     if(modalElem) {
@@ -1540,4 +1540,4 @@
     }
 </script>
 </body>
-</html>
+    </html>
