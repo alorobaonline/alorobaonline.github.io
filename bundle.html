@@ -75,7 +75,42 @@
             border-radius: 6px;
             font-size: 0.85rem;
             background: #fff;
+            outline: none;
+            transition: border-color 0.2s ease;
         }
+        .form-control:focus {
+            border-color: var(--primary-color);
+        }
+        
+        /* تصميم حقل البحث الجديد */
+        .search-container {
+            position: relative;
+            margin-bottom: 8px;
+        }
+        .search-input {
+            width: 100%;
+            padding: 8px 36px 8px 10px;
+            border: 1.5px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            background: #fff;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        .search-input:focus {
+            border-color: var(--primary-color);
+            background-color: #ffffff;
+        }
+        .search-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+
         /* تصميم الزر التبديلي (Switch) */
         .switch {
             position: relative;
@@ -183,20 +218,20 @@
 
         async function initBundlePage() {
             try {
-                // 1. جلب المنتجات المتاحة
+                // 1. جلب المنتجات المتاحة[cite: 1]
                 const prodSnap = await getDocs(collection(db, "products"));
                 products = [];
                 prodSnap.forEach(docSnap => {
                     products.push({ id: docSnap.id, ...docSnap.data() });
                 });
 
-                // 2. جلب إعدادات الباقة الحالية من Firebase
+                // 2. جلب إعدادات الباقة الحالية من Firebase[cite: 1]
                 const bundleSnap = await getDoc(doc(db, "settings", "bundleOffer"));
                 if(bundleSnap.exists()) {
                     bundleSettings = { ...bundleSettings, ...bundleSnap.data() };
                 }
 
-                // تعبئة الحقول بالقيم المسترجعة
+                // تعبئة الحقول بالقيم المسترجعة[cite: 1]
                 document.getElementById('toggleBundle').checked = bundleSettings.enabled !== false;
                 document.getElementById('targetCount').value = bundleSettings.targetCount || 6;
                 document.getElementById('bundlePrice').value = bundleSettings.bundlePrice || 19.90;
@@ -222,12 +257,27 @@
 
             products.forEach(p => {
                 const isChecked = bundleSettings.productIds && bundleSettings.productIds.includes(p.id) ? 'checked' : '';
+                const searchString = `${p.id} ${p.name || ''}`.toLowerCase();
                 container.innerHTML += `
-                    <label class="checkbox-item">
+                    <label class="checkbox-item" data-search="${searchString}">
                         <input type="checkbox" name="prodCheck" value="${p.id}" ${isChecked}>
                         <span>${p.name || 'بدون اسم'} - <span style="color:var(--primary-color);">${p.price || 0} ₪</span></span>
                     </label>
                 `;
+            });
+        }
+
+        // دالة تصفية المنتجات الفورية عند البحث
+        function filterProducts() {
+            const query = document.getElementById('productSearchInput').value.toLowerCase().trim();
+            const items = document.querySelectorAll('.checkbox-item');
+            items.forEach(item => {
+                const searchData = item.getAttribute('data-search') || '';
+                if (searchData.includes(query)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
             });
         }
 
@@ -260,6 +310,7 @@
 
         window.addEventListener('DOMContentLoaded', initBundlePage);
         window.saveBundleData = saveBundleData;
+        window.filterProducts = filterProducts;
     </script>
 </head>
 <body>
@@ -294,6 +345,13 @@
 
             <div class="form-group">
                 <label>حدد المنتجات المشمولة في الباقة:</label>
+                
+                <!-- حقل البحث الجديد بتصميم مسطح -->
+                <div class="search-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="productSearchInput" class="search-input" placeholder="ابحث برقم المنتج أو الاسم..." onkeyup="filterProducts()">
+                </div>
+
                 <div class="products-checklist" id="productsListContainer">
                     <!-- يتم جلب المنتجات هنا برمجياً -->
                 </div>
