@@ -418,6 +418,9 @@
     let initialHash = decodeURIComponent(window.location.hash.replace('#', ''));
     let currentCategory = initialHash ? initialHash : "الكل";
 
+    // وقت بدء تحميل الصفحة لضمان بقاء شاشة الترحيب 3 ثوانٍ على الأقل
+    const splashStartTime = Date.now();
+
     window.addEventListener('hashchange', () => {
         let hash = decodeURIComponent(window.location.hash.replace('#', ''));
         currentCategory = hash ? hash : "الكل";
@@ -428,8 +431,16 @@
     function hideSplashScreen() {
         const splash = document.getElementById('splashScreen');
         if (splash && splash.style.display !== 'none') {
-            splash.style.opacity = '0';
-            setTimeout(() => { splash.style.display = 'none'; }, 500);
+            const elapsedTime = Date.now() - splashStartTime;
+            const minDuration = 3000; // 3 ثوانٍ على الأقل
+            
+            if (elapsedTime < minDuration) {
+                // إذا لم تمر 3 ثوانٍ بعد، نعيد جدولة الإخفاء للمدة المتبقية
+                setTimeout(hideSplashScreen, minDuration - elapsedTime);
+            } else {
+                splash.style.opacity = '0';
+                setTimeout(() => { splash.style.display = 'none'; }, 500);
+            }
         }
     }
 
@@ -465,7 +476,7 @@
         renderCategoriesScroll();
         requestAnimationFrame(() => {
             renderMainStoreContent();
-            hideSplashScreen(); // إخفاء شاشة الترحيب فوراً اعتماداً على الكاش المحلي دون انتظار السيرفر[cite: 1, 2]
+            hideSplashScreen(); 
         });
     }
 
@@ -506,7 +517,6 @@
     }
 
     function initRealtimeListeners() {
-        // نقل استعلامات فايربيس للعمل في الخلفية بصمت لتحديث الكاش دون تجميد الواجهة[cite: 1, 2]
         window.onSnapshot(window.collection(window.db, "products"), (prodSnap) => {
             products = [];
             prodSnap.forEach(docSnap => {
@@ -517,7 +527,7 @@
             
             requestAnimationFrame(() => {
                 renderMainStoreContent();
-                hideSplashScreen(); // للتأكد من إخفائها حتى في الزيارة الأولى عند جلب بيانات فايربيس
+                hideSplashScreen(); 
             });
             updateCartStateUI();
         });
@@ -1157,4 +1167,4 @@
     }
 </script>
 </body>
-    </html>
+</html>
