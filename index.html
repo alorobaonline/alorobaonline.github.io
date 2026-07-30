@@ -866,7 +866,7 @@
         }
     }
 
-    // إرسال رمز التحقق عبر UpSend باستخدام التوكن الخاص بك
+    // إرسال رمز التحقق عبر UpSend باستخدام بيانات الاعتماد المشفرة (Basic Auth)[cite: 4]
     function sendOtpViaUpsend() {
         const name = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('customerPhone').value.trim();
@@ -881,28 +881,32 @@
         // 1. توليد رمز تحقق عشوائي من 4 أرقام
         generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
-        // 2. التوكن الخاص بك من منصة Upsend
-        const apiToken = "6e8261f4-6a11-4c49-bdba-1390736d090f"; 
         const apiUrl = "https://api.upsend.co.il/v1/sms/send";
+        
+        // 2. بيانات الاعتماد المشفرة الناتجة من لوحة تحكم UpSend
+        const base64Credentials = "VVBTRU5EMTZnNzA4NmU4MjYxZjQtNmExMS00YzQ5LWJkYmEtMTM5MDczNmQwOTBm=="; 
 
         const messageText = `رمز التحقق الخاص بطلبك في متجر عروبة أونلاين هو: ${generatedOtp}`;
 
         const payload = {
-            token: apiToken,
             to: phone,
             message: messageText
         };
 
-        // 3. إرسال الطلب عبر الـ API
+        // 3. إرسال الطلب عبر الـ API مع ترويسة التوثيق الصحيحة
         fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'Authorization': `Basic ${base64Credentials}`
             },
             body: JSON.stringify(payload)
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error("فشل الاتصال بالخدمة");
+            return response.json();
+        })
         .then(data => {
             console.log("استجابة UpSend:", data);
             alert("تم إرسال رمز التحقق (SMS) إلى هاتفك بنجاح.");
@@ -912,7 +916,7 @@
             document.getElementById('order-btn-container').style.display = 'none';
         })
         .catch(error => {
-            console.error("خطأ في الاتصال بمنصة Upsend:", error);
+            console.error("خطأ في الاتصال بمنصة UpSend:", error);
             alert("فشل إرسال رسالة التحقق، يرجى المحاولة لاحقاً.");
         });
     }
