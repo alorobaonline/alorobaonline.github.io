@@ -419,7 +419,6 @@
     let initialHash = decodeURIComponent(window.location.hash.replace('#', ''));
     let currentCategory = initialHash ? initialHash : "الكل";
 
-    // حد أقصى لأمان شاشة الترحيب (4 ثوانٍ كحد أعلى لكي لا تعلق أبداً)
     let splashTimeout = setTimeout(() => {
         hideSplashScreen();
     }, 4000);
@@ -496,7 +495,6 @@
             requestAnimationFrame(() => {
                 renderMainStoreContent();
             });
-            // إخفاء شاشة الترحيب فوراً لو توفرت البيانات محلياً بسلاسة
             clearTimeout(splashTimeout);
             hideSplashScreen();
         }
@@ -552,7 +550,6 @@
             });
             updateCartStateUI();
 
-            // بمجرد وصول البيانات من السحابة، نخفي شاشة الترحيب بسلاسة تامة
             clearTimeout(splashTimeout);
             hideSplashScreen();
         });
