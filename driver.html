@@ -3,146 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة السائق - توصيل الطلبات - العروبة أونلاين</title>
-    <!-- مكتبة الخطوط وأيقونات FontAwesome -->
+    <title>شاشة السائق - العروبة أونلاين</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --primary-green: #1b4d2e;
             --accent-green: #68a633;
             --light-bg: #f3f4f6;
-            --shadow-card: 0 4px 15px rgba(0,0,0,0.05);
+            --shadow-card: none;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
-        body {
-            background-color: var(--light-bg);
-            color: #1f2937;
-            padding: 12px;
-            padding-bottom: 50px;
-        }
-        .container {
-            max-width: 480px;
-            margin: 0 auto;
-        }
-        .header {
-            background: var(--primary-green);
-            color: white;
-            border-radius: 20px;
-            padding: 15px;
-            text-align: center;
-            margin-bottom: 15px;
-            box-shadow: var(--shadow-card);
-        }
-        .header h1 {
-            font-size: 1.1rem;
-            font-weight: 900;
-            margin-bottom: 5px;
-        }
-        .status-badge {
-            display: inline-block;
-            background: rgba(104, 166, 51, 0.3);
-            color: #a3e635;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: bold;
-        }
-        .order-card {
-            background: #fff;
-            border: 2px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: var(--shadow-card);
-            border-right: 5px solid var(--accent-green);
-        }
-        .order-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #f1f5f9;
-            padding-bottom: 8px;
-            margin-bottom: 10px;
-            font-weight: 900;
-            color: var(--primary-green);
-            font-size: 0.9rem;
-        }
-        .customer-info {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 10px;
-            margin-bottom: 12px;
-            font-size: 0.8rem;
-        }
-        .customer-info div {
-            margin-bottom: 5px;
-        }
-        .map-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background-color: #e74c3c;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 10px;
-            text-decoration: none;
-            font-size: 0.85rem;
-            font-weight: bold;
-            width: 100%;
-            margin-top: 8px;
-            transition: background 0.3s;
-        }
-        .map-btn:hover {
-            background-color: #c0392b;
-        }
-        .deliver-btn {
-            background-color: var(--accent-green);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 900;
-            margin-top: 10px;
-            display: block;
-            width: 100%;
-            transition: background 0.3s;
-            box-shadow: 0 2px 8px rgba(104, 166, 51, 0.3);
-        }
-        .deliver-btn:hover {
-            background-color: #558a28;
-        }
-        .no-orders {
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            text-align: center;
-            font-size: 0.9rem;
-            color: #666;
-            box-shadow: var(--shadow-card);
-        }
-        .nav-back {
-            display: block;
-            text-align: center;
-            background: #e5e7eb;
-            color: #374151;
-            padding: 10px;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 800;
-            font-size: 0.8rem;
-            margin-bottom: 15px;
-        }
+        body { background-color: var(--light-bg); color: #1f2937; padding: 12px; padding-bottom: 50px; }
+        .container { max-width: 480px; margin: 0 auto; background: white; border-radius: 20px; padding: 15px; border: 1px solid #e5e7eb; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 15px; }
+        .header h1 { font-size: 0.95rem; color: var(--primary-green); font-weight: 900; }
+        .back-btn { background: #e5e7eb; color: #374151; padding: 5px 12px; border-radius: 8px; text-decoration: none; font-size: 0.7rem; font-weight: 700; border: 1px solid #cbd5e1; }
+        
+        .order-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 12px; margin-bottom: 10px; font-size: 0.75rem; }
+        .order-header { display: flex; justify-content: space-between; font-weight: bold; color: var(--primary-green); border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 8px; }
+        
+        .btn-call { background: #2563eb; color: white; text-decoration: none; padding: 5px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; display: inline-flex; align-items: center; gap: 4px; margin-top: 5px; }
+        .btn-complete { background: #16a34a; color: white; border: none; padding: 7px 12px; border-radius: 8px; font-size: 0.7rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 8px; }
+        .delay-notice { background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 6px; border-radius: 6px; font-size: 0.65rem; margin-top: 6px; font-weight: bold; }
     </style>
 
-    <!-- Firebase SDKs (Firestore) -->
+    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
@@ -159,105 +47,94 @@
 
         window.db = db;
         window.collection = collection;
-        window.getDocs = getDocs;
+        window.onSnapshot = onSnapshot;
         window.updateDoc = updateDoc;
         window.doc = doc;
-        window.onSnapshot = onSnapshot;
 
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
 </head>
 <body>
 
-    <div class="container">
-        <a href="admin.html" class="nav-back">← العودة إلى لوحة التحكم</a>
-        
-        <div class="header">
-            <h1><i class="fa-solid fa-motorcycle"></i> لوحة السائق - الطلبات الجاهزة</h1>
-            <div class="status-badge">🟢 متصل بالسحابة</div>
-        </div>
-
-        <div id="driver-orders-list">
-            <div class="no-orders">جاري تحميل الطلبات...</div>
-        </div>
+<div class="container">
+    <div class="header">
+        <h1>🏍️ شاشة السائق - العروبة أونلاين</h1>
+        <a href="admin.html" class="back-btn">← لوحة التحكم</a>
     </div>
 
-    <script>
-        window.addEventListener('firebase-ready', function() {
-            initDriverRealtimeOrders();
-        });
+    <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 10px; color: #4b5563;">
+        الطلبات الجاهزة للتوصيل:
+    </div>
 
-        function initDriverRealtimeOrders() {
-            window.onSnapshot(window.collection(window.db, "orders"), (snapshot) => {
-                const listContainer = document.getElementById('driver-orders-list');
-                if(!listContainer) return;
+    <div id="driverOrdersContainer">
+        <p style="text-align: center; color: #888; font-size: 0.75rem;">جاري تحميل الطلبات...</p>
+    </div>
+</div>
 
-                let orders = [];
-                snapshot.forEach(docSnap => {
-                    orders.push({ id: docSnap.id, ...docSnap.data() });
-                });
+<script>
+    window.addEventListener('firebase-ready', function() {
+        initDriverOrdersListener();
+    });
 
-                // تصفية الطلبات الجاهزة للتوصيل (تدعم ready, جاهز, جاهز للتوصيل)
-                const readyOrders = orders.filter(ord => {
-                    const s = (ord.status || '').trim();
-                    return s === 'ready' || s === 'جاهز' || s === 'جاهز للتوصيل' || s === 'قيد التوصيل';
-                });
-
-                if (readyOrders.length === 0) {
-                    listContainer.innerHTML = '<div class="no-orders">🎉 لا توجد طلبات جاهزة للتوصيل حالياً</div>';
-                    return;
-                }
-
-                let html = '';
-                readyOrders.forEach((ord, index) => {
-                    const customerName = ord.customerName || ord.name || 'بدون اسم';
-                    const customerPhone = ord.customerPhone || ord.phone || '';
-                    const customerAddress = ord.customerAddress || ord.address || 'لم يتم تحديد العنوان';
-                    
-                    // تجهيز رابط خريطة جوجل
-                    const mapUrl = ord.locationUrl || `https://maps.google.com/?q=${encodeURIComponent(customerAddress)}`;
-
-                    html += `
-                        <div class="order-card">
-                            <div class="order-header">
-                                <span>رقم الطلب: #${ord.id ? ord.id.substring(0, 6) : (index + 1)}</span>
-                                <span style="color: #e67e22; font-weight: bold; font-size: 0.75rem; background: #fef3c7; padding: 2px 8px; border-radius: 6px;">جاهز للتوصيل</span>
-                            </div>
-                            <div class="customer-info">
-                               <div><b>👤 العميل:</b> ${customerName}</div>
-                               <div><b>📞 الهاتف:</b> <a href="tel:${customerPhone}" style="color: #2563eb; text-decoration: none;">${customerPhone || 'غير متوفر'}</a></div>
-                               <div><b>📍 العنوان:</b> ${customerAddress}</div>
-                               ${ord.total ? `<div><b>💰 الإجمالي:</b> ${ord.total} ₪</div>` : ''}
-                            </div>
-                            
-                            <a href="${mapUrl}" target="_blank" class="map-btn">
-                                <i class="fa-solid fa-map-location-dot"></i> فتح الموقع على الخريطة
-                            </a>
-                            
-                            <button class="deliver-btn" onclick="markAsDelivered('${ord.id}')">
-                                <i class="fa-solid fa-check-circle"></i> تم التسليم للزبون ✓
-                            </button>
-                        </div>
-                    `;
-                });
-
-                listContainer.innerHTML = html;
+    function initDriverOrdersListener() {
+        window.onSnapshot(window.collection(window.db, "orders"), (snapshot) => {
+            let orders = [];
+            snapshot.forEach(docSnap => {
+                orders.push({ id: docSnap.id, ...docSnap.data() });
             });
+            renderDriverOrders(orders);
+        });
+    }
+
+    function renderDriverOrders(orders) {
+        const container = document.getElementById('driverOrdersContainer');
+        if(!container) return;
+        
+        let deliveryOrders = orders.filter(o => o.status === "جاهز للتوصيل" || o.status === "قيد التوصيل");
+
+        if(deliveryOrders.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 20px;">لا توجد طلبات جاهزة للتوصيل حالياً 🛵</p>';
+            return;
         }
 
-        // دالة لتغيير حالة الطلب إلى "تم التسليم" أو "مكتمل" لكي ينتقل للأرشيف
-        async function markAsDelivered(orderId) {
-            if (confirm('هل أنت متأكد من تسليم الطلب للزبون؟')) {
-                try {
-                    await window.updateDoc(window.doc(window.db, "orders", orderId), {
-                        status: 'تم التسليم',
-                        deliveredAt: new Date().toISOString()
-                    });
-                } catch (error) {
-                    alert('حدث خطأ أثناء تحديث الحالة: ' + error.message);
-                }
+        container.innerHTML = '';
+        deliveryOrders.forEach((ord, index) => {
+            let delayHtml = '';
+            if(ord.delayReason) {
+                delayHtml = `<div class="delay-notice">⚠️ سبب التأخير المسجل: ${ord.delayReason}</div>`;
+            }
+
+            container.innerHTML += `
+                <div class="order-card">
+                    <div class="order-header">
+                        <span>طلب #${index + 1} - ${ord.customerName || 'زبون'}</span>
+                        <span style="color: #16a34a;">${ord.total || 0} ₪</span>
+                    </div>
+                    <div style="font-size: 0.7rem; margin-bottom: 4px;"><b>الهاتف:</b> ${ord.customerPhone || ''}</div>
+                    <div style="font-size: 0.7rem; margin-bottom: 6px;"><b>العنوان:</b> ${ord.customerAddress || ord.address || ''}</div>
+                    
+                    <a href="tel:${ord.customerPhone || ''}" class="btn-call">📞 اتصال بالزبون</a>
+                    
+                    ${delayHtml}
+
+                    <button class="btn-complete" onclick="markOrderDelivered('${ord.id}')">تأكيد تسليم الطلب (مكتمل) ✅</button>
+                </div>
+            `;
+        });
+    }
+
+    async function markOrderDelivered(orderId) {
+        if(confirm("هل أنت متأكد من تسليم الطلب بنجاح وانتقاله للأرشيف؟")) {
+            try {
+                await window.updateDoc(window.doc(window.db, "orders", orderId), {
+                    status: "مكتمل"
+                });
+            } catch(e) {
+                console.error(e);
+                alert("خطأ أثناء تحديث حالة الطلب.");
             }
         }
-    </script>
+    }
+</script>
 </body>
 </html>
