@@ -13,7 +13,6 @@
             --text-secondary: #64748b;
             --border-color: #cbd5e1;
             --danger-color: #ef4444;
-            --warning-color: #f59e0b;
         }
         * {
             box-sizing: border-box;
@@ -64,9 +63,6 @@
             font-weight: 700;
             margin-bottom: 10px;
             color: var(--text-main);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
         .form-group {
             margin-bottom: 12px;
@@ -92,7 +88,6 @@
             border-color: var(--primary-color);
         }
         
-        /* تصميم حقل البحث */
         .search-container {
             position: relative;
             margin-bottom: 8px;
@@ -119,7 +114,6 @@
             pointer-events: none;
         }
 
-        /* تصميم الزر التبديلي (Switch) */
         .switch {
             position: relative;
             display: inline-block;
@@ -177,7 +171,6 @@
             border-bottom: none;
         }
 
-        /* بطاقات العروض المضافة في القائمة أسفل */
         .bundle-card {
             background: #fff;
             border: 1px solid var(--border-color);
@@ -248,7 +241,6 @@
         }
     </style>
 
-    <!-- استدعاء Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -268,18 +260,17 @@
 
         let products = [];
         let bundlesList = [];
-        let editingId = null; // لتتبع العرض الجاري تعديله
+        let editingId = null;
 
         async function initBundlePage() {
             try {
-                // 1. جلب المنتجات المتاحة
+                // جلب المنتجات من مجموعة products (قم بتعديل اسم المجموعة إذا كان مختلفاً لديك مثل "items")
                 const prodSnap = await getDocs(collection(db, "products"));
                 products = [];
                 prodSnap.forEach(docSnap => {
                     products.push({ id: docSnap.id, ...docSnap.data() });
                 });
 
-                // 2. جلب جميع العروض من مجموعة bundleOffers
                 await fetchBundles();
 
                 renderProductsList();
@@ -321,7 +312,6 @@
             });
         }
 
-        // تصفية المنتجات في الحقل
         window.filterProducts = function() {
             const query = document.getElementById('productSearchInput').value.toLowerCase().trim();
             const items = document.querySelectorAll('.checkbox-item');
@@ -335,7 +325,6 @@
             });
         };
 
-        // عرض العروض الحالية في الأسفل
         function renderBundlesList() {
             const container = document.getElementById('bundlesListContainer');
             container.innerHTML = '';
@@ -366,7 +355,6 @@
             });
         }
 
-        // حفظ أو تحديث عرض باقة
         window.saveBundleData = async function() {
             const title = document.getElementById('bundleTitle').value.trim();
             const targetCount = parseInt(document.getElementById('targetCount').value) || 6;
@@ -396,12 +384,10 @@
 
             try {
                 if (editingId) {
-                    // تحديث عرض موجود
                     await updateDoc(doc(db, "bundleOffers", editingId), bundleData);
                     alert("تم تحديث العرض بنجاح! 🚀");
                     cancelEdit();
                 } else {
-                    // إضافة عرض جديد
                     await addDoc(collection(db, "bundleOffers"), bundleData);
                     alert("تم إضافة العرض الجديد بنجاح تحت في القائمة! 🚀");
                     resetForm();
@@ -416,7 +402,6 @@
             }
         }
 
-        // تفعيل أو تعطيل العرض مباشرة من زر التشغيل/الإيقاف
         window.toggleBundleStatus = async function(id, newStatus) {
             try {
                 await updateDoc(doc(db, "bundleOffers", id), { enabled: newStatus });
@@ -426,7 +411,6 @@
             }
         }
 
-        // بدء تعديل عرض
         window.startEditBundle = function(id) {
             const bundle = bundlesList.find(b => b.id === id);
             if (!bundle) return;
@@ -436,7 +420,6 @@
             document.getElementById('targetCount').value = bundle.targetCount || 6;
             document.getElementById('bundlePrice').value = bundle.bundlePrice || 19.90;
 
-            // تحديد مربعات المنتجات الخاصة بهذا العرض
             document.querySelectorAll('input[name="prodCheck"]').forEach(cb => {
                 cb.checked = bundle.productIds && bundle.productIds.includes(cb.value);
             });
@@ -446,7 +429,6 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // إلغاء التعديل
         window.cancelEdit = function() {
             editingId = null;
             resetForm();
@@ -463,7 +445,6 @@
             window.filterProducts();
         }
 
-        // حذف عرض
         window.deleteBundle = async function(id) {
             if(!confirm("هل أنت متأكد من حذف هذا العرض نهائياً؟")) return;
             try {
@@ -490,7 +471,6 @@
 
     <div id="mainContent" style="display: none;">
         
-        <!-- قسم إضافة / تعديل عرض -->
         <div class="section-box">
             <div class="section-title">إضافة / تعديل عرض باقة جديد</div>
 
@@ -513,14 +493,12 @@
             <div class="form-group">
                 <label>حدد المنتجات المشمولة في الباقة:</label>
                 
-                <!-- حقل البحث -->
                 <div class="search-container">
                     <span class="search-icon">🔍</span>
                     <input type="text" id="productSearchInput" class="search-input" placeholder="ابحث برقم المنتج أو الاسم..." onkeyup="filterProducts()">
                 </div>
 
                 <div class="products-checklist" id="productsListContainer">
-                    <!-- يتم جلب المنتجات هنا برمجياً -->
                 </div>
             </div>
 
@@ -528,11 +506,9 @@
             <button id="cancelBtn" class="btn-main btn-cancel" onclick="cancelEdit()">إلغاء التعديل</button>
         </div>
 
-        <!-- قسم عرض قائمة العروض المضافة في الأسفل -->
         <div class="section-box">
             <div class="section-title">عروض الباقات الحالية في المتجر</div>
             <div id="bundlesListContainer">
-                <!-- يتم عرض الباقات المضافة هنا ديناميكياً مع زر تشغيل/إيقاف وتعديل وحذف -->
             </div>
         </div>
 
