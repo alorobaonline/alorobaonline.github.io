@@ -101,8 +101,8 @@
         .products-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 15px; }
         .products-grid .product-card { min-width: 100%; max-width: 100%; }
 
-        /* شريط السلة السفلي */
-        .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--primary-green); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 16px; border-top-right-radius: 16px; z-index: 100; cursor: pointer; }
+        /* شريط السلة السفلي (مخفي افتراضياً ولا يظهر إلا عند وجود منتجات) */
+        .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--primary-green); color: white; padding: 14px 20px; display: none; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 16px; border-top-right-radius: 16px; z-index: 100; cursor: pointer; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); }
         
         /* النوافذ العائمة */
         .cart-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; max-width: 480px; margin: 0 auto; }
@@ -204,15 +204,10 @@
     <div id="storeMainContent"></div>
 </div>
 
-<!-- شريط السلة السفلي -->
-<div class="cart-bar" onclick="openCartModal()">
-    <div>
-        <div style="font-size: 0.7rem; opacity: 0.8;">سلة المشتريات</div>
-        <div style="font-size: 0.95rem; font-weight: bold;" id="cartTotalText">0.00 ₪</div>
-    </div>
-    <div style="background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 10px; font-size: 0.75rem; font-weight: bold;">
-        عرض السلة (<span id="cartCountBadge">0</span>) 🛍️
-    </div>
+<!-- شريط السلة السفلي المحدث (للذهاب للدفع يمينًا والمجموع فقط يسارًا) -->
+<div class="cart-bar" id="cartBar" onclick="openCartModal()">
+    <div style="font-size: 0.85rem; font-weight: 800;">للذهاب للدفع 🛒</div>
+    <div style="font-size: 0.95rem; font-weight: 900;" id="cartTotalText">0.00 ₪</div>
 </div>
 
 <!-- نافذة تكبير الصورة -->
@@ -353,7 +348,7 @@
     // متغيرات الخريطة التفاعلية
     let map = null;
     let marker = null;
-    let selectedLat = 31.3916; // إحداثيات افتراضية مركزية
+    let selectedLat = 31.3916; 
     let selectedLng = 34.7531;
 
     let initialHash = decodeURIComponent(window.location.hash.replace('#', ''));
@@ -536,7 +531,6 @@
         document.getElementById('imageModal').style.display = 'none';
     }
 
-    // دوال الخريطة التفاعلية
     function openMapModal() {
         document.getElementById('mapModal').style.display = 'flex';
         setTimeout(() => {
@@ -847,7 +841,6 @@
         saveCartToLocalStorage();
         updateCartStateUI();
         updateProductCardDOM(prodId);
-        // تحديث محتوى نافذة السلة مباشرة إذا كانت مفتوحة
         if(document.getElementById('cartModal').style.display === 'flex') {
             renderCartModalItems();
         }
@@ -870,7 +863,6 @@
         }
     }
 
-    // دالة حذف منتج بالكامل من السلة عبر زر الحذف المخصص
     function removeCartItemCompletely(prodId) {
         cart = cart.filter(item => item.id != prodId);
         saveCartToLocalStorage();
@@ -904,7 +896,14 @@
         });
         let finalDisplayTotal = totalPrice + (cart.length > 0 ? FIXED_DELIVERY_FEE : 0);
         document.getElementById('cartTotalText').innerText = finalDisplayTotal.toFixed(2) + " ₪";
-        document.getElementById('cartCountBadge').innerText = totalCount;
+
+        // إظهار الشريط الأخضر عند وجود منتجات بالسلة وإخفاؤه إذا كانت فارغة
+        const cartBar = document.getElementById('cartBar');
+        if (totalCount > 0) {
+            cartBar.style.display = 'flex';
+        } else {
+            cartBar.style.display = 'none';
+        }
     }
 
     function openCartModal() {
@@ -917,7 +916,6 @@
         document.getElementById('cartModal').style.display = 'flex';
     }
 
-    // دالة عرض وتحديث محتوى العناصر داخل نافذة السلة مع أزرار الحذف
     function renderCartModalItems() {
         let listContainer = document.getElementById('cartItemsList');
         listContainer.innerHTML = '';
