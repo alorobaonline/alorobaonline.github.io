@@ -410,8 +410,8 @@
     const FIXED_DELIVERY_FEE = 10.00;
     let appliedDiscount = 0;
 
-    // متغيرات التحميل التدريجي (Lazy Loading للأسفل)
-    let visibleSectionsLimit = 4;
+    // البدء بعرض فئتين على الأقل في البداية لضمان وضوح المحتوى للمستخدم
+    let visibleSectionsLimit = 2;
 
     let map = null;
     let marker = null;
@@ -429,7 +429,7 @@
     window.addEventListener('hashchange', () => {
         let hash = decodeURIComponent(window.location.hash.replace('#', ''));
         currentCategory = hash ? hash : "الكل";
-        visibleSectionsLimit = 4; // إعادة تعيين الحد عند تغيير الفئة
+        visibleSectionsLimit = 2; 
         renderCategoriesScroll();
         requestAnimationFrame(() => { renderMainStoreContent(); });
     });
@@ -438,13 +438,17 @@
     window.addEventListener('scroll', () => {
         if (currentCategory === "الكل" && document.getElementById('searchInput').value.trim() === "") {
             if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 250) {
-                let allAvailSecs = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection].filter(Boolean);
-                categories.forEach(c => { if(c.name !== "الكل" && !allAvailSecs.includes(c.name)) allAvailSecs.push(c.name); });
+                let sectionsList = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection].filter(Boolean);
+                categories.forEach(c => { if(c.name !== "الكل" && !sectionsList.includes(c.name)) sectionsList.push(c.name); });
+                
+                let nonEmpSections = sectionsList.filter(secName => {
+                    return products.some(p => productBelongsToCategory(p, secName));
+                });
 
-                if (visibleSectionsLimit < allAvailSecs.length) {
+                if (visibleSectionsLimit < nonEmpSections.length) {
                     document.getElementById('loadMoreIndicator').style.display = 'block';
                     setTimeout(() => {
-                        visibleSectionsLimit += 1; // تحميل فئة إضافية واحدة عند النزول
+                        visibleSectionsLimit += 1; // تحميل فئة إضافية عند النزول للأسفل
                         renderMainStoreContent();
                         document.getElementById('loadMoreIndicator').style.display = 'none';
                     }, 400);
@@ -785,7 +789,7 @@
 
     function selectCategory(catName) {
         currentCategory = catName;
-        visibleSectionsLimit = 4; // إعادة تعيين الحد
+        visibleSectionsLimit = 2; 
         if (catName === "الكل") {
             history.pushState("", document.title, window.location.pathname + window.location.search);
         } else {
@@ -840,15 +844,17 @@
             }
         });
 
-        // أخذ أول 4 فئات (أو العدد المحدد بالتحميل التدريجي)
-        let activeSections = sectionsList.slice(0, visibleSectionsLimit);
-        let displayedCount = 0;
+        // تصفية الفئات التي تحتوي على منتجات فعلياً لضمان ظهور فئتين على الأقل
+        let nonEmpSections = sectionsList.filter(secName => {
+            return products.some(p => productBelongsToCategory(p, secName));
+        });
+
+        let activeSections = nonEmpSections.slice(0, visibleSectionsLimit);
 
         activeSections.forEach(secName => {
             let secProds = products.filter(p => productBelongsToCategory(p, secName)).slice(0, 9);
             if(secProds.length === 0) return;
 
-            displayedCount++;
             let catObj = categories.find(c => c.name === secName);
             let icon = catObj ? catObj.icon : '🏷️';
 
