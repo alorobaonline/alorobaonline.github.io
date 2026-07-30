@@ -67,7 +67,6 @@
             background: linear-gradient(135deg, #2c3e50 0%, #000000 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
             letter-spacing: -0.3px;
         }
 
@@ -77,7 +76,6 @@
             background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 1px 3px rgba(255, 140, 0, 0.25);
             cursor: pointer;
             letter-spacing: -0.2px;
         }
@@ -120,7 +118,6 @@
             background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 1px 3px rgba(255, 140, 0, 0.25);
             letter-spacing: -0.3px;
         }
         .old-price { font-size: 0.7rem; font-weight: 600; color: #9ca3af; text-decoration: line-through; }
@@ -146,7 +143,7 @@
         .products-grid .product-card { min-width: 100%; max-width: 100%; }
 
         /* شريط السلة السفلي */
-        .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--primary-green); color: white; padding: 14px 20px; display: none; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 16px; border-top-right-radius: 16px; z-index: 100; cursor: pointer; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); }
+        .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--primary-green); color: white; padding: 14px 20px; display: none; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 16px; border-top-right-radius: 16px; z-index: 100; cursor: pointer; }
         
         /* النوافذ العائمة */
         .cart-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; max-width: 480px; margin: 0 auto; }
@@ -176,7 +173,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, doc, getDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, doc, getDoc, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
@@ -199,7 +196,8 @@
         window.getDoc = getDoc;
         window.query = query;
         window.where = where;
-        window.onSnapshot = onSnapshot;
+        window.limit = limit;
+        window.orderBy = orderBy;
 
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
@@ -226,7 +224,7 @@
 
     <!-- شريط البحث -->
     <div class="search-bar-container">
-        <input type="text" id="searchInput" class="search-input" placeholder="ابحث عن أي منتج تريده..." oninput="filterProducts()">
+        <input type="text" id="searchInput" class="search-input" placeholder="ابحث عن أي منتج تريده..." oninput="handleSearchInput()">
     </div>
 
     <!-- البانر المتحرك -->
@@ -242,10 +240,14 @@
     </div>
 
     <!-- الأقسام الدائرية -->
-    <div class="categories-scroll" id="categoriesScrollContainer"></div>
+    <div class="categories-scroll" id="categoriesScrollContainer">
+        <div class="cat-chip active" onclick="selectCategory('الكل')"><span>🛍️</span> الكل</div>
+    </div>
 
-    <!-- المحتوى الرئيسي -->
-    <div id="storeMainContent"></div>
+    <!-- المحتوى الرئيسي (الشكل العرضي الإلزامي للواجهة الرئيسية) -->
+    <div id="storeMainContent">
+        <div style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 30px;">جاري تحميل الأقسام...</div>
+    </div>
 </div>
 
 <!-- شريط السلة السفلي -->
@@ -402,10 +404,13 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    let products = [];
     let categories = [{ name: "الكل", icon: "🛍️" }];
     let bannerSlides = [{ tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "logo.png" }];
     let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
+    
+    let loadedProductsByCategory = {}; 
+    let allProductsMap = {}; 
+    
     let cart = [];
     const FIXED_DELIVERY_FEE = 10.00;
     let appliedDiscount = 0;
@@ -418,56 +423,402 @@
     let initialHash = decodeURIComponent(window.location.hash.replace('#', ''));
     let currentCategory = initialHash ? initialHash : "الكل";
 
+    const splashStartTime = Date.now();
+
     window.addEventListener('hashchange', () => {
         let hash = decodeURIComponent(window.location.hash.replace('#', ''));
         currentCategory = hash ? hash : "الكل";
         renderCategoriesScroll();
-        requestAnimationFrame(() => { renderMainStoreContent(); });
+        renderMainStoreContent();
     });
 
     function hideSplashScreen() {
         const splash = document.getElementById('splashScreen');
         if (splash && splash.style.display !== 'none') {
-            splash.style.opacity = '0';
-            setTimeout(() => { splash.style.display = 'none'; }, 500);
-        }
-    }
-
-    function sortProducts() {
-        products.sort((a, b) => {
-            let valA = (a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "") ? a.displayOrder : 
-                       ((a.order !== undefined && a.order !== null && a.order !== "") ? a.order : 
-                       ((a.sortOrder !== undefined && a.sortOrder !== null && a.sortOrder !== "") ? a.sortOrder : 9999));
+            const elapsedTime = Date.now() - splashStartTime;
+            const minDuration = 2500;
             
-            let valB = (b.displayOrder !== undefined && b.displayOrder !== null && b.displayOrder !== "") ? b.displayOrder : 
-                       ((b.order !== undefined && b.order !== null && b.order !== "") ? b.order : 
-                       ((b.sortOrder !== undefined && b.sortOrder !== null && b.sortOrder !== "") ? b.sortOrder : 9999));
-
-            let numA = !isNaN(Number(valA)) ? Number(valA) : 9999;
-            let numB = !isNaN(Number(valB)) ? Number(valB) : 9999;
-
-            if (numA !== numB) return numA - numB;
-            return (a.name || "").localeCompare(b.name || "");
-        });
+            if (elapsedTime < minDuration) {
+                setTimeout(hideSplashScreen, minDuration - elapsedTime);
+            } else {
+                splash.style.opacity = '0';
+                setTimeout(() => { splash.style.display = 'none'; }, 500);
+            }
+        }
     }
 
-    function loadCachedData() {
-        let cachedProds = localStorage.getItem('aloroba_cached_products');
-        let cachedCats = localStorage.getItem('aloroba_cached_categories');
+    window.addEventListener('firebase-ready', async function() {
+        loadUserProfileData();
+        loadCartFromLocalStorage();
         
-        if (cachedProds) {
-            try { products = JSON.parse(cachedProds); sortProducts(); } catch(e) {}
-        }
+        loadInitialCache();
+        await fetchStoreMetadata();
+        updateCartStateUI();
+    });
+
+    function loadInitialCache() {
+        let cachedCats = localStorage.getItem('aloroba_horizontal_categories');
         if (cachedCats) {
             try { categories = JSON.parse(cachedCats); } catch(e) {}
         }
+        renderCategoriesScroll();
+        hideSplashScreen();
+        renderMainStoreContent();
+    }
 
-        if (products.length > 0) {
+    async function fetchStoreMetadata() {
+        try {
+            const [layoutDoc, bannerDoc, catSnap] = await Promise.all([
+                window.getDoc(window.doc(window.db, "settings", "layout")),
+                window.getDoc(window.doc(window.db, "settings", "banner")),
+                window.getDocs(window.collection(window.db, "categories"))
+            ]);
+
+            if(layoutDoc.exists()) layoutData = layoutDoc.data();
+            if(bannerDoc.exists() && bannerDoc.data().slides) {
+                bannerSlides = bannerDoc.data().slides;
+            }
+            renderBanner();
+
+            if(!catSnap.empty) {
+                categories = [{ name: "الكل", icon: "🛍️" }];
+                catSnap.forEach(docSnap => {
+                    let catData = docSnap.data();
+                    if(catData.name && catData.name !== "الكل") {
+                        categories.push(catData);
+                    }
+                });
+                localStorage.setItem('aloroba_horizontal_categories', JSON.stringify(categories));
+            }
             renderCategoriesScroll();
-            requestAnimationFrame(() => {
-                renderMainStoreContent();
-                hideSplashScreen(); 
+            
+            await fetchProductsForCategory(currentCategory);
+            hideSplashScreen();
+        } catch(e) {
+            hideSplashScreen();
+        }
+    }
+
+    async function fetchProductsForCategory(catName) {
+        if (loadedProductsByCategory[catName]) {
+            renderMainStoreContent();
+            return;
+        }
+
+        try {
+            let q;
+            if (catName === "الكل") {
+                q = window.query(window.collection(window.db, "products"), window.limit(80));
+            } else {
+                q = window.query(window.collection(window.db, "products"), window.where("categories", "array-contains", catName));
+            }
+
+            let snap = await window.getDocs(q);
+            let prods = [];
+            snap.forEach(docSnap => {
+                let p = { id: docSnap.id, ...docSnap.data() };
+                prods.push(p);
+                allProductsMap[p.id] = p;
             });
+
+            loadedProductsByCategory[catName] = prods;
+            renderMainStoreContent();
+        } catch(e) {
+            console.error("Error loading products:", e);
+        }
+    }
+
+    function renderBanner() {
+        if(bannerSlides.length === 0) return;
+        let slide = bannerSlides[0];
+        document.getElementById('bannerTag').innerText = slide.tag || 'سوبر ماركت العروبة';
+        document.getElementById('bannerTitle').innerText = slide.title || 'أهلاً بك';
+        if(slide.img) document.getElementById('bannerImg').src = slide.img;
+    }
+
+    function renderCategoriesScroll() {
+        const container = document.getElementById('categoriesScrollContainer');
+        container.innerHTML = '';
+        categories.forEach(cat => {
+            let activeClass = currentCategory === cat.name ? 'active' : '';
+            container.innerHTML += `
+                <div class="cat-chip ${activeClass}" onclick="selectCategory('${cat.name}')">
+                    <span>${cat.icon || '🏷️'}</span> ${cat.name}
+                </div>
+            `;
+        });
+    }
+
+    async function selectCategory(catName) {
+        currentCategory = catName;
+        if (catName === "الكل") {
+            history.pushState("", document.title, window.location.pathname + window.location.search);
+        } else {
+            window.location.hash = encodeURIComponent(catName);
+        }
+        renderCategoriesScroll();
+        await fetchProductsForCategory(catName);
+    }
+
+    function renderMainStoreContent() {
+        const container = document.getElementById('storeMainContent');
+        let queryText = document.getElementById('searchInput').value.trim().toLowerCase();
+
+        if(queryText !== "") {
+            renderSearchResults(queryText);
+            return;
+        }
+
+        // إذا تم اختيار قسم معين بالضغط عليه، نعرض منتجاته بشكل شبكي مرتب
+        if(currentCategory !== "الكل") {
+            let prods = loadedProductsByCategory[currentCategory] || [];
+            if(prods.length === 0) {
+                container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 30px;">جاري تحميل منتجات ${currentCategory}...</p>`;
+                fetchProductsForCategory(currentCategory);
+                return;
+            }
+
+            let gridHtml = `<div class="products-grid" style="margin-top: 10px;">`;
+            prods.forEach(p => { gridHtml += createProductCardHtml(p); });
+            gridHtml += `</div>`;
+            container.innerHTML = gridHtml;
+            return;
+        }
+
+        // الصفحة الرئيسية ("الكل"): إجبار عرض الواجهة بشكل أقسام أفقية (Horizontal Rows) حصرياً
+        let sectionsToShow = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection].filter(Boolean);
+        if(sectionsToShow.length === 0) {
+            sectionsToShow = categories.filter(c => c.name !== "الكل").map(c => c.name);
+        }
+
+        let generalProds = loadedProductsByCategory["الكل"] || [];
+        if(generalProds.length === 0) {
+            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 30px;">جاري تحميل الأقسام...</p>`;
+            fetchProductsForCategory("الكل");
+            return;
+        }
+
+        let mainHtml = '';
+        
+        // بناء الصفوف الأفقية للأقسام المحددة
+        sectionsToShow.forEach(secName => {
+            let secProds = generalProds.filter(p => {
+                if(!p.categories) return false;
+                return Array.isArray(p.categories) ? p.categories.includes(secName) : p.categories.includes(secName);
+            });
+
+            if(secProds.length === 0) return;
+
+            let catObj = categories.find(c => c.name === secName);
+            let icon = catObj ? catObj.icon : '🏷️';
+
+            mainHtml += `
+                <div class="horizontal-section">
+                    <div class="horizontal-section-title">
+                        <span class="section-category-title"><span>${icon}</span> <span class="category-text-gradient">${secName}</span></span>
+                        <span class="section-view-all" onclick="selectCategory('${secName}')">عرض الكل ←</span>
+                    </div>
+                    <div class="products-horizontal-scroll">
+            `;
+            secProds.forEach(p => { mainHtml += createProductCardHtml(p); });
+            mainHtml += `</div></div>`;
+        });
+
+        // إذا لم تكن هناك أقسام مخصصة جاهزة، نقسم المنتجات أفقياً حسب التصنيفات الموجودة في قاعدة البيانات
+        if(mainHtml === '') {
+            let availableCats = [...new Set(generalProds.flatMap(p => p.categories || []))].filter(c => c && c !== "الكل");
+            availableCats.forEach(secName => {
+                let secProds = generalProds.filter(p => p.categories && (Array.isArray(p.categories) ? p.categories.includes(secName) : p.categories.includes(secName)));
+                if(secProds.length === 0) return;
+                let catObj = categories.find(c => c.name === secName);
+                let icon = catObj ? catObj.icon : '🏷️';
+
+                mainHtml += `
+                    <div class="horizontal-section">
+                        <div class="horizontal-section-title">
+                            <span class="section-category-title"><span>${icon}</span> <span class="category-text-gradient">${secName}</span></span>
+                            <span class="section-view-all" onclick="selectCategory('${secName}')">عرض الكل ←</span>
+                        </div>
+                        <div class="products-horizontal-scroll">
+                `;
+                secProds.forEach(p => { mainHtml += createProductCardHtml(p); });
+                mainHtml += `</div></div>`;
+            });
+        }
+
+        // ملاذ أخير: صف أفقي واحد يضم المنتجات في حال عدم توفر تصنيفات
+        if(mainHtml === '') {
+            mainHtml = `
+                <div class="horizontal-section">
+                    <div class="horizontal-section-title">
+                        <span class="section-category-title"><span>🛍️</span> <span class="category-text-gradient">أحدث المنتجات</span></span>
+                    </div>
+                    <div class="products-horizontal-scroll">
+            `;
+            generalProds.forEach(p => { mainHtml += createProductCardHtml(p); });
+            mainHtml += `</div></div>`;
+        }
+
+        container.innerHTML = mainHtml;
+    }
+
+    let searchTimeout = null;
+    function handleSearchInput() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            renderMainStoreContent();
+        }, 300);
+    }
+
+    async function renderSearchResults(queryText) {
+        const container = document.getElementById('storeMainContent');
+        container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 30px;">جاري البحث...</p>`;
+
+        try {
+            let snap = await window.getDocs(window.query(window.collection(window.db, "products"), window.limit(50)));
+            let results = [];
+            snap.forEach(docSnap => {
+                let p = { id: docSnap.id, ...docSnap.data() };
+                allProductsMap[p.id] = p;
+                if(p.name && p.name.toLowerCase().includes(queryText)) {
+                    results.push(p);
+                }
+            });
+
+            let gridHtml = `<div class="products-grid" style="margin-top: 10px;">`;
+            if(results.length === 0) {
+                gridHtml = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 20px;">لا توجد منتجات مطابقة لـ "${queryText}"</p>`;
+            } else {
+                results.forEach(p => { gridHtml += createProductCardHtml(p); });
+                gridHtml += `</div>`;
+            }
+            container.innerHTML = gridHtml;
+        } catch(e) {
+            container.innerHTML = `<p style="text-align: center; color: red; font-size: 0.8rem; padding: 20px;">حدث خطأ أثناء البحث.</p>`;
+        }
+    }
+
+    function createProductCardHtml(p) {
+        let priceDisplay = `${p.price} ₪`;
+        let oldPriceDisplay = "";
+        if(p.salePrice !== undefined && p.salePrice !== "") {
+            priceDisplay = `${p.salePrice} ₪`;
+            oldPriceDisplay = `<span class="old-price">${p.price} ₪</span>`;
+        }
+
+        let cartItem = cart.find(item => item.id == p.id);
+        let qty = cartItem ? cartItem.quantity : 0;
+        let hasQty = qty > 0;
+
+        return `
+            <div class="product-card" data-product-id="${p.id}">
+                <div>
+                    <div class="product-img-box" onclick='openImageModal("${p.img}", "${p.name}")'>
+                        <img src="${p.img}" class="product-img" loading="lazy" onerror="this.src='logo.png'">
+                    </div>
+                    <div class="product-name">${p.name}</div>
+                    <div class="product-weight">${p.weight || 'حبة'}</div>
+                    <div class="product-price-top" style="${hasQty ? 'display: flex;' : 'display: none;'}">
+                        <span class="price-text">${priceDisplay}</span>
+                        ${oldPriceDisplay}
+                    </div>
+                </div>
+                <div>
+                    <div class="product-price-row" style="${hasQty ? 'display: none;' : 'display: flex;'}">
+                        <div>
+                            <span class="price-text">${priceDisplay}</span>
+                            ${oldPriceDisplay}
+                        </div>
+                        <button class="add-to-cart-btn" onclick='increaseCartQty("${p.id}")'>+</button>
+                    </div>
+                    <div class="quantity-control-full" style="${hasQty ? 'display: flex;' : 'display: none;'}">
+                        <button class="qty-btn" onclick='decreaseCartQty("${p.id}")'>-</button>
+                        <span class="qty-display">${qty}</span>
+                        <button class="qty-btn" onclick='increaseCartQty("${p.id}")'>+</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function increaseCartQty(prodId) {
+        let p = allProductsMap[prodId];
+        if(!p) return;
+        let finalPrice = (p.salePrice !== undefined && p.salePrice !== "") ? Number(p.salePrice) : Number(p.price);
+        
+        let existing = cart.find(item => item.id == prodId);
+        if(existing) {
+            existing.quantity += 1;
+        } else {
+            cart.push({ id: p.id, name: p.name, price: finalPrice, quantity: 1, img: p.img || '' });
+        }
+        saveCartToLocalStorage();
+        updateCartStateUI();
+        updateProductCardDOM(prodId);
+        if(document.getElementById('cartModal').style.display === 'flex') {
+            renderCartModalProducts();
+        }
+    }
+
+    function decreaseCartQty(prodId) {
+        let existingIndex = cart.findIndex(item => item.id == prodId);
+        if(existingIndex > -1) {
+            if(cart[existingIndex].quantity > 1) {
+                cart[existingIndex].quantity -= 1;
+            } else {
+                cart.splice(existingIndex, 1);
+            }
+        }
+        saveCartToLocalStorage();
+        updateCartStateUI();
+        updateProductCardDOM(prodId);
+        if(document.getElementById('cartModal').style.display === 'flex') {
+            renderCartModalProducts();
+        }
+    }
+
+    function removeCartItemCompletely(prodId) {
+        cart = cart.filter(item => item.id != prodId);
+        saveCartToLocalStorage();
+        updateCartStateUI();
+        updateProductCardDOM(prodId);
+        
+        if(cart.length === 0) {
+            closeCartModal();
+        } else {
+            renderCartModalProducts();
+        }
+    }
+
+    function updateProductCardDOM(prodId) {
+        let p = allProductsMap[prodId];
+        if(!p) return;
+        let cards = document.querySelectorAll(`.product-card[data-product-id="${prodId}"]`);
+        cards.forEach(card => {
+            let tempDiv = document.createElement('div');
+            tempDiv.innerHTML = createProductCardHtml(p);
+            card.outerHTML = tempDiv.firstElementChild.outerHTML;
+        });
+    }
+
+    function updateCartStateUI() {
+        let totalCount = 0;
+        let totalPrice = 0;
+        cart.forEach(item => {
+            totalCount += item.quantity;
+            totalPrice += item.price * item.quantity;
+        });
+        let currentDelivery = (document.querySelector('input[name="fulfillmentType"]:checked') && document.querySelector('input[name="fulfillmentType"]:checked').value === 'استلام ذاتي') ? 0 : FIXED_DELIVERY_FEE;
+        let finalDisplayTotal = totalPrice + (cart.length > 0 ? currentDelivery : 0) - appliedDiscount;
+        if(finalDisplayTotal < 0) finalDisplayTotal = 0;
+
+        document.getElementById('cartTotalText').innerText = finalDisplayTotal.toFixed(2) + " ₪";
+
+        const cartBar = document.getElementById('cartBar');
+        if (totalCount > 0) {
+            cartBar.style.display = 'flex';
+        } else {
+            cartBar.style.display = 'none';
         }
     }
 
@@ -482,63 +833,113 @@
         localStorage.setItem('aloroba_cart', JSON.stringify(cart));
     }
 
-    window.addEventListener('firebase-ready', async function() {
+    function openCartModal() {
+        if(cart.length === 0) {
+            alert("السلة فارغة حالياً!");
+            return;
+        }
         loadUserProfileData();
-        loadCartFromLocalStorage();
-        loadCachedData(); 
-
-        await loadStaticSettingsFromCloud();
-        initRealtimeListeners(); 
-        updateCartStateUI(); 
-    });
-
-    async function loadStaticSettingsFromCloud() {
-        try {
-            const [layoutDoc, bannerDoc] = await Promise.all([
-                window.getDoc(window.doc(window.db, "settings", "layout")),
-                window.getDoc(window.doc(window.db, "settings", "banner"))
-            ]);
-
-            if(layoutDoc.exists()) layoutData = layoutDoc.data();
-            if(bannerDoc.exists() && bannerDoc.data().slides) {
-                bannerSlides = bannerDoc.data().slides;
-            }
-            renderBanner();
-        } catch(e) {}
+        document.getElementById('cartStep1').style.display = 'block';
+        document.getElementById('cartStep2').style.display = 'none';
+        document.getElementById('cartModalTitle').innerText = '🛒 مراجعة السلة والمنتجات';
+        renderCartModalProducts();
+        document.getElementById('cartModal').style.display = 'flex';
     }
 
-    function initRealtimeListeners() {
-        window.onSnapshot(window.collection(window.db, "products"), (prodSnap) => {
-            products = [];
-            prodSnap.forEach(docSnap => {
-                products.push({ id: docSnap.id, ...docSnap.data() });
-            });
-            sortProducts(); 
-            localStorage.setItem('aloroba_cached_products', JSON.stringify(products));
-            requestAnimationFrame(() => {
-                renderMainStoreContent();
-                hideSplashScreen(); 
-            });
-            updateCartStateUI();
+    function renderCartModalProducts() {
+        let listContainer = document.getElementById('cartItemsWithImagesList');
+        listContainer.innerHTML = '';
+        
+        cart.forEach((item) => {
+            let itemTotal = item.price * item.quantity;
+            listContainer.innerHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; background: #f8fafc; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
+                        <img src="${item.img || 'logo.png'}" style="width: 40px; height: 40px; object-fit: contain; background: white; border-radius: 6px; border: 1px solid #eee;" onerror="this.src='logo.png'">
+                        <div>
+                            <div style="font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">${item.name}</div>
+                            <div style="color: #64748b; font-size: 0.7rem; font-weight: 600;">الكمية: ${item.quantity} × ${item.price.toFixed(2)} ₪</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="price-text" style="font-size: 0.95rem; white-space: nowrap;">${itemTotal.toFixed(2)} ₪</span>
+                        <button onclick='removeCartItemCompletely("${item.id}")' style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px; font-weight: 900;" title="حذف">🗑️</button>
+                    </div>
+                </div>
+            `;
         });
+    }
 
-        window.onSnapshot(window.collection(window.db, "categories"), (catSnap) => {
-            if(!catSnap.empty) {
-                categories = [{ name: "الكل", icon: "🛍️" }];
-                catSnap.forEach(docSnap => {
-                    let catData = docSnap.data();
-                    if(catData.name && catData.name !== "الكل") {
-                        categories.push(catData);
-                    }
-                });
-                localStorage.setItem('aloroba_cached_categories', JSON.stringify(categories));
-            }
-            renderCategoriesScroll();
-            requestAnimationFrame(() => {
-                renderMainStoreContent();
-                hideSplashScreen(); 
-            });
-        });
+    function goToPaymentStep() {
+        document.getElementById('cartStep1').style.display = 'none';
+        document.getElementById('cartStep2').style.display = 'block';
+        document.getElementById('cartModalTitle').innerText = '💳 إتمام الدفع والتفاصيل';
+        updateFinancialSummary();
+    }
+
+    function backToCartStep1() {
+        document.getElementById('cartStep2').style.display = 'none';
+        document.getElementById('cartStep1').style.display = 'block';
+        document.getElementById('cartModalTitle').innerText = '🛒 مراجعة السلة والمنتجات';
+    }
+
+    function toggleFulfillmentType() {
+        let type = document.querySelector('input[name="fulfillmentType"]:checked').value;
+        let deliveryContainer = document.getElementById('deliveryDetailsContainer');
+        let deliveryFeeRow = document.getElementById('deliveryFeeRow');
+
+        if(type === 'استلام ذاتي') {
+            deliveryContainer.style.display = 'none';
+            deliveryFeeRow.style.display = 'none';
+        } else {
+            deliveryContainer.style.display = 'block';
+            deliveryFeeRow.style.display = 'flex';
+        }
+        updateFinancialSummary();
+    }
+
+    function applyCoupon() {
+        let code = document.getElementById('couponInput').value.trim();
+        let msg = document.getElementById('couponMsg');
+        let discountRow = document.getElementById('couponDiscountRow');
+        let discountText = document.getElementById('couponDiscountText');
+
+        if(code === "ALOROBA5" || code === "DISCOUNT5") {
+            appliedDiscount = 5.00;
+            msg.style.color = "var(--accent-green)";
+            msg.innerText = "✅ تم تطبيق الكوبون بنجاح (خصم 5 ₪)";
+            discountRow.style.display = "flex";
+            discountText.innerText = `-${appliedDiscount.toFixed(2)} ₪`;
+        } else if(code === "") {
+            appliedDiscount = 0;
+            msg.innerText = "";
+            discountRow.style.display = "none";
+        } else {
+            appliedDiscount = 0;
+            msg.style.color = "red";
+            msg.innerText = "❌ كوبون غير صالح";
+            discountRow.style.display = "none";
+        }
+        updateFinancialSummary();
+    }
+
+    function updateFinancialSummary() {
+        let subtotal = 0;
+        cart.forEach(i => subtotal += (i.price * i.quantity));
+        
+        let type = document.querySelector('input[name="fulfillmentType"]:checked') ? document.querySelector('input[name="fulfillmentType"]:checked').value : 'توصيل';
+        let currentDelivery = (type === 'استلام ذاتي') ? 0 : FIXED_DELIVERY_FEE;
+        
+        let finalTotal = subtotal + currentDelivery - appliedDiscount;
+        if(finalTotal < 0) finalTotal = 0;
+
+        document.getElementById('cartSubtotalText').innerText = subtotal.toFixed(2) + " ₪";
+        document.getElementById('deliveryFeeText').innerText = currentDelivery.toFixed(2) + " ₪";
+        document.getElementById('cartFinalTotalText').innerText = finalTotal.toFixed(2) + " ₪";
+    }
+
+    function closeCartModal() {
+        document.getElementById('cartModal').style.display = 'none';
     }
 
     function loadUserProfileData() {
@@ -721,7 +1122,7 @@
 
     function reorderPrevious(items) {
         items.forEach(oldItem => {
-            let p = products.find(prod => prod.id == oldItem.id);
+            let p = allProductsMap[oldItem.id];
             let finalPrice = p ? ((p.salePrice !== undefined && p.salePrice !== "") ? Number(p.salePrice) : Number(p.price)) : oldItem.price;
             
             let existing = cart.find(item => item.id == oldItem.id);
@@ -733,358 +1134,9 @@
         });
         saveCartToLocalStorage();
         updateCartStateUI();
-        products.forEach(p => updateProductCardDOM(p.id));
+        items.forEach(i => updateProductCardDOM(i.id));
         closeProfileModal();
         alert("تمت إضافة منتجات الطلب السابق إلى السلة بنجاح! 🛒");
-    }
-
-    function renderBanner() {
-        if(bannerSlides.length === 0) return;
-        let slide = bannerSlides[0];
-        document.getElementById('bannerTag').innerText = slide.tag || 'سوبر ماركت العروبة';
-        document.getElementById('bannerTitle').innerText = slide.title || 'أهلاً بك';
-        if(slide.img) document.getElementById('bannerImg').src = slide.img;
-    }
-
-    function renderCategoriesScroll() {
-        const container = document.getElementById('categoriesScrollContainer');
-        container.innerHTML = '';
-        categories.forEach(cat => {
-            let activeClass = currentCategory === cat.name ? 'active' : '';
-            container.innerHTML += `
-                <div class="cat-chip ${activeClass}" onclick="selectCategory('${cat.name}')">
-                    <span>${cat.icon}</span> ${cat.name}
-                </div>
-            `;
-        });
-    }
-
-    function selectCategory(catName) {
-        currentCategory = catName;
-        if (catName === "الكل") {
-            history.pushState("", document.title, window.location.pathname + window.location.search);
-        } else {
-            window.location.hash = encodeURIComponent(catName);
-        }
-        renderCategoriesScroll();
-        requestAnimationFrame(() => { renderMainStoreContent(); });
-    }
-
-    function productBelongsToCategory(p, catName) {
-        if (!p.categories) return false;
-        if (Array.isArray(p.categories)) {
-            return p.categories.includes(catName);
-        } else if (typeof p.categories === 'string') {
-            return p.categories.includes(catName);
-        }
-        return false;
-    }
-
-    function renderMainStoreContent() {
-        const container = document.getElementById('storeMainContent');
-        if (products.length === 0) return;
-
-        container.innerHTML = '';
-        let query = document.getElementById('searchInput').value.trim().toLowerCase();
-
-        if(query !== "" || currentCategory !== "الكل") {
-            let filtered = products.filter(p => {
-                let matchesQuery = p.name.toLowerCase().includes(query);
-                let matchesCat = currentCategory === "الكل" || productBelongsToCategory(p, currentCategory);
-                return matchesQuery && matchesCat;
-            });
-
-            let gridHtml = `<div class="products-grid" style="margin-top: 10px;">`;
-            if(filtered.length === 0) {
-                gridHtml = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 20px;">لا توجد منتجات مطابقة</p>`;
-            } else {
-                filtered.forEach(p => { gridHtml += createProductCardHtml(p); });
-                gridHtml += `</div>`;
-            }
-            container.innerHTML = gridHtml;
-            return;
-        }
-
-        let sectionsToShow = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection].filter(Boolean);
-        let displayedCount = 0;
-
-        sectionsToShow.forEach(secName => {
-            let secProds = products.filter(p => productBelongsToCategory(p, secName));
-            if(secProds.length === 0) return;
-
-            displayedCount++;
-            let catObj = categories.find(c => c.name === secName);
-            let icon = catObj ? catObj.icon : '🏷️';
-
-            let secHtml = `
-                <div class="horizontal-section">
-                    <div class="horizontal-section-title">
-                        <span class="section-category-title"><span>${icon}</span> <span class="category-text-gradient">${secName}</span></span>
-                        <span class="section-view-all" onclick="selectCategory('${secName}')">عرض الكل ←</span>
-                    </div>
-                    <div class="products-horizontal-scroll">
-            `;
-            secProds.forEach(p => { secHtml += createProductCardHtml(p); });
-            secHtml += `</div></div>`;
-            container.innerHTML += secHtml;
-        });
-
-        if(displayedCount === 0 && products.length > 0) {
-            categories.forEach(cat => {
-                if(cat.name === "الكل") return;
-                let secProds = products.filter(p => productBelongsToCategory(p, cat.name));
-                if(secProds.length === 0) return;
-
-                let secHtml = `
-                    <div class="horizontal-section">
-                        <div class="horizontal-section-title">
-                            <span class="section-category-title"><span>${cat.icon || '🏷️'}</span> <span class="category-text-gradient">${cat.name}</span></span>
-                            <span class="section-view-all" onclick="selectCategory('${cat.name}')">عرض الكل ←</span>
-                        </div>
-                        <div class="products-horizontal-scroll">
-                `;
-                secProds.forEach(p => { secHtml += createProductCardHtml(p); });
-                secHtml += `</div></div>`;
-                container.innerHTML += secHtml;
-            });
-        }
-    }
-
-    function createProductCardHtml(p) {
-        let priceDisplay = `${p.price} ₪`;
-        let oldPriceDisplay = "";
-        if(p.salePrice !== undefined && p.salePrice !== "") {
-            priceDisplay = `${p.salePrice} ₪`;
-            oldPriceDisplay = `<span class="old-price">${p.price} ₪</span>`;
-        }
-
-        let cartItem = cart.find(item => item.id == p.id);
-        let qty = cartItem ? cartItem.quantity : 0;
-        let hasQty = qty > 0;
-
-        return `
-            <div class="product-card" data-product-id="${p.id}">
-                <div>
-                    <div class="product-img-box" onclick='openImageModal("${p.img}", "${p.name}")'>
-                        <img src="${p.img}" class="product-img" loading="lazy" onerror="this.src='logo.png'">
-                    </div>
-                    <div class="product-name">${p.name}</div>
-                    <div class="product-weight">${p.weight || 'حبة'}</div>
-                    <div class="product-price-top" style="${hasQty ? 'display: flex;' : 'display: none;'}">
-                        <span class="price-text">${priceDisplay}</span>
-                        ${oldPriceDisplay}
-                    </div>
-                </div>
-                <div>
-                    <div class="product-price-row" style="${hasQty ? 'display: none;' : 'display: flex;'}">
-                        <div>
-                            <span class="price-text">${priceDisplay}</span>
-                            ${oldPriceDisplay}
-                        </div>
-                        <button class="add-to-cart-btn" onclick='increaseCartQty("${p.id}")'>+</button>
-                    </div>
-                    <div class="quantity-control-full" style="${hasQty ? 'display: flex;' : 'display: none;'}">
-                        <button class="qty-btn" onclick='decreaseCartQty("${p.id}")'>-</button>
-                        <span class="qty-display">${qty}</span>
-                        <button class="qty-btn" onclick='increaseCartQty("${p.id}")'>+</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    function filterProducts() {
-        requestAnimationFrame(() => { renderMainStoreContent(); });
-    }
-
-    function increaseCartQty(prodId) {
-        let p = products.find(item => item.id == prodId);
-        if(!p) return;
-        let finalPrice = (p.salePrice !== undefined && p.salePrice !== "") ? Number(p.salePrice) : Number(p.price);
-        
-        let existing = cart.find(item => item.id == prodId);
-        if(existing) {
-            existing.quantity += 1;
-        } else {
-            cart.push({ id: p.id, name: p.name, price: finalPrice, quantity: 1, img: p.img || '' });
-        }
-        saveCartToLocalStorage();
-        updateCartStateUI();
-        updateProductCardDOM(prodId);
-        if(document.getElementById('cartModal').style.display === 'flex') {
-            renderCartModalProducts();
-        }
-    }
-
-    function decreaseCartQty(prodId) {
-        let existingIndex = cart.findIndex(item => item.id == prodId);
-        if(existingIndex > -1) {
-            if(cart[existingIndex].quantity > 1) {
-                cart[existingIndex].quantity -= 1;
-            } else {
-                cart.splice(existingIndex, 1);
-            }
-        }
-        saveCartToLocalStorage();
-        updateCartStateUI();
-        updateProductCardDOM(prodId);
-        if(document.getElementById('cartModal').style.display === 'flex') {
-            renderCartModalProducts();
-        }
-    }
-
-    function removeCartItemCompletely(prodId) {
-        cart = cart.filter(item => item.id != prodId);
-        saveCartToLocalStorage();
-        updateCartStateUI();
-        updateProductCardDOM(prodId);
-        
-        if(cart.length === 0) {
-            closeCartModal();
-        } else {
-            renderCartModalProducts();
-        }
-    }
-
-    function updateProductCardDOM(prodId) {
-        let p = products.find(item => item.id == prodId);
-        if(!p) return;
-        let cards = document.querySelectorAll(`.product-card[data-product-id="${prodId}"]`);
-        cards.forEach(card => {
-            let tempDiv = document.createElement('div');
-            tempDiv.innerHTML = createProductCardHtml(p);
-            card.outerHTML = tempDiv.firstElementChild.outerHTML;
-        });
-    }
-
-    function updateCartStateUI() {
-        let totalCount = 0;
-        let totalPrice = 0;
-        cart.forEach(item => {
-            totalCount += item.quantity;
-            totalPrice += item.price * item.quantity;
-        });
-        let currentDelivery = (document.querySelector('input[name="fulfillmentType"]:checked') && document.querySelector('input[name="fulfillmentType"]:checked').value === 'استلام ذاتي') ? 0 : FIXED_DELIVERY_FEE;
-        let finalDisplayTotal = totalPrice + (cart.length > 0 ? currentDelivery : 0) - appliedDiscount;
-        if(finalDisplayTotal < 0) finalDisplayTotal = 0;
-
-        document.getElementById('cartTotalText').innerText = finalDisplayTotal.toFixed(2) + " ₪";
-
-        const cartBar = document.getElementById('cartBar');
-        if (totalCount > 0) {
-            cartBar.style.display = 'flex';
-        } else {
-            cartBar.style.display = 'none';
-        }
-    }
-
-    function openCartModal() {
-        if(cart.length === 0) {
-            alert("السلة فارغة حالياً!");
-            return;
-        }
-        loadUserProfileData();
-        document.getElementById('cartStep1').style.display = 'block';
-        document.getElementById('cartStep2').style.display = 'none';
-        document.getElementById('cartModalTitle').innerText = '🛒 مراجعة السلة والمنتجات';
-        renderCartModalProducts();
-        document.getElementById('cartModal').style.display = 'flex';
-    }
-
-    function renderCartModalProducts() {
-        let listContainer = document.getElementById('cartItemsWithImagesList');
-        listContainer.innerHTML = '';
-        
-        cart.forEach((item) => {
-            let itemTotal = item.price * item.quantity;
-            listContainer.innerHTML += `
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; background: #f8fafc; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border-color);">
-                    <div style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
-                        <img src="${item.img || 'logo.png'}" style="width: 40px; height: 40px; object-fit: contain; background: white; border-radius: 6px; border: 1px solid #eee;" onerror="this.src='logo.png'">
-                        <div>
-                            <div style="font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">${item.name}</div>
-                            <div style="color: #64748b; font-size: 0.7rem; font-weight: 600;">الكمية: ${item.quantity} × ${item.price.toFixed(2)} ₪</div>
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span class="price-text" style="font-size: 0.95rem; white-space: nowrap;">${itemTotal.toFixed(2)} ₪</span>
-                        <button onclick='removeCartItemCompletely("${item.id}")' style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px; font-weight: 900;" title="حذف">🗑️</button>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
-    function goToPaymentStep() {
-        document.getElementById('cartStep1').style.display = 'none';
-        document.getElementById('cartStep2').style.display = 'block';
-        document.getElementById('cartModalTitle').innerText = '💳 إتمام الدفع والتفاصيل';
-        updateFinancialSummary();
-    }
-
-    function backToCartStep1() {
-        document.getElementById('cartStep2').style.display = 'none';
-        document.getElementById('cartStep1').style.display = 'block';
-        document.getElementById('cartModalTitle').innerText = '🛒 مراجعة السلة والمنتجات';
-    }
-
-    function toggleFulfillmentType() {
-        let type = document.querySelector('input[name="fulfillmentType"]:checked').value;
-        let deliveryContainer = document.getElementById('deliveryDetailsContainer');
-        let deliveryFeeRow = document.getElementById('deliveryFeeRow');
-
-        if(type === 'استلام ذاتي') {
-            deliveryContainer.style.display = 'none';
-            deliveryFeeRow.style.display = 'none';
-        } else {
-            deliveryContainer.style.display = 'block';
-            deliveryFeeRow.style.display = 'flex';
-        }
-        updateFinancialSummary();
-    }
-
-    function applyCoupon() {
-        let code = document.getElementById('couponInput').value.trim();
-        let msg = document.getElementById('couponMsg');
-        let discountRow = document.getElementById('couponDiscountRow');
-        let discountText = document.getElementById('couponDiscountText');
-
-        if(code === "ALOROBA5" || code === "DISCOUNT5") {
-            appliedDiscount = 5.00;
-            msg.style.color = "var(--accent-green)";
-            msg.innerText = "✅ تم تطبيق الكوبون بنجاح (خصم 5 ₪)";
-            discountRow.style.display = "flex";
-            discountText.innerText = `-${appliedDiscount.toFixed(2)} ₪`;
-        } else if(code === "") {
-            appliedDiscount = 0;
-            msg.innerText = "";
-            discountRow.style.display = "none";
-        } else {
-            appliedDiscount = 0;
-            msg.style.color = "red";
-            msg.innerText = "❌ كوبون غير صالح";
-            discountRow.style.display = "none";
-        }
-        updateFinancialSummary();
-    }
-
-    function updateFinancialSummary() {
-        let subtotal = 0;
-        cart.forEach(i => subtotal += (i.price * i.quantity));
-        
-        let type = document.querySelector('input[name="fulfillmentType"]:checked') ? document.querySelector('input[name="fulfillmentType"]:checked').value : 'توصيل';
-        let currentDelivery = (type === 'استلام ذاتي') ? 0 : FIXED_DELIVERY_FEE;
-        
-        let finalTotal = subtotal + currentDelivery - appliedDiscount;
-        if(finalTotal < 0) finalTotal = 0;
-
-        document.getElementById('cartSubtotalText').innerText = subtotal.toFixed(2) + " ₪";
-        document.getElementById('deliveryFeeText').innerText = currentDelivery.toFixed(2) + " ₪";
-        document.getElementById('cartFinalTotalText').innerText = finalTotal.toFixed(2) + " ₪";
-    }
-
-    function closeCartModal() {
-        document.getElementById('cartModal').style.display = 'none';
     }
 
     function submitOrder() {
@@ -1148,7 +1200,6 @@
             appliedDiscount = 0;
             saveCartToLocalStorage();
             updateCartStateUI();
-            products.forEach(p => updateProductCardDOM(p.id));
             closeCartModal();
         })
         .catch(e => {
