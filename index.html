@@ -159,6 +159,43 @@
         .profile-tab { flex: 1; text-align: center; padding: 6px; font-size: 0.8rem; font-weight: 700; cursor: pointer; border-radius: 6px; color: #64748b; }
         .profile-tab.active { background: white; color: var(--primary-green); }
 
+        /* أنماط الأقسام القابلة للطي (Accordion) الجديدة */
+        .accordion-item {
+            border: 1px solid var(--border-color);
+            margin-bottom: 10px;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .accordion-header {
+            background: #f8fafc;
+            padding: 12px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 800;
+            font-size: 0.85rem;
+            color: #1f2937;
+        }
+        .accordion-content {
+            display: none;
+            padding: 12px 15px;
+            border-top: 1px solid var(--border-color);
+            background: #fff;
+        }
+        .accordion-item.active .accordion-content {
+            display: block;
+        }
+        .accordion-item.active .arrow {
+            transform: rotate(180deg);
+        }
+        .arrow {
+            transition: transform 0.2s ease;
+            font-size: 0.75rem;
+            font-weight: 900;
+        }
+
         @keyframes logoDance {
             0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
             25% { transform: translateY(-10px) rotate(-3deg) scale(1.05); }
@@ -301,85 +338,95 @@
     </div>
 </div>
 
-<!-- نافذة السلة والدفع -->
+<!-- نافذة السلة والدفع بتصميم الأقسام القابلة للطي (Accordion) -->
 <div class="cart-modal" id="cartModal">
     <div class="cart-modal-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h3 style="font-size: 0.95rem; font-weight: 900; color: var(--primary-green);" id="cartModalTitle">🛒 مراجعة السلة والمنتجات</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3 style="font-size: 0.95rem; font-weight: 900; color: var(--primary-green);">🛒 إتمام الدفع وتفاصيل السلة</h3>
             <button onclick="closeCartModal()" style="background:none; border:none; font-size: 1.1rem; cursor:pointer; font-weight: 900;">✕</button>
         </div>
         
-        <!-- الخطوة الأولى -->
-        <div id="cartStep1">
-            <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 8px;">تأكد من المنتجات والكميات المطلوبة:</div>
-            <div id="cartItemsWithImagesList" style="max-height: 260px; overflow-y: auto; margin-bottom: 12px;"></div>
-            <button class="btn-main" onclick="goToPaymentStep()">إتمام الدفع ➡️</button>
+        <!-- القسم الأول: مراجعة المنتجات -->
+        <div class="accordion-item active" id="section-cart">
+            <div class="accordion-header" onclick="toggleAccordion('section-cart')">
+                <span>1. مراجعة السلة والمنتجات 🛍️</span>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="accordion-content">
+                <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 8px;">تأكد من المنتجات والكميات المطلوبة:</div>
+                <div id="cartItemsWithImagesList" style="max-height: 220px; overflow-y: auto; margin-bottom: 12px;"></div>
+                <button type="button" class="btn-main" onclick="openSection('section-checkout')">التالي إلى الاستلام والدفع ⬅</button>
+            </div>
         </div>
 
-        <!-- الخطوة الثانية -->
-        <div id="cartStep2" style="display: none;">
-            <div style="font-size: 0.8rem; margin-bottom: 10px; cursor: pointer; color: var(--primary-green); font-weight: 800;" onclick="backToCartStep1()">← عودة لمراجعة المنتجات</div>
-            
-            <label class="price-text" style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">طريقة الاستلام:</label>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
-                <label style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 700; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
-                    <input type="radio" name="fulfillmentType" value="توصيل" checked onchange="toggleFulfillmentType()"> توصيل
-                </label>
-                <label style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 700; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
-                    <input type="radio" name="fulfillmentType" value="استلام ذاتي" onchange="toggleFulfillmentType()"> استلام ذاتي
-                </label>
+        <!-- القسم الثاني: معلومات الاستلام والدفع والملخص -->
+        <div class="accordion-item" id="section-checkout">
+            <div class="accordion-header" onclick="toggleAccordion('section-checkout')">
+                <span>2. تفاصيل التوصيل، الدفع والملخص النهائي 💳</span>
+                <span class="arrow">▼</span>
             </div>
-
-            <div id="deliveryDetailsContainer">
-                <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم">
-                <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف (05xxxxxxxx)">
-                <button type="button" onclick="openMapModal()" style="width: 100%; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 8px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 5px;">
-                    📍 اختر موقعك بدقة على الخريطة 🗺️
-                </button>
-                <input type="hidden" id="customerGpsLocation" value="">
-                <div id="selectedLocationText" style="font-size: 0.7rem; font-weight: 700; color: var(--accent-green); margin-bottom: 8px; text-align: center;"></div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                    <input type="text" id="customerCity" class="form-control" placeholder="المدينة / الحي">
-                    <input type="text" id="customerStreet" class="form-control" placeholder="اسم الشارع">
+            <div class="accordion-content">
+                <label style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px; color: var(--primary-green);">طريقة الاستلام:</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 700; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
+                        <input type="radio" name="fulfillmentType" value="توصيل" checked onchange="toggleFulfillmentType()"> توصيل
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 700; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer;">
+                        <input type="radio" name="fulfillmentType" value="استلام ذاتي" onchange="toggleFulfillmentType()"> استلام ذاتي
+                    </label>
                 </div>
-                <input type="text" id="customerBuilding" class="form-control" placeholder="رقم العمارة / الطابق / رقم الشقة">
-            </div>
 
-            <label class="price-text" style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">طريقة الدفع:</label>
-            <select id="paymentMethodSelect" class="form-control">
-                <option value="موزمان">موزمان</option>
-                <option value="اشراي">اشراي</option>
-                <option value="نقداً عند الاستلام">نقداً عند الاستلام</option>
-            </select>
+                <div id="deliveryDetailsContainer">
+                    <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم">
+                    <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف (05xxxxxxxx)">
+                    <button type="button" onclick="openMapModal()" style="width: 100%; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 8px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                        📍 اختر موقعك بدقة على الخريطة 🗺️
+                    </button>
+                    <input type="hidden" id="customerGpsLocation" value="">
+                    <div id="selectedLocationText" style="font-size: 0.7rem; font-weight: 700; color: var(--accent-green); margin-bottom: 8px; text-align: center;"></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                        <input type="text" id="customerCity" class="form-control" placeholder="المدينة / الحي">
+                        <input type="text" id="customerStreet" class="form-control" placeholder="اسم الشارع">
+                    </div>
+                    <input type="text" id="customerBuilding" class="form-control" placeholder="رقم العمارة / الطابق / رقم الشقة">
+                </div>
 
-            <label class="price-text" style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px;">كوبون للخصم:</label>
-            <div style="display: flex; gap: 6px; margin-bottom: 8px;">
-                <input type="text" id="couponInput" class="form-control" placeholder="ادخل كود الكوبون" style="margin-bottom: 0;">
-                <button type="button" onclick="applyCoupon()" style="background: var(--accent-green); color: white; border: none; padding: 0 12px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer;">تطبيق</button>
-            </div>
-            <div id="couponMsg" style="font-size: 0.7rem; font-weight: 700; margin-bottom: 6px;"></div>
+                <label style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px; color: var(--primary-green);">طريقة الدفع:</label>
+                <select id="paymentMethodSelect" class="form-control">
+                    <option value="موزمان">موزمان</option>
+                    <option value="اشراي">اشراي</option>
+                    <option value="نقداً عند الاستلام">نقداً عند الاستلام</option>
+                </select>
 
-            <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; font-weight: 600;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                    <span>المجموع:</span>
-                    <span id="cartSubtotalText">0.00 ₪</span>
+                <label style="font-size: 0.8rem; font-weight: 800; display: block; margin-bottom: 4px; color: var(--primary-green);">كوبون للخصم:</label>
+                <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                    <input type="text" id="couponInput" class="form-control" placeholder="ادخل كود الكوبون" style="margin-bottom: 0;">
+                    <button type="button" onclick="applyCoupon()" style="background: var(--accent-green); color: white; border: none; padding: 0 12px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer;">تطبيق</button>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;" id="deliveryFeeRow">
-                    <span>التوصيل:</span>
-                    <span id="deliveryFeeText" style="font-weight: 800; color: var(--accent-green);">10.00 ₪</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #ef4444; display: none;" id="couponDiscountRow">
-                    <span>خصم الكوبون:</span>
-                    <span id="couponDiscountText">-0.00 ₪</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-weight: 900; border-top: 1px solid #e2e8f0; padding-top: 6px; color: var(--primary-green); font-size: 0.85rem;">
-                    <span>المجموع النهائي:</span>
-                    <span id="cartFinalTotalText">0.00 ₪</span>
-                </div>
-            </div>
+                <div id="couponMsg" style="font-size: 0.7rem; font-weight: 700; margin-bottom: 6px;"></div>
 
-            <div>
-                <button class="btn-main" onclick="submitOrder()" style="background: var(--accent-green); font-size: 0.95rem;">دفع 💳</button>
+                <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; font-weight: 600;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span>المجموع:</span>
+                        <span id="cartSubtotalText">0.00 ₪</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;" id="deliveryFeeRow">
+                        <span>التوصيل:</span>
+                        <span id="deliveryFeeText" style="font-weight: 800; color: var(--accent-green);">10.00 ₪</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #ef4444; display: none;" id="couponDiscountRow">
+                        <span>خصم الكوبون:</span>
+                        <span id="couponDiscountText">-0.00 ₪</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-weight: 900; border-top: 1px solid #e2e8f0; padding-top: 6px; color: var(--primary-green); font-size: 0.85rem;">
+                        <span>المجموع النهائي:</span>
+                        <span id="cartFinalTotalText">0.00 ₪</span>
+                    </div>
+                </div>
+
+                <div>
+                    <button type="button" class="btn-main" onclick="submitOrder()" style="background: var(--accent-green); font-size: 0.95rem;">تأكيد وإرسال الطلب 🛒</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1023,9 +1070,8 @@
             return;
         }
         loadUserProfileData();
-        document.getElementById('cartStep1').style.display = 'block';
-        document.getElementById('cartStep2').style.display = 'none';
-        document.getElementById('cartModalTitle').innerText = '🛒 مراجعة السلة والمنتجات';
+        // فتح القسم الأول وإغلاق الثاني افتراضياً عند فتح السلة
+        openSection('section-cart');
         renderCartModalProducts();
         document.getElementById('cartModal').style.display = 'flex';
     }
@@ -1054,17 +1100,22 @@
         });
     }
 
-    function goToPaymentStep() {
-        document.getElementById('cartStep1').style.display = 'none';
-        document.getElementById('cartStep2').style.display = 'block';
-        document.getElementById('cartModalTitle').innerText = '💳 إتمام الدفع والتفاصيل';
-        updateFinancialSummary();
+    // دوال التحكم في الأقسام القابلة للطي (Accordion)
+    function toggleAccordion(sectionId) {
+        const item = document.getElementById(sectionId);
+        if (item.classList.contains('active')) {
+            item.classList.remove('active');
+        } else {
+            item.classList.add('active');
+        }
     }
 
-    function backToCartStep1() {
-        document.getElementById('cartStep2').style.display = 'none';
-        document.getElementById('cartStep1').style.display = 'block';
-        document.getElementById('cartModalTitle').innerText = '🛒 مراجعة السلة والمنتجات';
+    function openSection(sectionId) {
+        document.querySelectorAll('.accordion-item').forEach(el => el.classList.remove('active'));
+        document.getElementById(sectionId).classList.add('active');
+        if(sectionId === 'section-checkout') {
+            updateFinancialSummary();
+        }
     }
 
     function toggleFulfillmentType() {
