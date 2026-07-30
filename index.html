@@ -262,7 +262,7 @@
     </div>
 </div>
 
-<!-- نافذة تفاصيل السلة وتوصيل الطلب مع التحقق OTP -->
+<!-- نافذة تفاصيل السلة وتوصيل الطلب -->
 <div class="cart-modal" id="cartModal">
     <div class="cart-modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -319,16 +319,9 @@
         <!-- ملاحظات خاصة للمندوب -->
         <textarea id="customerNotes" class="form-control" placeholder="ملاحظات للمندوب (اختياري، مثلاً: اترك الطلب عند الباب...)" style="resize: none; height: 40px;"></textarea>
 
-        <!-- زر إرسال رمز التحقق -->
-        <div id="order-btn-container">
-            <button class="btn-main" onclick="sendOtpViaUpsend()">إرسال رمز التحقق (SMS) وإتمام الطلب 🚀</button>
-        </div>
-
-        <!-- قسم إدخال رمز التحقق المخفي مؤقتاً -->
-        <div id="otp-section" style="display: none; margin-top: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px; border-radius: 8px;">
-            <div style="font-size: 0.75rem; font-weight: bold; color: #166534; margin-bottom: 5px;">تم إرسال رسالة SMS برمز التحقق إلى هاتفك. أدخل الرمز أدناه:</div>
-            <input type="text" id="otp-input" class="form-control" placeholder="أدخل رمز التحقق (4 أرقام)" maxlength="4">
-            <button class="btn-main" onclick="verifyOtpAndOrder()" style="background: #166534;">تأكيد الرمز وحفظ الطلب ✅</button>
+        <!-- زر إتمام وإرسال الطلب مباشرة -->
+        <div>
+            <button class="btn-main" onclick="submitOrder()">إتمام وإرسال الطلب 🚀</button>
         </div>
     </div>
 </div>
@@ -356,8 +349,6 @@
     let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
     let cart = [];
     const FIXED_DELIVERY_FEE = 10.00;
-    
-    let generatedOtp = ""; // لتخزين الكود المؤقت
 
     // متغيرات الخريطة التفاعلية
     let map = null;
@@ -550,7 +541,6 @@
         document.getElementById('mapModal').style.display = 'flex';
         setTimeout(() => {
             if (!map) {
-                // محاولة أخذ الموقع الحالي كمركز مبدئي للخريطة إن أمكن
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
                         (position) => {
@@ -922,10 +912,6 @@
         document.getElementById('deliveryFeeText').innerText = FIXED_DELIVERY_FEE.toFixed(2) + " ₪";
         document.getElementById('cartFinalTotalText').innerText = finalTotal.toFixed(2) + " ₪";
 
-        document.getElementById('order-btn-container').style.display = 'block';
-        document.getElementById('otp-section').style.display = 'none';
-        document.getElementById('otp-input').value = '';
-
         document.getElementById('cartModal').style.display = 'flex';
     }
 
@@ -933,67 +919,7 @@
         document.getElementById('cartModal').style.display = 'none';
     }
 
-    // إرسال رمز التحقق عبر UpSend باستخدام Basic Auth
-    function sendOtpViaUpsend() {
-        const name = document.getElementById('customerName').value.trim();
-        const phone = document.getElementById('customerPhone').value.trim();
-        const city = document.getElementById('customerCity').value.trim();
-        const street = document.getElementById('customerStreet').value.trim();
-
-        if(!name || !phone || !city || !street) {
-            alert("الرجاء إكمال بيانات التوصيل الأساسية (الاسم، الهاتف، المدينة، والشارع) قبل إرسال رمز التحقق.");
-            return;
-        }
-
-        generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
-
-        const apiUrl = "https://api.upsend.co.il/v1/sms/send";
-        const base64Credentials = "VVBTRU5EMTZnNzA4NmU4MjYxZjQtNmExMS00YzQ5LWJkYmEtMTM5MDczNmQwOTBm=="; 
-
-        const messageText = `رمز التحقق الخاص بطلبك في متجر عروبة أونلاين هو: ${generatedOtp}`;
-
-        const payload = {
-            to: phone,
-            message: messageText
-        };
-
-        fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': `Basic ${base64Credentials}`
-            },
-            body: JSON.stringify(payload)
-        })
-        .then(response => {
-            if (!response.ok) throw new Error("فشل الاتصال بالخدمة");
-            return response.json();
-        })
-        .then(data => {
-            console.log("استجابة UpSend:", data);
-            alert("تم إرسال رمز التحقق (SMS) إلى هاتفك بنجاح.");
-            
-            document.getElementById('otp-section').style.display = 'block';
-            document.getElementById('order-btn-container').style.display = 'none';
-        })
-        .catch(error => {
-            console.error("خطأ في الاتصال بمنصة UpSend:", error);
-            alert("فشل إرسال رسالة التحقق، يرجى المحاولة لاحقاً.");
-        });
-    }
-
-    function verifyOtpAndOrder() {
-        const userEnteredCode = document.getElementById('otp-input').value.trim();
-
-        if (userEnteredCode === generatedOtp) {
-            submitOrderToFirebase();
-        } else {
-            alert("رمز التحقق غير صحيح، يرجى التأكد وإعادة المحاولة.");
-        }
-    }
-
-    async function submitOrderToFirebase() {
+    function submitOrder() {
         const name = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('customerPhone').value.trim();
         const city = document.getElementById('customerCity').value.trim();
@@ -1002,6 +928,11 @@
         const gpsUrl = document.getElementById('customerGpsLocation').value.trim();
         const deliveryTime = document.getElementById('deliveryTimeSlot').value;
         const notes = document.getElementById('customerNotes').value.trim();
+
+        if(!name || !phone || !city || !street) {
+            alert("الرجاء إكمال بيانات التوصيل الأساسية (الاسم، الهاتف، المدينة، والشارع) قبل إرسال الطلب.");
+            return;
+        }
 
         localStorage.setItem('aloroba_user_name', name);
         localStorage.setItem('aloroba_user_phone', phone);
@@ -1036,17 +967,18 @@
             timestamp: new Date().toISOString()
         };
 
-        try {
-            await window.addDoc(window.collection(window.db, "orders"), newOrder);
-            alert("تم إرسال وتأكيد طلبك بنجاح برمز التحقق! سيتم تجهيزه وتوصيله في الوقت المحدد 🚀");
+        window.addDoc(window.collection(window.db, "orders"), newOrder)
+        .then(() => {
+            alert("تم إرسال وتأكيد طلبك بنجاح! سيتم تجهيزه وتوصيله في الوقت المحدد 🚀");
             cart = [];
             saveCartToLocalStorage();
             updateCartStateUI();
             products.forEach(p => updateProductCardDOM(p.id));
             closeCartModal();
-        } catch(e) {
+        })
+        .catch(e => {
             alert("خطأ في إرسال الطلب: " + e.message);
-        }
+        });
     }
 </script>
 </body>
