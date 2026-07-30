@@ -870,8 +870,11 @@
         let activeSections = nonEmpSections.slice(0, visibleSectionsLimit);
 
         activeSections.forEach(secName => {
-            let secProds = products.filter(p => productBelongsToCategory(p, secName)).slice(0, 9);
-            if(secProds.length === 0) return;
+            let allSecProds = products.filter(p => productBelongsToCategory(p, secName));
+            if(allSecProds.length === 0) return;
+
+            // نعرض أول 3 منتجات فقط عند فتح المتجر لأعلى سرعة أداء
+            let initialProds = allSecProds.slice(0, 3);
 
             let catObj = categories.find(c => c.name === secName);
             let icon = catObj ? catObj.icon : '🏷️';
@@ -882,14 +885,34 @@
                         <span class="section-category-title"><span>${icon}</span> <span class="category-text-gradient">${secName}</span></span>
                         <span class="section-view-all" onclick="selectCategory('${secName}')">عرض الكل ←</span>
                     </div>
-                    <div class="products-horizontal-scroll">
+                    <div class="products-horizontal-scroll" data-section-name="${secName}" onscroll="checkHorizontalScrollLoad(this)">
             `;
-            secProds.forEach(p => { secHtml += createProductCardHtml(p); });
+            initialProds.forEach(p => { secHtml += createProductCardHtml(p); });
             secHtml += `</div></div>`;
             htmlParts.push(secHtml);
         });
 
         container.innerHTML = htmlParts.join('');
+    }
+
+    // دالة تقوم بتحميل باقي الـ 9 منتجات فور تحريك المستخدم للشاشة أفقياً
+    function checkHorizontalScrollLoad(element) {
+        if (element.dataset.loaded === "true") return;
+
+        // إذا قام المستخدم بتحريك الشريط أفقياً قليلاً (أكثر من 30 بكسل)
+        if (element.scrollLeft > 30 || (element.scrollLeft + element.clientWidth >= element.scrollWidth - 50)) {
+            element.dataset.loaded = "true";
+            let secName = element.getAttribute('data-section-name');
+            let allSecProds = products.filter(p => productBelongsToCategory(p, secName));
+            
+            // جلب المنتجات من رقم 3 إلى 9
+            let remainingProds = allSecProds.slice(3, 9);
+            
+            let appendHtml = "";
+            remainingProds.forEach(p => { appendHtml += createProductCardHtml(p); });
+            
+            element.insertAdjacentHTML('beforeend', appendHtml);
+        }
     }
 
     function createProductCardHtml(p) {
