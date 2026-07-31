@@ -45,13 +45,6 @@
         .search-bar-container { padding: 12px 15px; background: white; }
         .search-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 0.85rem; font-weight: 600; outline: none; background: #fafafa; }
 
-        /* البانر المتحرك */
-        .banner-slider { padding: 0 15px; margin-bottom: 15px; }
-        .banner-card { background: var(--primary-green); color: white; border-radius: 16px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
-        .banner-text h2 { font-size: 1rem; font-weight: 900; margin-bottom: 4px; }
-        .banner-text p { font-size: 0.8rem; font-weight: 600; opacity: 0.95; }
-        .banner-img { width: 60px; height: 60px; object-fit: contain; background: white; border-radius: 50%; padding: 3px; }
-
         /* الأقسام الدائرية السريعة */
         .categories-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 0 15px 10px 15px; scrollbar-width: none; }
         .categories-scroll::-webkit-scrollbar { display: none; }
@@ -322,23 +315,11 @@
         <input type="text" id="searchInput" class="search-input" placeholder="ابحث عن أي منتج تريده..." oninput="filterProducts()">
     </div>
 
-    <!-- البانر المتحرك -->
-    <div class="banner-slider" id="bannerContainer">
-        <div class="banner-card">
-            <div class="banner-text">
-                <span style="font-size: 0.7rem; font-weight: 700; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;" id="bannerTag">سوبر ماركت العروبة</span>
-                <h2 id="bannerTitle">أهلاً بك في متجرنا</h2>
-                <p>تسوّق أفضل المنتجات الطازجة</p>
-            </div>
-            <img src="logo.png" class="banner-img" id="bannerImg" onerror="this.onerror=null; this.src='logo.png';">
-        </div>
-    </div>
+    <!-- عروض الحزمة (تم نقلها مكان البانر فوق شريط الفئات) -->
+    <div id="bundlesSection"></div>
 
     <!-- الأقسام الدائرية -->
     <div class="categories-scroll" id="categoriesScrollContainer"></div>
-
-    <!-- عروض الحزمة -->
-    <div id="bundlesSection"></div>
 
     <!-- المحتوى الرئيسي -->
     <div id="storeMainContent"></div>
@@ -479,7 +460,7 @@
             <label class="price-text" style="font-size: 0.85rem; font-weight: 900; display: block; margin-bottom: 6px;">طريقة الدفع:</label>
             <select id="paymentMethodSelect" class="form-control" style="margin-bottom: 12px;">
                 <option value="موزمان">موزمان</option>
-                <option value="اشراي">اشراي</option>
+                <option value="فيزا">فيزا</option>
                 <option value="نقداً عند الاستلام">نقداً عند الاستلام</option>
             </select>
 
@@ -538,7 +519,7 @@
 <script>
     let products = [];
     let categories = [{ name: "الكل", icon: "🛍️" }];
-    let bannerSlides = [{ tag: "سوبر ماركت العروبة", title: "كل احتياجات بيتك في مكان واحد", img: "logo.png" }];
+    let bannerSlides = [];
     let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
     let cart = [];
     const FIXED_DELIVERY_FEE = 10.00;
@@ -990,17 +971,7 @@
     }
 
     function renderBanner() {
-        if(bannerSlides.length === 0) return;
-        let slide = bannerSlides[0];
-        document.getElementById('bannerTag').innerText = slide.tag || 'سوبر ماركت العروبة';
-        document.getElementById('bannerTitle').innerText = slide.title || 'أهلاً بك';
-        
-        let bannerImgEl = document.getElementById('bannerImg');
-        if(slide.img && slide.img.trim() !== "") {
-            bannerImgEl.src = slide.img;
-        } else {
-            bannerImgEl.src = 'logo.png';
-        }
+        // دالة آمنة في حال تم إزالة عناصر البانر من الواجهة
     }
 
     function renderCategoriesScroll() {
