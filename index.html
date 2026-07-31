@@ -194,7 +194,7 @@
         .products-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 15px; }
         .products-grid .product-card { min-width: 100%; max-width: 100%; }
 
-        /* تنسيق بانر عروض الحزمة المتحرك العريض (Slideshow Banner) */
+        /* تنسيق بانر عروض الحزمة المتحرك (يعتمد على السحب باللمس حصراً وبدون حواف ظاهرة مسبقة) */
         .bundle-banner-wrapper {
             position: relative;
             background: linear-gradient(135deg, #fff7ed 0%, #fff 100%);
@@ -203,16 +203,18 @@
             padding: 18px 20px;
             overflow: hidden;
             box-shadow: 0 3px 12px rgba(251, 146, 60, 0.12);
+            width: 100%;
         }
         .bundle-slides-container {
             display: flex;
-            transition: transform 0.5s ease-in-out;
+            transition: transform 0.4s ease-in-out;
             width: 100%;
             direction: ltr;
         }
         .bundle-slide-item {
             min-width: 100%;
             width: 100%;
+            flex: 0 0 100%;
             flex-shrink: 0;
             box-sizing: border-box;
             display: flex;
@@ -223,29 +225,6 @@
         .bundle-card-name { font-size: 1.05rem; font-weight: 900; color: #1f2937; }
         .bundle-card-desc { font-size: 0.82rem; font-weight: 700; color: #dc2626; }
         .bundle-select-btn { background: var(--primary-green); color: white; border: none; padding: 10px 16px; border-radius: 12px; font-size: 0.85rem; font-weight: 800; width: 100%; cursor: pointer; text-align: center; }
-        
-        /* أزرار التحريك اليدوي للبانر */
-        .bundle-nav-btn {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid #fed7aa;
-            color: #f97316;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
-            font-weight: 900;
-            z-index: 10;
-        }
-        .bundle-nav-btn.prev { left: 8px; }
-        .bundle-nav-btn.next { right: 8px; }
-        .bundle-nav-btn:hover { background: #f97316; color: white; }
 
         /* مؤشرات النقاط للبانر المتحرك */
         .bundle-banner-dots {
@@ -1101,7 +1080,7 @@
         container.innerHTML = htmlParts.join('');
     }
 
-    // ===================== بانر عروض الحزمة المتحرك العريض (يدوي وتلقائي) =====================
+    // ===================== بانر عروض الحزمة المتحرك (باللمس والسحب التلقائي/اليدوي) =====================
 
     function renderBundlesSection() {
         const container = document.getElementById('bundlesSection');
@@ -1135,18 +1114,12 @@
             dotsHtml += `<div class="bundle-dot ${index === 0 ? 'active' : ''}" onclick="goToBundleSlide(${index})"></div>`;
         });
 
-        let navButtonsHtml = bundles.length > 1 ? `
-            <button class="bundle-nav-btn prev" onclick="moveBundleSlide(-1)">&#10094;</button>
-            <button class="bundle-nav-btn next" onclick="moveBundleSlide(1)">&#10095;</button>
-        ` : '';
-
         container.innerHTML = `
             <div class="horizontal-section">
                 <div class="horizontal-section-title">
                     <span class="section-category-title"><span>🎉</span> <span class="category-text-gradient">عروض الحزمة</span></span>
                 </div>
-                <div class="bundle-banner-wrapper">
-                    ${navButtonsHtml}
+                <div class="bundle-banner-wrapper" id="bundleBannerWrapper">
                     <div class="bundle-slides-container" id="bundleSlidesContainer">
                         ${slidesHtml}
                     </div>
@@ -1157,7 +1130,43 @@
             </div>
         `;
 
+        initBundleTouchSwipe();
         startBundleTimer();
+    }
+
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    function initBundleTouchSwipe() {
+        const wrapper = document.getElementById('bundleBannerWrapper');
+        if (!wrapper) return;
+
+        wrapper.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+            if (bundleBannerInterval) {
+                clearInterval(bundleBannerInterval);
+                bundleBannerInterval = null;
+            }
+        }, { passive: true });
+
+        wrapper.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleTouchSwipe();
+            startBundleTimer();
+        }, { passive: true });
+    }
+
+    function handleTouchSwipe() {
+        let threshold = 40;
+        if (touchEndX < touchStartX - threshold) {
+            // سحب لليسار -> الانتقال للبانر التالي
+            currentBundleIndex = (currentBundleIndex + 1) % bundles.length;
+            updateBundleBannerPosition();
+        } else if (touchEndX > touchStartX + threshold) {
+            // سحب لليمين -> الانتقال للبانر السابق
+            currentBundleIndex = (currentBundleIndex - 1 + bundles.length) % bundles.length;
+            updateBundleBannerPosition();
+        }
     }
 
     function startBundleTimer() {
@@ -1166,23 +1175,8 @@
             bundleBannerInterval = setInterval(() => {
                 currentBundleIndex = (currentBundleIndex + 1) % bundles.length;
                 updateBundleBannerPosition();
-            }, 4000);
+            }, 4500);
         }
-    }
-
-    function moveBundleSlide(direction) {
-        if (bundleBannerInterval) {
-            clearInterval(bundleBannerInterval);
-            bundleBannerInterval = null;
-        }
-        currentBundleIndex += direction;
-        if (currentBundleIndex >= bundles.length) {
-            currentBundleIndex = 0;
-        } else if (currentBundleIndex < 0) {
-            currentBundleIndex = bundles.length - 1;
-        }
-        updateBundleBannerPosition();
-        startBundleTimer();
     }
 
     function goToBundleSlide(index) {
