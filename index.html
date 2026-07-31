@@ -130,7 +130,7 @@
             transition: transform 0.2s ease;
         }
         
-        /* إطار مميز وجذاب لبطاقات المنتجات التي عليها عروض */
+        /* إطار مميز والجذب لبطاقات المنتجات التي عليها عروض */
         .product-card.has-sale {
             border: 2px solid #d32f2f;
             animation: cardBorderGlow 2s infinite ease-in-out;
@@ -208,12 +208,34 @@
         .products-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 15px; }
         .products-grid .product-card { min-width: 100%; max-width: 100%; }
 
-        /* عروض الحزمة */
-        .bundles-list { display: flex; flex-direction: column; gap: 10px; }
-        .bundle-card { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: linear-gradient(135deg, #fff7ed 0%, #fff 100%); border: 1px solid #fed7aa; border-radius: 14px; padding: 12px 14px; }
+        /* عروض الحزمة (أصبحت أفقية مع التحريك يمين ويسار بنفس نمط الأقسام والمنتجات) */
+        .bundles-list { 
+            display: flex; 
+            gap: 10px; 
+            overflow-x: auto; 
+            padding: 0 15px 8px 15px; 
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; 
+        }
+        .bundles-list::-webkit-scrollbar { display: none; }
+        
+        .bundle-card { 
+            min-width: 230px; 
+            max-width: 230px; 
+            background: linear-gradient(135deg, #fff7ed 0%, #fff 100%); 
+            border: 1px solid #fed7aa; 
+            border-radius: 14px; 
+            padding: 12px 14px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            flex-shrink: 0;
+            gap: 10px;
+        }
         .bundle-card-name { font-size: 0.9rem; font-weight: 900; color: #1f2937; margin-bottom: 3px; }
         .bundle-card-desc { font-size: 0.75rem; font-weight: 700; color: #dc2626; }
-        .bundle-select-btn { background: var(--primary-green); color: white; border: none; padding: 9px 14px; border-radius: 10px; font-size: 0.78rem; font-weight: 800; white-space: nowrap; cursor: pointer; }
+        .bundle-select-btn { background: var(--primary-green); color: white; border: none; padding: 8px 12px; border-radius: 10px; font-size: 0.78rem; font-weight: 800; width: 100%; cursor: pointer; text-align: center; }
         .bundle-item-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 4px; border-bottom: 1px solid var(--border-color); }
         .bundle-stepper-btn { width: 26px; height: 26px; border-radius: 50%; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
         .bundle-price-badge { display: inline-block; background: #dc2626; color: white; font-size: 0.68rem; font-weight: 800; padding: 3px 9px; border-radius: 6px; margin-top: 5px; cursor: pointer; }
@@ -637,7 +659,6 @@
         localStorage.setItem('aloroba_cart', JSON.stringify(cart));
     }
 
-    // عرض البيانات المخزّنة محلياً فوراً دون انتظار تحميل مكتبة Firebase عبر الإنترنت — هذا يسرّع فتح المتجر بشكل كبير خصوصاً مع وجود كتالوج كبير من المنتجات
     loadUserProfileData();
     loadCartFromLocalStorage();
     loadCachedData();
@@ -1089,7 +1110,7 @@
         container.innerHTML = htmlParts.join('');
     }
 
-    // ===================== عروض الحزمة =====================
+    // ===================== عروض الحزمة (أفقي مع التمرير) =====================
 
     function renderBundlesSection() {
         const container = document.getElementById('bundlesSection');
@@ -1606,3 +1627,4 @@
 </script>
 </body>
 </html>
+```[cite: 2]
