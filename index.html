@@ -14,9 +14,6 @@
     <!-- استدعاء خط كايرو (Cairo) الأنيق والمريح للعين -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 
-    <!-- ملاحظة: مكتبة الخرائط (Leaflet) لم تعد تُحمّل هنا؛ يتم تحميلها فقط عند فتح خريطة تحديد الموقع لتسريع فتح المتجر -->
-
-
     <style>
         :root {
             --primary-green: #609b15;
@@ -123,14 +120,12 @@
             transition: transform 0.2s ease;
         }
         
-        /* إطار مميز والجذب لبطاقات المنتجات التي عليها عروض */
         .product-card.has-sale {
             border: 2px solid #d32f2f;
             animation: cardBorderGlow 2s infinite ease-in-out;
             background: linear-gradient(180deg, #fffcfc 0%, #ffffff 100%);
         }
 
-        /* شارة العرض مع اللمعة */
         .discount-badge {
             position: absolute;
             top: 8px;
@@ -162,7 +157,6 @@
             letter-spacing: -0.3px;
         }
 
-        /* تنسيق سعر العرض الجديد (أكبر حجماً وأكثر وضوحاً مع اللمعة) */
         .price-text.sale-price {
             background: none;
             -webkit-background-clip: initial;
@@ -173,7 +167,6 @@
             animation: priceGlow 1.8s infinite ease-in-out;
         }
 
-        /* تنسيق السعر القديم المشطوب (واضح وكبير نسبياً باللون الأسود الداكن) */
         .old-price { 
             font-size: 0.85rem; 
             font-weight: 800; 
@@ -201,34 +194,53 @@
         .products-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 15px; }
         .products-grid .product-card { min-width: 100%; max-width: 100%; }
 
-        /* عروض الحزمة (أصبحت أفقية مع التحريك يمين ويسار بنفس نمط الأقسام والمنتجات) */
-        .bundles-list { 
-            display: flex; 
-            gap: 10px; 
-            overflow-x: auto; 
-            padding: 0 15px 8px 15px; 
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none; 
+        /* تنسيق بانر عروض الحزمة المتحرك (Slideshow Banner) */
+        .bundle-banner-wrapper {
+            position: relative;
+            background: linear-gradient(135deg, #fff7ed 0%, #fff 100%);
+            border: 1px solid #fed7aa;
+            border-radius: 14px;
+            padding: 14px 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(251, 146, 60, 0.1);
         }
-        .bundles-list::-webkit-scrollbar { display: none; }
+        .bundle-slides-container {
+            display: flex;
+            transition: transform 0.4s ease-in-out;
+            width: 100%;
+        }
+        .bundle-slide-item {
+            min-width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .bundle-card-name { font-size: 0.95rem; font-weight: 900; color: #1f2937; }
+        .bundle-card-desc { font-size: 0.78rem; font-weight: 700; color: #dc2626; }
+        .bundle-select-btn { background: var(--primary-green); color: white; border: none; padding: 8px 14px; border-radius: 10px; font-size: 0.8rem; font-weight: 800; width: 100%; cursor: pointer; text-align: center; }
         
-        .bundle-card { 
-            min-width: 230px; 
-            max-width: 230px; 
-            background: linear-gradient(135deg, #fff7ed 0%, #fff 100%); 
-            border: 1px solid #fed7aa; 
-            border-radius: 14px; 
-            padding: 12px 14px; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: space-between; 
-            flex-shrink: 0;
-            gap: 10px;
+        /* مؤشرات النقاط للبانر المتحرك */
+        .bundle-banner-dots {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 8px;
         }
-        .bundle-card-name { font-size: 0.9rem; font-weight: 900; color: #1f2937; margin-bottom: 3px; }
-        .bundle-card-desc { font-size: 0.75rem; font-weight: 700; color: #dc2626; }
-        .bundle-select-btn { background: var(--primary-green); color: white; border: none; padding: 8px 12px; border-radius: 10px; font-size: 0.78rem; font-weight: 800; width: 100%; cursor: pointer; text-align: center; }
+        .bundle-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #fed7aa;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .bundle-dot.active {
+            background: #f97316;
+            width: 16px;
+            border-radius: 4px;
+        }
+
         .bundle-item-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 4px; border-bottom: 1px solid var(--border-color); }
         .bundle-stepper-btn { width: 26px; height: 26px; border-radius: 50%; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
         .bundle-price-badge { display: inline-block; background: #dc2626; color: white; font-size: 0.68rem; font-weight: 800; padding: 3px 9px; border-radius: 6px; margin-top: 5px; cursor: pointer; }
@@ -315,7 +327,7 @@
         <input type="text" id="searchInput" class="search-input" placeholder="ابحث عن أي منتج تريده..." oninput="filterProducts()">
     </div>
 
-    <!-- عروض الحزمة (تم نقلها مكان البانر فوق شريط الفئات) -->
+    <!-- بانر عروض الحزمة المتحرك -->
     <div id="bundlesSection"></div>
 
     <!-- الأقسام الدائرية -->
@@ -430,19 +442,16 @@
 
             <label class="price-text" style="font-size: 0.85rem; font-weight: 900; display: block; margin-bottom: 6px;">البيانات الشخصية وموقع التوصيل:</label>
             <div id="deliveryDetailsContainer">
-                <!-- الصف الأول: الاسم وبجانبه رقم الهاتف -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
                     <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم" style="margin-bottom: 0;">
                     <input type="tel" id="customerPhone" class="form-control" placeholder="رقم الهاتف (05xxxxxxxx)" style="margin-bottom: 0;">
                 </div>
 
-                <!-- الصف الثاني: الحارة وبجانبه البيت -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
                     <input type="text" id="customerNeighborhood" class="form-control" placeholder="الحارة / الحي" style="margin-bottom: 0;">
                     <input type="text" id="customerBuilding" class="form-control" placeholder="البيت / رقم الشقة" style="margin-bottom: 0;">
                 </div>
 
-                <!-- زر اختر موقعك الاحترافي -->
                 <button type="button" onclick="openMapModal()" style="width: 100%; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 10px; border-radius: 8px; font-weight: 800; font-size: 0.85rem; cursor: pointer; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 6px;">
                     📍 اختر موقعك بدقة عالية على الخريطة 🗺️
                 </button>
@@ -460,7 +469,7 @@
             <label class="price-text" style="font-size: 0.85rem; font-weight: 900; display: block; margin-bottom: 6px;">طريقة الدفع:</label>
             <select id="paymentMethodSelect" class="form-control" style="margin-bottom: 12px;">
                 <option value="موزمان">موزمان</option>
-                <option value="فيزا">فيزا</option>
+                <option value="اشراي">اشراي</option>
                 <option value="نقداً عند الاستلام">نقداً عند الاستلام</option>
             </select>
 
@@ -504,7 +513,6 @@
         </div>
         <div style="font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 8px; text-align: center;">اضغط على زر الـ GPS أدناه للوصول لموقعك فوراً، أو اسحب الدبوس على الخريطة:</div>
         
-        <!-- زر GPS السريع لتحديد مكان الزبون الحالي تلقائياً -->
         <button type="button" onclick="panToCurrentLocation()" style="width: 100%; background: #f0fdf4; color: var(--primary-green); border: 1px solid #bbf7d0; padding: 8px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;">
             🎯 استخدام موقعي الحالي تلقائياً عبر الـ GPS 🛰️
         </button>
@@ -513,8 +521,6 @@
         <button type="button" class="btn-main" onclick="confirmMapLocation()">تأكيد واعتماد هذا الموقع للسائق ✅</button>
     </div>
 </div>
-
-<!-- ملاحظة: تم نقل تحميل مكتبة Leaflet إلى دالة loadLeafletAssets() أدناه، تُحمّل فقط عند الحاجة لها -->
 
 <script>
     let products = [];
@@ -534,19 +540,11 @@
     let initialHash = decodeURIComponent(window.location.hash.replace('#', ''));
     let currentCategory = initialHash ? initialHash : "الكل";
 
-    // إعدادات الباقات (Mix & Match)
-    let bundleConfig = {
-        enabled: false,
-        targetCount: 6,
-        bundlePrice: 19.90,
-        productIds: []
-    };
-    let selectedBundleItems = [];
-
-    // عروض الحزمة القادمة من لوحة التحكم (bundle.html)
     let bundles = [];
     let currentBundle = null;
     let bundleSelection = {};
+    let bundleBannerInterval = null;
+    let currentBundleIndex = 0;
 
     let splashTimeout = setTimeout(() => {
         hideSplashScreen();
@@ -661,7 +659,6 @@
             if(bannerDoc.exists() && bannerDoc.data().slides) {
                 bannerSlides = bannerDoc.data().slides;
             }
-            renderBanner();
         } catch(e) {}
     }
 
@@ -970,10 +967,6 @@
         alert("تمت إضافة منتجات الطلب السابق إلى السلة بنجاح! 🛒");
     }
 
-    function renderBanner() {
-        // دالة آمنة في حال تم إزالة عناصر البانر من الواجهة
-    }
-
     function renderCategoriesScroll() {
         const container = document.getElementById('categoriesScrollContainer');
         container.innerHTML = '';
@@ -1081,30 +1074,30 @@
         container.innerHTML = htmlParts.join('');
     }
 
-    // ===================== عروض الحزمة (أفقي مع التمرير) =====================
+    // ===================== بانر عروض الحزمة المتحرك (Slideshow Banner) =====================
 
     function renderBundlesSection() {
         const container = document.getElementById('bundlesSection');
         if (!container) return;
+
+        if (bundleBannerInterval) {
+            clearInterval(bundleBannerInterval);
+            bundleBannerInterval = null;
+        }
 
         if (!bundles || bundles.length === 0) {
             container.innerHTML = '';
             return;
         }
 
-        let html = `
-            <div class="horizontal-section">
-                <div class="horizontal-section-title">
-                    <span class="section-category-title"><span>🎉</span> <span class="category-text-gradient">عروض الحزمة</span></span>
-                </div>
-                <div class="bundles-list">
-        `;
+        let slidesHtml = '';
+        let dotsHtml = '';
 
-        bundles.forEach(b => {
+        bundles.forEach((b, index) => {
             let price = parseBundlePrice(b);
             let qty = Number(b.qty) || 4;
-            html += `
-                <div class="bundle-card">
+            slidesHtml += `
+                <div class="bundle-slide-item">
                     <div>
                         <div class="bundle-card-name">${b.name}</div>
                         <div class="bundle-card-desc">اختر ${qty} قطع بسعر ${price.toFixed(2)} ₪</div>
@@ -1112,10 +1105,64 @@
                     <button class="bundle-select-btn" onclick="openBundleModal('${b.id}')">اختر المنتجات</button>
                 </div>
             `;
+            dotsHtml += `<div class="bundle-dot ${index === 0 ? 'active' : ''}" onclick="goToBundleSlide(${index})"></div>`;
         });
 
-        html += `</div></div>`;
-        container.innerHTML = html;
+        container.innerHTML = `
+            <div class="horizontal-section">
+                <div class="horizontal-section-title">
+                    <span class="section-category-title"><span>🎉</span> <span class="category-text-gradient">عروض الحزمة</span></span>
+                </div>
+                <div class="bundle-banner-wrapper">
+                    <div class="bundle-slides-container" id="bundleSlidesContainer">
+                        ${slidesHtml}
+                    </div>
+                    <div class="bundle-banner-dots" id="bundleBannerDots">
+                        ${dotsHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (bundles.length > 1) {
+            currentBundleIndex = 0;
+            bundleBannerInterval = setInterval(() => {
+                currentBundleIndex = (currentBundleIndex + 1) % bundles.length;
+                updateBundleBannerPosition();
+            }, 3500);
+        }
+    }
+
+    function goToBundleSlide(index) {
+        if (bundleBannerInterval) {
+            clearInterval(bundleBannerInterval);
+            bundleBannerInterval = null;
+        }
+        currentBundleIndex = index;
+        updateBundleBannerPosition();
+
+        // إعادة تشغيل المؤقت التلقائي بعد التفاعل اليدوي
+        if (bundles.length > 1) {
+            bundleBannerInterval = setInterval(() => {
+                currentBundleIndex = (currentBundleIndex + 1) % bundles.length;
+                updateBundleBannerPosition();
+            }, 3500);
+        }
+    }
+
+    function updateBundleBannerPosition() {
+        const container = document.getElementById('bundleSlidesContainer');
+        const dots = document.querySelectorAll('.bundle-dot');
+        if (container) {
+            container.style.transform = `translateX(${currentBundleIndex * 100}%)`;
+        }
+        dots.forEach((dot, idx) => {
+            if (idx === currentBundleIndex) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
     }
 
     function parseBundlePrice(b) {
