@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة عروض الحزمة - العروبة اون لاين</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-green: #1b4d2e;
+            --primary-green-dark: #123821;
+            --accent-green: #68a633;
+        }
+        .toast-item { animation: toast-in .25s ease-out; }
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .toast-item.toast-out { animation: toast-out .25s ease-in forwards; }
+        @keyframes toast-out {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-8px); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans p-3 sm:p-6 flex justify-center">
+
+    <!-- حاوية إشعارات Toast -->
+    <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[92%] max-w-sm space-y-2"></div>
+
+    <div class="w-full max-w-xl bg-white rounded-xl border border-gray-200 p-4 sm:p-5 space-y-5">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center border-b border-gray-200 pb-4">
+            <h1 class="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                <span>🎉</span> عروض الحزمة
+            </h1>
+            <div class="flex items-center gap-1.5">
+                <span id="active-count" class="bg-[var(--primary-green)] text-white text-xs font-bold px-3 py-1 rounded-md">0 نشطة</span>
+                <span id="inactive-count" class="bg-gray-200 text-gray-600 text-xs font-bold px-3 py-1 rounded-md">0 معطّلة</span>
+            </div>
+        </div>
+
+        <!-- Description Box -->
+        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <h2 class="font-bold text-gray-900 text-sm mb-1 flex items-center gap-1.5">
+                <span>🎉</span> عروض الحزمة (X بـ Y ₪)
+            </h2>
+            <p class="text-gray-600 text-xs leading-relaxed">
+                الزبون يختار بنفسه النكهات من المنتجات المشاركة، والسعر يتحدث تلقائياً عند بلوغ الكمية.
+            </p>
+        </div>
+
+        <!-- Bundle List Container -->
+        <div id="bundles-list" class="space-y-3">
+            <div class="text-center py-6 text-gray-500 text-sm">جاري تحميل عروض الحزم والمنتجات...</div>
+        </div>
+
+        <!-- Add Button -->
+        <button onclick="openAddModal()" class="w-full py-3.5 bg-[var(--primary-green)] text-white font-bold text-sm rounded-xl hover:bg-[var(--primary-green-dark)] transition flex items-center justify-center gap-1.5 cursor-pointer">
+            <i class="fa-solid fa-plus"></i> عرض حزمة جديد
+        </button>
+
+    </div>
+
+    <!-- Modal لإضافة/تعديل حزمة -->
+    <div id="add-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl max-w-lg w-full p-5 space-y-4 border border-gray-200 max-h-[90vh] overflow-y-auto">
+            <h3 id="modal-title" class="font-bold text-gray-900 text-lg border-b border-gray-200 pb-2">إضافة عرض حزمة جديد من المنتجات</h3>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">اسم الحزمة (مثال: 4- مسليات)</label>
+                    <input type="text" id="bundle-name" oninput="updatePreview()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary-green)]" placeholder="أدخل اسم الحزمة">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">السعر الإجمالي (₪)</label>
+                        <input type="text" id="bundle-price" oninput="updatePreview()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary-green)]" placeholder="14.90">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">الكمية المطلوبة</label>
+                        <input type="number" id="bundle-qty" oninput="updatePreview()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary-green)]" placeholder="4">
+                    </div>
+                </div>
+
+                <!-- معاينة حية للشارة -->
+                <div class="flex items-center gap-2 bg-gray-50 border border-dashed border-gray-300 rounded-lg p-2.5">
+                    <span class="text-xs text-gray-500 font-bold">معاينة الشارة بالمتجر:</span>
+                    <span id="badge-preview" class="text-xs bg-red-600 text-white font-bold px-2 py-0.5 rounded">4 بـ 0.00 ₪</span>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-bold text-gray-700">اختر المنتجات المشاركة من متجرك:</label>
+                        <span id="selected-counter" class="text-xs font-bold text-[var(--primary-green)]">0 محدد</span>
+                    </div>
+
+                    <input type="text" id="product-search" oninput="filterStoreProducts()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--primary-green)] mb-2" placeholder="ابحث عن منتج بالاسم...">
+
+                    <div class="flex gap-2 mb-2">
+                        <button type="button" onclick="selectAllVisible()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-1.5 rounded-md cursor-pointer">تحديد الكل</button>
+                        <button type="button" onclick="clearAllSelection()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-1.5 rounded-md cursor-pointer">إلغاء التحديد</button>
+                    </div>
+
+                    <div id="store-products-container" class="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto space-y-2 bg-gray-50">
+                        <p class="text-xs text-gray-500">جاري جلب منتجات المتجر...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-2 border-t border-gray-200">
+                <button id="save-btn" onclick="saveBundle()" class="flex-1 bg-[var(--primary-green)] text-white py-2.5 rounded-lg font-bold text-sm hover:bg-[var(--primary-green-dark)] transition cursor-pointer">حفظ العرض</button>
+                <button onclick="closeAddModal()" class="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-300 transition cursor-pointer">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // إعدادات الـ Firebase الخاصة بمتجرك
+        const firebaseConfig = {
+            apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
+            authDomain: "alorobaonline.firebaseapp.com",
+            projectId: "alorobaonline",
+            storageBucket: "alorobaonline.firebasestorage.app",
+            messagingSenderId: "880642361344",
+            appId: "1:880642361344:web:9dddec05f81125f0fc30e5",
+            measurementId: "G-NL9CS2135V"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let storeProducts = [];
+        let allBundles = [];
+        let editingBundleId = null;
+
+        // ===================== Toast =====================
+        window.showToast = function(message, type) {
+            type = type || 'success';
+            const container = document.getElementById('toast-container');
+            const colors = {
+                success: 'bg-[var(--primary-green)]',
+                error: 'bg-red-600'
+            };
+            const icon = type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check';
+
+            const toast = document.createElement('div');
+            toast.className = `toast-item ${colors[type] || colors.success} text-white text-sm font-bold px-4 py-3 rounded-xl shadow-lg flex items-center gap-2`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('toast-out');
+                setTimeout(() => toast.remove(), 250);
+            }, 2800);
+        };
+
+        // ===================== منتجات المتجر =====================
+        async function fetchStoreProducts() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "products"));
+                storeProducts = [];
+                querySnapshot.forEach((docSnap) => {
+                    storeProducts.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                renderProductCheckboxes();
+            } catch (error) {
+                console.error("خطأ في جلب المنتجات:", error);
+                showToast('تعذر جلب منتجات المتجر', 'error');
+            }
+        }
+
+        function renderProductCheckboxes(preSelectedNames) {
+            preSelectedNames = preSelectedNames || [];
+            const container = document.getElementById('store-products-container');
+            container.innerHTML = '';
+            if (storeProducts.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-500">لا توجد منتجات مسجلة في المتجر حالياً.</p>';
+                return;
+            }
+            storeProducts.forEach(prod => {
+                const prodName = prod.name || prod.title || '';
+                const isChecked = preSelectedNames.includes(prodName);
+                const div = document.createElement('label');
+                div.className = "product-item flex items-center gap-2 text-xs text-gray-800 cursor-pointer bg-white p-2 rounded border border-gray-200";
+                div.setAttribute('data-name', prodName.toLowerCase());
+                div.innerHTML = `
+                    <input type="checkbox" value="${prodName}" ${isChecked ? 'checked' : ''} onchange="updateSelectedCounter()" class="product-checkbox accent-[var(--primary-green)] w-4 h-4">
+                    <span>${prodName} (${prod.price || 0} ₪)</span>
+                `;
+                container.appendChild(div);
+            });
+            updateSelectedCounter();
+        }
+
+        window.filterStoreProducts = function() {
+            const query = document.getElementById('product-search').value.toLowerCase().trim();
+            const items = document.querySelectorAll('.product-item');
+            items.forEach(item => {
+                const name = item.getAttribute('data-name');
+                item.classList.toggle('hidden', !name.includes(query));
+            });
+        };
+
+        window.selectAllVisible = function() {
+            document.querySelectorAll('.product-item').forEach(item => {
+                if (!item.classList.contains('hidden')) {
+                    item.querySelector('.product-checkbox').checked = true;
+                }
+            });
+            updateSelectedCounter();
+        };
+
+        window.clearAllSelection = function() {
+            document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = false);
+            updateSelectedCounter();
+        };
+
+        window.updateSelectedCounter = function() {
+            const count = document.querySelectorAll('.product-checkbox:checked').length;
+            const el = document.getElementById('selected-counter');
+            if (el) el.innerText = `${count} محدد`;
+        };
+
+        // ===================== معاينة حية للشارة =====================
+        window.updatePreview = function() {
+            const qty = document.getElementById('bundle-qty').value.trim() || '4';
+            const price = document.getElementById('bundle-price').value.trim() || '0.00';
+            document.getElementById('badge-preview').innerText = `${qty} بـ ${price} ₪`;
+        };
+
+        // ===================== عرض قائمة الحزم =====================
+        window.loadBundles = async function() {
+            const listEl = document.getElementById('bundles-list');
+            try {
+                const querySnapshot = await getDocs(collection(db, "bundles"));
+                allBundles = [];
+                querySnapshot.forEach((docSnap) => {
+                    allBundles.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                renderBundlesList();
+            } catch (error) {
+                console.error("خطأ في جلب الحزم:", error);
+                listEl.innerHTML = '<p class="text-center py-6 text-red-500 text-sm">حدث خطأ أثناء الاتصال بقاعدة البيانات.</p>';
+            }
+        };
+
+        function findThumbnailForBundle(bundle) {
+            if (bundle.selectedItems && bundle.selectedItems.length > 0) {
+                for (const itemName of bundle.selectedItems) {
+                    const match = storeProducts.find(p => (p.name || '') === itemName);
+                    if (match && match.img) return match.img;
+                }
+            }
+            return null;
+        }
+
+        function renderBundlesList() {
+            const listEl = document.getElementById('bundles-list');
+            listEl.innerHTML = '';
+
+            let activeCount = 0;
+            let inactiveCount = 0;
+
+            allBundles.forEach((bundle) => {
+                const docId = bundle.id;
+                if (bundle.active) activeCount++; else inactiveCount++;
+
+                const itemsText = bundle.selectedItems && bundle.selectedItems.length > 0 ? bundle.selectedItems.join(' • ') : 'جميع المنتجات المشاركة...';
+                const thumb = findThumbnailForBundle(bundle);
+                const thumbHtml = thumb
+                    ? `<img src="${thumb}" class="w-11 h-11 rounded-lg object-cover border border-gray-200 flex-shrink-0" onerror="this.style.display='none'">`
+                    : `<div class="w-11 h-11 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0 text-gray-400"><i class="fa-solid fa-gift"></i></div>`;
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = "flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg gap-3";
+
+                itemDiv.innerHTML = `
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        ${thumbHtml}
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                <span class="font-bold text-gray-900 text-sm">${bundle.name}</span>
+                                <span class="text-xs bg-red-600 text-white font-bold px-2 py-0.5 rounded whitespace-nowrap">${bundle.qty || 4} بـ ${bundle.priceText} ₪</span>
+                            </div>
+                            <p class="text-gray-500 text-xs truncate max-w-[220px]">${itemsText}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <button onclick="openEditModal('${docId}')" class="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition cursor-pointer" title="تعديل">
+                            <i class="fa-solid fa-pen text-xs"></i>
+                        </button>
+                        <button onclick="deleteBundle('${docId}')" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition cursor-pointer" title="حذف">
+                            <i class="fa-regular fa-trash-can text-xs"></i>
+                        </button>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" ${bundle.active ? 'checked' : ''} onchange="toggleBundle('${docId}', ${!bundle.active})" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-md peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-400 after:border after:rounded-md after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent-green)]"></div>
+                        </label>
+                    </div>
+                `;
+                listEl.appendChild(itemDiv);
+            });
+
+            if (allBundles.length === 0) {
+                listEl.innerHTML = '<p class="text-center py-6 text-gray-500 text-sm">لا توجد عروض حزم مضافة حالياً.</p>';
+            }
+
+            document.getElementById('active-count').innerText = `${activeCount} نشطة`;
+            document.getElementById('inactive-count').innerText = `${inactiveCount} معطّلة`;
+        }
+
+        window.toggleBundle = async function(docId, newState) {
+            try {
+                await updateDoc(doc(db, "bundles", docId), { active: newState });
+                showToast(newState ? 'تم تفعيل العرض ✅' : 'تم تعطيل العرض');
+                loadBundles();
+            } catch (error) {
+                console.error("خطأ في التحديث:", error);
+                showToast('حدث خطأ أثناء تحديث الحالة', 'error');
+            }
+        };
+
+        window.deleteBundle = async function(docId) {
+            if (confirm('هل أنت متأكد من حذف هذا العرض من النظام؟')) {
+                try {
+                    await deleteDoc(doc(db, "bundles", docId));
+                    showToast('تم حذف العرض 🗑️');
+                    loadBundles();
+                } catch (error) {
+                    console.error("خطأ في الحذف:", error);
+                    showToast('حدث خطأ أثناء الحذف', 'error');
+                }
+            }
+        };
+
+        window.saveBundle = async function() {
+            const name = document.getElementById('bundle-name').value.trim();
+            const priceText = document.getElementById('bundle-price').value.trim();
+            const qty = document.getElementById('bundle-qty').value.trim();
+
+            const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
+            const selectedItems = Array.from(selectedCheckboxes).map(cb => cb.value);
+
+            if (!name || !priceText) {
+                showToast('يرجى تعبئة اسم الحزمة والسعر على الأقل', 'error');
+                return;
+            }
+
+            try {
+                if (editingBundleId) {
+                    await updateDoc(doc(db, "bundles", editingBundleId), {
+                        name: name,
+                        priceText: priceText,
+                        qty: qty || 4,
+                        selectedItems: selectedItems
+                    });
+                    showToast('تم تحديث عرض الحزمة بنجاح ✏️');
+                } else {
+                    await addDoc(collection(db, "bundles"), {
+                        name: name,
+                        priceText: priceText,
+                        qty: qty || 4,
+                        selectedItems: selectedItems,
+                        active: true,
+                        createdAt: Date.now()
+                    });
+                    showToast('تم إضافة عرض الحزمة بنجاح 🎉');
+                }
+
+                closeAddModal();
+                loadBundles();
+            } catch (error) {
+                console.error("خطأ في الحفظ:", error);
+                showToast('حدث خطأ أثناء حفظ الحزمة', 'error');
+            }
+        };
+
+        window.openAddModal = function() {
+            editingBundleId = null;
+            document.getElementById('modal-title').innerText = 'إضافة عرض حزمة جديد من المنتجات';
+            document.getElementById('save-btn').innerText = 'حفظ العرض';
+            document.getElementById('bundle-name').value = '';
+            document.getElementById('bundle-price').value = '';
+            document.getElementById('bundle-qty').value = '';
+            document.getElementById('product-search').value = '';
+            renderProductCheckboxes([]);
+            filterStoreProducts();
+            updatePreview();
+
+            document.getElementById('add-modal').classList.remove('hidden');
+            document.getElementById('add-modal').classList.add('flex');
+        };
+
+        window.openEditModal = function(docId) {
+            const bundle = allBundles.find(b => b.id === docId);
+            if (!bundle) return;
+
+            editingBundleId = docId;
+            document.getElementById('modal-title').innerText = `تعديل عرض: ${bundle.name}`;
+            document.getElementById('save-btn').innerText = 'حفظ التعديلات';
+            document.getElementById('bundle-name').value = bundle.name || '';
+            document.getElementById('bundle-price').value = bundle.priceText || '';
+            document.getElementById('bundle-qty').value = bundle.qty || 4;
+            document.getElementById('product-search').value = '';
+            renderProductCheckboxes(bundle.selectedItems || []);
+            filterStoreProducts();
+            updatePreview();
+
+            document.getElementById('add-modal').classList.remove('hidden');
+            document.getElementById('add-modal').classList.add('flex');
+        };
+
+        window.closeAddModal = function() {
+            document.getElementById('add-modal').classList.remove('flex');
+            document.getElementById('add-modal').classList.add('hidden');
+            editingBundleId = null;
+        };
+
+        fetchStoreProducts().then(loadBundles);
+    </script>
+</body>
+</html>
