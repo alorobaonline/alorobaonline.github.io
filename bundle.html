@@ -86,7 +86,13 @@
 
         // إعدادات الـ Firebase الخاصة بمتجرك
         const firebaseConfig = {
-            // ضع إعداداتك هنا
+            apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
+            authDomain: "alorobaonline.firebaseapp.com",
+            projectId: "alorobaonline",
+            storageBucket: "alorobaonline.firebasestorage.app",
+            messagingSenderId: "880642361344",
+            appId: "1:880642361344:web:9dddec05f81125f0fc30e5",
+            measurementId: "G-NL9CS2135V"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -125,7 +131,7 @@
             });
         }
 
-        async function loadBundles() {
+        window.loadBundles = async function() {
             const listEl = document.getElementById('bundles-list');
             try {
                 const querySnapshot = await getDocs(collection(db, "bundles"));
@@ -177,7 +183,7 @@
                 console.error("خطأ في جلب الحزم:", error);
                 listEl.innerHTML = '<p class="text-center py-6 text-red-500 text-sm">حدث خطأ أثناء الاتصال بقاعدة البيانات.</p>';
             }
-        }
+        };
 
         window.toggleBundle = async function(docId, newState) {
             try {
@@ -244,6 +250,7 @@
         };
 
         fetchStoreProducts();
+        loadBundles();
     </script>
 </body>
 </html>
