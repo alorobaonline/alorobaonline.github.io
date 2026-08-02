@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dooda Deliver</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --purple-900:#26215C;
+    --purple-800:#3C3489;
+    --purple-500:#7F77DD;
+    --purple-100:#EEEDFE;
+    --gold-500:#EF9F27;
+    --gold-100:#FAEEDA;
+    --coral-800:#712B13;
+    --coral-100:#FAECE7;
+    --green-800:#27500A;
+    --green-100:#EAF3DE;
+    --pink-800:#72243E;
+    --pink-100:#FBEAF0;
+    --blue-800:#0C447C;
+    --blue-100:#E6F1FB;
+    --ink:#211F33;
+    --ink-soft:#6C6890;
+    --line:#EDEBF7;
+    --page-bg:#F6F5FC;
+    --card:#FFFFFF;
+    --max:480px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Cairo',sans-serif;
+    background:var(--page-bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{text-decoration:none;color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+
+  .app{
+    max-width:var(--max);
+    margin:0 auto;
+    background:var(--card);
+    min-height:100vh;
+    position:relative;
+    padding-bottom:78px;
+  }
+
+  /* ---- topbar ---- */
+  header.topbar{
+    background:var(--purple-800);
+    padding:14px 16px 18px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    position:sticky;
+    top:0;
+    z-index:20;
+  }
+  .icon-btn{
+    background:none;
+    border:none;
+    color:var(--gold-100);
+    font-size:20px;
+    width:34px;
+    height:34px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:50%;
+  }
+  .icon-btn:active{background:rgba(255,255,255,0.12);}
+  .address-pill{
+    flex:1;
+    background:rgba(255,255,255,0.14);
+    border:none;
+    border-radius:22px;
+    padding:9px 14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    color:#fff;
+    font-size:13px;
+    font-weight:600;
+  }
+  .address-pill i{font-size:15px;color:var(--gold-500);}
+  .address-pill i.chev{font-size:12px;color:var(--purple-500);}
+
+  /* ---- hero ---- */
+  .hero{
+    position:relative;
+    background:linear-gradient(160deg, var(--purple-800) 0%, var(--purple-900) 100%);
+    padding:24px 20px 26px;
+    overflow:hidden;
+  }
+  .hero::after{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:radial-gradient(circle at 92% 15%, rgba(239,159,39,0.20), transparent 55%);
+    pointer-events:none;
+  }
+  .hero .tag{
+    display:inline-block;
+    background:rgba(239,159,39,0.16);
+    color:var(--gold-500);
+    font-size:11.5px;
+    font-weight:700;
+    padding:5px 12px;
+    border-radius:6px;
+    margin-bottom:12px;
+  }
+  .hero h1{
+    color:var(--gold-100);
+    font-size:22px;
+    font-weight:800;
+    line-height:1.45;
+    margin:0 0 8px;
+    max-width:320px;
+  }
+  .hero p{
+    color:var(--purple-500);
+    font-size:13px;
+    margin:0 0 18px;
+  }
+  .hero .cta{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:var(--gold-500);
+    color:#412402;
+    border:none;
+    font-weight:700;
+    font-size:14px;
+    padding:11px 22px;
+    border-radius:10px;
+  }
+  .hero .cta:active{transform:scale(0.98);}
+
+  /* ---- sections ---- */
+  section{padding:20px 16px 4px;}
+  .section-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .section-head h2{
+    font-size:15.5px;
+    font-weight:700;
+    margin:0;
+  }
+  .section-head .more{
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--purple-800);
+    display:flex;
+    align-items:center;
+    gap:2px;
+    background:none;
+    border:none;
+  }
+
+  /* ---- categories ---- */
+  .cats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+  }
+  .cat{
+    text-align:center;
+    background:none;
+    border:none;
+    padding:0;
+  }
+  .cat .bubble{
+    width:56px;
+    height:56px;
+    margin:0 auto 7px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:24px;
+  }
+  .cat span{
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+  }
+  .cat.c1 .bubble{background:var(--coral-100);color:var(--coral-800);}
+  .cat.c2 .bubble{background:var(--green-100);color:var(--green-800);}
+  .cat.c3 .bubble{background:var(--pink-100);color:var(--pink-800);}
+  .cat.c4 .bubble{background:var(--blue-100);color:var(--blue-800);}
+
+  /* ---- promo ---- */
+  .promo{
+    background:var(--purple-800);
+    border-radius:16px;
+    padding:16px 18px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    position:relative;
+    overflow:hidden;
+  }
+  .promo::after{
+    content:'';
+    position:absolute;
+    left:-30px;top:-30px;
+    width:120px;height:120px;
+    background:rgba(239,159,39,0.14);
+    border-radius:50%;
+  }
+  .promo .txt h3{
+    margin:0 0 4px;
+    color:var(--gold-100);
+    font-size:15px;
+    font-weight:700;
+  }
+  .promo .txt p{
+    margin:0;
+    color:var(--purple-500);
+    font-size:12px;
+  }
+  .promo .badge{
+    width:42px;height:42px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.12);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--gold-100);
+    font-size:19px;
+    z-index:1;
+    flex-shrink:0;
+  }
+
+  /* ---- restaurant list ---- */
+  .rest-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:12px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .rest-row:last-child{border-bottom:none;}
+  .rest-row .thumb{
+    width:52px;height:52px;
+    border-radius:14px;
+    flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;
+  }
+  .rest-row .info{flex:1;min-width:0;}
+  .rest-row .info h3{
+    margin:0 0 3px;
+    font-size:13.5px;
+    font-weight:700;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .rest-row .info p{
+    margin:0;
+    font-size:11.5px;
+    color:var(--ink-soft);
+  }
+  .rest-row .meta{
+    text-align:left;
+    flex-shrink:0;
+  }
+  .rest-row .rating{
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--purple-800);
+    display:flex;
+    align-items:center;
+    gap:3px;
+    justify-content:flex-start;
+  }
+  .rest-row .rating i{color:var(--gold-500);font-size:13px;}
+  .rest-row .time{
+    font-size:10.5px;
+    color:var(--ink-soft);
+    margin-top:2px;
+  }
+
+  /* ---- tabbar ---- */
+  nav.tabbar{
+    position:fixed;
+    bottom:0;
+    left:50%;
+    transform:translateX(-50%);
+    width:100%;
+    max-width:var(--max);
+    background:var(--card);
+    border-top:1px solid var(--line);
+    display:flex;
+    padding:10px 8px 16px;
+    z-index:30;
+  }
+  .tabbar .tab{
+    flex:1;
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:10.5px;
+    font-weight:600;
+    background:none;
+    border:none;
+  }
+  .tabbar .tab i{
+    display:block;
+    font-size:21px;
+    margin-bottom:3px;
+  }
+  .tabbar .tab.active{color:var(--purple-800);}
+  .tabbar .fab{
+    width:48px;height:48px;
+    background:var(--purple-800);
+    border:none;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;
+    font-size:20px;
+    margin-top:-26px;
+    box-shadow:0 8px 18px -6px rgba(60,52,137,0.55);
+  }
+
+  @media (min-width:481px){
+    body{background:#EAE8F7;}
+    .app{
+      margin-top:24px;
+      margin-bottom:24px;
+      border-radius:28px;
+      overflow:hidden;
+      min-height:auto;
+      box-shadow:0 30px 60px -25px rgba(38,33,92,0.35);
+    }
+    nav.tabbar{border-radius:0 0 28px 28px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="topbar">
+    <button class="icon-btn" aria-label="القائمة"><i class="ti ti-menu-2"></i></button>
+    <button class="address-pill">
+      <i class="ti ti-map-pin"></i>
+      عياص، رهط
+      <i class="ti ti-chevron-down chev"></i>
+    </button>
+    <button class="icon-btn" aria-label="بحث"><i class="ti ti-search"></i></button>
+  </header>
+
+  <div class="hero">
+    <span class="tag">توصيل سريع</span>
+    <h1>عزايمك ووجباتك أسرع مما تتخيل</h1>
+    <p>منسف · مشاوي · شاورما · نكهات أصيلة</p>
+    <button class="cta">اطلب الآن <i class="ti ti-arrow-left"></i></button>
+  </div>
+
+  <section>
+    <div class="section-head">
+      <h2>تصفح حسب الفئة</h2>
+    </div>
+    <div class="cats">
+      <button class="cat c1">
+        <div class="bubble"><i class="ti ti-soup"></i></div>
+        <span>أكل عربي</span>
+      </button>
+      <button class="cat c2">
+        <div class="bubble"><i class="ti ti-tools-kitchen-2"></i></div>
+        <span>بيشول بيتي</span>
+      </button>
+      <button class="cat c3">
+        <div class="bubble"><i class="ti ti-flame"></i></div>
+        <span>على الفحم</span>
+      </button>
+      <button class="cat c4">
+        <div class="bubble"><i class="ti ti-coffee"></i></div>
+        <span>مقاهي</span>
+      </button>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>عروض اليوم</h2>
+      <button class="more">عرض الكل <i class="ti ti-chevron-left"></i></button>
+    </div>
+    <div class="promo">
+      <div class="txt">
+        <h3>خصم 20% على المشاوي</h3>
+        <p>اليوم فقط، حتى منتصف الليل</p>
+      </div>
+      <div class="badge"><i class="ti ti-percentage"></i></div>
+    </div>
+  </section>
+
+  <section style="padding-bottom:8px;">
+    <div class="section-head">
+      <h2>مطاعم قريبة منك</h2>
+      <button class="more">عرض الكل <i class="ti ti-chevron-left"></i></button>
+    </div>
+
+    <div class="rest-row">
+      <div class="thumb" style="background:var(--coral-100);color:var(--coral-800);"><i class="ti ti-burger"></i></div>
+      <div class="info">
+        <h3>برجر الملك</h3>
+        <p>برجر · رهط</p>
+      </div>
+      <div class="meta">
+        <div class="rating"><i class="ti ti-star-filled"></i>4.8</div>
+        <div class="time">30-25 دقيقة</div>
+      </div>
+    </div>
+
+    <div class="rest-row">
+      <div class="thumb" style="background:var(--green-100);color:var(--green-800);"><i class="ti ti-tools-kitchen-2"></i></div>
+      <div class="info">
+        <h3>مطبخ بيتي - أم سلام</h3>
+        <p>بيشول بيتي · رهط</p>
+      </div>
+      <div class="meta">
+        <div class="rating"><i class="ti ti-star-filled"></i>4.5</div>
+        <div class="time">40-30 دقيقة</div>
+      </div>
+    </div>
+
+    <div class="rest-row">
+      <div class="thumb" style="background:var(--pink-100);color:var(--pink-800);"><i class="ti ti-flame"></i></div>
+      <div class="info">
+        <h3>مشاوي النجوم</h3>
+        <p>على الفحم · رهط</p>
+      </div>
+      <div class="meta">
+        <div class="rating"><i class="ti ti-star-filled"></i>4.9</div>
+        <div class="time">35-25 دقيقة</div>
+      </div>
+    </div>
+
+    <div class="rest-row">
+      <div class="thumb" style="background:var(--blue-100);color:var(--blue-800);"><i class="ti ti-coffee"></i></div>
+      <div class="info">
+        <h3>مقهى البلد</h3>
+        <p>مقاهي ومشروبات · رهط</p>
+      </div>
+      <div class="meta">
+        <div class="rating"><i class="ti ti-star-filled"></i>4.2</div>
+        <div class="time">20-15 دقيقة</div>
+      </div>
+    </div>
+
+  </section>
+
+  <nav class="tabbar">
+    <button class="tab active"><i class="ti ti-home"></i>الرئيسية</button>
+    <button class="tab"><i class="ti ti-tools-kitchen-2"></i>مطاعم</button>
+    <button class="fab" aria-label="السلة"><i class="ti ti-shopping-bag"></i></button>
+    <button class="tab"><i class="ti ti-receipt"></i>الطلبات</button>
+    <button class="tab"><i class="ti ti-user"></i>حسابي</button>
+  </nav>
+
+</div>
+
+</body>
+</html>
