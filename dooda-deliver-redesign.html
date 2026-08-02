@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dooda Deliver — تصميم مقترح</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --purple-900:#26215C;
+    --purple-800:#3C3489;
+    --purple-700:#4A4099;
+    --purple-500:#7F77DD;
+    --purple-100:#EEEDFE;
+    --gold-500:#EF9F27;
+    --gold-700:#BA7517;
+    --gold-100:#FAEEDA;
+    --coral-800:#712B13;
+    --coral-100:#FAECE7;
+    --green-800:#27500A;
+    --green-100:#EAF3DE;
+    --pink-800:#72243E;
+    --pink-100:#FBEAF0;
+    --blue-800:#0C447C;
+    --blue-100:#E6F1FB;
+    --ink:#211F33;
+    --ink-soft:#6C6890;
+    --line:#E9E7F5;
+    --page-bg:#F3F1FB;
+    --card:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Cairo','Tajawal',sans-serif;
+    background:var(--page-bg);
+    color:var(--ink);
+  }
+
+  .wrap{
+    max-width:1200px;
+    margin:0 auto;
+    padding:40px 24px 80px;
+  }
+
+  .intro{
+    text-align:center;
+    max-width:640px;
+    margin:0 auto 40px;
+  }
+  .intro .eyebrow{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:var(--purple-100);
+    color:var(--purple-800);
+    font-weight:600;
+    font-size:13px;
+    padding:6px 14px;
+    border-radius:20px;
+    margin-bottom:16px;
+  }
+  .intro h1{
+    font-size:28px;
+    font-weight:800;
+    margin:0 0 10px;
+    color:var(--purple-900);
+  }
+  .intro p{
+    font-size:15px;
+    line-height:1.8;
+    color:var(--ink-soft);
+    margin:0;
+  }
+
+  .board{
+    display:flex;
+    flex-wrap:wrap;
+    gap:48px;
+    justify-content:center;
+    align-items:flex-start;
+    margin-top:48px;
+  }
+
+  .phone{
+    width:340px;
+    background:#0D0C1F;
+    border-radius:44px;
+    padding:12px;
+    box-shadow:0 30px 60px -20px rgba(38,33,92,0.35);
+  }
+  .phone-screen{
+    background:var(--card);
+    border-radius:32px;
+    overflow:hidden;
+    height:720px;
+    overflow-y:auto;
+    position:relative;
+    scrollbar-width:none;
+  }
+  .phone-screen::-webkit-scrollbar{display:none;}
+
+  .notch{
+    height:26px;
+    background:var(--purple-800);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .notch::before{
+    content:'';
+    width:90px;
+    height:16px;
+    background:#0D0C1F;
+    border-radius:0 0 14px 14px;
+  }
+
+  .topbar{
+    background:var(--purple-800);
+    padding:12px 16px 16px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .topbar .icon-btn{
+    color:var(--gold-100);
+    font-size:19px;
+    width:32px;
+    height:32px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .topbar .address{
+    flex:1;
+    background:rgba(255,255,255,0.14);
+    border-radius:20px;
+    padding:8px 14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    color:#fff;
+    font-size:12.5px;
+    font-weight:600;
+  }
+  .topbar .address i{font-size:14px;color:var(--gold-500);}
+
+  .hero{
+    position:relative;
+    background:linear-gradient(160deg, var(--purple-800) 0%, var(--purple-900) 100%);
+    padding:20px 18px 22px;
+    overflow:hidden;
+  }
+  .hero::after{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(circle at 90% 20%, rgba(239,159,39,0.18), transparent 55%);
+    pointer-events:none;
+  }
+  .hero .tag{
+    display:inline-block;
+    background:rgba(239,159,39,0.16);
+    color:var(--gold-500);
+    font-size:11px;
+    font-weight:700;
+    padding:4px 10px;
+    border-radius:6px;
+    margin-bottom:10px;
+    letter-spacing:0.3px;
+  }
+  .hero h2{
+    color:var(--gold-100);
+    font-size:19px;
+    font-weight:800;
+    line-height:1.4;
+    margin:0 0 6px;
+  }
+  .hero p{
+    color:var(--purple-500);
+    font-size:12.5px;
+    margin:0 0 16px;
+  }
+  .hero .cta{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:var(--gold-500);
+    color:#412402;
+    border:none;
+    font-weight:700;
+    font-size:13px;
+    padding:10px 20px;
+    border-radius:10px;
+    cursor:pointer;
+  }
+
+  .section{
+    padding:18px 16px 4px;
+  }
+  .section-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:12px;
+  }
+  .section-head h3{
+    font-size:14.5px;
+    font-weight:700;
+    margin:0;
+    color:var(--ink);
+  }
+  .section-head .more{
+    font-size:12px;
+    font-weight:600;
+    color:var(--purple-700);
+    display:flex;
+    align-items:center;
+    gap:2px;
+  }
+
+  .cats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+  }
+  .cat{
+    text-align:center;
+  }
+  .cat .bubble{
+    width:52px;
+    height:52px;
+    margin:0 auto 6px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:22px;
+  }
+  .cat span{
+    font-size:11px;
+    font-weight:600;
+    color:var(--ink-soft);
+  }
+  .cat.c1 .bubble{background:var(--coral-100);color:var(--coral-800);}
+  .cat.c2 .bubble{background:var(--green-100);color:var(--green-800);}
+  .cat.c3 .bubble{background:var(--pink-100);color:var(--pink-800);}
+  .cat.c4 .bubble{background:var(--blue-100);color:var(--blue-800);}
+
+  .promo{
+    background:var(--purple-800);
+    border-radius:14px;
+    padding:14px 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    position:relative;
+    overflow:hidden;
+  }
+  .promo::after{
+    content:'';
+    position:absolute;
+    left:-30px;top:-30px;
+    width:110px;height:110px;
+    background:rgba(239,159,39,0.14);
+    border-radius:50%;
+  }
+  .promo .txt h4{
+    margin:0 0 3px;
+    color:var(--gold-100);
+    font-size:14px;
+    font-weight:700;
+  }
+  .promo .txt p{
+    margin:0;
+    color:var(--purple-500);
+    font-size:11px;
+  }
+  .promo .badge{
+    width:38px;height:38px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.12);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--gold-100);
+    font-size:17px;
+    z-index:1;
+  }
+
+  .rest-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .rest-row:last-child{border-bottom:none;}
+  .rest-row .thumb{
+    width:48px;height:48px;
+    border-radius:12px;
+    flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;
+  }
+  .rest-row .info{flex:1;min-width:0;}
+  .rest-row .info h5{
+    margin:0 0 3px;
+    font-size:13px;
+    font-weight:700;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .rest-row .info p{
+    margin:0;
+    font-size:11px;
+    color:var(--ink-soft);
+  }
+  .rest-row .rating{
+    font-size:12px;
+    font-weight:700;
+    color:var(--purple-800);
+    display:flex;
+    align-items:center;
+    gap:3px;
+    flex-shrink:0;
+  }
+  .rest-row .rating i{color:var(--gold-500);font-size:13px;}
+
+  .tabbar{
+    position:sticky;
+    bottom:0;
+    background:var(--card);
+    border-top:1px solid var(--line);
+    display:flex;
+    padding:10px 8px 14px;
+  }
+  .tabbar .tab{
+    flex:1;
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:10.5px;
+    font-weight:600;
+  }
+  .tabbar .tab i{
+    display:block;
+    font-size:20px;
+    margin-bottom:3px;
+  }
+  .tabbar .tab.active{color:var(--purple-800);}
+  .tabbar .fab{
+    width:46px;height:46px;
+    background:var(--purple-800);
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;
+    font-size:19px;
+    margin-top:-24px;
+    box-shadow:0 8px 18px -6px rgba(60,52,137,0.6);
+  }
+
+  .notes{
+    width:340px;
+  }
+  .notes h3{
+    font-size:16px;
+    font-weight:800;
+    color:var(--purple-900);
+    margin:0 0 16px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .note-item{
+    display:flex;
+    gap:12px;
+    margin-bottom:18px;
+  }
+  .note-item .num{
+    width:26px;height:26px;
+    border-radius:8px;
+    background:var(--purple-100);
+    color:var(--purple-800);
+    font-size:12px;
+    font-weight:800;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .note-item .body h4{
+    margin:0 0 4px;
+    font-size:13.5px;
+    font-weight:700;
+  }
+  .note-item .body p{
+    margin:0;
+    font-size:12.5px;
+    line-height:1.7;
+    color:var(--ink-soft);
+  }
+
+  @media (max-width:760px){
+    .board{gap:32px;}
+    .phone{width:100%;max-width:340px;}
+    .notes{width:100%;max-width:340px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="intro">
+    <span class="eyebrow"><i class="ti ti-sparkles"></i> اقتراح تصميم</span>
+    <h1>Dooda Deliver — الصفحة الرئيسية</h1>
+    <p>نسخة معدّلة من الصفحة الرئيسية بنفس هوية العلامة (البنفسجي والذهبي)، مع تبسيط البانر، تمييز الفئات بالألوان، ومحتوى حقيقي بدل النصوص التجريبية.</p>
+  </div>
+
+  <div class="board">
+
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="notch"></div>
+
+        <div class="topbar">
+          <span class="icon-btn"><i class="ti ti-menu-2"></i></span>
+          <div class="address">
+            <i class="ti ti-map-pin"></i>
+            عياص، رهط
+            <i class="ti ti-chevron-down"></i>
+          </div>
+          <span class="icon-btn"><i class="ti ti-search"></i></span>
+        </div>
+
+        <div class="hero">
+          <span class="tag">توصيل سريع</span>
+          <h2>عزايمك ووجباتك أسرع مما تتخيل</h2>
+          <p>منسف · مشاوي · شاورما · نكهات أصيلة</p>
+          <button class="cta">اطلب الآن <i class="ti ti-arrow-left"></i></button>
+        </div>
+
+        <div class="section">
+          <div class="section-head">
+            <h3>تصفح حسب الفئة</h3>
+          </div>
+          <div class="cats">
+            <div class="cat c1">
+              <div class="bubble"><i class="ti ti-soup"></i></div>
+              <span>أكل عربي</span>
+            </div>
+            <div class="cat c2">
+              <div class="bubble"><i class="ti ti-tools-kitchen-2"></i></div>
+              <span>بيشول بيتي</span>
+            </div>
+            <div class="cat c3">
+              <div class="bubble"><i class="ti ti-flame"></i></div>
+              <span>على الفحم</span>
+            </div>
+            <div class="cat c4">
+              <div class="bubble"><i class="ti ti-coffee"></i></div>
+              <span>مقاهي</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head">
+            <h3>عروض اليوم</h3>
+            <span class="more">عرض الكل <i class="ti ti-chevron-left"></i></span>
+          </div>
+          <div class="promo">
+            <div class="txt">
+              <h4>خصم 20% على المشاوي</h4>
+              <p>اليوم فقط، حتى منتصف الليل</p>
+            </div>
+            <div class="badge"><i class="ti ti-percentage"></i></div>
+          </div>
+        </div>
+
+        <div class="section" style="padding-bottom:8px;">
+          <div class="section-head">
+            <h3>مطاعم قريبة منك</h3>
+            <span class="more">عرض الكل <i class="ti ti-chevron-left"></i></span>
+          </div>
+
+          <div class="rest-row">
+            <div class="thumb" style="background:var(--coral-100);color:var(--coral-800);"><i class="ti ti-burger"></i></div>
+            <div class="info">
+              <h5>برجر الملك</h5>
+              <p>برجر · رهط</p>
+            </div>
+            <div class="rating"><i class="ti ti-star-filled"></i>4.8</div>
+          </div>
+
+          <div class="rest-row">
+            <div class="thumb" style="background:var(--green-100);color:var(--green-800);"><i class="ti ti-tools-kitchen-2"></i></div>
+            <div class="info">
+              <h5>مطبخ بيتي - أم سلام</h5>
+              <p>بيشول بيتي · رهط</p>
+            </div>
+            <div class="rating"><i class="ti ti-star-filled"></i>4.5</div>
+          </div>
+
+          <div class="rest-row">
+            <div class="thumb" style="background:var(--pink-100);color:var(--pink-800);"><i class="ti ti-flame"></i></div>
+            <div class="info">
+              <h5>مشاوي النجوم</h5>
+              <p>على الفحم · رهط</p>
+            </div>
+            <div class="rating"><i class="ti ti-star-filled"></i>4.9</div>
+          </div>
+        </div>
+
+        <div class="tabbar">
+          <div class="tab active"><i class="ti ti-home"></i>الرئيسية</div>
+          <div class="tab"><i class="ti ti-tools-kitchen-2"></i>مطاعم</div>
+          <div class="fab"><i class="ti ti-shopping-bag"></i></div>
+          <div class="tab"><i class="ti ti-receipt"></i>الطلبات</div>
+          <div class="tab"><i class="ti ti-user"></i>حسابي</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="notes">
+      <h3><i class="ti ti-list-check"></i> أهم التعديلات</h3>
+
+      <div class="note-item">
+        <div class="num">١</div>
+        <div class="body">
+          <h4>بانر مبسّط</h4>
+          <p>عنوان واحد + جملة فرعية قصيرة + زر دعوة واضح، بدل حشو الصور والنصوص فوق بعض.</p>
+        </div>
+      </div>
+
+      <div class="note-item">
+        <div class="num">٢</div>
+        <div class="body">
+          <h4>فئات مميزة بصرياً</h4>
+          <p>كل فئة لها أيقونة ولون خلفية خاص بها، فيسهل التعرف عليها من أول نظرة أثناء التصفح السريع.</p>
+        </div>
+      </div>
+
+      <div class="note-item">
+        <div class="num">٣</div>
+        <div class="body">
+          <h4>محتوى حقيقي بدل النصوص التجريبية</h4>
+          <p>استبدال "Product Promotion" و"localized sample copy" بعروض ونصوص فعلية جاهزة للنشر.</p>
+        </div>
+      </div>
+
+      <div class="note-item">
+        <div class="num">٤</div>
+        <div class="body">
+          <h4>لغة واحدة موحّدة</h4>
+          <p>كل عناصر الشاشة بنفس اللغة (هنا العربية) بدل خلط العربي والعبري والإنجليزي في نفس الصفحة.</p>
+        </div>
+      </div>
+
+      <div class="note-item">
+        <div class="num">٥</div>
+        <div class="body">
+          <h4>تباعد وتنظيم أوضح</h4>
+          <p>فواصل ومسافات بين الأقسام (الفئات، العروض، المطاعم) بدل التمرير على محتوى متلاصق.</p>
+        </div>
+      </div>
+
+      <div class="note-item">
+        <div class="num">٦</div>
+        <div class="body">
+          <h4>هوية الألوان محفوظة</h4>
+          <p>البنفسجي والذهبي زي العلامة الأصلية، لكن مستخدمين بشكل أكثر انضباطاً — لون واحد للتمييز (الذهبي) بدل توزيعه بلا نظام.</p>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>
