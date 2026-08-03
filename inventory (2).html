@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>إدارة المخزون - العروبة أونلاين</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-green: #1b4d2e;
+            --accent-green: #68a633;
+            --light-bg: #f3f4f6;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+        body { background-color: var(--light-bg); color: #1f2937; padding: 12px; padding-bottom: 50px; }
+        .container { max-width: 520px; margin: 0 auto; background: white; border-radius: 20px; padding: 15px; border: 1px solid #e5e7eb; }
+
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 15px; }
+        .header h1 { font-size: 0.95rem; color: var(--primary-green); font-weight: 900; }
+        .back-btn { background: #e5e7eb; color: #374151; padding: 5px 12px; border-radius: 8px; text-decoration: none; font-size: 0.7rem; font-weight: 700; border: 1px solid #cbd5e1; cursor: pointer; }
+
+        .form-control { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; outline: none; background: white; margin-bottom: 8px; }
+        .form-control:focus { border-color: var(--accent-green); }
+
+        .btn-main { width: 100%; background: var(--primary-green); color: white; border: none; padding: 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; }
+        .scan-btn { width: 100%; background: linear-gradient(135deg, #1b4d2e 0%, #2563eb 100%); color: white; border: none; padding: 12px; border-radius: 10px; font-size: 0.85rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 12px; }
+
+        .filters-row { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; }
+        .low-stock-badge { background: #dc2626; color: white; font-size: 0.65rem; font-weight: 900; padding: 3px 10px; border-radius: 20px; margin-bottom: 10px; display: none; }
+
+        .inv-card { display: flex; gap: 8px; padding: 8px; border-radius: 10px; margin-bottom: 6px; transition: outline .2s; }
+        .inv-img-box { width: 46px; height: 46px; flex-shrink: 0; border-radius: 8px; background: linear-gradient(180deg, #fafbfa 0%, #ffffff 100%); border: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; cursor: pointer; }
+        .inv-img-box img { width: 100%; height: 100%; object-fit: contain; }
+        .inv-img-box .change-badge { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(27,77,46,0.85); color: white; font-size: 0.42rem; font-weight: 800; text-align: center; padding: 1px 0; }
+        .inv-fields { flex: 1; min-width: 0; }
+        .inv-row-inputs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 4px; }
+        .inv-row-inputs input { padding: 4px 6px; font-size: 0.68rem; }
+        .inv-row-inputs label { font-size: 0.55rem; color: #6b7280; display: block; margin-bottom: 1px; }
+        .inv-barcode-row { display: flex; gap: 4px; margin-top: 4px; }
+        .inv-barcode-row input { padding: 4px 6px; font-size: 0.65rem; }
+        .save-btn { background: var(--accent-green); color: white; border: none; padding: 5px 10px; border-radius: 6px; font-weight: 800; cursor: pointer; font-size: 0.65rem; white-space: nowrap; }
+
+        .scanner-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 30000; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .scanner-modal video { width: 100%; max-width: 420px; border-radius: 14px; background: #000; }
+        .scanner-status { color: white; margin-top: 12px; font-size: 0.8rem; font-weight: 700; text-align: center; }
+        .scanner-close-btn { margin-top: 18px; background: #dc2626; color: white; border: none; padding: 10px 26px; border-radius: 10px; font-weight: 900; cursor: pointer; font-size: 0.8rem; }
+
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 20000; align-items: center; justify-content: center; padding: 20px; }
+        .modal-box { background: white; border-radius: 16px; padding: 20px; max-width: 400px; width: 100%; max-height: 90vh; overflow-y: auto; }
+        .modal-title { font-size: 0.95rem; font-weight: 900; color: var(--primary-green); margin-bottom: 14px; }
+        .checkbox-row { display: flex; gap: 14px; margin-bottom: 8px; flex-wrap: wrap; }
+        .checkbox-row label { display: flex; align-items: center; gap: 5px; font-size: 0.7rem; font-weight: 700; color: #4b5563; cursor: pointer; }
+        .preview-thumb { max-width: 90px; max-height: 90px; border-radius: 10px; border: 1px solid #e5e7eb; margin-top: 6px; }
+        .status-text { font-size: 0.68rem; font-weight: 700; color: var(--accent-green); margin-top: 4px; min-height: 16px; }
+        .error-text { color: #dc2626; font-size: 0.72rem; font-weight: 800; min-height: 16px; margin-bottom: 6px; }
+    </style>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, updateDoc, addDoc, deleteDoc, doc, getDoc, setDoc, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
+            authDomain: "alorobaonline.firebaseapp.com",
+            projectId: "alorobaonline",
+            storageBucket: "alorobaonline.firebasestorage.app",
+            messagingSenderId: "880642361344",
+            appId: "1:880642361344:web:9dddec05f81125f0fc30e5",
+            measurementId: "G-NL9CS2135V"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        window.db = db;
+        window.collection = collection;
+        window.onSnapshot = onSnapshot;
+        window.updateDoc = updateDoc;
+        window.addDoc = addDoc;
+        window.deleteDoc = deleteDoc;
+        window.doc = doc;
+        window.getDoc = getDoc;
+        window.setDoc = setDoc;
+        window.query = query;
+
+        // ===================== بوابة تسجيل الدخول (Firebase Authentication) =====================
+        let appBooted = false;
+
+        window.staffLogin = async function() {
+            const email = document.getElementById('authGateEmail').value.trim();
+            const password = document.getElementById('authGatePassword').value;
+            const errEl = document.getElementById('authGateError');
+            const btn = document.getElementById('authGateSubmitBtn');
+            errEl.innerText = '';
+
+            if (!email || !password) {
+                errEl.innerText = 'الرجاء تعبئة البريد الإلكتروني وكلمة المرور';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = '⏳ جاري الدخول...';
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (e) {
+                console.error(e);
+                if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found') {
+                    errEl.innerText = '❌ البريد الإلكتروني أو كلمة المرور غير صحيحة';
+                } else if (e.code === 'auth/too-many-requests') {
+                    errEl.innerText = '❌ محاولات كتيرة، حاول بعد شوي';
+                } else {
+                    errEl.innerText = '❌ تعذر تسجيل الدخول: ' + (e.message || e);
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'دخول';
+            }
+        };
+
+        window.staffLogout = function() {
+            signOut(auth);
+        };
+
+        onAuthStateChanged(auth, async (user) => {
+            const gate = document.getElementById('authGateScreen');
+            const errEl = document.getElementById('authGateError');
+            if (user) {
+                try {
+                    const roleSnap = await getDoc(doc(db, "staffRoles", user.email));
+                    const roles = (roleSnap.exists() && Array.isArray(roleSnap.data().roles)) ? roleSnap.data().roles : [];
+                    const allowed = roles.includes('admin') || roles.includes('inventory');
+                    if (!allowed) {
+                        if (errEl) errEl.innerText = '❌ ما عندك صلاحية توصل لهاي الصفحة - تواصل مع الإدارة';
+                        await signOut(auth);
+                        return;
+                    }
+                } catch (e) {
+                    console.error(e);
+                    if (errEl) errEl.innerText = '❌ تعذر التحقق من الصلاحية، حاول مرة أخرى';
+                    await signOut(auth);
+                    return;
+                }
+                if (gate) gate.style.display = 'none';
+                if (!appBooted) {
+                    appBooted = true;
+                    window.dispatchEvent(new Event('firebase-ready'));
+                }
+            } else {
+                appBooted = false;
+                if (gate) gate.style.display = 'flex';
+            }
+        });
+    </script>
+
+    <!-- أداة قراءة الباركود بالكاميرا (مجانية، مفتوحة المصدر) -->
+    <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
+</head>
+<body>
+
+<!-- بوابة تسجيل دخول الموظفين -->
+<div id="authGateScreen" style="position: fixed; inset: 0; background: var(--light-bg); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+    <div style="max-width: 380px; width: 100%; background: white; border-radius: 20px; padding: 28px 22px; border: 1px solid #e5e7eb;">
+        <div style="text-align: center; margin-bottom: 18px;">
+            <div style="font-size: 2rem; margin-bottom: 6px;">🔒</div>
+            <div style="font-size: 1rem; font-weight: 900; color: var(--primary-green);">تسجيل دخول الموظفين</div>
+            <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 4px;">إدارة المخزون - العروبة أونلاين</div>
+        </div>
+        <input type="email" id="authGateEmail" placeholder="البريد الإلكتروني" autocomplete="username" style="width:100%; padding:11px 14px; border:1.5px solid #e5e7eb; border-radius:12px; font-size:0.85rem; font-weight:600; margin-bottom:10px; outline:none; box-sizing:border-box;" onkeydown="if(event.key==='Enter') document.getElementById('authGatePassword').focus();">
+        <input type="password" id="authGatePassword" placeholder="كلمة المرور" autocomplete="current-password" style="width:100%; padding:11px 14px; border:1.5px solid #e5e7eb; border-radius:12px; font-size:0.85rem; font-weight:600; margin-bottom:6px; outline:none; box-sizing:border-box;" onkeydown="if(event.key==='Enter') staffLogin();">
+        <div id="authGateError" style="color:#dc2626; font-size:0.7rem; font-weight:800; min-height:16px; margin-bottom:8px;"></div>
+        <button id="authGateSubmitBtn" onclick="staffLogin()" style="width:100%; background: var(--primary-green); color:white; border:none; padding:12px; border-radius:12px; font-weight:800; font-size:0.85rem; cursor:pointer;">دخول</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="header">
+        <h1>📦 إدارة المخزون - العروبة أونلاين</h1>
+        <div style="display:flex; gap:6px;">
+            <a href="admin.html" class="back-btn">← لوحة التحكم</a>
+            <button onclick="staffLogout()" class="back-btn" style="background:#fee2e2; color:#991b1b; border-color:#fecaca;">🚪 خروج</button>
+        </div>
+    </div>
+
+    <button class="scan-btn" onclick="openScannerModal()">📷 مسح باركود منتج</button>
+
+    <div class="low-stock-badge" id="lowStockBadge"></div>
+
+    <input type="text" id="inventorySearchInput" class="form-control" placeholder="🔍 دور باسم منتج أو باركود..." oninput="renderInventoryList()">
+    <select id="supplierFilterSelect" class="form-control" onchange="renderInventoryList()">
+        <option value="">🏭 كل الشركات/الموردين</option>
+    </select>
+    <datalist id="supplierDatalist"></datalist>
+    <label style="display:flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:700; color:#4b5563; margin-bottom:12px; cursor:pointer;">
+        <input type="checkbox" id="inventoryLowStockOnlyToggle" onchange="renderInventoryList()"> عرض المخزون المنخفض بس
+    </label>
+
+    <div id="inventoryListContainer">
+        <p style="text-align:center; color:#888; font-size:0.75rem;">جاري تحميل المنتجات...</p>
+    </div>
+</div>
+
+<!-- نافذة مسح الباركود -->
+<div id="scannerModal" class="scanner-modal">
+    <video id="scannerVideo"></video>
+    <div class="scanner-status" id="scannerStatus">وجّه الكاميرا نحو الباركود...</div>
+    <button class="scanner-close-btn" onclick="closeScannerModal()">✖️ إغلاق</button>
+</div>
+
+<!-- نافذة إضافة منتج جديد (لما الباركود الممسوح ما يطابق أي منتج موجود) -->
+<!-- نافذة الخيار: باركود ما إله تطابق - منتج جديد أو ربط بمنتج موجود -->
+<div id="barcodeChoiceModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-title">🔍 الباركود ما إله تطابق</div>
+        <div style="text-align:center; background:#f1f5f9; border-radius:8px; padding:8px; font-family:monospace; font-size:0.85rem; font-weight:800; margin-bottom:14px;" id="scannedBarcodeDisplay"></div>
+        <p style="font-size:0.72rem; color:#4b5563; margin-bottom:12px;">هل هاد منتج موجود عندك أصلاً بالنظام (بس ما حطتله باركود لسا)، ولا منتج جديد كلياً؟</p>
+        <button class="btn-main" style="background:#2563eb; margin-bottom:8px;" onclick="chooseLinkExistingProduct()">🔗 منتج موجود - اربط الباركود فيه</button>
+        <button class="btn-main" style="background:var(--accent-green); margin-bottom:8px;" onclick="chooseAddNewProduct()">🆕 منتج جديد كلياً</button>
+        <button class="btn-main" style="background:#94a3b8;" onclick="closeBarcodeChoiceModal()">إلغاء</button>
+    </div>
+</div>
+
+<!-- نافذة ربط الباركود بمنتج موجود -->
+<div id="linkBarcodeModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-title">🔗 اربط الباركود بمنتج موجود</div>
+        <input type="text" id="linkBarcodeSearchInput" class="form-control" placeholder="🔍 دور باسم المنتج..." oninput="renderLinkBarcodeResults(this.value.trim())">
+        <div id="linkBarcodeResultsContainer" style="max-height:320px; overflow-y:auto; margin-top:8px;"></div>
+        <button class="btn-main" style="background:#94a3b8; margin-top:10px;" onclick="closeLinkBarcodeModal()">إلغاء</button>
+    </div>
+</div>
+
+<div id="addProductModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-title">➕ منتج جديد (باركود غير موجود)</div>
+
+        <label style="font-size:0.7rem; font-weight:800; color:#4b5563; display:block; margin-bottom:4px;">الباركود</label>
+        <input type="text" id="newProdBarcode" class="form-control" readonly style="background:#f1f5f9;">
+
+        <label style="font-size:0.7rem; font-weight:800; color:#4b5563; display:block; margin-bottom:4px;">اسم المنتج</label>
+        <input type="text" id="newProdName" class="form-control" placeholder="اسم المنتج">
+
+        <div style="display:flex; gap:8px;">
+            <div style="flex:1;">
+                <label style="font-size:0.7rem; font-weight:800; color:#4b5563; display:block; margin-bottom:4px;">السعر (₪)</label>
+                <input type="number" id="newProdPrice" class="form-control" placeholder="0.00">
+            </div>
+            <div style="flex:1;">
+                <label style="font-size:0.7rem; font-weight:800; color:#4b5563; display:block; margin-bottom:4px;">الكمية المتوفرة</label>
+                <input type="number" id="newProdStock" class="form-control" placeholder="0">
+            </div>
+        </div>
+
+        <label style="font-size:0.7rem; font-weight:800; color:#4b5563; display:block; margin-bottom:4px;">💰 سعر التكلفة (اختياري، سري)</label>
+        <input type="number" step="0.01" id="newProdCost" class="form-control" placeholder="0.00">
+
+        <label style="font-size:0.7rem; font-weight:800; color:#4b5563; display:block; margin-bottom:4px;">🏭 الشركة/المورّد (اختياري)</label>
+        <input type="text" id="newProdSupplier" class="form-control" placeholder="مثلاً: شركة كولا" list="supplierDatalist">
+
+        <label style="font-size:0.7rem; font-weight:800; color:#4b5563; display:block; margin-bottom:4px;">صورة المنتج (اختياري)</label>
+        <input type="file" id="newProdImageFile" accept="image/*" class="form-control" onchange="handleNewProductImage(event)">
+        <div class="checkbox-row">
+            <label><input type="checkbox" id="newProdRemoveBgCheckbox" checked> 🪄 إزالة الخلفية</label>
+            <label><input type="checkbox" id="newProdResizeCheckbox" checked> 📐 توحيد الحجم</label>
+        </div>
+        <img id="newProdImgPreview" class="preview-thumb" style="display:none;">
+        <div class="status-text" id="newProdImgStatus"></div>
+
+        <div class="error-text" id="addProductError"></div>
+
+        <div style="display:flex; gap:8px; margin-top:10px;">
+            <button class="btn-main" style="background:#94a3b8;" onclick="closeAddProductModal()">إلغاء</button>
+            <button class="btn-main" id="addProductSubmitBtn" onclick="submitNewProduct()">إضافة المنتج</button>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة تكبير الصورة -->
+<div id="imageModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:40000; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target===this) this.style.display='none';">
+    <img id="modalImg" style="max-width:100%; max-height:100%; border-radius:12px;">
+</div>
+
+<script>
+    let products = [];
+    let productCosts = {}; // { productId: costPrice }
+    let newProductImageDataUrl = '';
+
+    window.addEventListener('firebase-ready', function() {
+        initProductsListener();
+        initProductCostsListener();
+    });
+
+    function initProductsListener() {
+        window.onSnapshot(window.collection(window.db, "products"), (snapshot) => {
+            products = [];
+            snapshot.forEach(docSnap => {
+                products.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            renderInventoryList();
+        });
+    }
+
+    function initProductCostsListener() {
+        window.onSnapshot(window.collection(window.db, "productCosts"), (snapshot) => {
+            productCosts = {};
+            snapshot.forEach(docSnap => {
+                productCosts[docSnap.id] = docSnap.data().costPrice;
+            });
+            renderInventoryList();
+        });
+    }
+
+    // ===================== تنظيف بسيط لمنع XSS من بيانات مدخلة =====================
+    function escapeHtml(str) {
+        if (str === undefined || str === null) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // ===================== إدارة المخزون =====================
+    function isLowStock(p) {
+        if (p.stockQty === undefined || p.stockQty === null || p.stockQty === '') return false;
+        let threshold = (p.lowStockThreshold !== undefined && p.lowStockThreshold !== null && p.lowStockThreshold !== '') ? Number(p.lowStockThreshold) : 5;
+        return Number(p.stockQty) <= threshold;
+    }
+
+    function updateLowStockBadge() {
+        let lowStockCount = products.filter(p => isLowStock(p)).length;
+        let badge = document.getElementById('lowStockBadge');
+        if (lowStockCount > 0) {
+            badge.innerText = `⚠️ ${lowStockCount} منتج بمخزون منخفض`;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    // يبني قائمة الشركات/الموردين تلقائياً من بيانات المنتجات الحالية (بدون جدول منفصل)
+    function updateSupplierOptions() {
+        const select = document.getElementById('supplierFilterSelect');
+        const datalist = document.getElementById('supplierDatalist');
+        if (!select || !datalist) return;
+
+        const currentValue = select.value;
+        const suppliers = [...new Set(products.map(p => (p.supplier || '').trim()).filter(s => s))].sort((a, b) => a.localeCompare(b));
+
+        select.innerHTML = '<option value="">🏭 كل الشركات/الموردين</option>' +
+            suppliers.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+        datalist.innerHTML = suppliers.map(s => `<option value="${escapeHtml(s)}">`).join('');
+
+        // نحافظ على الاختيار الحالي لو لسا موجود ضمن القائمة المحدّثة
+        if (suppliers.includes(currentValue)) {
+            select.value = currentValue;
+        }
+    }
+
+    function renderInventoryList() {
+        const container = document.getElementById('inventoryListContainer');
+        if (!container) return;
+
+        updateSupplierOptions();
+
+        let searchVal = document.getElementById('inventorySearchInput').value.trim();
+        let lowStockOnly = document.getElementById('inventoryLowStockOnlyToggle').checked;
+        let supplierFilter = document.getElementById('supplierFilterSelect').value;
+
+        let list = products.slice();
+        if (searchVal) {
+            list = list.filter(p =>
+                (p.name && p.name.includes(searchVal)) ||
+                (p.barcode && p.barcode.includes(searchVal))
+            );
+        }
+        if (supplierFilter) {
+            list = list.filter(p => (p.supplier || '') === supplierFilter);
+        }
+
+        updateLowStockBadge();
+
+        if (lowStockOnly) {
+            list = list.filter(p => isLowStock(p));
+        }
+
+        list.sort((a, b) => {
+            let aLow = isLowStock(a), bLow = isLowStock(b);
+            if (aLow !== bLow) return aLow ? -1 : 1;
+            return (a.name || '').localeCompare(b.name || '');
+        });
+
+        if (list.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#888; padding:15px; font-size:0.75rem;">لا توجد منتجات مطابقة.</p>';
+            return;
+        }
+
+        container.innerHTML = list.map(p => {
+            let low = isLowStock(p);
+            let stockVal = (p.stockQty !== undefined && p.stockQty !== null) ? p.stockQty : '';
+            let thresholdVal = (p.lowStockThreshold !== undefined && p.lowStockThreshold !== null) ? p.lowStockThreshold : 5;
+            let img = p.img || 'https://i.ibb.co/3m1K2wP/basket.png';
+            let costVal = (productCosts[p.id] !== undefined && productCosts[p.id] !== null) ? productCosts[p.id] : '';
+            let sellPrice = Number(p.salePrice !== undefined && p.salePrice !== null && p.salePrice !== '' ? p.salePrice : p.price) || 0;
+            let profitHtml = '';
+            if (costVal !== '' && sellPrice > 0) {
+                let profit = sellPrice - Number(costVal);
+                let profitColor = profit >= 0 ? '#16a34a' : '#dc2626';
+                profitHtml = ` · <span style="font-weight:800; color:${profitColor};">ربح: ${profit.toFixed(2)} ₪</span>`;
+            }
+            return `
+                <div class="inv-card" id="invCard_${p.id}" style="background: ${low ? '#fef2f2' : '#f8fafc'}; border: 1px solid ${low ? '#fecaca' : '#cbd5e1'};">
+                    <div class="inv-img-box" onclick="document.getElementById('imgFileInput_${p.id}').click()">
+                        <img src="${img}" alt="${escapeHtml(p.name)}">
+                        <div class="change-badge">📷</div>
+                        <input type="file" id="imgFileInput_${p.id}" accept="image/*" style="display:none;" onchange="handleInventoryImageChange(event, '${p.id}')">
+                    </div>
+                    <div class="inv-fields">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                            <input type="text" class="form-control" id="invName_${p.id}" value="${escapeHtml(p.name)}" style="margin-bottom:0; padding:4px 6px; font-size:0.72rem; font-weight:800; flex:1;">
+                            ${low ? '<span style="background:#dc2626; color:white; font-size:0.52rem; font-weight:900; padding:1px 6px; border-radius:20px; flex-shrink:0;">⚠️</span>' : ''}
+                            <button onclick="deleteInventoryProduct('${p.id}')" style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:6px; padding:4px 7px; font-size:0.7rem; cursor:pointer; flex-shrink:0;">🗑️</button>
+                        </div>
+                        <div style="font-size:0.6rem; color:#6b7280;">بيع: ${sellPrice} ₪${profitHtml}</div>
+
+                        <input type="text" class="form-control" id="invBarcode_${p.id}" value="${escapeHtml(p.barcode || '')}" placeholder="باركود" style="margin-bottom:0; margin-top:4px; padding:4px 6px; font-size:0.65rem;">
+                        <input type="text" class="form-control" id="invSupplier_${p.id}" value="${escapeHtml(p.supplier || '')}" placeholder="🏭 الشركة/المورّد" list="supplierDatalist" style="margin-bottom:0; margin-top:4px; padding:4px 6px; font-size:0.65rem;">
+
+                        <div class="inv-row-inputs">
+                            <div>
+                                <label>كمية</label>
+                                <input type="number" class="form-control" id="invStock_${p.id}" value="${stockVal}" style="margin-bottom:0;">
+                            </div>
+                            <div>
+                                <label>حد تنبيه</label>
+                                <input type="number" class="form-control" id="invThreshold_${p.id}" value="${thresholdVal}" style="margin-bottom:0;">
+                            </div>
+                            <div>
+                                <label>💰 تكلفة</label>
+                                <input type="number" step="0.01" class="form-control" id="invCost_${p.id}" value="${costVal}" style="margin-bottom:0;">
+                            </div>
+                        </div>
+                        <div id="invImgStatus_${p.id}" class="status-text" style="min-height:12px; margin-top:2px;"></div>
+                        <button class="save-btn" style="width:100%; margin-top:4px;" onclick="saveInventoryRow('${p.id}')">💾 حفظ</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function saveInventoryRow(productId) {
+        let stockRaw = document.getElementById(`invStock_${productId}`).value.trim();
+        let thresholdRaw = document.getElementById(`invThreshold_${productId}`).value.trim();
+        let barcodeRaw = document.getElementById(`invBarcode_${productId}`).value.trim();
+        let supplierRaw = document.getElementById(`invSupplier_${productId}`).value.trim();
+        let costRaw = document.getElementById(`invCost_${productId}`).value.trim();
+        let nameRaw = document.getElementById(`invName_${productId}`).value.trim();
+
+        if (!nameRaw) {
+            alert('اسم المنتج ما ينفعش يكون فاضي');
+            return;
+        }
+
+        let updateData = {};
+        updateData.name = nameRaw;
+        updateData.stockQty = stockRaw === '' ? null : (parseInt(stockRaw) || 0);
+        updateData.lowStockThreshold = thresholdRaw === '' ? 5 : (parseInt(thresholdRaw) || 5);
+        updateData.barcode = barcodeRaw;
+        updateData.supplier = supplierRaw;
+
+        try {
+            await window.updateDoc(window.doc(window.db, "products", productId), updateData);
+            if (costRaw === '') {
+                await window.setDoc(window.doc(window.db, "productCosts", productId), { costPrice: null }, { merge: true });
+            } else {
+                await window.setDoc(window.doc(window.db, "productCosts", productId), { costPrice: parseFloat(costRaw) || 0 }, { merge: true });
+            }
+        } catch(e) {
+            console.error(e);
+            alert('تعذر حفظ التعديل: ' + (e.message || e));
+        }
+    }
+
+    async function deleteInventoryProduct(productId) {
+        const p = products.find(pp => pp.id === productId);
+        const name = p ? p.name : 'هاد المنتج';
+        if (!confirm(`متأكد من حذف "${name}"؟ هاد الإجراء ما ممكن نتراجع عنه.`)) return;
+        try {
+            await window.deleteDoc(window.doc(window.db, "products", productId));
+        } catch(e) {
+            console.error(e);
+            alert('تعذر حذف المنتج: ' + (e.message || e));
+        }
+    }
+
+    // ===================== توحيد صور المنتجات تلقائيًا (نفس منطق لوحة التحكم) =====================
+    const CLOUDINARY_CLOUD_NAME = 'lqrit0u7';
+    const CLOUDINARY_UPLOAD_PRESET = 'v7mkckzz';
+
+    function drawStandardizedProductImage(img, targetSize) {
+        targetSize = targetSize || 1000;
+        const canvas = document.createElement('canvas');
+        canvas.width = targetSize;
+        canvas.height = targetSize;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, targetSize, targetSize);
+        const padding = 0.06;
+        const usableSize = targetSize * (1 - padding * 2);
+        const scale = usableSize / Math.max(img.width, img.height);
+        const drawW = img.width * scale;
+        const drawH = img.height * scale;
+        const dx = (targetSize - drawW) / 2;
+        const dy = (targetSize - drawH) / 2;
+        ctx.drawImage(img, dx, dy, drawW, drawH);
+        return canvas;
+    }
+
+    let bgRemovalModulePromise = null;
+    function loadBgRemovalModule() {
+        if (!bgRemovalModulePromise) {
+            bgRemovalModulePromise = import('https://esm.sh/@imgly/background-removal@1.5.5');
+        }
+        return bgRemovalModulePromise;
+    }
+
+    async function tryRemoveBackground(file) {
+        try {
+            const mod = await loadBgRemovalModule();
+            const removeBackgroundFn = mod.default || mod.removeBackground;
+            const resultBlob = await removeBackgroundFn(file);
+            return resultBlob;
+        } catch (e) {
+            console.log('تعذر إزالة الخلفية تلقائيًا لهذه الصورة، بنكمل بالصورة الأصلية:', e);
+            return null;
+        }
+    }
+
+    function loadImageFromSource(source) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = (source instanceof Blob) ? URL.createObjectURL(source) : source;
+        });
+    }
+
+    function loadImageFromFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function processProductImageFile(file, onStatus, options) {
+        options = options || {};
+        const doRemoveBg = options.removeBg !== false;
+        const doResize = options.resize !== false;
+
+        if (!doRemoveBg && !doResize) {
+            if (onStatus) onStatus('📥 جاري تجهيز الصورة...');
+            return await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        let img;
+        let bgWasRemoved = false;
+
+        if (doRemoveBg) {
+            if (onStatus) onStatus('🪄 جاري إزالة الخلفية تلقائيًا...');
+            const bgRemovedBlob = await tryRemoveBackground(file);
+            if (bgRemovedBlob) {
+                img = await loadImageFromSource(bgRemovedBlob);
+                bgWasRemoved = true;
+            } else {
+                if (onStatus) onStatus('⚠️ تعذّرت إزالة الخلفية، جاري المتابعة بالصورة الأصلية...');
+                img = await loadImageFromFile(file);
+            }
+        } else {
+            img = await loadImageFromFile(file);
+        }
+
+        if (doResize) {
+            const canvas = drawStandardizedProductImage(img);
+            return canvas.toDataURL('image/jpeg', 0.92);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        return canvas.toDataURL(bgWasRemoved ? 'image/png' : 'image/jpeg', 0.92);
+    }
+
+    async function uploadImageToStorage(dataUrl) {
+        if (!dataUrl || !dataUrl.startsWith('data:')) return dataUrl;
+        const formData = new FormData();
+        formData.append('file', dataUrl);
+        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        formData.append('folder', 'products');
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        if (!response.ok) throw new Error('فشل رفع الصورة إلى Cloudinary');
+        const data = await response.json();
+        return data.secure_url;
+    }
+
+    // تغيير صورة منتج موجود مباشرة من بطاقته بقائمة المخزون
+    async function handleInventoryImageChange(event, productId) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const statusEl = document.getElementById(`invImgStatus_${productId}`);
+        statusEl.innerText = '🪄 جاري معالجة الصورة...';
+        try {
+            const dataUrl = await processProductImageFile(file, (msg) => statusEl.innerText = msg, { removeBg: true, resize: true });
+            statusEl.innerText = '☁️ جاري الرفع...';
+            const finalUrl = await uploadImageToStorage(dataUrl);
+            await window.updateDoc(window.doc(window.db, "products", productId), { img: finalUrl });
+            statusEl.innerText = '✅ تم تحديث الصورة';
+            setTimeout(() => statusEl.innerText = '', 1800);
+        } catch(e) {
+            console.error(e);
+            statusEl.innerText = '❌ فشل تحديث الصورة';
+        }
+    }
+
+    // ===================== ماسح الباركود بالكاميرا =====================
+    let codeReader = null;
+
+    function openScannerModal() {
+        document.getElementById('scannerModal').style.display = 'flex';
+        document.getElementById('scannerStatus').innerText = 'وجّه الكاميرا نحو الباركود...';
+
+        if (!window.ZXing) {
+            document.getElementById('scannerStatus').innerText = '❌ تعذر تحميل أداة المسح، تأكد من الاتصال بالإنترنت';
+            return;
+        }
+
+        codeReader = new ZXing.BrowserMultiFormatReader();
+        codeReader.decodeFromVideoDevice(undefined, 'scannerVideo', (result, err) => {
+            if (result) {
+                handleBarcodeScanned(result.getText());
+            }
+        }).catch((e) => {
+            console.error(e);
+            document.getElementById('scannerStatus').innerText = '❌ تعذر الوصول للكاميرا (تأكد من إعطاء إذن الكاميرا للمتصفح)';
+        });
+    }
+
+    function closeScannerModal() {
+        if (codeReader) {
+            try { codeReader.reset(); } catch(e) {}
+            codeReader = null;
+        }
+        document.getElementById('scannerModal').style.display = 'none';
+    }
+
+    function handleBarcodeScanned(code) {
+        closeScannerModal();
+        const match = products.find(p => p.barcode && String(p.barcode) === String(code));
+        if (match) {
+            document.getElementById('inventorySearchInput').value = match.name;
+            document.getElementById('inventoryLowStockOnlyToggle').checked = false;
+            renderInventoryList();
+            setTimeout(() => {
+                const el = document.getElementById('invCard_' + match.id);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.style.outline = '3px solid #2563eb';
+                    setTimeout(() => el.style.outline = '', 2500);
+                }
+            }, 150);
+        } else {
+            openBarcodeChoiceModal(code);
+        }
+    }
+
+    // ===================== خيار: باركود ما إله تطابق - منتج جديد أو ربط بمنتج موجود =====================
+    function openBarcodeChoiceModal(code) {
+        document.getElementById('scannedBarcodeDisplay').innerText = code;
+        pendingScannedBarcode = code;
+        document.getElementById('barcodeChoiceModal').style.display = 'flex';
+    }
+
+    function closeBarcodeChoiceModal() {
+        document.getElementById('barcodeChoiceModal').style.display = 'none';
+    }
+
+    function chooseAddNewProduct() {
+        closeBarcodeChoiceModal();
+        openAddProductModal(pendingScannedBarcode);
+    }
+
+    function chooseLinkExistingProduct() {
+        closeBarcodeChoiceModal();
+        openLinkBarcodeModal();
+    }
+
+    // ===================== ربط الباركود الممسوح بمنتج موجود أصلاً بالنظام =====================
+    let pendingScannedBarcode = '';
+
+    function openLinkBarcodeModal() {
+        document.getElementById('linkBarcodeSearchInput').value = '';
+        renderLinkBarcodeResults('');
+        document.getElementById('linkBarcodeModal').style.display = 'flex';
+    }
+
+    function closeLinkBarcodeModal() {
+        document.getElementById('linkBarcodeModal').style.display = 'none';
+    }
+
+    function renderLinkBarcodeResults(query) {
+        const container = document.getElementById('linkBarcodeResultsContainer');
+        let list = products.slice();
+        if (query) {
+            list = list.filter(p => (p.name || '').includes(query));
+        }
+        list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        list = list.slice(0, 30); // نحدد العدد حتى القائمة تضل سريعة وسهلة التصفح
+
+        if (list.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#888; font-size:0.75rem; padding:15px;">لا يوجد منتج مطابق</p>';
+            return;
+        }
+
+        container.innerHTML = list.map(p => `
+            <div style="display:flex; align-items:center; gap:8px; padding:7px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:5px;">
+                <img src="${p.img || DEFAULT_PLACEHOLDER_IMG}" style="width:34px; height:34px; object-fit:contain; border-radius:6px; flex-shrink:0;">
+                <span style="flex:1; font-size:0.72rem; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(p.name)}</span>
+                ${p.barcode ? `<span style="font-size:0.6rem; color:#dc2626; font-weight:700; flex-shrink:0;">له باركود أصلاً</span>` : ''}
+                <button onclick="confirmLinkBarcode('${p.id}')" style="background:#2563eb; color:white; border:none; padding:5px 10px; border-radius:6px; font-size:0.68rem; font-weight:800; cursor:pointer; flex-shrink:0;">🔗 ربط</button>
+            </div>
+        `).join('');
+    }
+
+    async function confirmLinkBarcode(productId) {
+        const p = products.find(pp => pp.id === productId);
+        if (p && p.barcode) {
+            if (!confirm(`هاد المنتج "${p.name}" عنده باركود مسجل أصلاً (${p.barcode}). تبي تستبدله بالباركود الجديد؟`)) return;
+        }
+        try {
+            await window.updateDoc(window.doc(window.db, "products", productId), { barcode: pendingScannedBarcode });
+            closeLinkBarcodeModal();
+            document.getElementById('inventorySearchInput').value = p ? p.name : '';
+            renderInventoryList();
+        } catch(e) {
+            console.error(e);
+            alert('تعذر ربط الباركود: ' + (e.message || e));
+        }
+    }
+
+    // ===================== إضافة منتج جديد (بعد مسح باركود ما إله تطابق) =====================
+    function openAddProductModal(barcode) {
+        document.getElementById('newProdBarcode').value = barcode || '';
+        document.getElementById('newProdName').value = '';
+        document.getElementById('newProdPrice').value = '';
+        document.getElementById('newProdStock').value = '';
+        document.getElementById('newProdCost').value = '';
+        document.getElementById('newProdSupplier').value = '';
+        document.getElementById('newProdImageFile').value = '';
+        document.getElementById('newProdImgPreview').style.display = 'none';
+        document.getElementById('newProdImgStatus').innerText = '';
+        document.getElementById('addProductError').innerText = '';
+        newProductImageDataUrl = '';
+        document.getElementById('addProductModal').style.display = 'flex';
+    }
+
+    function closeAddProductModal() {
+        document.getElementById('addProductModal').style.display = 'none';
+    }
+
+    async function handleNewProductImage(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const statusEl = document.getElementById('newProdImgStatus');
+        const removeBg = document.getElementById('newProdRemoveBgCheckbox').checked;
+        const resize = document.getElementById('newProdResizeCheckbox').checked;
+        try {
+            const dataUrl = await processProductImageFile(file, (msg) => statusEl.innerText = msg, { removeBg, resize });
+            newProductImageDataUrl = dataUrl;
+            const preview = document.getElementById('newProdImgPreview');
+            preview.src = dataUrl;
+            preview.style.display = 'block';
+            statusEl.innerText = '✅ تم تجهيز الصورة';
+        } catch(e) {
+            console.error(e);
+            statusEl.innerText = '❌ تعذرت معالجة الصورة';
+        }
+    }
+
+    async function submitNewProduct() {
+        const errEl = document.getElementById('addProductError');
+        const btn = document.getElementById('addProductSubmitBtn');
+        errEl.innerText = '';
+
+        const barcode = document.getElementById('newProdBarcode').value.trim();
+        const name = document.getElementById('newProdName').value.trim();
+        const price = parseFloat(document.getElementById('newProdPrice').value) || 0;
+        const stockRaw = document.getElementById('newProdStock').value.trim();
+
+        if (!name) {
+            errEl.innerText = 'اسم المنتج مطلوب';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerText = '⏳ جاري الإضافة...';
+
+        try {
+            let imgUrl = '';
+            if (newProductImageDataUrl) {
+                imgUrl = await uploadImageToStorage(newProductImageDataUrl);
+            }
+
+            const supplier = document.getElementById('newProdSupplier').value.trim();
+            const newProd = {
+                name: name,
+                price: price,
+                barcode: barcode,
+                supplier: supplier,
+                img: imgUrl
+            };
+            if (stockRaw !== '') newProd.stockQty = parseInt(stockRaw) || 0;
+
+            const newDocRef = await window.addDoc(window.collection(window.db, "products"), newProd);
+
+            const costRaw = document.getElementById('newProdCost').value.trim();
+            if (costRaw !== '') {
+                await window.setDoc(window.doc(window.db, "productCosts", newDocRef.id), { costPrice: parseFloat(costRaw) || 0 });
+            }
+
+            closeAddProductModal();
+        } catch(e) {
+            console.error(e);
+            errEl.innerText = '❌ تعذرت إضافة المنتج: ' + (e.message || e);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'إضافة المنتج';
+        }
+    }
+</script>
+</body>
+</html>
