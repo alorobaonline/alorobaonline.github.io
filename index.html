@@ -986,9 +986,9 @@
     const BUSINESS_DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const BUSINESS_DAY_LABELS = { sunday: 'الأحد', monday: 'الاثنين', tuesday: 'الثلاثاء', wednesday: 'الأربعاء', thursday: 'الخميس', friday: 'الجمعة', saturday: 'السبت' };
 
-    // بيرجع { open: true } أو { open: false, reason: '...' } حسب يوم وساعة جهاز الزبون الحالية
+    // بيرجع { open: true, from, to } أو { open: false, reason: '...' } حسب يوم وساعة جهاز الزبون الحالية
     function getStoreOpenStatus() {
-        if (!businessHoursSchedule) return { open: true }; // ما في إعداد بعد - مفتوح افتراضياً
+        if (!businessHoursSchedule) return { open: true, unconfigured: true }; // ما في إعداد بعد
         const now = new Date();
         const dayKey = BUSINESS_DAY_KEYS[now.getDay()];
         const dayData = businessHoursSchedule[dayKey];
@@ -1001,7 +1001,7 @@
         if (timeStr < from || timeStr > to) {
             return { open: false, reason: `😔 المتجر مسكّر حالياً. ساعات العمل اليوم: من ${from} إلى ${to}` };
         }
-        return { open: true };
+        return { open: true, from, to };
     }
 
     function applyStoreOpenStatus() {
@@ -1009,9 +1009,20 @@
         const banner = document.getElementById('storeClosedBanner');
         if (!banner) return;
         if (status.open) {
-            banner.style.display = 'none';
+            if (status.unconfigured) {
+                banner.style.display = 'none'; // ساعات الدوام ما اتحددت بعد بلوحة التحكم - ما نعرض شي
+            } else {
+                banner.innerText = `🟢 المتجر مفتوح الآن، حتى الساعة ${status.to}`;
+                banner.style.background = '#f0fdf4';
+                banner.style.borderBottom = '2px solid #86efac';
+                banner.style.color = '#166534';
+                banner.style.display = 'block';
+            }
         } else {
             banner.innerText = status.reason;
+            banner.style.background = '#fef2f2';
+            banner.style.borderBottom = '2px solid #fecaca';
+            banner.style.color = '#991b1b';
             banner.style.display = 'block';
         }
     }
@@ -1214,6 +1225,7 @@
             }
             businessHoursSchedule = (hoursDoc.exists() && hoursDoc.data().schedule) ? hoursDoc.data().schedule : null;
             applyStoreOpenStatus();
+            setInterval(applyStoreOpenStatus, 60000); // نحدّث كل دقيقة حتى تنتقل الحالة أوتوماتيكياً وقت الفتح/الإغلاق
         } catch(e) {}
     }
 
