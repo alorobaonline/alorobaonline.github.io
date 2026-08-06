@@ -404,6 +404,19 @@
         }
     </style>
 
+    <!-- المشتركين بعروض واتساب -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('marketingSubsSectionContent', this, 'marketingSubs')">
+            <span>🔔 المشتركين بعروض واتساب (<span id="marketingSubsCount">0</span>)</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="marketingSubsSectionContent">
+            <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 8px;">أرقام زبائن وافقوا صراحة على استقبال رسائل تسويقية - جاهزة تستخدمها لما يصير عندك حساب WhatsApp Business Platform رسمي.</div>
+            <button class="btn-main" style="background: #25D366; margin-bottom: 10px;" onclick="copyAllMarketingSubscribers()">📋 نسخ كل الأرقام</button>
+            <div id="marketingSubsListContainer" style="max-height: 300px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
     <!-- المبيعات يوم بيوم -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('dailySalesSectionContent', this, 'dailySales')">
@@ -1352,7 +1365,55 @@
         initBusinessHoursSection();
         initVisitorStatsListener();
         initDailySalesListener();
+        initMarketingSubscribersListener();
     });
+
+    // ===================== المشتركين بعروض واتساب =====================
+    let marketingSubscribersList = [];
+
+    function initMarketingSubscribersListener() {
+        window.onSnapshot(window.collection(window.db, "marketingSubscribers"), (snapshot) => {
+            marketingSubscribersList = [];
+            snapshot.forEach(docSnap => {
+                let d = docSnap.data();
+                if (d.unsubscribed) return; // ما نعرض ولا نعتمد على مين ألغى اشتراكه
+                marketingSubscribersList.push({ id: docSnap.id, ...d });
+            });
+            renderMarketingSubscribersList();
+        });
+    }
+
+    function renderMarketingSubscribersList() {
+        const countEl = document.getElementById('marketingSubsCount');
+        const container = document.getElementById('marketingSubsListContainer');
+        if (countEl) countEl.innerText = marketingSubscribersList.length;
+        if (!container) return;
+
+        if (marketingSubscribersList.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#888; font-size:0.72rem; padding:12px;">ولا حدا اشترك بعد</p>';
+            return;
+        }
+
+        container.innerHTML = marketingSubscribersList.map(s => `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 8px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; margin-bottom:4px; font-size:0.72rem; font-weight:700;">
+                <span>${s.phone}</span>
+                <a href="https://wa.me/${s.phone.replace(/[^0-9]/g,'')}" target="_blank" rel="noopener" style="color:#16a34a; text-decoration:underline; font-weight:800;">💬 واتساب</a>
+            </div>
+        `).join('');
+    }
+
+    function copyAllMarketingSubscribers() {
+        if (marketingSubscribersList.length === 0) {
+            alert('ما في أرقام لنسخها بعد');
+            return;
+        }
+        const text = marketingSubscribersList.map(s => s.phone).join('\n');
+        navigator.clipboard.writeText(text).then(() => {
+            alert(`✅ تم نسخ ${marketingSubscribersList.length} رقم`);
+        }).catch(() => {
+            alert('تعذر النسخ التلقائي، الأرقام:\n' + text);
+        });
+    }
 
     // ===================== زوار الموقع =====================
     function initVisitorStatsListener() {

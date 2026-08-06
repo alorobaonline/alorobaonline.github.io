@@ -445,6 +445,11 @@
         .cart-modal-content { background: white; width: 100%; border-top-left-radius: 22px; border-top-right-radius: 22px; padding: 20px; max-height: 90vh; overflow-y: auto; }
         
         .image-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 300; max-width: 480px; margin: 0 auto; padding: 20px; }
+
+        .subscribe-fab { position: fixed; bottom: 90px; left: 16px; z-index: 150; background: #25D366; color: white; border: none; border-radius: 30px; padding: 10px 16px; font-size: 0.72rem; font-weight: 800; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.4); cursor: pointer; display: flex; align-items: center; gap: 6px; max-width: calc(480px - 32px); }
+        .subscribe-fab .fab-close { background: rgba(255,255,255,0.25); border: none; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 0.6rem; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-inline-start: 4px; }
+        .subscribe-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 400; max-width: 480px; margin: 0 auto; padding: 20px; }
+        .subscribe-modal-box { background: white; border-radius: 18px; padding: 22px 18px; width: 100%; max-width: 380px; }
         .image-modal-content { background: white; width: 100%; border-radius: 18px; padding: 15px; text-align: center; position: relative; }
         .image-modal-content img { max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 10px; margin-bottom: 10px; }
 
@@ -552,6 +557,8 @@
         const GET_CUSTOMER_PROFILE_URL = "https://get-customer-profile-880642361344.europe-west1.run.app";
         // لسا محتاج تنشر فنكشن log-visit من Cloud Run وتتأكد الرابط مطابق
         const LOG_VISIT_URL = "https://log-visit-880642361344.europe-west1.run.app";
+        // لسا محتاج تنشر فنكشن subscribe-marketing من Cloud Run وتتأكد الرابط مطابق
+        const SUBSCRIBE_MARKETING_URL = "https://subscribe-marketing-880642361344.europe-west1.run.app";
 
         window.db = db;
         window.functionsInstance = functionsInstance;
@@ -559,6 +566,7 @@
         window.CREATE_ORDER_URL = CREATE_ORDER_URL;
         window.GET_CUSTOMER_PROFILE_URL = GET_CUSTOMER_PROFILE_URL;
         window.LOG_VISIT_URL = LOG_VISIT_URL;
+        window.SUBSCRIBE_MARKETING_URL = SUBSCRIBE_MARKETING_URL;
         window.collection = collection;
         window.getDocs = getDocs;
         window.addDoc = addDoc;
@@ -1159,6 +1167,7 @@
         initRealtimeListeners();
         logStoreVisit();
         startLiveHeartbeat();
+        maybeShowSubscribeFab();
     });
 
     function logStoreVisit() {
@@ -1166,6 +1175,68 @@
             const logVisit = window.httpsCallableFromURL(window.functionsInstance, window.LOG_VISIT_URL);
             logVisit().catch(() => {}); // فشل التسجيل ما لازم يأثر على تجربة الزبون أبداً
         } catch(e) {}
+    }
+
+    // ===================== زر الاشتراك بعروض واتساب =====================
+    function maybeShowSubscribeFab() {
+        if (localStorage.getItem('aloroba_marketing_subscribed') === '1') return;
+        if (localStorage.getItem('aloroba_marketing_dismissed') === '1') return;
+        setTimeout(() => {
+            const fab = document.getElementById('subscribeFab');
+            if (fab) fab.style.display = 'flex';
+        }, 8000); // نعرضه بعد 8 ثواني، مش فوراً - نعطي الزبون فرصة يتصفح أول
+    }
+
+    function dismissSubscribeFab() {
+        localStorage.setItem('aloroba_marketing_dismissed', '1');
+        const fab = document.getElementById('subscribeFab');
+        if (fab) fab.style.display = 'none';
+    }
+
+    function openMarketingSubscribeModal() {
+        document.getElementById('marketingPhoneInput').value = localStorage.getItem('aloroba_user_phone') || '';
+        document.getElementById('marketingConsentCheckbox').checked = false;
+        document.getElementById('marketingSubscribeError').innerText = '';
+        document.getElementById('marketingSubscribeModal').style.display = 'flex';
+    }
+
+    function closeMarketingSubscribeModal() {
+        document.getElementById('marketingSubscribeModal').style.display = 'none';
+    }
+
+    async function submitMarketingSubscribe() {
+        const phone = document.getElementById('marketingPhoneInput').value.trim();
+        const consented = document.getElementById('marketingConsentCheckbox').checked;
+        const errEl = document.getElementById('marketingSubscribeError');
+        const btn = document.getElementById('marketingSubscribeSubmitBtn');
+        errEl.innerText = '';
+
+        if (!phone || phone.replace(/[^0-9]/g, '').length < 9) {
+            errEl.innerText = 'الرجاء إدخال رقم واتساب صحيح';
+            return;
+        }
+        if (!consented) {
+            errEl.innerText = 'لازم توافق على استقبال الرسائل أول حتى نقدر نسجلك';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerText = '⏳ جاري التسجيل...';
+        try {
+            const subscribeMarketing = window.httpsCallableFromURL(window.functionsInstance, window.SUBSCRIBE_MARKETING_URL);
+            await subscribeMarketing({ phone: phone, consented: true });
+            localStorage.setItem('aloroba_marketing_subscribed', '1');
+            closeMarketingSubscribeModal();
+            const fab = document.getElementById('subscribeFab');
+            if (fab) fab.style.display = 'none';
+            alert('✅ تم تسجيلك بنجاح! رح نبعتلك عروضنا الجديدة عبر واتساب');
+        } catch(e) {
+            console.error(e);
+            errEl.innerText = '❌ ' + (e.message || 'تعذر التسجيل، حاول مرة أخرى');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'اشتراك ✅';
+        }
     }
 
     // ===================== نبضة حضور لحظية (عداد "متصلين الآن" بلوحة التحكم) =====================
@@ -3367,5 +3438,29 @@
     }
 
 </script>
+<!-- زر الاشتراك بعروض واتساب -->
+<button id="subscribeFab" class="subscribe-fab" style="display:none;" onclick="openMarketingSubscribeModal()">
+    🔔 اشترك بعروضنا عبر واتساب
+    <span class="fab-close" onclick="event.stopPropagation(); dismissSubscribeFab();">✕</span>
+</button>
+
+<div id="marketingSubscribeModal" class="subscribe-modal-overlay">
+    <div class="subscribe-modal-box">
+        <div style="text-align:center; margin-bottom:14px;">
+            <div style="font-size:2rem; margin-bottom:6px;">🔔</div>
+            <div style="font-size:1rem; font-weight:900; color:var(--primary-green);">اشترك بعروضنا عبر واتساب</div>
+            <div style="font-size:0.72rem; color:#94a3b8; margin-top:4px;">بنبعتلك عروضنا الجديدة والتخفيضات بس - مو أكتر</div>
+        </div>
+        <input type="tel" id="marketingPhoneInput" class="form-control" placeholder="رقم الواتساب (مثال: 0501234567)" style="width:100%; padding:11px 14px; border:1.5px solid #e5e7eb; border-radius:12px; font-size:16px; font-weight:600; margin-bottom:10px; outline:none; box-sizing:border-box;">
+        <label style="display:flex; align-items:flex-start; gap:8px; font-size:0.68rem; color:#4b5563; font-weight:600; margin-bottom:14px; cursor:pointer; line-height:1.5;">
+            <input type="checkbox" id="marketingConsentCheckbox" style="width:18px; height:18px; flex-shrink:0; margin-top:2px;">
+            <span>أوافق على استقبال رسائل تسويقية عبر واتساب من العروبة أونلاين (عروض وتحديثات). يمكنني إلغاء الاشتراك بأي وقت.</span>
+        </label>
+        <div id="marketingSubscribeError" style="color:#dc2626; font-size:0.7rem; font-weight:800; min-height:16px; margin-bottom:8px;"></div>
+        <button id="marketingSubscribeSubmitBtn" onclick="submitMarketingSubscribe()" style="width:100%; background:#25D366; color:white; border:none; padding:12px; border-radius:12px; font-weight:800; font-size:0.85rem; cursor:pointer; margin-bottom:8px;">اشتراك ✅</button>
+        <button onclick="closeMarketingSubscribeModal()" style="width:100%; background:#f1f5f9; color:#4b5563; border:none; padding:10px; border-radius:12px; font-weight:700; font-size:0.78rem; cursor:pointer;">مو هلأ</button>
+    </div>
+</div>
+
 </body>
 </html>
