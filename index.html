@@ -71,6 +71,14 @@
 
         /* الأقسام الدائرية السريعة */
         .categories-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 2px 15px 12px 15px; scrollbar-width: none; }
+        #subCategoriesScrollContainer.sub-cats-sticky {
+            position: sticky;
+            top: 0;
+            z-index: 60;
+            background: white;
+            padding-top: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+        }
         .categories-scroll::-webkit-scrollbar { display: none; }
         .cat-chip { background: white; border: 1.5px solid var(--border-color); padding: 8px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; white-space: nowrap; cursor: pointer; color: #334155; display: flex; align-items: center; gap: 4px; transition: all .18s ease; }
         .cat-chip:active { transform: scale(0.95); }
@@ -1887,16 +1895,18 @@
         const children = currentCategory !== "الكل" ? getCategoryChildren(currentCategory) : [];
         if (children.length === 0) {
             container.style.display = 'none';
+            container.classList.remove('sub-cats-sticky');
             container.innerHTML = '';
             return;
         }
 
         container.style.display = 'flex';
+        container.classList.add('sub-cats-sticky');
         let html = '';
         children.forEach(child => {
             let activeClass = currentSubCategory === child.name ? 'active' : '';
             html += `
-                <div class="cat-chip ${activeClass}" onclick="selectSubCategory('${child.name}')">
+                <div class="cat-chip ${activeClass}" data-subcat="${child.name}" onclick="selectSubCategory('${child.name}')">
                     <span>${child.icon || '📦'}</span> ${child.name}
                 </div>
             `;
@@ -1908,6 +1918,45 @@
             activeChip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         }
     }
+
+    // ===================== تتبّع التمرير: تحديد الفئة الفرعية النشطة تلقائيًا حسب مكان الزبون بالصفحة =====================
+    let scrollSpyTicking = false;
+    function updateActiveSubcatFromScroll() {
+        const sections = document.querySelectorAll('[data-subcat-section]');
+        if (sections.length === 0) return; // مش بوضع "كل الفئات الفرعية مع بعض" حالياً
+
+        const stickyBar = document.getElementById('subCategoriesScrollContainer');
+        const threshold = (stickyBar ? stickyBar.getBoundingClientRect().bottom : 0) + 4;
+
+        let currentName = sections[0].getAttribute('data-subcat-section');
+        sections.forEach(sec => {
+            if (sec.getBoundingClientRect().top <= threshold) {
+                currentName = sec.getAttribute('data-subcat-section');
+            }
+        });
+
+        const container = document.getElementById('subCategoriesScrollContainer');
+        if (!container) return;
+        const alreadyActive = container.querySelector('.cat-chip.active');
+        if (alreadyActive && alreadyActive.getAttribute('data-subcat') === currentName) return; // ما تغيّر إشي، توفير شغل
+
+        container.querySelectorAll('.cat-chip').forEach(chip => {
+            chip.classList.toggle('active', chip.getAttribute('data-subcat') === currentName);
+        });
+        const newActiveChip = container.querySelector('.cat-chip.active');
+        if (newActiveChip) {
+            newActiveChip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+    }
+
+    window.addEventListener('scroll', () => {
+        if (scrollSpyTicking) return;
+        scrollSpyTicking = true;
+        requestAnimationFrame(() => {
+            updateActiveSubcatFromScroll();
+            scrollSpyTicking = false;
+        });
+    });
 
     function selectSubCategory(subCatName) {
         // اضغط على فئة فرعية نشطة أصلاً يرجعك تلقائياً للعرض الكامل المجمّع (بدل ما تضل عالقة عليها)
@@ -2000,7 +2049,7 @@
                         let childProducts = products.filter(p => productBelongsToCategory(p, child.name));
                         if (childProducts.length === 0) return;
                         sectionsHtml += `
-                            <div class="subcategory-section" style="${idx > 0 ? 'border-top: 1px solid var(--border-color); margin-top: 18px; padding-top: 16px;' : 'margin-top: 6px;'}">
+                            <div class="subcategory-section" data-subcat-section="${child.name}" style="${idx > 0 ? 'border-top: 1px solid var(--border-color); margin-top: 18px; padding-top: 16px;' : 'margin-top: 6px;'}">
                                 <div class="subcategory-title">${child.icon || '📦'} ${child.name}</div>
                                 <div class="products-grid">${childProducts.map(p => createProductCardHtml(p)).join('')}</div>
                             </div>
