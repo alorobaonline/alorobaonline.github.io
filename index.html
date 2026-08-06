@@ -71,14 +71,19 @@
 
         /* الأقسام الدائرية السريعة */
         .categories-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 2px 15px 12px 15px; scrollbar-width: none; }
-        #subCategoriesScrollContainer.sub-cats-sticky {
-            position: sticky;
+        #subCategoriesScrollContainer.sub-cats-fixed {
+            position: fixed !important;
             top: 0;
+            left: 0;
+            right: 0;
+            max-width: 480px;
+            margin: 0 auto;
             z-index: 60;
             background: white;
             padding-top: 10px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.06);
         }
+        .sub-cats-spacer { display: none; }
         .categories-scroll::-webkit-scrollbar { display: none; }
         .cat-chip { background: white; border: 1.5px solid var(--border-color); padding: 8px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; white-space: nowrap; cursor: pointer; color: #334155; display: flex; align-items: center; gap: 4px; transition: all .18s ease; }
         .cat-chip:active { transform: scale(0.95); }
@@ -660,6 +665,7 @@
 
     <!-- الفئات الفرعية (تظهر بس لما تختار فئة أم إلها فئات فرعية) -->
     <div class="categories-scroll" id="subCategoriesScrollContainer" style="display:none;"></div>
+    <div class="sub-cats-spacer" id="subCatsSpacer"></div>
 
     <!-- المحتوى الرئيسي -->
     <div id="storeMainContent"></div>
@@ -1895,13 +1901,14 @@
         const children = currentCategory !== "الكل" ? getCategoryChildren(currentCategory) : [];
         if (children.length === 0) {
             container.style.display = 'none';
-            container.classList.remove('sub-cats-sticky');
+            container.classList.remove('sub-cats-fixed');
+            document.getElementById('subCatsSpacer').style.display = 'none';
             container.innerHTML = '';
+            subCatsNaturalTop = null;
             return;
         }
 
         container.style.display = 'flex';
-        container.classList.add('sub-cats-sticky');
         let html = '';
         children.forEach(child => {
             let activeClass = currentSubCategory === child.name ? 'active' : '';
@@ -1917,17 +1924,40 @@
         if (activeChip) {
             activeChip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         }
+
+        // نحسب مكانها الطبيعي بالصفحة (قبل ما تصير fixed) عشان نعرف متى بالظبط نلصقها فوق
+        subCatsNaturalTop = null;
+        requestAnimationFrame(() => {
+            container.classList.remove('sub-cats-fixed');
+            subCatsNaturalTop = container.getBoundingClientRect().top + window.scrollY;
+        });
     }
 
-    // ===================== تتبّع التمرير: تحديد الفئة الفرعية النشطة تلقائيًا حسب مكان الزبون بالصفحة =====================
+    // ===================== تثبيت شريط الفئات الفرعية فوق + تتبّع التمرير =====================
+    let subCatsNaturalTop = null;
     let scrollSpyTicking = false;
-    function updateActiveSubcatFromScroll() {
+
+    function updateStickySubcatsAndSpy() {
+        const container = document.getElementById('subCategoriesScrollContainer');
+        const spacer = document.getElementById('subCatsSpacer');
+        if (!container || subCatsNaturalTop === null) return;
+
+        const shouldBeFixed = window.scrollY >= subCatsNaturalTop;
+        const isFixed = container.classList.contains('sub-cats-fixed');
+
+        if (shouldBeFixed && !isFixed) {
+            spacer.style.height = container.offsetHeight + 'px';
+            spacer.style.display = 'block';
+            container.classList.add('sub-cats-fixed');
+        } else if (!shouldBeFixed && isFixed) {
+            container.classList.remove('sub-cats-fixed');
+            spacer.style.display = 'none';
+        }
+
         const sections = document.querySelectorAll('[data-subcat-section]');
         if (sections.length === 0) return; // مش بوضع "كل الفئات الفرعية مع بعض" حالياً
 
-        const stickyBar = document.getElementById('subCategoriesScrollContainer');
-        const threshold = (stickyBar ? stickyBar.getBoundingClientRect().bottom : 0) + 4;
-
+        const threshold = container.getBoundingClientRect().bottom + 4;
         let currentName = sections[0].getAttribute('data-subcat-section');
         sections.forEach(sec => {
             if (sec.getBoundingClientRect().top <= threshold) {
@@ -1935,10 +1965,8 @@
             }
         });
 
-        const container = document.getElementById('subCategoriesScrollContainer');
-        if (!container) return;
         const alreadyActive = container.querySelector('.cat-chip.active');
-        if (alreadyActive && alreadyActive.getAttribute('data-subcat') === currentName) return; // ما تغيّر إشي، توفير شغل
+        if (alreadyActive && alreadyActive.getAttribute('data-subcat') === currentName) return;
 
         container.querySelectorAll('.cat-chip').forEach(chip => {
             chip.classList.toggle('active', chip.getAttribute('data-subcat') === currentName);
@@ -1953,7 +1981,7 @@
         if (scrollSpyTicking) return;
         scrollSpyTicking = true;
         requestAnimationFrame(() => {
-            updateActiveSubcatFromScroll();
+            updateStickySubcatsAndSpy();
             scrollSpyTicking = false;
         });
     });
