@@ -1930,6 +1930,18 @@
         triggerCategoryLoadingAndRender();
     }
 
+    // "كل العروض" مش فئة حقيقية - بس وضع خاص بيعرض كل منتج عليه سعر عرض حالياً
+    const ALL_OFFERS_KEY = "__ALL_OFFERS__";
+    function viewAllOffers() {
+        currentCategory = ALL_OFFERS_KEY;
+        currentSubCategory = "الكل";
+        document.getElementById('searchInput').value = '';
+        window.location.hash = 'عروض';
+        renderCategoriesScroll();
+        renderSubCategoriesScroll();
+        triggerCategoryLoadingAndRender();
+    }
+
     function triggerCategoryLoadingAndRender() {
         const container = document.getElementById('storeMainContent');
         document.getElementById('loadMoreIndicator').style.display = 'none';
@@ -1956,6 +1968,16 @@
 
         let query = document.getElementById('searchInput').value.trim().toLowerCase();
         let htmlParts = [];
+
+        // وضع "كل العروض" - كل منتج عليه سعر عرض مفعّل حالياً، بدون حد أقصى
+        if (currentCategory === ALL_OFFERS_KEY) {
+            document.getElementById('loadMoreIndicator').style.display = 'none';
+            let allOffers = products.filter(p => p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null);
+            container.innerHTML = allOffers.length > 0
+                ? `<div class="products-grid" style="margin-top: 10px;">${allOffers.map(p => createProductCardHtml(p)).join('')}</div>`
+                : `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 20px;">لا توجد عروض حالياً</p>`;
+            return;
+        }
 
         if(query !== "" || currentCategory !== "الكل") {
             document.getElementById('loadMoreIndicator').style.display = 'none';
@@ -2042,6 +2064,15 @@
                     offersHtml += createProductCardHtml(p, 'small');
                 }
                 cardsBuilt++;
+            }
+            // بطاقة "عرض الكل" لو فيه عروض أكتر من يلي ظاهر بالصف (كانت مخفية بالكامل قبل هيك)
+            if (saleProducts.length > cardsBuilt) {
+                offersHtml += `
+                    <div class="view-all-card" onclick="viewAllOffers()">
+                        <div class="view-all-arrow">←</div>
+                        <div class="view-all-text">عرض كل العروض<br>(${saleProducts.length})</div>
+                    </div>
+                `;
             }
             offersHtml += `</div></div>`;
             htmlParts.push(offersHtml);
