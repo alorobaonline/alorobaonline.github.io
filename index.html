@@ -1090,6 +1090,8 @@
 
     let initialHash = decodeURIComponent(window.location.hash.replace('#', ''));
     let currentCategory = initialHash ? initialHash : "الكل";
+    let subCatsNaturalTop = null;
+    let scrollSpyTicking = false;
     let currentSubCategory = "الكل";
 
     let bundles = [];
@@ -1934,9 +1936,6 @@
     }
 
     // ===================== تثبيت شريط الفئات الفرعية فوق + تتبّع التمرير =====================
-    let subCatsNaturalTop = null;
-    let scrollSpyTicking = false;
-
     function updateStickySubcatsAndSpy() {
         const container = document.getElementById('subCategoriesScrollContainer');
         const spacer = document.getElementById('subCatsSpacer');
