@@ -2152,7 +2152,7 @@
             let savings = normalCost - price;
             let savingsHtml = savings > 0 ? `<span class="bundle-savings-badge">💰 وفّر ${savings.toFixed(2)} ₪</span>` : '';
 
-            let thumbsHtml = participating.slice(0, 4).filter(p => p.img).map(p => `<img src="${p.img}" class="bundle-thumb-img" onerror="this.style.display='none'">`).join('');
+            let thumbsHtml = participating.slice(0, 4).filter(p => p.img).map(p => `<img src="${optimizeImg(p.img, 150)}" class="bundle-thumb-img" onerror="this.style.display='none'">`).join('');
             let thumbsRowHtml = thumbsHtml ? `<div class="bundle-thumbs-row">${thumbsHtml}</div>` : '';
 
             slidesHtml += `
@@ -2614,7 +2614,7 @@
             return `
                 <div class="bundle-item-row ${isSelected ? 'bundle-item-selected' : ''}" style="${isOutOfStock ? 'opacity:0.55;' : ''}">
                     <div style="display: flex; align-items: center; gap: 9px; overflow: hidden;">
-                        <img src="${p.img || 'logo.png'}" class="bundle-item-thumb" style="${isOutOfStock ? 'filter: grayscale(1);' : ''}" onclick="openImageModal('${p.img || 'logo.png'}', '${p.name.replace(/'/g, "\\'")}')" onerror="this.onerror=null; this.src='logo.png';">
+                        <img src="${optimizeImg(p.img, 100) || 'logo.png'}" class="bundle-item-thumb" style="${isOutOfStock ? 'filter: grayscale(1);' : ''}" onclick="openImageModal('${p.img || 'logo.png'}', '${p.name.replace(/'/g, "\\'")}')" onerror="this.onerror=null; this.src='logo.png';">
                         <div>
                             <div class="bundle-item-name">${p.name}</div>
                             <div class="bundle-item-unit-price">
@@ -2660,7 +2660,7 @@
                 return `
                     <div class="bundle-item-row ${isSelected ? 'bundle-item-selected' : ''}" style="${isOutOfStock ? 'opacity:0.55;' : ''}">
                         <div style="display: flex; align-items: center; gap: 9px; overflow: hidden;">
-                            <img src="${p.img || 'logo.png'}" class="bundle-item-thumb" style="${isOutOfStock ? 'filter: grayscale(1);' : ''}" onclick="openImageModal('${p.img || 'logo.png'}', '${p.name.replace(/'/g, "\\'")}')" onerror="this.onerror=null; this.src='logo.png';">
+                            <img src="${optimizeImg(p.img, 100) || 'logo.png'}" class="bundle-item-thumb" style="${isOutOfStock ? 'filter: grayscale(1);' : ''}" onclick="openImageModal('${p.img || 'logo.png'}', '${p.name.replace(/'/g, "\\'")}')" onerror="this.onerror=null; this.src='logo.png';">
                             <div>
                                 <div class="bundle-item-name">${p.name}</div>
                                 <div class="bundle-item-unit-price">${getEffectivePrice(p).toFixed(2)} ₪ · حبة</div>
@@ -2710,6 +2710,15 @@
 
     // ===================== نهاية عروض الحزمة =====================
 
+    // يصغّر صور Cloudinary تلقائياً حسب مكان عرضها (بدون ما يحتاج رفع نسخة جديدة) -
+    // بيقلل حجم التحميل بشكل كبير جداً بدل ما تنزل الصورة الأصلية (1000×1000) لبطاقة صغيرة
+    function optimizeImg(url, width) {
+        if (!url || typeof url !== 'string') return url;
+        if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) return url;
+        width = width || 300;
+        return url.replace('/upload/', `/upload/w_${width},q_auto,f_auto/`);
+    }
+
     function createProductCardHtml(p, sizeVariant) {
         let hasSale = (p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null);
         let priceDisplay = hasSale ? `${p.salePrice} ₪` : `${p.price} ₪`;
@@ -2745,7 +2754,7 @@
                 ${outOfStockBadgeHtml}
                 <div>
                     <div class="product-img-box${isOutOfStock ? ' is-out-of-stock' : ''}" onclick='openImageModal("${p.img}", "${p.name}")'>
-                        <img src="${p.img || 'logo.png'}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
+                        <img src="${optimizeImg(p.img, 300) || 'logo.png'}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
                     </div>
                     <div class="product-name">${p.name}</div>
                     <div class="product-weight">${p.weight || 'حبة'}</div>
