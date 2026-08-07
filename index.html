@@ -1400,9 +1400,15 @@
     function trackSessionStartForEngagement() {
         sessionStartTime = Date.now();
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') logSessionEngagement();
+            if (document.visibilityState === 'hidden') {
+                logSessionEngagement();
+                logAbandonedCart(); // لو السلة فيها منتجات وطلع/بدّل تطبيق قبل ما يخلص الطلب، نسجلها فوراً
+            }
         });
-        window.addEventListener('pagehide', logSessionEngagement);
+        window.addEventListener('pagehide', () => {
+            logSessionEngagement();
+            logAbandonedCart();
+        });
     }
     function logSessionEngagement() {
         if (engagementLogged || !sessionStartTime) return;
