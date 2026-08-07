@@ -2119,6 +2119,9 @@
         }
 
         // قسم "العروض" - يجمع تلقائيًا كل منتج عليه سعر عرض مفعّل حاليًا من لوحة التحكم، ويظهر فوق كل الفئات الثانية
+        // ترتيب البطاقات هون مستقل تمامًا عن ترتيب المنتج جوا قسمه (sortOrder) - يعتمد على offerCardOrder:
+        // - لو المنتج جزء من عرض مرتبط (Offer Group)، بناخد offerCardOrder من المجموعة نفسها (رقم واحد للبطاقة كلها)
+        // - لو منتج مستقل، بناخد offerCardOrder من المنتج نفسه
         let saleProducts = products.filter(p => p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null);
         if (saleProducts.length > 0) {
             let offersHtml = `
@@ -2128,22 +2131,34 @@
                     </div>
                     <div class="products-horizontal-scroll">
             `;
+            // نبني قائمة "بطاقات" (وحدة واحدة لكل عرض مرتبط، ووحدة لكل منتج مستقل) مع ترتيبها الخاص، ثم نرتبها قبل البناء
             let renderedGroupIds = new Set();
-            let cardsBuilt = 0;
+            let cardEntries = [];
             for (let p of saleProducts) {
-                if (cardsBuilt >= 12) break;
                 let group = findOfferGroupForProduct(p);
                 if (group) {
                     if (renderedGroupIds.has(group.id)) continue;
                     renderedGroupIds.add(group.id);
-                    offersHtml += createOfferGroupCardHtml(group);
+                    let ord = (group.offerCardOrder !== undefined && group.offerCardOrder !== null && group.offerCardOrder !== "" && !isNaN(Number(group.offerCardOrder))) ? Number(group.offerCardOrder) : 9999;
+                    cardEntries.push({ order: ord, name: group.name || '', html: createOfferGroupCardHtml(group) });
                 } else {
-                    offersHtml += createProductCardHtml(p, 'small');
+                    let ord = (p.offerCardOrder !== undefined && p.offerCardOrder !== null && p.offerCardOrder !== "" && !isNaN(Number(p.offerCardOrder))) ? Number(p.offerCardOrder) : 9999;
+                    cardEntries.push({ order: ord, name: p.name || '', html: createProductCardHtml(p, 'small') });
                 }
+            }
+            cardEntries.sort((a, b) => {
+                if (a.order !== b.order) return a.order - b.order;
+                return a.name.localeCompare(b.name);
+            });
+
+            let cardsBuilt = 0;
+            for (let entry of cardEntries) {
+                if (cardsBuilt >= 12) break;
+                offersHtml += entry.html;
                 cardsBuilt++;
             }
             // بطاقة "عرض الكل" لو فيه عروض أكتر من يلي ظاهر بالصف (كانت مخفية بالكامل قبل هيك)
-            if (saleProducts.length > cardsBuilt) {
+            if (cardEntries.length > cardsBuilt) {
                 offersHtml += `
                     <div class="view-all-card" onclick="viewAllOffers()">
                         <div class="view-all-arrow">←</div>

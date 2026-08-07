@@ -570,7 +570,7 @@
         </div>
         <div class="section-content" id="offersOnlySectionContent">
             <div style="font-size: 0.7rem; color: #4b5563; margin-bottom: 8px; line-height: 1.4;">
-                هون كل المنتجات اللي حاطط عليها سعر عرض (سعر عرض مفعّل)، بمكان واحد بدون ما تدور عليها بين الأقسام. غيّر "رقم الظهور" لأي منتج (رقم أصغر = يطلع أول بصف العروض 🔥 بالموقع). ملاحظة: المنتجات اللي جزء من عرض مرتبط (Offer Group) بتظهر كبطاقة واحدة مجمّعة بالموقع، ومكانها بيتحدد حسب أصغر رقم ظهور بين كل أعضاء المجموعة.
+                هون كل المنتجات اللي حاطط عليها سعر عرض، بمكان واحد بدون ما تدور عليها بين الأقسام. لكل منتج مستقل فيه حقل "🔥 ترتيب البطاقة بصف العروض" خاص فيه بس (منفصل تمامًا عن "رقم الظهور" العادي اللي بيرتب المنتج جوا قسمه). أما المنتجات اللي جزء من عرض مرتبط، بتظهر كبطاقة واحدة مجمّعة، وترتيبها بيتحكم فيه من تبويب "🎁 الباقات ← عروض مرتبطة" (رقم واحد للمجموعة كلها).
             </div>
             <input type="text" id="offersOnlySearchInput" class="form-control" placeholder="🔍 دور بين العروض بالاسم..." oninput="renderOffersOnlyList()" style="margin-bottom: 10px;">
             <div id="offersOnlyContainer"></div>
@@ -1700,6 +1700,49 @@
     }
 
     document.addEventListener('change', async (e) => {
+        if (e.target.classList.contains('group-card-order-input')) {
+            const groupId = e.target.getAttribute('data-gid');
+            const newOrder = parseInt(e.target.value) || 0;
+
+            let g = offerGroups.find(grp => grp.id === groupId);
+            if (g) g.offerCardOrder = newOrder;
+
+            let savedScroll = window.scrollY;
+            try {
+                await window.updateDoc(window.doc(window.db, "offerGroups", groupId), {
+                    offerCardOrder: newOrder
+                });
+                renderOfferGroupsList();
+                renderOffersOnlyList();
+                window.scrollTo(0, savedScroll);
+            } catch(err) {
+                console.error("خطأ في تحديث ترتيب بطاقة العرض المرتبط:", err);
+                alert("حدث خطأ أثناء حفظ ترتيب البطاقة.");
+            }
+            return;
+        }
+
+        if (e.target.classList.contains('offer-card-order-input')) {
+            const productId = e.target.getAttribute('data-id');
+            const newOrder = parseInt(e.target.value) || 0;
+
+            let p = products.find(prod => prod.id == productId);
+            if (p) p.offerCardOrder = newOrder;
+
+            let savedScroll = window.scrollY;
+            try {
+                await window.updateDoc(window.doc(window.db, "products", productId), {
+                    offerCardOrder: newOrder
+                });
+                renderOffersOnlyList();
+                window.scrollTo(0, savedScroll);
+            } catch(err) {
+                console.error("خطأ في تحديث ترتيب بطاقة العرض:", err);
+                alert("حدث خطأ أثناء حفظ ترتيب البطاقة.");
+            }
+            return;
+        }
+
         if (e.target.classList.contains('sort-order-input')) {
             const productId = e.target.getAttribute('data-id');
             const newSortOrder = parseInt(e.target.value) || 0;
@@ -2427,7 +2470,7 @@
         return offerGroups.find(g => g.selectedItems && g.selectedItems.includes(p.name)) || null;
     }
 
-    // عرض مسطّح لكل المنتجات اللي عليها سعر عرض حاليًا بمكان واحد، مرتبة حسب sortOrder - نفس حقل ترتيب صف "🔥 العروض" بالمتجر
+    // عرض مسطّح لكل المنتجات اللي عليها سعر عرض حاليًا بمكان واحد، مرتبة حسب offerCardOrder (ترتيب البطاقة بصف العروض - مستقل عن رقم ظهور المنتج جوا قسمه)
     function renderOffersOnlyList() {
         const container = document.getElementById('offersOnlyContainer');
         if(!container) return;
@@ -2445,11 +2488,23 @@
             return;
         }
 
-        offerProducts.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+        offerProducts.sort((a, b) => {
+            let ga = findOfferGroupForProductAdmin(a);
+            let gb = findOfferGroupForProductAdmin(b);
+            let oa = ga ? (ga.offerCardOrder || 0) : (a.offerCardOrder || 0);
+            let ob = gb ? (gb.offerCardOrder || 0) : (b.offerCardOrder || 0);
+            if (oa !== ob) return oa - ob;
+            return (a.name || '').localeCompare(b.name || '');
+        });
 
         container.innerHTML = offerProducts.map(p => {
             let group = findOfferGroupForProductAdmin(p);
-            let groupBadge = group ? `<div style="margin-top:3px;"><span style="background:#ede9fe; color:#6d28d9; font-size:0.58rem; font-weight:800; padding:2px 7px; border-radius:10px;">🔗 جزء من عرض مرتبط: ${group.name || 'بدون اسم'} — ترتيب المجموعة كلها بيتحدد حسب أصغر رقم ظهور بين أعضائها</span></div>` : '';
+            let orderControlHtml = group
+                ? `<div style="margin-top:3px;"><span style="background:#ede9fe; color:#6d28d9; font-size:0.58rem; font-weight:800; padding:2px 7px; border-radius:10px;">🔗 جزء من عرض مرتبط: ${group.name || 'بدون اسم'} — ترتيب بطاقته (${group.offerCardOrder !== undefined ? group.offerCardOrder : 0}) يتحكم بيه من تبويب "🎁 الباقات ← عروض مرتبطة"</span></div>`
+                : `<div style="display: flex; align-items: center; gap: 6px; margin-top: 3px;">
+                        <span style="font-size: 0.6rem; color: #7c3aed; font-weight: bold;">🔥 ترتيب البطاقة بصف العروض:</span>
+                        <input type="number" class="offer-card-order-input" data-id="${p.id}" value="${p.offerCardOrder !== undefined ? p.offerCardOrder : 0}" onfocus="this.select()" style="width: 50px; padding: 1px 3px; font-size: 0.65rem; text-align: center; border: 1px solid #cbd5e1; border-radius: 4px;">
+                   </div>`;
             return `
             <div class="product-card-container" data-pname="${(p.name || '').toLowerCase()}">
                 <div class="product-mini-row">
@@ -2458,11 +2513,7 @@
                         <div>
                             <div style="font-weight: 800;">${p.name || 'بدون اسم'}</div>
                             <div style="color: #6b7280; font-size: 0.65rem;">السعر: ${p.price || 0}₪ ← <span style="color:#dc2626; font-weight:800;">${p.salePrice}₪ (عرض)</span></div>
-                            <div style="display: flex; align-items: center; gap: 6px; margin-top: 3px;">
-                                <span style="font-size: 0.6rem; color: var(--primary-green); font-weight: bold;">رقم الظهور:</span>
-                                <input type="number" class="sort-order-input" data-id="${p.id}" value="${p.sortOrder !== undefined ? p.sortOrder : 0}" onfocus="this.select()" style="width: 50px; padding: 1px 3px; font-size: 0.65rem; text-align: center; border: 1px solid #cbd5e1; border-radius: 4px;">
-                            </div>
-                            ${groupBadge}
+                            ${orderControlHtml}
                         </div>
                     </div>
                     <div class="product-actions">
@@ -2965,6 +3016,10 @@
                 <div>
                     <b>🔀 ${g.name}</b>
                     <div style="color:#6b7280; font-size:0.62rem; margin-top:2px;">${(g.selectedItems || []).length} منتج ${g.maxQtyPerOrder ? '· الحد الأقصى: ' + g.maxQtyPerOrder + ' قطع بكل طلبية' : ''}</div>
+                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 5px;">
+                        <span style="font-size: 0.6rem; color: #7c3aed; font-weight: bold;">🔥 ترتيب البطاقة بصف العروض:</span>
+                        <input type="number" class="group-card-order-input" data-gid="${g.id}" value="${g.offerCardOrder !== undefined ? g.offerCardOrder : 0}" onfocus="this.select()" style="width: 50px; padding: 1px 3px; font-size: 0.65rem; text-align: center; border: 1px solid #cbd5e1; border-radius: 4px;">
+                    </div>
                 </div>
                 <div style="display: flex; gap: 4px;">
                     <button class="btn-edit" style="padding: 2px 6px; font-size: 0.6rem;" onclick="editOfferGroup('${g.id}')">تعديل ✏️</button>
