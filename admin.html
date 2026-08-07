@@ -334,6 +334,7 @@
         <button class="admin-tab-btn" id="tabBtn_home" onclick="switchAdminTab('home')">📋 الرئيسية</button>
         <button class="admin-tab-btn" id="tabBtn_products" onclick="switchAdminTab('products')">🛍️ المنتجات</button>
         <button class="admin-tab-btn" id="tabBtn_bundles" onclick="switchAdminTab('bundles')">🎁 الباقات</button>
+        <button class="admin-tab-btn" id="tabBtn_offers" onclick="switchAdminTab('offers')">🔥 العروض</button>
         <button class="admin-tab-btn" id="tabBtn_customers" onclick="switchAdminTab('customers')">🧑‍🤝‍🧑 الزبائن</button>
         <button class="admin-tab-btn" id="tabBtn_reports" onclick="switchAdminTab('reports')">📊 التقارير</button>
         <button class="admin-tab-btn" id="tabBtn_settings" onclick="switchAdminTab('settings')">⚙️ الإعدادات</button>
@@ -559,6 +560,22 @@
         </div>
     </div>
 
+    </div>
+
+    <div class="admin-tab-panel" id="tabPanel_offers">
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('offersOnlySectionContent', this)">
+            <span>🔥 ترتيب المنتجات اللي عليها عرض</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="offersOnlySectionContent">
+            <div style="font-size: 0.7rem; color: #4b5563; margin-bottom: 8px; line-height: 1.4;">
+                هون كل المنتجات اللي حاطط عليها سعر عرض (سعر عرض مفعّل)، بمكان واحد بدون ما تدور عليها بين الأقسام. غيّر "رقم الظهور" لأي منتج (رقم أصغر = يطلع أول بصف العروض 🔥 بالموقع).
+            </div>
+            <input type="text" id="offersOnlySearchInput" class="form-control" placeholder="🔍 دور بين العروض بالاسم..." oninput="renderOffersOnlyList()" style="margin-bottom: 10px;">
+            <div id="offersOnlyContainer"></div>
+        </div>
+    </div>
     </div>
 
     <div class="admin-tab-panel" id="tabPanel_bundles">
@@ -1334,6 +1351,7 @@
         try { localStorage.setItem('aloroba_admin_active_tab', tabName); } catch(e) {}
 
         if (tabName === 'staff') loadStaffList();
+        if (tabName === 'offers') renderOffersOnlyList();
     }
 
     (function initAdminTabs() {
@@ -1699,6 +1717,7 @@
                     sortOrder: newSortOrder
                 });
                 renderAdminGroupedProducts();
+                renderOffersOnlyList();
                 window.scrollTo(0, savedScroll);
 
                 // تمييز بصري بسيط للمنتج بعد ما يترتب بمكانه الجديد، عشان يبين وين انحط
@@ -1890,6 +1909,7 @@
             }
             renderOfferGroupProductCheckboxes();
             renderOfferGroupsList();
+            renderOffersOnlyList();
         } catch (e) {
             console.error("خطأ في جلب البيانات من السحابة: ", e);
         }
@@ -2401,7 +2421,50 @@
         `).join('');
     }
 
+    // عرض مسطّح لكل المنتجات اللي عليها سعر عرض حاليًا بمكان واحد، مرتبة حسب sortOrder - نفس حقل ترتيب صف "🔥 العروض" بالمتجر
+    function renderOffersOnlyList() {
+        const container = document.getElementById('offersOnlyContainer');
+        if(!container) return;
+
+        let offerProducts = products.filter(p => p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null);
+
+        const searchInput = document.getElementById('offersOnlySearchInput');
+        const q = searchInput ? searchInput.value.trim().toLowerCase() : '';
+        if (q) {
+            offerProducts = offerProducts.filter(p => (p.name || '').toLowerCase().includes(q));
+        }
+
+        if (offerProducts.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #888; font-size: 0.75rem; padding: 10px;">ما في منتجات عليها سعر عرض حاليًا</p>';
+            return;
+        }
+
+        offerProducts.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+        container.innerHTML = offerProducts.map(p => `
+            <div class="product-card-container" data-pname="${(p.name || '').toLowerCase()}">
+                <div class="product-mini-row">
+                    <div class="product-mini-info">
+                        <img src="${p.img || DEFAULT_PLACEHOLDER_IMG}" class="product-mini-thumb" onclick="openModal(this)" onerror="this.src='${DEFAULT_PLACEHOLDER_IMG}'">
+                        <div>
+                            <div style="font-weight: 800;">${p.name || 'بدون اسم'}</div>
+                            <div style="color: #6b7280; font-size: 0.65rem;">السعر: ${p.price || 0}₪ ← <span style="color:#dc2626; font-weight:800;">${p.salePrice}₪ (عرض)</span></div>
+                            <div style="display: flex; align-items: center; gap: 6px; margin-top: 3px;">
+                                <span style="font-size: 0.6rem; color: var(--primary-green); font-weight: bold;">رقم الظهور:</span>
+                                <input type="number" class="sort-order-input" data-id="${p.id}" value="${p.sortOrder !== undefined ? p.sortOrder : 0}" onfocus="this.select()" style="width: 50px; padding: 1px 3px; font-size: 0.65rem; text-align: center; border: 1px solid #cbd5e1; border-radius: 4px;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="product-actions">
+                        <button class="btn-edit" onclick="openQuickEditFromFilter('${p.id}')">تعديل سريع ⚡</button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
     function renderAdminGroupedProducts() {
+        renderOffersOnlyList();
         const container = document.getElementById('adminGroupedProductsContainer');
         if(!container) return;
         container.innerHTML = '';
