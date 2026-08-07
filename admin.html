@@ -570,7 +570,7 @@
         </div>
         <div class="section-content" id="offersOnlySectionContent">
             <div style="font-size: 0.7rem; color: #4b5563; margin-bottom: 8px; line-height: 1.4;">
-                هون كل المنتجات اللي حاطط عليها سعر عرض (سعر عرض مفعّل)، بمكان واحد بدون ما تدور عليها بين الأقسام. غيّر "رقم الظهور" لأي منتج (رقم أصغر = يطلع أول بصف العروض 🔥 بالموقع).
+                هون كل المنتجات اللي حاطط عليها سعر عرض (سعر عرض مفعّل)، بمكان واحد بدون ما تدور عليها بين الأقسام. غيّر "رقم الظهور" لأي منتج (رقم أصغر = يطلع أول بصف العروض 🔥 بالموقع). ملاحظة: المنتجات اللي جزء من عرض مرتبط (Offer Group) بتظهر كبطاقة واحدة مجمّعة بالموقع، ومكانها بيتحدد حسب أصغر رقم ظهور بين كل أعضاء المجموعة.
             </div>
             <input type="text" id="offersOnlySearchInput" class="form-control" placeholder="🔍 دور بين العروض بالاسم..." oninput="renderOffersOnlyList()" style="margin-bottom: 10px;">
             <div id="offersOnlyContainer"></div>
@@ -2421,6 +2421,12 @@
         `).join('');
     }
 
+    // نفس منطق findOfferGroupForProduct بالمتجر - يلاقي أول عرض مرتبط يضم هالمنتج (لو موجود)
+    function findOfferGroupForProductAdmin(p) {
+        if (!offerGroups || offerGroups.length === 0) return null;
+        return offerGroups.find(g => g.selectedItems && g.selectedItems.includes(p.name)) || null;
+    }
+
     // عرض مسطّح لكل المنتجات اللي عليها سعر عرض حاليًا بمكان واحد، مرتبة حسب sortOrder - نفس حقل ترتيب صف "🔥 العروض" بالمتجر
     function renderOffersOnlyList() {
         const container = document.getElementById('offersOnlyContainer');
@@ -2441,7 +2447,10 @@
 
         offerProducts.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
-        container.innerHTML = offerProducts.map(p => `
+        container.innerHTML = offerProducts.map(p => {
+            let group = findOfferGroupForProductAdmin(p);
+            let groupBadge = group ? `<div style="margin-top:3px;"><span style="background:#ede9fe; color:#6d28d9; font-size:0.58rem; font-weight:800; padding:2px 7px; border-radius:10px;">🔗 جزء من عرض مرتبط: ${group.name || 'بدون اسم'} — ترتيب المجموعة كلها بيتحدد حسب أصغر رقم ظهور بين أعضائها</span></div>` : '';
+            return `
             <div class="product-card-container" data-pname="${(p.name || '').toLowerCase()}">
                 <div class="product-mini-row">
                     <div class="product-mini-info">
@@ -2453,6 +2462,7 @@
                                 <span style="font-size: 0.6rem; color: var(--primary-green); font-weight: bold;">رقم الظهور:</span>
                                 <input type="number" class="sort-order-input" data-id="${p.id}" value="${p.sortOrder !== undefined ? p.sortOrder : 0}" onfocus="this.select()" style="width: 50px; padding: 1px 3px; font-size: 0.65rem; text-align: center; border: 1px solid #cbd5e1; border-radius: 4px;">
                             </div>
+                            ${groupBadge}
                         </div>
                     </div>
                     <div class="product-actions">
@@ -2460,7 +2470,8 @@
                     </div>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
 
     function renderAdminGroupedProducts() {
