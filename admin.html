@@ -335,6 +335,7 @@
         <button class="admin-tab-btn" id="tabBtn_products" onclick="switchAdminTab('products')">🛍️ المنتجات</button>
         <button class="admin-tab-btn" id="tabBtn_bundles" onclick="switchAdminTab('bundles')">🎁 الباقات</button>
         <button class="admin-tab-btn" id="tabBtn_offers" onclick="switchAdminTab('offers')">🔥 العروض</button>
+        <button class="admin-tab-btn" id="tabBtn_analytics" onclick="switchAdminTab('analytics')">📊 تحليلات الزوار</button>
         <button class="admin-tab-btn" id="tabBtn_customers" onclick="switchAdminTab('customers')">🧑‍🤝‍🧑 الزبائن</button>
         <button class="admin-tab-btn" id="tabBtn_reports" onclick="switchAdminTab('reports')">📊 التقارير</button>
         <button class="admin-tab-btn" id="tabBtn_settings" onclick="switchAdminTab('settings')">⚙️ الإعدادات</button>
@@ -589,6 +590,71 @@
             <div id="offersOnlyContainer"></div>
         </div>
     </div>
+    </div>
+
+    <div class="admin-tab-panel" id="tabPanel_analytics">
+    <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 10px;">كل الأرقام هون عن اليوم الحالي - بتتحدث لحظيًا كل ما زبون يتصفح الموقع.</div>
+
+    <!-- قمع الشراء -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('funnelSectionContent', this)">
+            <span>🧭 قمع الشراء اليوم</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="funnelSectionContent">
+            <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 8px; line-height: 1.4;">كم جلسة تصفح (زائر) وصلت لكل خطوة اليوم - بيوريك بالظبط وين بيتسرب الزبائن قبل ما يشتروا.</div>
+            <div id="funnelStatsContainer"><p style="text-align:center; color:#888; padding:10px;">جاري التحميل...</p></div>
+        </div>
+    </div>
+
+    <!-- أكتر المنتجات مشاهدة -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('topViewedSectionContent', this)">
+            <span>👁️ أكتر المنتجات مشاهدة</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="topViewedSectionContent">
+            <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 8px; line-height: 1.4;">منتجات بتتفتح كتير (زبون ضغط على صورتها) بغض النظر هل انباعت ولا لأ - من أول ما بدأنا نسجل. لو منتج بيتفتح كتير وما بيتباع، ممكن السعر أو الصورة أو الوصف يحتاجوا مراجعة.</div>
+            <div id="topViewedContainer"><p style="text-align:center; color:#888; padding:10px;">جاري التحميل...</p></div>
+        </div>
+    </div>
+
+    <!-- سلة متروكة -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('abandonedCartsSectionContent', this)">
+            <span>🛒 سلات متروكة (<span id="abandonedCartsCount">0</span>)</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="abandonedCartsSectionContent">
+            <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 8px; line-height: 1.4;">زبائن ضافوا منتجات للسلة بس ما أكملوا الطلب خلال 15 دقيقة. لو عندك رقم واتساب، ممكن تبعتله تذكير.</div>
+            <div id="abandonedCartsContainer"><p style="text-align:center; color:#888; padding:10px;">جاري التحميل...</p></div>
+        </div>
+    </div>
+
+    <!-- مصدر الزيارة -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('trafficSourceSectionContent', this)">
+            <span>📡 مصدر الزوار اليوم</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="trafficSourceSectionContent">
+            <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 8px; line-height: 1.4;">من وين الزبون دخل للموقع. لتتبع مصدر معين (تيك توك، رسالة SMS...)، ضيف <code style="background:#f1f5f9; padding:1px 4px; border-radius:4px;">?src=tiktok</code> أو <code style="background:#f1f5f9; padding:1px 4px; border-radius:4px;">?src=sms</code> آخر رابط الموقع قبل ما تشاركه (مثال: alorobaonline.github.io/?src=tiktok).</div>
+            <div id="trafficSourceContainer"><p style="text-align:center; color:#888; padding:10px;">جاري التحميل...</p></div>
+        </div>
+    </div>
+
+    <!-- مدة الجلسة والارتداد -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('engagementSectionContent', this)">
+            <span>⏱️ وقت البقاء بالموقع اليوم</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="engagementSectionContent">
+            <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 8px; line-height: 1.4;">معدل تقريبي - "الارتداد" يعني زائر طلع خلال أقل من 10 ثواني من غير ما يتفاعل تقريبًا.</div>
+            <div id="engagementStatsContainer"><p style="text-align:center; color:#888; padding:10px;">جاري التحميل...</p></div>
+        </div>
+    </div>
+
     </div>
 
     <div class="admin-tab-panel" id="tabPanel_bundles">
@@ -1365,6 +1431,7 @@
 
         if (tabName === 'staff') loadStaffList();
         if (tabName === 'offers') renderOffersOnlyList();
+        if (tabName === 'analytics') initAnalyticsTabListeners();
     }
 
     (function initAdminTabs() {
@@ -1492,6 +1559,160 @@
             </div>
         `).join('');
     }
+
+    // ===================== تحليلات سلوك الزوار (قمع الشراء، أكتر منتجات مشاهدة، سلات متروكة، مصدر الزيارة، مدة الجلسة) =====================
+    let analyticsListenersStarted = false;
+    function initAnalyticsTabListeners() {
+        if (analyticsListenersStarted) return; // نبدأهم مرة وحدة بس أول ما يفتح التبويب
+        analyticsListenersStarted = true;
+
+        const today = new Date().toISOString().slice(0, 10);
+
+        // 1) قمع الشراء
+        window.onSnapshot(window.doc(window.db, "funnelStats", today), (snap) => {
+            renderFunnelStats(snap.exists() ? snap.data() : {});
+        });
+
+        // 2) أكتر المنتجات مشاهدة
+        window.onSnapshot(window.collection(window.db, "productViewStats"), (snapshot) => {
+            let views = [];
+            snapshot.forEach(docSnap => views.push({ id: docSnap.id, ...docSnap.data() }));
+            views.sort((a, b) => (b.count || 0) - (a.count || 0));
+            renderTopViewedProducts(views.slice(0, 15));
+        });
+
+        // 3) سلات متروكة
+        window.onSnapshot(window.collection(window.db, "abandonedCarts"), (snapshot) => {
+            let carts = [];
+            snapshot.forEach(docSnap => carts.push({ id: docSnap.id, ...docSnap.data() }));
+            carts.sort((a, b) => {
+                let ta = a.updatedAt && a.updatedAt.toMillis ? a.updatedAt.toMillis() : 0;
+                let tb = b.updatedAt && b.updatedAt.toMillis ? b.updatedAt.toMillis() : 0;
+                return tb - ta;
+            });
+            renderAbandonedCarts(carts);
+        });
+
+        // 4) مصدر الزيارة
+        window.onSnapshot(window.doc(window.db, "trafficSourceStats", today), (snap) => {
+            renderTrafficSources(snap.exists() ? (snap.data().sources || {}) : {});
+        });
+
+        // 5) مدة الجلسة والارتداد
+        window.onSnapshot(window.doc(window.db, "engagementStats", today), (snap) => {
+            renderEngagementStats(snap.exists() ? snap.data() : {});
+        });
+    }
+
+    function renderFunnelStats(data) {
+        const container = document.getElementById('funnelStatsContainer');
+        if (!container) return;
+        const steps = [
+            { key: 'pageViews', label: '👁️ فتحوا الموقع', color: '#2563eb' },
+            { key: 'productViews', label: '🔍 شافوا منتج', color: '#7c3aed' },
+            { key: 'addToCart', label: '🛒 ضافوا للسلة', color: '#f59e0b' },
+            { key: 'checkoutStart', label: '📍 بدأوا الدفع', color: '#ea580c' },
+            { key: 'orderComplete', label: '✅ أكملوا الطلب', color: '#16a34a' }
+        ];
+        const base = data.pageViews || 0;
+        container.innerHTML = steps.map(s => {
+            let count = data[s.key] || 0;
+            let pct = base > 0 ? Math.round((count / base) * 100) : 0;
+            return `
+                <div style="margin-bottom: 10px;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.72rem; font-weight:800; margin-bottom:3px;">
+                        <span>${s.label}</span>
+                        <span>${count} ${base > 0 ? `(${pct}%)` : ''}</span>
+                    </div>
+                    <div style="background:#f1f5f9; border-radius:6px; height:10px; overflow:hidden;">
+                        <div style="background:${s.color}; height:100%; width:${pct}%; border-radius:6px; transition: width .3s ease;"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderTopViewedProducts(views) {
+        const container = document.getElementById('topViewedContainer');
+        if (!container) return;
+        if (views.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#888; padding:10px;">ما في مشاهدات مسجّلة لسا</p>';
+            return;
+        }
+        container.innerHTML = views.map((v, i) => `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:5px;">
+                <span style="font-weight:700; font-size:0.75rem;">${i + 1}. ${v.name || 'منتج بدون اسم'}</span>
+                <span style="color:#7c3aed; font-weight:900; font-size:0.75rem;">👁️ ${v.count || 0}</span>
+            </div>
+        `).join('');
+    }
+
+    function renderAbandonedCarts(carts) {
+        const container = document.getElementById('abandonedCartsContainer');
+        const countEl = document.getElementById('abandonedCartsCount');
+        if (countEl) countEl.innerText = carts.length;
+        if (!container) return;
+        if (carts.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#888; padding:10px;">ولا سلة متروكة حاليًا 🎉</p>';
+            return;
+        }
+        container.innerHTML = carts.map(c => {
+            let itemsText = (c.items || []).map(i => `${i.name} ×${i.quantity}`).join('، ');
+            let waLink = c.phone ? `<a href="https://wa.me/${c.phone.replace(/[^0-9]/g, '')}" target="_blank" style="background:#25D366; color:white; padding:4px 10px; border-radius:8px; font-size:0.65rem; font-weight:800; text-decoration:none;">💬 واتساب</a>` : '';
+            return `
+                <div style="padding:10px; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; margin-bottom:8px;">
+                    <div style="font-size:0.72rem; color:#78716c; margin-bottom:4px;">${itemsText || 'بدون تفاصيل منتجات'}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:900; color:#ea580c;">${(c.total || 0).toFixed(2)} ₪</span>
+                        ${waLink}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderTrafficSources(sources) {
+        const container = document.getElementById('trafficSourceContainer');
+        if (!container) return;
+        const entries = Object.entries(sources).sort((a, b) => b[1] - a[1]);
+        if (entries.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#888; padding:10px;">ما في زيارات مسجّلة اليوم لسا</p>';
+            return;
+        }
+        const total = entries.reduce((sum, [, v]) => sum + v, 0);
+        container.innerHTML = entries.map(([src, count]) => {
+            let pct = total > 0 ? Math.round((count / total) * 100) : 0;
+            return `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:5px;">
+                    <span style="font-weight:700; font-size:0.75rem;">📡 ${src}</span>
+                    <span style="color:#2563eb; font-weight:900; font-size:0.75rem;">${count} (${pct}%)</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderEngagementStats(data) {
+        const container = document.getElementById('engagementStatsContainer');
+        if (!container) return;
+        const sessions = data.totalSessions || 0;
+        const avgDuration = sessions > 0 ? Math.round((data.totalDurationSeconds || 0) / sessions) : 0;
+        const bounceRate = sessions > 0 ? Math.round(((data.bounces || 0) / sessions) * 100) : 0;
+        container.innerHTML = `
+            <div style="display:flex; justify-content:space-between; padding:8px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:6px;">
+                <span style="font-weight:700; font-size:0.75rem;">عدد الجلسات المكتملة</span>
+                <span style="font-weight:900; font-size:0.75rem;">${sessions}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:6px;">
+                <span style="font-weight:700; font-size:0.75rem;">متوسط وقت البقاء</span>
+                <span style="font-weight:900; font-size:0.75rem;">${avgDuration} ثانية</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
+                <span style="font-weight:700; font-size:0.75rem;">نسبة الارتداد (أقل من 10 ثواني)</span>
+                <span style="font-weight:900; font-size:0.75rem; color:${bounceRate > 50 ? '#dc2626' : '#16a34a'};">${bounceRate}%</span>
+            </div>
+        `;
+    }
+
 
     // "متصلين الآن": بس النبضات يلي آخر تحديث لها خلال آخر 60 ثانية - أي نبضة أقدم
     // من هيك معناها الزبون طلع من الموقع (سكّر التبويب أو ما عاد نشيط).

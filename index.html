@@ -574,7 +574,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, doc, getDoc, query, where, onSnapshot, runTransaction, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, doc, getDoc, query, where, onSnapshot, runTransaction, setDoc, serverTimestamp, updateDoc, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFunctions, httpsCallableFromURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
 
@@ -617,6 +617,9 @@
         window.addDoc = addDoc;
         window.doc = doc;
         window.setDoc = setDoc;
+        window.updateDoc = updateDoc;
+        window.increment = increment;
+        window.deleteDoc = deleteDoc;
         window.serverTimestamp = serverTimestamp;
         window.getDoc = getDoc;
         window.query = query;
@@ -1205,6 +1208,7 @@
 
     function saveCartToLocalStorage() {
         localStorage.setItem('aloroba_cart', JSON.stringify(cart));
+        resetAbandonedCartTimer();
     }
 
     loadUserProfileData();
@@ -1218,6 +1222,10 @@
         logStoreVisit();
         startLiveHeartbeat();
         maybeShowSubscribeFab();
+        logTrafficSourceOnce();
+        markFunnelStepOnce('pageViews');
+        trackSessionStartForEngagement();
+        resetAbandonedCartTimer(); // لو الزبون راجع وعنده سلة محفوظة من قبل بالمتصفح
     });
 
     function logStoreVisit() {
@@ -1303,6 +1311,111 @@
     function startLiveHeartbeat() {
         sendLiveHeartbeat(); // نبضة فورية أول ما تفتح الصفحة
         setInterval(sendLiveHeartbeat, 20000); // وبعدها كل 20 ثانية طول ما الصفحة مفتوحة
+    }
+
+    // ===================== تحليلات سلوك الزوار =====================
+    // كل الكتابات هون "Best effort" (ما بتوقف تجربة الزبون أبداً لو فشلت)، وكلها إحصائيات مجمّعة
+    // بدون تخزين أي بيانات حساسة عن الزبون نفسه (غير رقم واتساب لو معطى مسبقاً بالسلة المتروكة).
+    function todayDateStr() {
+        return new Date().toISOString().slice(0, 10);
+    }
+
+    // --- 1) قمع الشراء: بنسجل مرة وحدة بس لكل جلسة تصفح لكل خطوة (مش كل ضغطة) ---
+    function markFunnelStepOnce(step) {
+        let key = 'aloroba_funnel_' + step;
+        if (sessionStorage.getItem(key)) return;
+        sessionStorage.setItem(key, '1');
+        try {
+            window.setDoc(window.doc(window.db, "funnelStats", todayDateStr()), {
+                [step]: window.increment(1)
+            }, { merge: true }).catch(() => {});
+        } catch(e) {}
+    }
+
+    // --- 2) أكتر المنتجات مشاهدة (بغض النظر هل انباعت ولا لأ) ---
+    function trackProductView(productId, productName) {
+        if (!productId) return;
+        markFunnelStepOnce('productViews');
+        let seenKey = 'aloroba_viewed_products';
+        let seen = [];
+        try { seen = JSON.parse(sessionStorage.getItem(seenKey) || '[]'); } catch(e) {}
+        if (seen.includes(productId)) return; // ما نعيد عد نفس المنتج بنفس الجلسة
+        seen.push(productId);
+        try { sessionStorage.setItem(seenKey, JSON.stringify(seen)); } catch(e) {}
+        try {
+            window.setDoc(window.doc(window.db, "productViewStats", String(productId)), {
+                name: productName || '',
+                count: window.increment(1)
+            }, { merge: true }).catch(() => {});
+        } catch(e) {}
+    }
+
+    // --- 3) سلة متروكة: لو السلة فيها منتجات و15 دقيقة مرت بدون إتمام طلب، نسجلها ---
+    let abandonedCartTimer = null;
+    function resetAbandonedCartTimer() {
+        if (abandonedCartTimer) { clearTimeout(abandonedCartTimer); abandonedCartTimer = null; }
+        if (!cart || cart.length === 0) return;
+        abandonedCartTimer = setTimeout(logAbandonedCart, 15 * 60 * 1000);
+    }
+    function logAbandonedCart() {
+        if (!cart || cart.length === 0) return;
+        try {
+            let total = cart.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0);
+            window.setDoc(window.doc(window.db, "abandonedCarts", liveSessionId), {
+                items: cart.map(i => ({ name: i.name, quantity: i.quantity, price: i.price })),
+                total: total,
+                phone: localStorage.getItem('aloroba_user_phone') || '',
+                updatedAt: window.serverTimestamp()
+            }).catch(() => {});
+        } catch(e) {}
+    }
+    async function clearAbandonedCartRecord() {
+        try { await window.deleteDoc(window.doc(window.db, "abandonedCarts", liveSessionId)); } catch(e) {}
+    }
+
+    // --- 4) مصدر الزيارة: من رابط ?src=tiktok أو ?src=whatsapp إلخ، وإلا "direct" ---
+    function getTrafficSource() {
+        let saved = sessionStorage.getItem('aloroba_traffic_source');
+        if (saved) return saved;
+        let params = new URLSearchParams(window.location.search);
+        let src = (params.get('src') || params.get('utm_source') || 'direct').toLowerCase();
+        src = src.replace(/[^a-z0-9_]/g, '').slice(0, 20) || 'direct';
+        try { sessionStorage.setItem('aloroba_traffic_source', src); } catch(e) {}
+        return src;
+    }
+    function logTrafficSourceOnce() {
+        if (sessionStorage.getItem('aloroba_traffic_logged')) return;
+        sessionStorage.setItem('aloroba_traffic_logged', '1');
+        let src = getTrafficSource();
+        try {
+            window.setDoc(window.doc(window.db, "trafficSourceStats", todayDateStr()), {
+                [`sources.${src}`]: window.increment(1)
+            }, { merge: true }).catch(() => {});
+        } catch(e) {}
+    }
+
+    // --- 5) مدة الجلسة / الارتداد السريع: نحسبها لما الزبون يسكّر التبويب أو يطلع منه ---
+    let sessionStartTime = null;
+    let engagementLogged = false;
+    function trackSessionStartForEngagement() {
+        sessionStartTime = Date.now();
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') logSessionEngagement();
+        });
+        window.addEventListener('pagehide', logSessionEngagement);
+    }
+    function logSessionEngagement() {
+        if (engagementLogged || !sessionStartTime) return;
+        engagementLogged = true;
+        let durationSec = Math.round((Date.now() - sessionStartTime) / 1000);
+        let isBounce = durationSec < 10; // أقل من 10 ثواني = زيارة خاطفة جداً
+        try {
+            window.setDoc(window.doc(window.db, "engagementStats", todayDateStr()), {
+                totalSessions: window.increment(1),
+                totalDurationSeconds: window.increment(durationSec),
+                bounces: window.increment(isBounce ? 1 : 0)
+            }, { merge: true }).catch(() => {});
+        } catch(e) {}
     }
 
     async function loadStaticSettingsFromCloud() {
@@ -1520,11 +1633,12 @@
         }
     }
 
-    function openImageModal(imgUrl, title) {
+    function openImageModal(imgUrl, title, productId) {
         lockBodyScroll(); 
         document.getElementById('zoomImageSrc').src = imgUrl || 'logo.png';
         document.getElementById('zoomImageTitle').innerText = title;
         document.getElementById('imageModal').style.display = 'flex';
+        if (productId) trackProductView(productId, title);
     }
 
     function closeImageModal() {
@@ -2846,7 +2960,7 @@
                 ${badgeHtml}
                 ${outOfStockBadgeHtml}
                 <div>
-                    <div class="product-img-box${isOutOfStock ? ' is-out-of-stock' : ''}" onclick='openImageModal("${p.img}", "${p.name}")'>
+                    <div class="product-img-box${isOutOfStock ? ' is-out-of-stock' : ''}" onclick='openImageModal("${p.img}", "${p.name}", "${p.id}")'>
                         <img src="${optimizeImg(p.img, 300) || 'logo.png'}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
                     </div>
                     <div class="product-name">${p.name}</div>
@@ -2946,6 +3060,7 @@
             cart.push({ id: p.id, name: p.name, price: finalPrice, quantity: 1, img: p.img || '' });
         }
         saveCartToLocalStorage();
+        markFunnelStepOnce('addToCart');
         updateCartStateUI();
         updateProductCardDOM(prodId);
         if(document.getElementById('cartModal').style.display === 'flex') {
@@ -3170,6 +3285,7 @@
         document.getElementById('cartModalTitle').innerText = '📍 الاستلام والبيانات الشخصية';
         refreshDeliveryOptionLabels();
         loadUserProfileData();
+        markFunnelStepOnce('checkoutStart');
     }
 
     function goToStep3() {
@@ -3592,6 +3708,10 @@
             });
 
             const newOrder = result.data;
+
+            markFunnelStepOnce('orderComplete');
+            clearAbandonedCartRecord();
+            if (abandonedCartTimer) { clearTimeout(abandonedCartTimer); abandonedCartTimer = null; }
 
             cart = [];
             appliedDiscount = 0;
