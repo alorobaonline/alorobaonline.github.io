@@ -405,6 +405,19 @@
         }
     </style>
 
+    <!-- الزوار يوم بيوم -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('dailyVisitorsSectionContent', this, 'dailyVisitors')">
+            <span>📅 الزوار يوم بيوم</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="dailyVisitorsSectionContent">
+            <div id="dailyVisitorsList" style="font-size: 0.78rem;">
+                <p style="text-align:center; color:#888; padding:10px;">جاري التحميل...</p>
+            </div>
+        </div>
+    </div>
+
     <!-- المشتركين بعروض واتساب -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('marketingSubsSectionContent', this, 'marketingSubs')">
@@ -1448,6 +1461,36 @@
         });
 
         initLiveVisitorsListener();
+        initDailyVisitorsListener();
+    }
+
+    // ===================== الزوار يوم بيوم =====================
+    function initDailyVisitorsListener() {
+        window.onSnapshot(window.collection(window.db, "visitorStats"), (snapshot) => {
+            const days = [];
+            snapshot.forEach(docSnap => {
+                if (docSnap.id === "total") return; // هاد مجموع كل الوقت، مش يوم فعلي
+                days.push({ date: docSnap.id, ...docSnap.data() });
+            });
+            days.sort((a, b) => b.date.localeCompare(a.date)); // الأحدث أول
+            renderDailyVisitorsList(days);
+        });
+    }
+
+    function renderDailyVisitorsList(days) {
+        const container = document.getElementById('dailyVisitorsList');
+        if (!container) return;
+        if (days.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#888; padding:10px;">ولا يوم فيه زيارات مسجّلة لسا</p>';
+            return;
+        }
+        const todayStr = new Date().toISOString().slice(0, 10);
+        container.innerHTML = days.map(d => `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:${d.date === todayStr ? '#eff6ff' : '#f8fafc'}; border:1px solid ${d.date === todayStr ? '#93c5fd' : '#e2e8f0'}; border-radius:8px; margin-bottom:6px;">
+                <span style="font-weight:800;">${d.date}${d.date === todayStr ? ' (اليوم)' : ''}</span>
+                <span style="color:#2563eb; font-weight:900;">👁️ ${d.count || 0}</span>
+            </div>
+        `).join('');
     }
 
     // "متصلين الآن": بس النبضات يلي آخر تحديث لها خلال آخر 60 ثانية - أي نبضة أقدم
