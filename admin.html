@@ -337,7 +337,6 @@
         <button class="admin-tab-btn" id="tabBtn_products" onclick="switchAdminTab('products')">🛍️ المنتجات</button>
         <button class="admin-tab-btn" id="tabBtn_bundles" onclick="switchAdminTab('bundles')">🎁 الباقات</button>
         <button class="admin-tab-btn" id="tabBtn_offers" onclick="switchAdminTab('offers')">🔥 العروض</button>
-        <button class="admin-tab-btn" id="tabBtn_analytics" onclick="switchAdminTab('analytics')">📊 تحليلات الزوار</button>
         <button class="admin-tab-btn" id="tabBtn_customers" onclick="switchAdminTab('customers')">🧑‍🤝‍🧑 الزبائن</button>
         <button class="admin-tab-btn" id="tabBtn_reports" onclick="switchAdminTab('reports')">📊 التقارير</button>
         <button class="admin-tab-btn" id="tabBtn_settings" onclick="switchAdminTab('settings')">⚙️ الإعدادات</button>
@@ -365,6 +364,11 @@
             📦 إدارة المخزون (صور + مسح باركود)
         </a>
     </div>
+    <div style="margin-bottom: 12px;">
+        <a href="analytics.html" target="_blank" style="display: block; text-align: center; background: #1e40af; color: white; padding: 10px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 0.8rem; border: 1px solid #1e3a8a;">
+            📊 تحليلات الزوار (زوار، سلوك، سلات متروكة، مشتركين واتساب)
+        </a>
+    </div>
 
     <!-- ملخص المبيعات -->
     <div class="sales-summary-box">
@@ -375,62 +379,6 @@
         <div style="text-align: left;">
             <div style="font-size: 0.65rem; opacity: 0.85;">الطلبات الجديدة</div>
             <div id="newOrdersCountBadge" style="font-size: 1.1rem;">0</div>
-        </div>
-    </div>
-
-    <!-- زوار الموقع -->
-    <div class="sales-summary-box" style="background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);">
-        <div>
-            <div style="font-size: 0.65rem; opacity: 0.85;">👁️ زوار اليوم</div>
-            <div id="todayVisitorsCount" style="font-size: 1.1rem;">—</div>
-        </div>
-        <div style="text-align: left;">
-            <div style="font-size: 0.65rem; opacity: 0.85;">إجمالي الزوار (كل الوقت)</div>
-            <div id="totalVisitorsCount" style="font-size: 1.1rem;">—</div>
-        </div>
-    </div>
-
-    <!-- متصلين الآن (لايف) -->
-    <div class="sales-summary-box" style="background: linear-gradient(135deg, #15803d 0%, #16a34a 100%); margin-bottom: 12px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="width: 10px; height: 10px; background: #4ade80; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 rgba(74,222,128,0.6); animation: livePulse 1.6s infinite;"></span>
-            <div>
-                <div style="font-size: 0.65rem; opacity: 0.9;">متصلين على الموقع الآن</div>
-                <div id="liveVisitorsCount" style="font-size: 1.3rem; font-weight: 900;">—</div>
-            </div>
-        </div>
-    </div>
-    <style>
-        @keyframes livePulse {
-            0% { box-shadow: 0 0 0 0 rgba(74,222,128,0.6); }
-            70% { box-shadow: 0 0 0 8px rgba(74,222,128,0); }
-            100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
-        }
-    </style>
-
-    <!-- الزوار يوم بيوم -->
-    <div class="section-box">
-        <div class="section-header-toggle" onclick="toggleSection('dailyVisitorsSectionContent', this, 'dailyVisitors')">
-            <span>📅 الزوار يوم بيوم</span>
-            <span class="toggle-arrow">▼</span>
-        </div>
-        <div class="section-content" id="dailyVisitorsSectionContent">
-            <div id="dailyVisitorsList" style="font-size: 0.78rem;">
-                <p style="text-align:center; color:#888; padding:10px;">جاري التحميل...</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- المشتركين بعروض واتساب -->
-    <div class="section-box">
-        <div class="section-header-toggle" onclick="toggleSection('marketingSubsSectionContent', this, 'marketingSubs')">
-            <span>🔔 المشتركين بعروض واتساب (<span id="marketingSubsCount">0</span>)</span>
-            <span class="toggle-arrow">▼</span>
-        </div>
-        <div class="section-content" id="marketingSubsSectionContent">
-            <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 8px;">أرقام زبائن وافقوا صراحة على استقبال رسائل تسويقية - جاهزة تستخدمها لما يصير عندك حساب WhatsApp Business Platform رسمي.</div>
-            <button class="btn-main" style="background: #25D366; margin-bottom: 10px;" onclick="copyAllMarketingSubscribers()">📋 نسخ كل الأرقام</button>
-            <div id="marketingSubsListContainer" style="max-height: 300px; overflow-y: auto;"></div>
         </div>
     </div>
 
@@ -592,72 +540,6 @@
             <div id="offersOnlyContainer"></div>
         </div>
     </div>
-    </div>
-
-    <div class="admin-tab-panel" id="tabPanel_analytics">
-    <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 10px;">كل الأرقام هون عن اليوم الحالي - بتتحدث لحظيًا كل ما زبون يتصفح الموقع.</div>
-
-    <!-- قمع الشراء -->
-    <div class="section-box">
-        <div class="section-header-toggle" onclick="toggleSection('funnelSectionContent', this)">
-            <span>🧭 قمع الشراء اليوم</span>
-            <span class="toggle-arrow">▼</span>
-        </div>
-        <div class="section-content" id="funnelSectionContent">
-            <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 8px; line-height: 1.4;">كم جلسة تصفح (زائر) وصلت لكل خطوة اليوم - بيوريك بالظبط وين بيتسرب الزبائن قبل ما يشتروا.</div>
-            <div id="funnelStatsContainer"><p style="text-align:center; color:#888; padding:10px;">جاري التحميل...</p></div>
-        </div>
-    </div>
-
-    <!-- أكتر المنتجات مشاهدة -->
-    <div class="section-box">
-        <div class="section-header-toggle" onclick="toggleSection('topViewedSectionContent', this)">
-            <span>👁️ أكتر المنتجات مشاهدة</span>
-            <span class="toggle-arrow">▼</span>
-        </div>
-        <div class="section-content" id="topViewedSectionContent">
-            <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 8px; line-height: 1.4;">منتجات بتتفتح كتير (زبون ضغط على صورتها) بغض النظر هل انباعت ولا لأ - من أول ما بدأنا نسجل. لو منتج بيتفتح كتير وما بيتباع، ممكن السعر أو الصورة أو الوصف يحتاجوا مراجعة.</div>
-            <div id="topViewedContainer"><p style="text-align:center; color:#888; padding:10px;">جاري التحميل...</p></div>
-        </div>
-    </div>
-
-    <!-- سلة متروكة -->
-    <div class="section-box">
-        <div class="section-header-toggle" onclick="toggleSection('abandonedCartsSectionContent', this)">
-            <span>🛒 سلات متروكة (<span id="abandonedCartsCount">0</span>)</span>
-            <span class="toggle-arrow">▼</span>
-        </div>
-        <div class="section-content" id="abandonedCartsSectionContent">
-            <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 8px; line-height: 1.4;">زبائن ضافوا منتجات للسلة بس ما أكملوا الطلب خلال 15 دقيقة. لو عندك رقم واتساب، ممكن تبعتله تذكير.</div>
-            <button class="btn-delete" style="margin-bottom: 8px; font-size: 0.65rem; padding: 5px 10px;" onclick="clearAllAbandonedCarts()">🗑️ حذف كل السلات المتروكة الحالية</button>
-            <div id="abandonedCartsContainer"><p style="text-align:center; color:#888; padding:10px;">جاري التحميل...</p></div>
-        </div>
-    </div>
-
-    <!-- مصدر الزيارة -->
-    <div class="section-box">
-        <div class="section-header-toggle" onclick="toggleSection('trafficSourceSectionContent', this)">
-            <span>📡 مصدر الزوار اليوم</span>
-            <span class="toggle-arrow">▼</span>
-        </div>
-        <div class="section-content" id="trafficSourceSectionContent">
-            <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 8px; line-height: 1.4;">من وين الزبون دخل للموقع. لتتبع مصدر معين (تيك توك، رسالة SMS...)، ضيف <code style="background:#f1f5f9; padding:1px 4px; border-radius:4px;">?src=tiktok</code> أو <code style="background:#f1f5f9; padding:1px 4px; border-radius:4px;">?src=sms</code> آخر رابط الموقع قبل ما تشاركه (مثال: alorobaonline.github.io/?src=tiktok).</div>
-            <div id="trafficSourceContainer"><p style="text-align:center; color:#888; padding:10px;">جاري التحميل...</p></div>
-        </div>
-    </div>
-
-    <!-- مدة الجلسة والارتداد -->
-    <div class="section-box">
-        <div class="section-header-toggle" onclick="toggleSection('engagementSectionContent', this)">
-            <span>⏱️ وقت البقاء بالموقع اليوم</span>
-            <span class="toggle-arrow">▼</span>
-        </div>
-        <div class="section-content" id="engagementSectionContent">
-            <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 8px; line-height: 1.4;">معدل تقريبي - "الارتداد" يعني زائر طلع خلال أقل من 10 ثواني من غير ما يتفاعل تقريبًا.</div>
-            <div id="engagementStatsContainer"><p style="text-align:center; color:#888; padding:10px;">جاري التحميل...</p></div>
-        </div>
-    </div>
-
     </div>
 
     <div class="admin-tab-panel" id="tabPanel_bundles">
@@ -1468,7 +1350,6 @@
 
         if (tabName === 'staff') loadStaffList();
         if (tabName === 'offers') renderOffersOnlyList();
-        if (tabName === 'analytics') initAnalyticsTabListeners();
     }
 
     (function initAdminTabs() {
@@ -1498,311 +1379,8 @@
         loadPaymentMethodSettings();
         initCouponsListener();
         initBusinessHoursSection();
-        initVisitorStatsListener();
         initDailySalesListener();
-        initMarketingSubscribersListener();
     });
-
-    // ===================== المشتركين بعروض واتساب =====================
-    let marketingSubscribersList = [];
-
-    function initMarketingSubscribersListener() {
-        window.onSnapshot(window.collection(window.db, "marketingSubscribers"), (snapshot) => {
-            marketingSubscribersList = [];
-            snapshot.forEach(docSnap => {
-                let d = docSnap.data();
-                if (d.unsubscribed) return; // ما نعرض ولا نعتمد على مين ألغى اشتراكه
-                marketingSubscribersList.push({ id: docSnap.id, ...d });
-            });
-            marketingSubscribersList.sort((a, b) => {
-                let ta = a.consentedAt && a.consentedAt.toMillis ? a.consentedAt.toMillis() : 0;
-                let tb = b.consentedAt && b.consentedAt.toMillis ? b.consentedAt.toMillis() : 0;
-                return tb - ta; // الأحدث اشتراكًا أول
-            });
-            renderMarketingSubscribersList();
-        });
-    }
-
-    function renderMarketingSubscribersList() {
-        const countEl = document.getElementById('marketingSubsCount');
-        const container = document.getElementById('marketingSubsListContainer');
-        if (countEl) countEl.innerText = marketingSubscribersList.length;
-        if (!container) return;
-
-        if (marketingSubscribersList.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#888; font-size:0.72rem; padding:12px;">ولا حدا اشترك بعد</p>';
-            return;
-        }
-
-        const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-        container.innerHTML = marketingSubscribersList.map(s => {
-            let subMillis = s.consentedAt && s.consentedAt.toMillis ? s.consentedAt.toMillis() : 0;
-            let isNew = subMillis > oneDayAgo;
-            let newBadge = isNew ? `<span style="background:#fef3c7; color:#92400e; font-size:0.58rem; font-weight:900; padding:2px 6px; border-radius:8px; margin-left:6px;">🆕 جديد</span>` : '';
-            return `
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 8px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; margin-bottom:4px; font-size:0.72rem; font-weight:700;">
-                <span>${s.phone}${newBadge}</span>
-                <a href="https://wa.me/${s.phone.replace(/[^0-9]/g,'')}" target="_blank" rel="noopener" style="color:#16a34a; text-decoration:underline; font-weight:800;">💬 واتساب</a>
-            </div>
-        `;
-        }).join('');
-    }
-
-    function copyAllMarketingSubscribers() {
-        if (marketingSubscribersList.length === 0) {
-            alert('ما في أرقام لنسخها بعد');
-            return;
-        }
-        const text = marketingSubscribersList.map(s => s.phone).join('\n');
-        navigator.clipboard.writeText(text).then(() => {
-            alert(`✅ تم نسخ ${marketingSubscribersList.length} رقم`);
-        }).catch(() => {
-            alert('تعذر النسخ التلقائي، الأرقام:\n' + text);
-        });
-    }
-
-    // ===================== زوار الموقع =====================
-    function initVisitorStatsListener() {
-        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-
-        window.onSnapshot(window.doc(window.db, "visitorStats", "total"), (snap) => {
-            const el = document.getElementById('totalVisitorsCount');
-            if (el) el.innerText = snap.exists() ? (snap.data().count || 0) : 0;
-        });
-
-        window.onSnapshot(window.doc(window.db, "visitorStats", today), (snap) => {
-            const el = document.getElementById('todayVisitorsCount');
-            if (el) el.innerText = snap.exists() ? (snap.data().count || 0) : 0;
-        });
-
-        initLiveVisitorsListener();
-        initDailyVisitorsListener();
-    }
-
-    // ===================== الزوار يوم بيوم =====================
-    function initDailyVisitorsListener() {
-        window.onSnapshot(window.collection(window.db, "visitorStats"), (snapshot) => {
-            const days = [];
-            snapshot.forEach(docSnap => {
-                if (docSnap.id === "total") return; // هاد مجموع كل الوقت، مش يوم فعلي
-                days.push({ date: docSnap.id, ...docSnap.data() });
-            });
-            days.sort((a, b) => b.date.localeCompare(a.date)); // الأحدث أول
-            renderDailyVisitorsList(days);
-        });
-    }
-
-    function renderDailyVisitorsList(days) {
-        const container = document.getElementById('dailyVisitorsList');
-        if (!container) return;
-        if (days.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#888; padding:10px;">ولا يوم فيه زيارات مسجّلة لسا</p>';
-            return;
-        }
-        const todayStr = new Date().toISOString().slice(0, 10);
-        container.innerHTML = days.map(d => `
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:${d.date === todayStr ? '#eff6ff' : '#f8fafc'}; border:1px solid ${d.date === todayStr ? '#93c5fd' : '#e2e8f0'}; border-radius:8px; margin-bottom:6px;">
-                <span style="font-weight:800;">${d.date}${d.date === todayStr ? ' (اليوم)' : ''}</span>
-                <span style="color:#2563eb; font-weight:900;">👁️ ${d.count || 0}</span>
-            </div>
-        `).join('');
-    }
-
-    // ===================== تحليلات سلوك الزوار (قمع الشراء، أكتر منتجات مشاهدة، سلات متروكة، مصدر الزيارة، مدة الجلسة) =====================
-    let analyticsListenersStarted = false;
-    let latestAbandonedCarts = [];
-    function initAnalyticsTabListeners() {
-        if (analyticsListenersStarted) return; // نبدأهم مرة وحدة بس أول ما يفتح التبويب
-        analyticsListenersStarted = true;
-
-        const today = new Date().toISOString().slice(0, 10);
-
-        // 1) قمع الشراء
-        window.onSnapshot(window.doc(window.db, "funnelStats", today), (snap) => {
-            renderFunnelStats(snap.exists() ? snap.data() : {});
-        });
-
-        // 2) أكتر المنتجات مشاهدة
-        window.onSnapshot(window.collection(window.db, "productViewStats"), (snapshot) => {
-            let views = [];
-            snapshot.forEach(docSnap => views.push({ id: docSnap.id, ...docSnap.data() }));
-            views.sort((a, b) => (b.count || 0) - (a.count || 0));
-            renderTopViewedProducts(views.slice(0, 15));
-        });
-
-        // 3) سلات متروكة
-        window.onSnapshot(window.collection(window.db, "abandonedCarts"), (snapshot) => {
-            let carts = [];
-            snapshot.forEach(docSnap => carts.push({ id: docSnap.id, ...docSnap.data() }));
-            carts.sort((a, b) => {
-                let ta = a.updatedAt && a.updatedAt.toMillis ? a.updatedAt.toMillis() : 0;
-                let tb = b.updatedAt && b.updatedAt.toMillis ? b.updatedAt.toMillis() : 0;
-                return tb - ta;
-            });
-            latestAbandonedCarts = carts;
-            renderAbandonedCarts(carts);
-        });
-
-        // 4) مصدر الزيارة
-        window.onSnapshot(window.doc(window.db, "trafficSourceStats", today), (snap) => {
-            renderTrafficSources(snap.exists() ? (snap.data().sources || {}) : {});
-        });
-
-        // 5) مدة الجلسة والارتداد
-        window.onSnapshot(window.doc(window.db, "engagementStats", today), (snap) => {
-            renderEngagementStats(snap.exists() ? snap.data() : {});
-        });
-    }
-
-    function renderFunnelStats(data) {
-        const container = document.getElementById('funnelStatsContainer');
-        if (!container) return;
-        const steps = [
-            { key: 'pageViews', label: '👁️ فتحوا الموقع', color: '#2563eb' },
-            { key: 'productViews', label: '🔍 شافوا منتج', color: '#7c3aed' },
-            { key: 'addToCart', label: '🛒 ضافوا للسلة', color: '#f59e0b' },
-            { key: 'checkoutStart', label: '📍 بدأوا الدفع', color: '#ea580c' },
-            { key: 'orderComplete', label: '✅ أكملوا الطلب', color: '#16a34a' }
-        ];
-        const base = data.pageViews || 0;
-        container.innerHTML = steps.map(s => {
-            let count = data[s.key] || 0;
-            let pct = base > 0 ? Math.round((count / base) * 100) : 0;
-            return `
-                <div style="margin-bottom: 10px;">
-                    <div style="display:flex; justify-content:space-between; font-size:0.72rem; font-weight:800; margin-bottom:3px;">
-                        <span>${s.label}</span>
-                        <span>${count} ${base > 0 ? `(${pct}%)` : ''}</span>
-                    </div>
-                    <div style="background:#f1f5f9; border-radius:6px; height:10px; overflow:hidden;">
-                        <div style="background:${s.color}; height:100%; width:${pct}%; border-radius:6px; transition: width .3s ease;"></div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    function renderTopViewedProducts(views) {
-        const container = document.getElementById('topViewedContainer');
-        if (!container) return;
-        if (views.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#888; padding:10px;">ما في مشاهدات مسجّلة لسا</p>';
-            return;
-        }
-        container.innerHTML = views.map((v, i) => `
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:5px;">
-                <span style="font-weight:700; font-size:0.75rem;">${i + 1}. ${v.name || 'منتج بدون اسم'}</span>
-                <span style="color:#7c3aed; font-weight:900; font-size:0.75rem;">👁️ ${v.count || 0}</span>
-            </div>
-        `).join('');
-    }
-
-    async function clearAllAbandonedCarts() {
-        if (latestAbandonedCarts.length === 0) {
-            alert('ولا في سلة متروكة حاليًا.');
-            return;
-        }
-        if (!confirm(`حذف كل السلات المتروكة الحالية (${latestAbandonedCarts.length})؟ هذا الإجراء لا يمكن التراجع عنه.`)) return;
-        try {
-            await Promise.all(latestAbandonedCarts.map(c => window.deleteDoc(window.doc(window.db, "abandonedCarts", c.id))));
-            alert('تم حذف كل السلات المتروكة ✅');
-        } catch(e) {
-            console.error(e);
-            alert('حدث خطأ أثناء الحذف.');
-        }
-    }
-
-    function renderAbandonedCarts(carts) {
-        const container = document.getElementById('abandonedCartsContainer');
-        const countEl = document.getElementById('abandonedCartsCount');
-        if (countEl) countEl.innerText = carts.length;
-        if (!container) return;
-        if (carts.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#888; padding:10px;">ولا سلة متروكة حاليًا 🎉</p>';
-            return;
-        }
-        container.innerHTML = carts.map(c => {
-            let itemsText = (c.items || []).map(i => `${i.name} ×${i.quantity}`).join('، ');
-            let waLink = c.phone ? `<a href="https://wa.me/${c.phone.replace(/[^0-9]/g, '')}" target="_blank" style="background:#25D366; color:white; padding:4px 10px; border-radius:8px; font-size:0.65rem; font-weight:800; text-decoration:none;">💬 واتساب</a>` : '';
-            return `
-                <div style="padding:10px; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; margin-bottom:8px;">
-                    <div style="font-size:0.72rem; color:#78716c; margin-bottom:4px;">${itemsText || 'بدون تفاصيل منتجات'}</div>
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:900; color:#ea580c;">${(c.total || 0).toFixed(2)} ₪</span>
-                        ${waLink}
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    function renderTrafficSources(sources) {
-        const container = document.getElementById('trafficSourceContainer');
-        if (!container) return;
-        const entries = Object.entries(sources).sort((a, b) => b[1] - a[1]);
-        if (entries.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#888; padding:10px;">ما في زيارات مسجّلة اليوم لسا</p>';
-            return;
-        }
-        const total = entries.reduce((sum, [, v]) => sum + v, 0);
-        container.innerHTML = entries.map(([src, count]) => {
-            let pct = total > 0 ? Math.round((count / total) * 100) : 0;
-            return `
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:5px;">
-                    <span style="font-weight:700; font-size:0.75rem;">📡 ${src}</span>
-                    <span style="color:#2563eb; font-weight:900; font-size:0.75rem;">${count} (${pct}%)</span>
-                </div>
-            `;
-        }).join('');
-    }
-
-    function renderEngagementStats(data) {
-        const container = document.getElementById('engagementStatsContainer');
-        if (!container) return;
-        const sessions = data.totalSessions || 0;
-        const avgDuration = sessions > 0 ? Math.round((data.totalDurationSeconds || 0) / sessions) : 0;
-        const bounceRate = sessions > 0 ? Math.round(((data.bounces || 0) / sessions) * 100) : 0;
-        container.innerHTML = `
-            <div style="display:flex; justify-content:space-between; padding:8px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:6px;">
-                <span style="font-weight:700; font-size:0.75rem;">عدد الجلسات المكتملة</span>
-                <span style="font-weight:900; font-size:0.75rem;">${sessions}</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; padding:8px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:6px;">
-                <span style="font-weight:700; font-size:0.75rem;">متوسط وقت البقاء</span>
-                <span style="font-weight:900; font-size:0.75rem;">${avgDuration} ثانية</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; padding:8px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
-                <span style="font-weight:700; font-size:0.75rem;">نسبة الارتداد (أقل من 10 ثواني)</span>
-                <span style="font-weight:900; font-size:0.75rem; color:${bounceRate > 50 ? '#dc2626' : '#16a34a'};">${bounceRate}%</span>
-            </div>
-        `;
-    }
-
-
-    // "متصلين الآن": بس النبضات يلي آخر تحديث لها خلال آخر 60 ثانية - أي نبضة أقدم
-    // من هيك معناها الزبون طلع من الموقع (سكّر التبويب أو ما عاد نشيط).
-    let liveVisitorsDocs = [];
-    function initLiveVisitorsListener() {
-        window.onSnapshot(window.collection(window.db, "liveVisitors"), (snapshot) => {
-            liveVisitorsDocs = [];
-            snapshot.forEach(docSnap => {
-                const data = docSnap.data();
-                if (data.lastSeen) liveVisitorsDocs.push(data.lastSeen.toDate());
-            });
-            renderLiveVisitorsCount();
-        });
-        // نعيد الحساب كل 10 ثواني حتى النبضات القديمة تختفي من العداد لوحدها
-        // حتى لو ما تغيّر شي بقاعدة البيانات (الوقت هو يلي بيتغيّر)
-        setInterval(renderLiveVisitorsCount, 10000);
-    }
-
-    function renderLiveVisitorsCount() {
-        const el = document.getElementById('liveVisitorsCount');
-        if (!el) return;
-        const cutoff = Date.now() - 60000; // آخر 60 ثانية
-        const activeCount = liveVisitorsDocs.filter(d => d.getTime() >= cutoff).length;
-        el.innerText = activeCount;
-    }
 
     // ===================== طرق الدفع الظاهرة للزبون =====================
     async function loadPaymentMethodSettings() {
