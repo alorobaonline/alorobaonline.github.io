@@ -518,7 +518,8 @@
                 let orderTotal = ord ? (Number(ord.total) || 0) : 0;
 
                 await window.updateDoc(window.doc(window.db, "orders", orderId), {
-                    status: "مكتمل"
+                    status: "مكتمل",
+                    completedAt: window.serverTimestamp()
                 });
 
                 // نحدّث إجمالي المبيعات المجمّع فورًا بدل ما تضطر لوحة التحكم تعيد جمع كل الطلبات من الصفر

@@ -3060,7 +3060,7 @@
                         <td>${ord.customerName || ''}</td>
                         <td>${ord.customerPhone || ''}</td>
                         <td>${ord.customerAddress || ord.address || ''}</td>
-                        <td style="font-weight: bold; color: #16a34a;">${ord.total || 0} ₪</td>
+                        <td style="font-weight: bold; color: #16a34a;">${(Number(ord.total) || 0).toFixed(2)} ₪</td>
                         <td>
                             <button class="btn-status" style="background: #3b82f6; padding: 2px 6px; font-size: 0.6rem;" onclick="updateOrderStatus('${ord.id}', 'جديد')">استعادة ↩</button>
                             <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteOrder('${ord.id}')">حذف ✕</button>
@@ -3493,6 +3493,19 @@
         }
     }
 
+    function getOrderDateKey(o) {
+        // نستخدم completedAt لو موجودة (أدق - نفس يوم التسليم الفعلي)، وإلا نرجع لوقت إنشاء الطلبية كأفضل تقدير متاح
+        let timeVal = o.completedAt || o.timestamp || o.createdAt || o.time || o.date || o.orderTime;
+        if (!timeVal) return null;
+        let date;
+        if (typeof timeVal === 'object' && timeVal.seconds) {
+            date = new Date(timeVal.seconds * 1000);
+        } else {
+            date = new Date(timeVal);
+        }
+        return isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
+    }
+
     async function updateOrderStatus(id, status) {
         let o = orders.find(ord => ord.id == id);
         if(o) {
@@ -3503,11 +3516,21 @@
                 await window.updateDoc(window.doc(window.db, "orders", id), { status: status });
 
                 // لو الطلب طالع من حالة "مكتمل" (زر استعادة)، نخصم قيمته من إجمالي المبيعات المجمّع
+                // ومن يوم المبيعات الصحيح كمان (كان ناقص قبل هيك - يسبب تكرار لو الطلب انكمل مرة ثانية لاحقاً)
                 if (wasCompleted && status !== "مكتمل" && status !== "delivered") {
                     await window.setDoc(window.doc(window.db, "settings", "salesStats"), {
                         totalRevenue: window.increment(-orderTotal),
                         completedCount: window.increment(-1)
                     }, { merge: true });
+
+                    let dateKey = getOrderDateKey(o);
+                    if (dateKey) {
+                        await window.setDoc(window.doc(window.db, "salesStatsDaily", dateKey), {
+                            revenue: window.increment(-orderTotal),
+                            completedCount: window.increment(-1)
+                        }, { merge: true });
+                    }
+
                     orders = orders.filter(ord => ord.id != id);
                 }
 

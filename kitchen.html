@@ -675,7 +675,9 @@
         let discount = Number(ord.discount) || 0;
         let deliveryFee = Number(ord.deliveryFee) || 0;
         let newTotal = newSubtotal - bundleDiscount - discount + deliveryFee;
-        return { subtotal: newSubtotal, total: Math.max(0, newTotal) };
+        // نقرّب لخانتين عشريتين هون - جمع/طرح أسعار عشرية (زي 99.9، 25.9) بجافاسكريبت
+        // بينتج أحيانًا أرقام زي 283.40000000000003 بدون هالتقريب
+        return { subtotal: Number(newSubtotal.toFixed(2)), total: Number(Math.max(0, newTotal).toFixed(2)) };
     }
 
     async function saveOrderItemsUpdate(orderId, newItems, extraFields) {
