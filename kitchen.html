@@ -547,11 +547,19 @@
                    <div class="ready-hint" id="readyHint_${ord.id}" style="${allChecked ? 'display:none;' : ''}">✅ علّم كل المنتجات (اشطبها) أولاً عشان تقدر ترسل الطلب للسائق</div>`
                 : `<button class="btn-action btn-prepare-action" onclick="startPreparingOrder('${ord.id}')">🔥 بدء التحضير</button>`;
 
+            let productsTotalForDisplay = (Number(ord.subtotal) || 0) - (Number(ord.bundleDiscount) || 0) - (Number(ord.discount) || 0);
+            if (productsTotalForDisplay < 0) productsTotalForDisplay = 0;
+            let deliveryFeeForDisplay = Number(ord.deliveryFee) || 0;
+
             container.innerHTML += `
                 <div class="order-card">
                     <div class="order-header">
                         <span>طلب ${orderLabel} - ${ord.customerName || ord.clientName || 'زبون'} ${statusBadgeHtml}</span>
                         <span style="color: #16a34a;">${ord.total || 0} ₪</span>
+                    </div>
+                    <div style="display:flex; gap:8px; margin: 4px 0 8px 0; flex-wrap: wrap;">
+                        <span style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:8px;">🛒 المنتجات: ${productsTotalForDisplay.toFixed(2)} ₪</span>
+                        <span style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:8px;">🚚 التوصيل: ${deliveryFeeForDisplay.toFixed(2)} ₪</span>
                     </div>
                     
                     <div class="order-info">
