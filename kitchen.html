@@ -551,6 +551,10 @@
             if (productsTotalForDisplay < 0) productsTotalForDisplay = 0;
             let deliveryFeeForDisplay = Number(ord.deliveryFee) || 0;
 
+            let notifyRemovedItemsHtml = (ord.removedItemsLog && ord.removedItemsLog.length > 0)
+                ? `<button class="btn-action" style="background:#25D366; margin-top:4px;" onclick="notifyCustomerRemovedItems('${ord.id}')">📤 إشعار الزبون بالمنتجات المحذوفة (${ord.removedItemsLog.length})</button>`
+                : '';
+
             container.innerHTML += `
                 <div class="order-card">
                     <div class="order-header">
@@ -575,6 +579,7 @@
                         ${itemsHtml}
                     </div>
 
+                    ${notifyRemovedItemsHtml}
                     ${actionButtonHtml}
                     <button class="btn-secondary-action" onclick="printOrder('${ord.id}')">🖨️ طباعة فاتورة التحضير</button>
                     <button class="btn-secondary-action" style="background:#fee2e2; color:#991b1b; border-color:#fecaca;" onclick="cancelWholeOrder('${ord.id}')">❌ إلغاء الطلبية بالكامل</button>
@@ -673,19 +678,17 @@
         return { subtotal: newSubtotal, total: Math.max(0, newTotal) };
     }
 
-    async function saveOrderItemsUpdate(orderId, newItems) {
+    async function saveOrderItemsUpdate(orderId, newItems, extraFields) {
         const ord = currentOrdersList.find(o => o.id === orderId);
         if (!ord) return;
         ord.items = newItems;
         const { subtotal, total } = recomputeOrderTotal(ord);
         ord.subtotal = subtotal;
         ord.total = total;
+        const fieldsToSave = { items: newItems, subtotal: subtotal, total: total, ...(extraFields || {}) };
+        Object.assign(ord, extraFields || {}); // نحدّث النسخة المحلية كمان (زي removedItemsLog) حتى تنعرض فوراً بدون انتظار الـ listener
         try {
-            await window.updateDoc(window.doc(window.db, "orders", orderId), {
-                items: newItems,
-                subtotal: subtotal,
-                total: total
-            });
+            await window.updateDoc(window.doc(window.db, "orders", orderId), fieldsToSave);
         } catch(e) {
             console.error(e);
             alert('تعذر حفظ التعديل: ' + (e.message || e));
@@ -718,7 +721,42 @@
             if (!confirm(`حذف "${item.name || 'المنتج'}" من الطلبية؟`)) return;
         }
         const newItems = ord.items.filter((it, i) => i !== itemIdx);
-        await saveOrderItemsUpdate(orderId, newItems);
+        const newRemovedLog = [...(ord.removedItemsLog || []), { name: item.name || 'منتج', price: Number(item.price) || 0, quantity: Number(item.quantity || item.qty) || 1 }];
+        await saveOrderItemsUpdate(orderId, newItems, { removedItemsLog: newRemovedLog });
+    }
+
+    // ===================== إشعار الزبون بالمنتجات المحذوفة (رسالة واحدة تجمع كل المنتجات المحذوفة من هاي الطلبية) =====================
+    function buildRemovedItemsWhatsAppMessage(ord) {
+        const orderLabel = getOrderLabelFor(ord) || '';
+        const itemsList = (ord.removedItemsLog || []).map(it => `• ${it.name}`).join('\n');
+        const count = (ord.removedItemsLog || []).length;
+        const intro = count > 1 ? 'فيها منتجات نفذت عندنا حاليًا' : 'فيها منتج نفذ عندنا حاليًا';
+        const pronoun = count > 1 ? 'نشيلهم' : 'نشيله';
+        const pronoun2 = count > 1 ? 'سعرهم' : 'سعره';
+        return `مرحبا! معك متجر العروبة أونلاين 🙏\n\nبدنا نعتذر، طلبيتك رقم ${orderLabel} ${intro}:\n${itemsList}\n\nراح ${pronoun} من طلبيتك، وطبعاً راح ينزل ${pronoun2} من المجموع الكلي لطلبيتك - ما راح تدفع فلس زيادة على إشي ما وصلك.\n\nبقية الطلبية راح توصلك عادي زي المتفق عليه. آسفين على الإزعاج 🙌`;
+    }
+
+    async function notifyCustomerRemovedItems(orderId) {
+        const ord = currentOrdersList.find(o => o.id === orderId);
+        if (!ord || !ord.removedItemsLog || ord.removedItemsLog.length === 0) return;
+
+        const phoneRaw = (ord.customerPhone || ord.phone || '').replace(/[^0-9]/g, '');
+        if (!phoneRaw) {
+            alert('ما في رقم هاتف مسجّل بهاي الطلبية.');
+            return;
+        }
+        const waPhone = phoneRaw.startsWith('0') ? '972' + phoneRaw.slice(1) : phoneRaw;
+        const message = buildRemovedItemsWhatsAppMessage(ord);
+        window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
+
+        // نفضّي القائمة بعد ما يبعتها، حتى الزر يختفي لغاية ما ينحذف منتج جديد لاحقاً
+        try {
+            await window.updateDoc(window.doc(window.db, "orders", orderId), { removedItemsLog: [] });
+            ord.removedItemsLog = [];
+            renderKitchenOrders(currentOrdersList);
+        } catch(e) {
+            console.error(e);
+        }
     }
 
     // ===================== استبدال منتج =====================
