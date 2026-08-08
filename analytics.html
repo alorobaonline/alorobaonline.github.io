@@ -213,6 +213,74 @@
         </div>
     </div>
 
+    <!-- كوبون شخصي -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('personalCouponSectionContent', this)">
+            <span>🎁 كوبون شخصي (توصيل مجاني لزبون محدد)</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="personalCouponSectionContent">
+            <div style="font-size: 0.65rem; color: #4b5563; margin-bottom: 8px; line-height: 1.4;">
+                لزبون معيّن (مثلاً كافأة على نشر بالستاتوس) - بيولّد كود خاص فيه تلقائيًا، توصيل مجاني، ومرة استخدام وحدة بس (بعد أول طلب يستخدمه، الكود بينقفل تلقائيًا).
+            </div>
+            <div class="form-group">
+                <label style="display:block; font-size:0.7rem; font-weight:700; color:#4b5563; margin-bottom:4px;">رقم هاتف الزبون</label>
+                <input type="tel" id="personalCouponPhone" class="form-control" placeholder="مثلاً: 0501234567">
+            </div>
+            <button class="btn-main" style="background: #7c3aed; margin-bottom: 8px;" onclick="generatePersonalCoupon()">🎟️ توليد الكوبون</button>
+            <div id="personalCouponResult"></div>
+        </div>
+    </div>
+
+    <!-- الكوبونات -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('couponsSectionContent', this)">
+            <span>🎟️ الكوبونات</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="couponsSectionContent">
+            <div class="form-group">
+                <label style="display:block; font-size:0.7rem; font-weight:700; color:#4b5563; margin-bottom:4px;">كود الكوبون (بالإنجليزي، بدون مسافات)</label>
+                <input type="text" id="newCouponCode" class="form-control" placeholder="مثلاً: WELCOME10" style="text-transform: uppercase;">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                <div class="form-group">
+                    <label style="display:block; font-size:0.7rem; font-weight:700; color:#4b5563; margin-bottom:4px;">نوع الخصم</label>
+                    <select id="newCouponType" class="form-control" onchange="toggleCouponValueField()">
+                        <option value="fixed">مبلغ ثابت (₪)</option>
+                        <option value="percentage">نسبة مئوية (%)</option>
+                        <option value="freeDelivery">توصيل مجاني 🚚</option>
+                    </select>
+                </div>
+                <div class="form-group" id="newCouponValueWrapper">
+                    <label style="display:block; font-size:0.7rem; font-weight:700; color:#4b5563; margin-bottom:4px;">القيمة</label>
+                    <input type="number" id="newCouponValue" class="form-control" placeholder="مثلاً: 10">
+                </div>
+            </div>
+            <div class="form-group">
+                <label style="display:block; font-size:0.7rem; font-weight:700; color:#4b5563; margin-bottom:4px;">حد أدنى لقيمة الطلبية (₪) - اختياري، اتركه فاضي لو بدون حد أدنى</label>
+                <input type="number" id="newCouponMinOrder" class="form-control" placeholder="مثلاً: 100">
+            </div>
+            <button class="btn-main" style="background: var(--accent-green); margin-bottom: 10px;" onclick="addCoupon()">إضافة كوبون ➕</button>
+
+            <div style="overflow-x: auto; margin-top: 8px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.7rem;">
+                    <thead>
+                        <tr style="background: var(--primary-green); color: white;">
+                            <th style="padding: 6px; text-align: right;">الكود</th>
+                            <th style="padding: 6px; text-align: right;">الخصم</th>
+                            <th style="padding: 6px; text-align: right;">الحد الأدنى</th>
+                            <th style="padding: 6px; text-align: right;">الاستخدام</th>
+                            <th style="padding: 6px; text-align: right;">الحالة</th>
+                            <th style="padding: 6px; text-align: right;">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminCouponsListBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 10px;">كل الأرقام تحت هون عن اليوم الحالي - بتتحدث لحظيًا كل ما زبون يتصفح الموقع.</div>
 
     <!-- قمع الشراء -->
@@ -290,6 +358,7 @@
     window.addEventListener('firebase-ready', function() {
         initVisitorStatsListener();
         initMarketingSubscribersListener();
+        initCouponsListener();
         initAnalyticsListeners();
     });
 
@@ -420,6 +489,165 @@
         }).catch(() => {
             alert('تعذر النسخ، جرب يدويًا');
         });
+    }
+
+    // ===================== كوبون شخصي (توصيل مجاني لزبون محدد، استخدام مرة وحدة) =====================
+    async function generatePersonalCoupon() {
+        const phoneRaw = document.getElementById('personalCouponPhone').value.trim();
+        const resultBox = document.getElementById('personalCouponResult');
+        const digitsOnly = phoneRaw.replace(/[^0-9]/g, '');
+
+        if (digitsOnly.length < 6) {
+            alert("الرجاء إدخال رقم هاتف صحيح.");
+            return;
+        }
+
+        resultBox.innerHTML = `<p style="text-align:center; color:#888; padding:6px;">⏳ جاري التوليد...</p>`;
+
+        let code = "VIP" + digitsOnly.slice(-4);
+        try {
+            // نتأكد إنه الكود مش مستخدم أصلاً - لو مستخدم، نضيف رقم عشوائي حتى يصير فريد
+            let attempt = 0;
+            while (attempt < 5) {
+                const existing = await window.getDoc(window.doc(window.db, "coupons", code));
+                if (!existing.exists()) break;
+                attempt++;
+                code = "VIP" + digitsOnly.slice(-4) + Math.floor(Math.random() * 90 + 10);
+            }
+
+            await window.setDoc(window.doc(window.db, "coupons", code), {
+                discountType: "freeDelivery",
+                discountValue: 0,
+                minOrderValue: null,
+                active: true,
+                maxUses: 1,
+                usedCount: 0,
+                assignedPhone: digitsOnly
+            });
+
+            const waPhone = digitsOnly.startsWith('0') ? '972' + digitsOnly.slice(1) : digitsOnly;
+            const waMessage = `🎁 يسلمو! هاي هدية منا\nكوبون توصيل مجاني خاص فيك من العروبة أونلاين 🚚\n\nالكود: *${code}*\n\nاطلب الآن وخلي طلبتك توصلك بدون رسوم توصيل:\nalorobaonline.github.io\n\nملاحظة: الكود صالح لطلبية وحدة بس، فاستعجل قبل ما ينتهي 🙂`;
+            const waLink = `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}`;
+
+            resultBox.innerHTML = `
+                <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px; margin-top:6px;">
+                    <div style="font-weight:900; font-size:0.9rem; color:#166534; text-align:center; margin-bottom:8px;">الكود: ${code}</div>
+                    <a href="${waLink}" target="_blank" style="display:block; text-align:center; background:#25D366; color:white; padding:8px; border-radius:8px; font-weight:800; font-size:0.75rem; text-decoration:none;">💬 افتح واتساب وابعتله الكود جاهز</a>
+                </div>
+            `;
+            document.getElementById('personalCouponPhone').value = '';
+        } catch(e) {
+            console.error(e);
+            resultBox.innerHTML = `<p style="text-align:center; color:red; padding:6px;">حدث خطأ أثناء توليد الكوبون.</p>`;
+        }
+    }
+
+    // ===================== الكوبونات =====================
+    let coupons = [];
+
+    function toggleCouponValueField() {
+        const type = document.getElementById('newCouponType').value;
+        const wrapper = document.getElementById('newCouponValueWrapper');
+        if (wrapper) wrapper.style.display = (type === 'freeDelivery') ? 'none' : 'block';
+    }
+
+    function initCouponsListener() {
+        window.onSnapshot(window.collection(window.db, "coupons"), (snapshot) => {
+            coupons = [];
+            snapshot.forEach(docSnap => {
+                coupons.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            renderAdminCoupons();
+        });
+    }
+
+    function renderAdminCoupons() {
+        const tbody = document.getElementById('adminCouponsListBody');
+        if (!tbody) return;
+        if (coupons.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #888; padding: 10px;">لا توجد كوبونات مضافة حالياً</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = coupons.map(c => {
+            const active = c.active !== false;
+            const discountLabel = c.discountType === 'percentage' ? `${c.discountValue}%` : (c.discountType === 'freeDelivery' ? 'توصيل مجاني 🚚' : `${c.discountValue} ₪`);
+            const minLabel = (c.minOrderValue !== undefined && c.minOrderValue !== null && c.minOrderValue !== '') ? `${c.minOrderValue} ₪` : '—';
+            const maxUses = Number(c.maxUses) || 0;
+            const usedCount = Number(c.usedCount) || 0;
+            const usageLabel = maxUses > 0 ? `${usedCount}/${maxUses}${c.assignedPhone ? ' 👤' : ''}` : '∞';
+            return `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 6px;"><b>${c.id}</b></td>
+                    <td style="padding: 6px; color: #16a34a; font-weight: bold;">${discountLabel}</td>
+                    <td style="padding: 6px;">${minLabel}</td>
+                    <td style="padding: 6px;">${usageLabel}</td>
+                    <td style="padding: 6px;">
+                        <span onclick="toggleCouponActive('${c.id}', ${active})" style="cursor:pointer; padding:2px 8px; border-radius:12px; font-size:0.65rem; font-weight:800; ${active ? 'background:#dcfce7; color:#166534;' : 'background:#fee2e2; color:#991b1b;'}">
+                            ${active ? '✅ مفعّل' : '🚫 معطّل'}
+                        </span>
+                    </td>
+                    <td style="padding: 6px;">
+                        <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteCoupon('${c.id}')">حذف ✕</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    async function addCoupon() {
+        const code = document.getElementById('newCouponCode').value.trim().toUpperCase();
+        const discountType = document.getElementById('newCouponType').value;
+        const discountValueRaw = document.getElementById('newCouponValue').value;
+        const discountValue = discountType === 'freeDelivery' ? 0 : parseFloat(discountValueRaw);
+        const minOrderRaw = document.getElementById('newCouponMinOrder').value.trim();
+
+        if (!code) {
+            alert("الرجاء إدخال كود الكوبون.");
+            return;
+        }
+        if (discountType !== 'freeDelivery' && (isNaN(discountValue) || discountValue <= 0)) {
+            alert("الرجاء إدخال قيمة خصم صحيحة.");
+            return;
+        }
+        if (discountType === 'percentage' && discountValue > 100) {
+            alert("النسبة المئوية ما تقدر تتجاوز 100%.");
+            return;
+        }
+
+        try {
+            await window.setDoc(window.doc(window.db, "coupons", code), {
+                discountType,
+                discountValue,
+                minOrderValue: minOrderRaw === '' ? null : (parseFloat(minOrderRaw) || 0),
+                active: true
+            });
+            document.getElementById('newCouponCode').value = '';
+            document.getElementById('newCouponValue').value = '';
+            document.getElementById('newCouponMinOrder').value = '';
+            alert("تم إضافة الكوبون بنجاح! 🎟️");
+        } catch(e) {
+            console.error(e);
+            alert("خطأ في حفظ الكوبون.");
+        }
+    }
+
+    async function toggleCouponActive(code, currentlyActive) {
+        try {
+            await window.updateDoc(window.doc(window.db, "coupons", code), { active: !currentlyActive });
+        } catch(e) {
+            console.error(e);
+            alert("خطأ أثناء التحديث.");
+        }
+    }
+
+    async function deleteCoupon(code) {
+        if (!confirm(`هل أنت متأكد من حذف الكوبون "${code}"؟`)) return;
+        try {
+            await window.deleteDoc(window.doc(window.db, "coupons", code));
+        } catch(e) {
+            console.error(e);
+            alert("خطأ أثناء الحذف.");
+        }
     }
 
     // ===================== تحليلات سلوك الزوار (قمع الشراء، أكتر منتجات مشاهدة، سلات متروكة، مصدر الزيارة، مدة الجلسة) =====================
