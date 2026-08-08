@@ -1299,7 +1299,18 @@
     }
 
     // ===================== نبضة حضور لحظية (عداد "متصلين الآن" بلوحة التحكم) =====================
-    const liveSessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    // معرّف ثابت لنفس الجهاز/المتصفح (محفوظ بالـ localStorage) - يضل نفسه بين كل فتحة وفتحة للموقع،
+    // عشان "السلة المتروكة" و"متصلين الآن" ما يتكرروا كسجلات منفصلة لنفس الشخص كل مرة يفتح فيها التطبيق
+    function getOrCreatePersistentSessionId() {
+        let id = null;
+        try { id = localStorage.getItem('aloroba_session_id'); } catch(e) {}
+        if (!id) {
+            id = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+            try { localStorage.setItem('aloroba_session_id', id); } catch(e) {}
+        }
+        return id;
+    }
+    const liveSessionId = getOrCreatePersistentSessionId();
 
     function sendLiveHeartbeat() {
         try {

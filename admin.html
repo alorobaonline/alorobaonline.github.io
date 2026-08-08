@@ -627,6 +627,7 @@
         </div>
         <div class="section-content" id="abandonedCartsSectionContent">
             <div style="font-size: 0.65rem; color: #94a3b8; margin-bottom: 8px; line-height: 1.4;">زبائن ضافوا منتجات للسلة بس ما أكملوا الطلب خلال 15 دقيقة. لو عندك رقم واتساب، ممكن تبعتله تذكير.</div>
+            <button class="btn-delete" style="margin-bottom: 8px; font-size: 0.65rem; padding: 5px 10px;" onclick="clearAllAbandonedCarts()">🗑️ حذف كل السلات المتروكة الحالية</button>
             <div id="abandonedCartsContainer"><p style="text-align:center; color:#888; padding:10px;">جاري التحميل...</p></div>
         </div>
     </div>
@@ -1582,6 +1583,7 @@
 
     // ===================== تحليلات سلوك الزوار (قمع الشراء، أكتر منتجات مشاهدة، سلات متروكة، مصدر الزيارة، مدة الجلسة) =====================
     let analyticsListenersStarted = false;
+    let latestAbandonedCarts = [];
     function initAnalyticsTabListeners() {
         if (analyticsListenersStarted) return; // نبدأهم مرة وحدة بس أول ما يفتح التبويب
         analyticsListenersStarted = true;
@@ -1610,6 +1612,7 @@
                 let tb = b.updatedAt && b.updatedAt.toMillis ? b.updatedAt.toMillis() : 0;
                 return tb - ta;
             });
+            latestAbandonedCarts = carts;
             renderAbandonedCarts(carts);
         });
 
@@ -1665,6 +1668,21 @@
                 <span style="color:#7c3aed; font-weight:900; font-size:0.75rem;">👁️ ${v.count || 0}</span>
             </div>
         `).join('');
+    }
+
+    async function clearAllAbandonedCarts() {
+        if (latestAbandonedCarts.length === 0) {
+            alert('ولا في سلة متروكة حاليًا.');
+            return;
+        }
+        if (!confirm(`حذف كل السلات المتروكة الحالية (${latestAbandonedCarts.length})؟ هذا الإجراء لا يمكن التراجع عنه.`)) return;
+        try {
+            await Promise.all(latestAbandonedCarts.map(c => window.deleteDoc(window.doc(window.db, "abandonedCarts", c.id))));
+            alert('تم حذف كل السلات المتروكة ✅');
+        } catch(e) {
+            console.error(e);
+            alert('حدث خطأ أثناء الحذف.');
+        }
     }
 
     function renderAbandonedCarts(carts) {
@@ -1826,7 +1844,7 @@
             });
 
             const waPhone = digitsOnly.startsWith('0') ? '972' + digitsOnly.slice(1) : digitsOnly;
-            const waMessage = `🎁 يسلمو! هاي هدية منّا ❤️\nكوبون توصيل مجاني خاص فيك من العروبة أونلاين 🚚✨\n\nالكود: *${code}*\n\nاطلب الآن وخلي طلبتك توصلك بدون رسوم توصيل:\nalorobaonline.github.io\n\n⚡ الكود صالح لطلبية وحدة بس — فاستعجل قبل ما ينتهي 😊`;
+            const waMessage = `🎁 يسلمو! هاي هدية منا\nكوبون توصيل مجاني خاص فيك من العروبة أونلاين 🚚\n\nالكود: *${code}*\n\nاطلب الآن وخلي طلبتك توصلك بدون رسوم توصيل:\nalorobaonline.github.io\n\nملاحظة: الكود صالح لطلبية وحدة بس، فاستعجل قبل ما ينتهي 🙂`;
             const waLink = `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}`;
 
             resultBox.innerHTML = `
