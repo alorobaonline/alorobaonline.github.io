@@ -604,6 +604,8 @@
         const LOG_VISIT_URL = "https://log-visit-880642361344.europe-west1.run.app";
         // لسا محتاج تنشر فنكشن subscribe-marketing من Cloud Run وتتأكد الرابط مطابق
         const SUBSCRIBE_MARKETING_URL = "https://subscribe-marketing-880642361344.europe-west1.run.app";
+        // لسا محتاج تنشر فنكشن get-my-orders من Cloud Run وتتأكد الرابط مطابق (نفس أسلوب create-order)
+        const GET_MY_ORDERS_URL = "https://get-my-orders-880642361344.europe-west1.run.app";
 
         window.db = db;
         window.functionsInstance = functionsInstance;
@@ -612,6 +614,7 @@
         window.GET_CUSTOMER_PROFILE_URL = GET_CUSTOMER_PROFILE_URL;
         window.LOG_VISIT_URL = LOG_VISIT_URL;
         window.SUBSCRIBE_MARKETING_URL = SUBSCRIBE_MARKETING_URL;
+        window.GET_MY_ORDERS_URL = GET_MY_ORDERS_URL;
         window.collection = collection;
         window.getDocs = getDocs;
         window.addDoc = addDoc;
@@ -1645,9 +1648,9 @@
     function closeProfileModal() {
         unlockBodyScroll(); 
         document.getElementById('profileModal').style.display = 'none';
-        if (currentOrderUnsubscribe) {
-            currentOrderUnsubscribe();
-            currentOrderUnsubscribe = null;
+        if (currentOrderPollTimer) {
+            clearInterval(currentOrderPollTimer);
+            currentOrderPollTimer = null;
         }
     }
 
@@ -1815,8 +1818,6 @@
         el.classList.add('selected');
     }
 
-    let currentOrderUnsubscribe = null;
-
     function switchProfileTab(tab) {
         document.getElementById('tabInfoBtn').classList.remove('active');
         document.getElementById('tabCurrentBtn').classList.remove('active');
@@ -1825,10 +1826,10 @@
         document.getElementById('profileCurrentOrderSection').style.display = 'none';
         document.getElementById('profileOrdersSection').style.display = 'none';
 
-        // نوقف متابعة الطلبية الحية لو غادر المستخدم هالتبويب (يوفر قراءات ما نحتاجها)
-        if (tab !== 'current' && currentOrderUnsubscribe) {
-            currentOrderUnsubscribe();
-            currentOrderUnsubscribe = null;
+        // نوقف متابعة الطلبية (Polling) لو غادر المستخدم هالتبويب (يوفر استدعاءات ما نحتاجها)
+        if (tab !== 'current' && currentOrderPollTimer) {
+            clearInterval(currentOrderPollTimer);
+            currentOrderPollTimer = null;
         }
 
         if(tab === 'info') {
@@ -1886,13 +1887,21 @@
         `;
     }
 
-    function watchCurrentOrder() {
+    let currentOrderPollTimer = null;
+
+    async function fetchMyOrdersFromCloud(phone) {
+        const getMyOrders = window.httpsCallableFromURL(window.functionsInstance, window.GET_MY_ORDERS_URL);
+        const result = await getMyOrders({ phone: phone });
+        return (result.data && result.data.orders) ? result.data.orders : [];
+    }
+
+    async function watchCurrentOrder() {
         let phone = localStorage.getItem('aloroba_user_phone');
         let container = document.getElementById('myCurrentOrderContent');
 
-        if (currentOrderUnsubscribe) {
-            currentOrderUnsubscribe();
-            currentOrderUnsubscribe = null;
+        if (currentOrderPollTimer) {
+            clearInterval(currentOrderPollTimer);
+            currentOrderPollTimer = null;
         }
 
         if(!phone) {
@@ -1900,31 +1909,33 @@
             return;
         }
 
-        container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">جاري التحقق من طلبيتك...</p>`;
+        const activeStatuses = ["جديد", "new", "قيد التحضير", "جاهز للتوصيل", "قيد التوصيل"];
 
-        const q = window.query(
-            window.collection(window.db, "orders"),
-            window.where("customerPhone", "==", phone),
-            window.where("status", "in", ["جديد", "new", "قيد التحضير", "جاهز للتوصيل", "قيد التوصيل"])
-        );
+        async function refreshCurrentOrder() {
+            try {
+                let orders = await fetchMyOrdersFromCloud(phone);
+                orders = orders.filter(o => activeStatuses.includes(o.status));
 
-        currentOrderUnsubscribe = window.onSnapshot(q, (snapshot) => {
-            if (snapshot.empty) {
-                container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">ما فيه طلبية شغالة حاليًا 🙂</p>`;
-                return;
+                if (orders.length === 0) {
+                    container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">ما فيه طلبية شغالة حاليًا 🙂</p>`;
+                    return;
+                }
+
+                orders.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+                container.innerHTML = orders.map(renderOrderTrackerHtml).join('');
+            } catch (err) {
+                console.error('خطأ في متابعة الطلبية:', err);
+                container.innerHTML = `<p style="text-align: center; color: #d32f2f; font-size: 0.8rem; font-weight: 600; padding: 15px;">تعذّر تحميل حالة الطلبية.</p>`;
             }
+        }
 
-            let orders = [];
-            snapshot.forEach(docSnap => orders.push(docSnap.data()));
-            // نعرض الأحدث لو في أكثر من طلبية نشطة بنفس الوقت
-            orders.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
-
-            container.innerHTML = orders.map(renderOrderTrackerHtml).join('');
-        }, (err) => {
-            console.error('خطأ في متابعة الطلبية:', err);
-            container.innerHTML = `<p style="text-align: center; color: #d32f2f; font-size: 0.8rem; font-weight: 600; padding: 15px;">تعذّر تحميل حالة الطلبية.</p>`;
-        });
+        container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">جاري التحقق من طلبيتك...</p>`;
+        await refreshCurrentOrder();
+        // نحدّث كل 15 ثانية طول ما التبويب مفتوح - بديل عن المتابعة اللحظية (onSnapshot) اللي ما بتشتغل
+        // من متصفح الزبون لأنه صلاحيات orders محصورة بالموظفين بس
+        currentOrderPollTimer = setInterval(refreshCurrentOrder, 15000);
     }
+
 
     async function fetchUserPreviousOrders() {
         let phone = localStorage.getItem('aloroba_user_phone');
@@ -1938,21 +1949,18 @@
         container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">جاري جلب الطلبات من السحابة...</p>`;
 
         try {
-            const q = window.query(
-                window.collection(window.db, "orders"),
-                window.where("customerPhone", "==", phone),
-                window.where("status", "in", ["مكتمل", "delivered"])
-            );
-            const querySnapshot = await window.getDocs(q);
-            
-            if(querySnapshot.empty) {
+            let allOrders = await fetchMyOrdersFromCloud(phone);
+            let completedOrders = allOrders.filter(o => o.status === "مكتمل" || o.status === "delivered");
+
+            if(completedOrders.length === 0) {
                 container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">لا توجد طلبات سابقة مسجلة بهذا الرقم.</p>`;
                 return;
             }
 
+            completedOrders.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+
             container.innerHTML = '';
-            querySnapshot.forEach(docSnap => {
-                let order = docSnap.data();
+            completedOrders.forEach(order => {
                 let dateStr = 'تاريخ غير متوفر';
                 if (order.timestamp) {
                     let d = new Date(order.timestamp);
