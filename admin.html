@@ -2082,18 +2082,19 @@
                 window.limit(300)
             );
             const snap = await window.getDocs(recentOrdersQuery);
-            const qtyMap = {}; // id -> { name, qty }
+            const qtyMap = {}; // id -> { name, img, qty }
             snap.forEach(docSnap => {
                 const o = docSnap.data();
                 const isCompleted = o.status === "مكتمل" || o.status === "delivered";
                 if (!isCompleted) return;
                 (o.items || []).forEach(it => {
                     if (!it.id) return;
-                    if (!qtyMap[it.id]) qtyMap[it.id] = { name: it.name || 'منتج', qty: 0 };
+                    if (!qtyMap[it.id]) qtyMap[it.id] = { name: it.name || 'منتج', img: it.img || '', qty: 0 };
+                    if (!qtyMap[it.id].img && it.img) qtyMap[it.id].img = it.img;
                     qtyMap[it.id].qty += Number(it.quantity || it.qty) || 0;
                 });
             });
-            soldProductsSummary = Object.entries(qtyMap).map(([id, v]) => ({ id, name: v.name, qtySold: v.qty }));
+            soldProductsSummary = Object.entries(qtyMap).map(([id, v]) => ({ id, name: v.name, img: v.img, qtySold: v.qty }));
             soldProductsSummary.sort((a, b) => b.qtySold - a.qtySold);
             renderMissingCostProducts();
         } catch(e) {
@@ -2114,16 +2115,25 @@
             return;
         }
 
-        container.innerHTML = missing.map(p => `
-            <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#fef3c7; border:1px solid #fde68a; border-radius:8px; margin-bottom:6px;">
-                <div style="flex:1; min-width:0;">
-                    <div style="font-weight:800; font-size:0.78rem;">${p.name}</div>
-                    <div style="font-size:0.6rem; color:#92400e;">اتباع ${p.qtySold} قطعة بآخر الطلبات</div>
+        container.innerHTML = missing.map(p => {
+            let liveProduct = products.find(prod => prod.id === p.id);
+            let imgSrc = p.img || (liveProduct && liveProduct.img) || DEFAULT_PLACEHOLDER_IMG;
+            return `
+            <div style="padding:10px; background:#fef3c7; border:1px solid #fde68a; border-radius:10px; margin-bottom:8px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                    <img src="${imgSrc}" class="product-mini-thumb" onclick="openModal(this)" onerror="this.src='${DEFAULT_PLACEHOLDER_IMG}'">
+                    <div>
+                        <div style="font-weight:800; font-size:0.8rem;">${p.name}</div>
+                        <div style="font-size:0.62rem; color:#92400e;">اتباع ${p.qtySold} قطعة بآخر الطلبات</div>
+                    </div>
                 </div>
-                <input type="number" id="missingCostInput_${p.id}" class="form-control" placeholder="سعر التكلفة" style="width:100px; flex-shrink:0;">
-                <button class="btn-main" style="margin-top:0; padding:6px 10px; font-size:0.68rem; flex-shrink:0;" onclick="saveMissingCostProduct('${p.id}')">حفظ</button>
+                <div style="display:flex; gap:6px;">
+                    <input type="number" id="missingCostInput_${p.id}" class="form-control" placeholder="سعر التكلفة ₪" style="flex:1; min-width:0; margin:0;">
+                    <button onclick="saveMissingCostProduct('${p.id}')" style="background:var(--primary-green); color:white; border:none; padding:0 16px; border-radius:8px; font-size:0.75rem; font-weight:800; cursor:pointer; flex-shrink:0;">حفظ</button>
+                </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
 
     async function saveMissingCostProduct(productId) {
