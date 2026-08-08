@@ -165,7 +165,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, setDoc, onSnapshot, query, where, increment, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, setDoc, onSnapshot, query, where, increment, Timestamp, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
         import { getFunctions, httpsCallableFromURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
@@ -205,6 +205,8 @@
         window.onSnapshot = onSnapshot;
         window.query = query;
         window.where = where;
+        window.orderBy = orderBy;
+        window.limit = limit;
         window.Timestamp = Timestamp;
         window.increment = increment;
 
@@ -831,6 +833,20 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('missingCostsSectionContent', this)">
+            <span>🎯 استكمال أسعار التكلفة (من المنتجات المباعة فعليًا)</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="missingCostsSectionContent">
+            <div style="font-size: 0.65rem; color: #4b5563; margin-bottom: 8px; line-height: 1.4;">
+                بدل ما تدخل سعر تكلفة كل منتج بالكتالوج دفعة وحدة، هون بتشوف بس المنتجات اللي فعليًا انباعت بآخر الطلبات وناقصها سعر تكلفة - رتبناها الأكتر مبيعًا أول، كل ما ضفت سعر لمنتج بيختفي من القائمة تلقائيًا.
+            </div>
+            <button class="btn-main" style="margin-bottom: 8px;" onclick="loadMissingCostProducts()">🔄 تحميل / تحديث القائمة</button>
+            <div id="missingCostsContainer"><p style="text-align:center; color:#888; padding:10px;">اضغط "تحميل" لجلب المنتجات المباعة الناقص سعر تكلفتها.</p></div>
         </div>
     </div>
 
@@ -1498,6 +1514,11 @@
                 if (d.unsubscribed) return; // ما نعرض ولا نعتمد على مين ألغى اشتراكه
                 marketingSubscribersList.push({ id: docSnap.id, ...d });
             });
+            marketingSubscribersList.sort((a, b) => {
+                let ta = a.consentedAt && a.consentedAt.toMillis ? a.consentedAt.toMillis() : 0;
+                let tb = b.consentedAt && b.consentedAt.toMillis ? b.consentedAt.toMillis() : 0;
+                return tb - ta; // الأحدث اشتراكًا أول
+            });
             renderMarketingSubscribersList();
         });
     }
@@ -1513,12 +1534,18 @@
             return;
         }
 
-        container.innerHTML = marketingSubscribersList.map(s => `
+        const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+        container.innerHTML = marketingSubscribersList.map(s => {
+            let subMillis = s.consentedAt && s.consentedAt.toMillis ? s.consentedAt.toMillis() : 0;
+            let isNew = subMillis > oneDayAgo;
+            let newBadge = isNew ? `<span style="background:#fef3c7; color:#92400e; font-size:0.58rem; font-weight:900; padding:2px 6px; border-radius:8px; margin-left:6px;">🆕 جديد</span>` : '';
+            return `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 8px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; margin-bottom:4px; font-size:0.72rem; font-weight:700;">
-                <span>${s.phone}</span>
+                <span>${s.phone}${newBadge}</span>
                 <a href="https://wa.me/${s.phone.replace(/[^0-9]/g,'')}" target="_blank" rel="noopener" style="color:#16a34a; text-decoration:underline; font-weight:800;">💬 واتساب</a>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
 
     function copyAllMarketingSubscribers() {
@@ -2038,7 +2065,81 @@
             snapshot.forEach(docSnap => {
                 productCosts[docSnap.id] = docSnap.data().costPrice;
             });
+            renderMissingCostProducts(); // كل ما يتضاف سعر تكلفة (من هون أو من مكان ثاني)، المنتج بيختفي فوراً من القائمة
         });
+    }
+
+    // ===================== استكمال أسعار التكلفة تدريجيًا (من المنتجات المباعة فعليًا فقط) =====================
+    let soldProductsSummary = []; // [{id, name, qtySold}] - من آخر الطلبات المكتملة، محسوبة مرة عند الضغط على "تحميل"
+
+    async function loadMissingCostProducts() {
+        const container = document.getElementById('missingCostsContainer');
+        container.innerHTML = `<p style="text-align:center; color:#888; padding:10px;">⏳ جاري الجلب من آخر الطلبات...</p>`;
+        try {
+            const recentOrdersQuery = window.query(
+                window.collection(window.db, "orders"),
+                window.orderBy("timestamp", "desc"),
+                window.limit(300)
+            );
+            const snap = await window.getDocs(recentOrdersQuery);
+            const qtyMap = {}; // id -> { name, qty }
+            snap.forEach(docSnap => {
+                const o = docSnap.data();
+                const isCompleted = o.status === "مكتمل" || o.status === "delivered";
+                if (!isCompleted) return;
+                (o.items || []).forEach(it => {
+                    if (!it.id) return;
+                    if (!qtyMap[it.id]) qtyMap[it.id] = { name: it.name || 'منتج', qty: 0 };
+                    qtyMap[it.id].qty += Number(it.quantity || it.qty) || 0;
+                });
+            });
+            soldProductsSummary = Object.entries(qtyMap).map(([id, v]) => ({ id, name: v.name, qtySold: v.qty }));
+            soldProductsSummary.sort((a, b) => b.qtySold - a.qtySold);
+            renderMissingCostProducts();
+        } catch(e) {
+            console.error(e);
+            container.innerHTML = `<p style="text-align:center; color:red; padding:10px;">حدث خطأ أثناء الجلب.</p>`;
+        }
+    }
+
+    function renderMissingCostProducts() {
+        const container = document.getElementById('missingCostsContainer');
+        if (!container) return;
+        if (soldProductsSummary.length === 0) return; // لسا ما ضغط "تحميل" أصلاً، خلي الرسالة الافتراضية
+
+        const missing = soldProductsSummary.filter(p => productCosts[p.id] === undefined || productCosts[p.id] === null || productCosts[p.id] === '');
+
+        if (missing.length === 0) {
+            container.innerHTML = `<p style="text-align:center; color:#16a34a; font-weight:800; padding:10px;">🎉 كل المنتجات المباعة بآخر الطلبات عليها سعر تكلفة!</p>`;
+            return;
+        }
+
+        container.innerHTML = missing.map(p => `
+            <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#fef3c7; border:1px solid #fde68a; border-radius:8px; margin-bottom:6px;">
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:800; font-size:0.78rem;">${p.name}</div>
+                    <div style="font-size:0.6rem; color:#92400e;">اتباع ${p.qtySold} قطعة بآخر الطلبات</div>
+                </div>
+                <input type="number" id="missingCostInput_${p.id}" class="form-control" placeholder="سعر التكلفة" style="width:100px; flex-shrink:0;">
+                <button class="btn-main" style="margin-top:0; padding:6px 10px; font-size:0.68rem; flex-shrink:0;" onclick="saveMissingCostProduct('${p.id}')">حفظ</button>
+            </div>
+        `).join('');
+    }
+
+    async function saveMissingCostProduct(productId) {
+        const input = document.getElementById(`missingCostInput_${productId}`);
+        const cost = parseFloat(input.value);
+        if (isNaN(cost) || cost < 0) {
+            alert('الرجاء إدخال سعر تكلفة صحيح.');
+            return;
+        }
+        try {
+            await window.setDoc(window.doc(window.db, "productCosts", productId), { costPrice: cost }, { merge: true });
+            // ما لازم نعمل renderMissingCostProducts() يدوياً هون - الـ onSnapshot على productCosts رح يستدعيها تلقائياً فور الحفظ
+        } catch(e) {
+            console.error(e);
+            alert('تعذر حفظ سعر التكلفة.');
+        }
     }
 
     async function handleModalImageChange(event) {
@@ -3562,6 +3663,11 @@
         if(!archiveContainer) return;
 
         const archivedOrders = orders.filter(o => o.status === "مكتمل" || o.status === "delivered");
+        archivedOrders.sort((a, b) => {
+            let ta = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : 0;
+            let tb = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : 0;
+            return tb - ta; // الأحدث أول
+        });
         document.getElementById('archiveCountTitle').innerText = archivedOrders.length;
         document.getElementById('newOrdersCountBadge').innerText = orders.filter(o => !o.status || o.status === "جديد" || o.status === "new").length;
 
@@ -3612,6 +3718,11 @@
 
     function exportArchiveToExcel() {
         const archivedOrders = orders.filter(o => o.status === "مكتمل" || o.status === "delivered");
+        archivedOrders.sort((a, b) => {
+            let ta = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : 0;
+            let tb = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : 0;
+            return tb - ta;
+        });
         if(archivedOrders.length === 0) {
             alert("لا توجد طلبات في الأرشيف لتنزيلها.");
             return;
