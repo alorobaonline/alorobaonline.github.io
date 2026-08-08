@@ -46,7 +46,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, updateDoc, doc, query, where, increment, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, updateDoc, doc, query, where, increment, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -73,6 +73,7 @@
         window.where = where;
         window.increment = increment;
         window.setDoc = setDoc;
+        window.serverTimestamp = serverTimestamp;
 
         // ===================== بوابة تسجيل الدخول (Firebase Authentication) =====================
         let appBooted = false;
@@ -204,7 +205,56 @@
             });
             currentOrdersList = orders;
             renderDriverOrders(orders);
+
+            // نبعت موقعنا الحي بس للطلبيات يلي استلمناها فعليًا (قيد التوصيل) - عشان الزبون يشوفنا عالخريطة
+            const pickedUpIds = orders.filter(o => o.status === "قيد التوصيل").map(o => o.id);
+            startLiveLocationSharing(pickedUpIds);
         });
+    }
+
+    // ===================== بث موقع السائق الحي (Live GPS) - يشوفه الزبون عالخريطة أثناء التوصيل =====================
+    let gpsWatchId = null;
+    let activeTrackedOrderIds = [];
+
+    function startLiveLocationSharing(orderIds) {
+        activeTrackedOrderIds = orderIds || [];
+
+        if (activeTrackedOrderIds.length === 0) {
+            stopLiveLocationSharing();
+            return;
+        }
+        if (gpsWatchId !== null) return; // أصلاً شغالة، ما في داعي نبدأها من جديد
+
+        if (!navigator.geolocation) {
+            console.warn('هذا المتصفح ما بيدعم تحديد الموقع.');
+            return;
+        }
+
+        gpsWatchId = navigator.geolocation.watchPosition(
+            (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                activeTrackedOrderIds.forEach(orderId => {
+                    window.setDoc(window.doc(window.db, "orderTracking", orderId), {
+                        lat: lat,
+                        lng: lng,
+                        updatedAt: window.serverTimestamp()
+                    }).catch((e) => console.error('تعذر تحديث الموقع الحي:', e));
+                });
+            },
+            (err) => {
+                console.error('خطأ بتحديد الموقع الحي:', err);
+            },
+            { enableHighAccuracy: true, maximumAge: 8000, timeout: 20000 }
+        );
+    }
+
+    function stopLiveLocationSharing() {
+        if (gpsWatchId !== null) {
+            navigator.geolocation.clearWatch(gpsWatchId);
+            gpsWatchId = null;
+        }
+        activeTrackedOrderIds = [];
     }
 
     // يحوّل أي رقم هاتف محلي (05xxxxxxxx أو 5xxxxxxxx) لرابط واتساب مباشر

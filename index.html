@@ -29,6 +29,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Poppins:wght@600;700;800;900&display=swap" rel="stylesheet">
 
     <style>
+        .driver-emoji-marker { font-size: 26px; text-align: center; line-height: 28px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4)); }
+        .leaflet-container { background: #e5e7eb !important; }
         :root {
             --primary-green: #609b15;
             --accent-green: #4e8010;
@@ -635,6 +637,9 @@
 
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
+    <!-- Leaflet (خرائط مجانية بدون مفتاح API - لعرض موقع السائق الحي أثناء التوصيل) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 
@@ -1648,10 +1653,7 @@
     function closeProfileModal() {
         unlockBodyScroll(); 
         document.getElementById('profileModal').style.display = 'none';
-        if (currentOrderPollTimer) {
-            clearInterval(currentOrderPollTimer);
-            currentOrderPollTimer = null;
-        }
+        stopCurrentOrderTracking();
     }
 
     function openImageModal(imgUrl, title, productId) {
@@ -1826,10 +1828,9 @@
         document.getElementById('profileCurrentOrderSection').style.display = 'none';
         document.getElementById('profileOrdersSection').style.display = 'none';
 
-        // نوقف متابعة الطلبية (Polling) لو غادر المستخدم هالتبويب (يوفر استدعاءات ما نحتاجها)
-        if (tab !== 'current' && currentOrderPollTimer) {
-            clearInterval(currentOrderPollTimer);
-            currentOrderPollTimer = null;
+        // نوقف متابعة الطلبية الحية (والخريطة) لو غادر المستخدم هالتبويب (يوفر استدعاءات ما نحتاجها)
+        if (tab !== 'current') {
+            stopCurrentOrderTracking();
         }
 
         if(tab === 'info') {
@@ -1872,6 +1873,12 @@
 
         let itemsListHtml = (order.items || []).map(i => `${i.name} (${i.quantity})`).join('، ');
         let orderLabel = (order.orderNumber !== undefined && order.orderNumber !== null && order.orderNumber !== '') ? `#${order.orderNumber}` : '';
+        let mapHtml = order.status === 'قيد التوصيل'
+            ? `<div style="margin-bottom: 14px;">
+                   <div style="font-size: 0.68rem; font-weight: 800; color: #64748b; margin-bottom: 6px;">📍 موقع السائق الحي:</div>
+                   <div id="liveDriverMap" style="height: 200px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color);"></div>
+               </div>`
+            : '';
 
         return `
             <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 14px; padding: 14px; margin-bottom: 10px;">
@@ -1882,12 +1889,18 @@
                 <div style="display: flex; align-items: flex-start; margin-bottom: 14px;">
                     ${stagesHtml}
                 </div>
+                ${mapHtml}
                 <div style="font-size: 0.72rem; color: #64748b; font-weight: 600; border-top: 1px solid var(--border-color); padding-top: 8px;">المنتجات: ${itemsListHtml}</div>
             </div>
         `;
     }
 
     let currentOrderPollTimer = null;
+    let currentOrderLiveUnsub = null;
+    let orderTrackingUnsub = null;
+    let trackedOrderIdForMap = null;
+    let currentOrderMap = null;
+    let currentOrderMapMarker = null;
 
     async function fetchMyOrdersFromCloud(phone) {
         const getMyOrders = window.httpsCallableFromURL(window.functionsInstance, window.GET_MY_ORDERS_URL);
@@ -1895,21 +1908,97 @@
         return (result.data && result.data.orders) ? result.data.orders : [];
     }
 
-    async function watchCurrentOrder() {
-        let phone = localStorage.getItem('aloroba_user_phone');
-        let container = document.getElementById('myCurrentOrderContent');
+    function stopCurrentOrderTracking() {
+        if (currentOrderPollTimer) { clearInterval(currentOrderPollTimer); currentOrderPollTimer = null; }
+        if (currentOrderLiveUnsub) { currentOrderLiveUnsub(); currentOrderLiveUnsub = null; }
+        if (orderTrackingUnsub) { orderTrackingUnsub(); orderTrackingUnsub = null; }
+        trackedOrderIdForMap = null;
+        currentOrderMap = null;
+        currentOrderMapMarker = null;
+    }
 
-        if (currentOrderPollTimer) {
-            clearInterval(currentOrderPollTimer);
-            currentOrderPollTimer = null;
+    // خريطة موقع السائق الحي (Leaflet - مجانية بدون مفتاح API) - بتنبني من جديد كل مرة نعيد رسم البطاقة
+    // لأنه عنصر الـ DOM القديم بينمسح مع كل container.innerHTML الجديد
+    function ensureCurrentOrderMap() {
+        const mapEl = document.getElementById('liveDriverMap');
+        if (!mapEl || typeof L === 'undefined') return;
+        currentOrderMap = L.map('liveDriverMap', { zoomControl: false, attributionControl: false });
+        currentOrderMap.setView([31.9, 35.2], 12); // مركز مؤقت (فلسطين تقريباً) لحد ما توصل أول إحداثية حقيقية
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(currentOrderMap);
+        const driverIcon = L.divIcon({ html: '🛵', className: 'driver-emoji-marker', iconSize: [28, 28] });
+        currentOrderMapMarker = L.marker([31.9, 35.2], { icon: driverIcon }).addTo(currentOrderMap);
+    }
+
+    function watchDriverLocationForOrder(orderId) {
+        if (orderTrackingUnsub && trackedOrderIdForMap === orderId) return; // أصلاً متابعينها
+        if (orderTrackingUnsub) { orderTrackingUnsub(); orderTrackingUnsub = null; }
+        trackedOrderIdForMap = orderId;
+        orderTrackingUnsub = window.onSnapshot(window.doc(window.db, "orderTracking", orderId), (snap) => {
+            if (!snap.exists()) return;
+            const d = snap.data();
+            if (typeof d.lat !== 'number' || typeof d.lng !== 'number') return;
+            if (!currentOrderMap) ensureCurrentOrderMap();
+            if (currentOrderMap && currentOrderMapMarker) {
+                currentOrderMapMarker.setLatLng([d.lat, d.lng]);
+                currentOrderMap.setView([d.lat, d.lng]);
+            }
+        }, (err) => {
+            console.error('تعذر جلب موقع السائق الحي:', err);
+        });
+    }
+
+    function renderCurrentOrderIntoContainer(order, container) {
+        container.innerHTML = renderOrderTrackerHtml(order);
+        if (order.status === 'قيد التوصيل') {
+            ensureCurrentOrderMap();
+            watchDriverLocationForOrder(order.id);
+        } else if (orderTrackingUnsub) {
+            orderTrackingUnsub();
+            orderTrackingUnsub = null;
+            trackedOrderIdForMap = null;
         }
+    }
 
+    async function watchCurrentOrder() {
+        let container = document.getElementById('myCurrentOrderContent');
+        stopCurrentOrderTracking();
+
+        const activeStatuses = ["جديد", "new", "قيد التحضير", "جاهز للتوصيل", "قيد التوصيل"];
+        let storedOrderId = null;
+        try { storedOrderId = localStorage.getItem('aloroba_current_order_id'); } catch(e) {}
+
+        if (storedOrderId) {
+            // مسار حي حقيقي: نتابع نفس الطلبية اللي هذا الجهاز طلبها مباشرة عن طريق رقمها
+            // (رقم عشوائي طويل - آمن، حتى لو الصلاحية مفتوحة لقراءة طلبية وحدة بمعرفتها بالظبط)
+            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">جاري التحقق من طلبيتك...</p>`;
+            currentOrderLiveUnsub = window.onSnapshot(window.doc(window.db, "orders", storedOrderId), (snap) => {
+                if (!snap.exists() || !activeStatuses.includes(snap.data().status)) {
+                    // خلصت الطلبية أو انلغت أو مش موجودة - ننضّف ونرجع نجرب طريقة رقم الهاتف الاحتياطية
+                    try { localStorage.removeItem('aloroba_current_order_id'); } catch(e) {}
+                    stopCurrentOrderTracking();
+                    watchCurrentOrderByPhone(container, activeStatuses);
+                    return;
+                }
+                let order = { id: storedOrderId, ...snap.data() };
+                renderCurrentOrderIntoContainer(order, container);
+            }, (err) => {
+                console.error('تعذر متابعة الطلبية حيًا:', err);
+                watchCurrentOrderByPhone(container, activeStatuses);
+            });
+        } else {
+            watchCurrentOrderByPhone(container, activeStatuses);
+        }
+    }
+
+    // احتياطي: لو ما في رقم طلبية محفوظ بهذا الجهاز (مثلاً زبون بجهاز/متصفح تاني) - نرجع لرقم الهاتف
+    // بس هون بنضطر نستخدم تحديث كل 15 ثانية (Polling) مش متابعة حية، لأنه بحث برقم الهاتف
+    // ما بينعمل مباشرة من متصفح الزبون (صلاحيات orders محصورة بالموظفين للاستعلامات العامة).
+    function watchCurrentOrderByPhone(container, activeStatuses) {
+        let phone = localStorage.getItem('aloroba_user_phone');
         if(!phone) {
             container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">الرجاء حفظ رقم هاتفك في تبويب "بيانات العميل" أولاً لمتابعة طلبيتك.</p>`;
             return;
         }
-
-        const activeStatuses = ["جديد", "new", "قيد التحضير", "جاهز للتوصيل", "قيد التوصيل"];
 
         async function refreshCurrentOrder() {
             try {
@@ -1922,7 +2011,7 @@
                 }
 
                 orders.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
-                container.innerHTML = orders.map(renderOrderTrackerHtml).join('');
+                renderCurrentOrderIntoContainer(orders[0], container);
             } catch (err) {
                 console.error('خطأ في متابعة الطلبية:', err);
                 container.innerHTML = `<p style="text-align: center; color: #d32f2f; font-size: 0.8rem; font-weight: 600; padding: 15px;">تعذّر تحميل حالة الطلبية.</p>`;
@@ -1930,9 +2019,7 @@
         }
 
         container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">جاري التحقق من طلبيتك...</p>`;
-        await refreshCurrentOrder();
-        // نحدّث كل 15 ثانية طول ما التبويب مفتوح - بديل عن المتابعة اللحظية (onSnapshot) اللي ما بتشتغل
-        // من متصفح الزبون لأنه صلاحيات orders محصورة بالموظفين بس
+        refreshCurrentOrder();
         currentOrderPollTimer = setInterval(refreshCurrentOrder, 15000);
     }
 
@@ -3764,6 +3851,11 @@
             });
 
             const newOrder = result.data;
+
+            // نحفظ رقم الطلبية محليًا عشان نتابعها لايف لاحقًا (متابعة حية + خريطة السائق)
+            if (newOrder && newOrder.id) {
+                try { localStorage.setItem('aloroba_current_order_id', newOrder.id); } catch(e) {}
+            }
 
             markFunnelStepOnce('orderComplete');
             clearAbandonedCartRecord();
