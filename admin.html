@@ -1020,12 +1020,13 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
                 <div class="form-group">
                     <label>نوع الخصم</label>
-                    <select id="newCouponType" class="form-control">
+                    <select id="newCouponType" class="form-control" onchange="toggleCouponValueField()">
                         <option value="fixed">مبلغ ثابت (₪)</option>
                         <option value="percentage">نسبة مئوية (%)</option>
+                        <option value="freeDelivery">توصيل مجاني 🚚</option>
                     </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="newCouponValueWrapper">
                     <label>القيمة</label>
                     <input type="number" id="newCouponValue" class="form-control" placeholder="مثلاً: 10">
                 </div>
@@ -1774,6 +1775,12 @@
     // ===================== الكوبونات =====================
     let coupons = [];
 
+    function toggleCouponValueField() {
+        const type = document.getElementById('newCouponType').value;
+        const wrapper = document.getElementById('newCouponValueWrapper');
+        if (wrapper) wrapper.style.display = (type === 'freeDelivery') ? 'none' : 'block';
+    }
+
     function initCouponsListener() {
         window.onSnapshot(window.collection(window.db, "coupons"), (snapshot) => {
             coupons = [];
@@ -1793,7 +1800,7 @@
         }
         tbody.innerHTML = coupons.map(c => {
             const active = c.active !== false;
-            const discountLabel = c.discountType === 'percentage' ? `${c.discountValue}%` : `${c.discountValue} ₪`;
+            const discountLabel = c.discountType === 'percentage' ? `${c.discountValue}%` : (c.discountType === 'freeDelivery' ? 'توصيل مجاني 🚚' : `${c.discountValue} ₪`);
             const minLabel = (c.minOrderValue !== undefined && c.minOrderValue !== null && c.minOrderValue !== '') ? `${c.minOrderValue} ₪` : '—';
             return `
                 <tr>
@@ -1816,14 +1823,15 @@
     async function addCoupon() {
         const code = document.getElementById('newCouponCode').value.trim().toUpperCase();
         const discountType = document.getElementById('newCouponType').value;
-        const discountValue = parseFloat(document.getElementById('newCouponValue').value);
+        const discountValueRaw = document.getElementById('newCouponValue').value;
+        const discountValue = discountType === 'freeDelivery' ? 0 : parseFloat(discountValueRaw);
         const minOrderRaw = document.getElementById('newCouponMinOrder').value.trim();
 
         if (!code) {
             alert("الرجاء إدخال كود الكوبون.");
             return;
         }
-        if (isNaN(discountValue) || discountValue <= 0) {
+        if (discountType !== 'freeDelivery' && (isNaN(discountValue) || discountValue <= 0)) {
             alert("الرجاء إدخال قيمة خصم صحيحة.");
             return;
         }

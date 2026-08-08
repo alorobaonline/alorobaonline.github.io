@@ -1088,6 +1088,7 @@
         }
     }
     let appliedDiscount = 0;
+    let appliedCouponType = null; // "fixed" / "percentage" / "freeDelivery" - عشان نعرف نصفّر رسوم التوصيل لو كوبون توصيل مجاني
 
     let visibleSectionsLimit = 2;
     let map = null;
@@ -3353,6 +3354,7 @@
 
         if (code === "") {
             appliedDiscount = 0;
+            appliedCouponType = null;
             msg.innerText = "";
             discountRow.style.display = "none";
             updateFinancialSummary();
@@ -3366,6 +3368,7 @@
             const snap = await window.getDoc(window.doc(window.db, "coupons", code));
             if (!snap.exists() || snap.data().active === false) {
                 appliedDiscount = 0;
+                appliedCouponType = null;
                 msg.style.color = "red";
                 msg.innerText = "❌ كوبون غير صالح";
                 discountRow.style.display = "none";
@@ -3381,8 +3384,20 @@
             const minOrderValue = (c.minOrderValue !== undefined && c.minOrderValue !== null && c.minOrderValue !== "") ? Number(c.minOrderValue) : 0;
             if (minOrderValue > 0 && orderValueForCoupon < minOrderValue) {
                 appliedDiscount = 0;
+                appliedCouponType = null;
                 msg.style.color = "red";
                 msg.innerText = `❌ هاد الكوبون يحتاج قيمة طلبية ${minOrderValue} ₪ عالأقل`;
+                discountRow.style.display = "none";
+                updateFinancialSummary();
+                return;
+            }
+
+            appliedCouponType = c.discountType;
+
+            if (c.discountType === "freeDelivery") {
+                appliedDiscount = 0; // التوصيل المجاني بيتصفّر بالـ updateFinancialSummary نفسه، مش خصم من قيمة المنتجات
+                msg.style.color = "var(--accent-green)";
+                msg.innerText = "✅ تم تطبيق الكوبون بنجاح (توصيل مجاني 🚚)";
                 discountRow.style.display = "none";
                 updateFinancialSummary();
                 return;
@@ -3402,6 +3417,7 @@
         } catch(e) {
             console.error(e);
             appliedDiscount = 0;
+            appliedCouponType = null;
             msg.style.color = "red";
             msg.innerText = "❌ تعذر التحقق من الكوبون، حاول مرة أخرى";
             discountRow.style.display = "none";
@@ -3425,12 +3441,15 @@
         
         let type = document.querySelector('input[name="fulfillmentType"]:checked') ? document.querySelector('input[name="fulfillmentType"]:checked').value : 'توصيل';
         let currentDelivery = computeDeliveryFee(type);
-        
+        if (appliedCouponType === 'freeDelivery' && type === 'توصيل') {
+            currentDelivery = 0;
+        }
+
         let finalTotal = subtotal - bundleDiscount + currentDelivery - appliedDiscount;
         if(finalTotal < 0) finalTotal = 0;
 
         document.getElementById('cartSubtotalText').innerText = subtotal.toFixed(2) + " ₪";
-        document.getElementById('deliveryFeeText').innerText = currentDelivery.toFixed(2) + " ₪";
+        document.getElementById('deliveryFeeText').innerText = (appliedCouponType === 'freeDelivery' && type === 'توصيل') ? "مجاني 🚚" : (currentDelivery.toFixed(2) + " ₪");
         document.getElementById('cartFinalTotalText').innerText = finalTotal.toFixed(2) + " ₪";
     }
 
