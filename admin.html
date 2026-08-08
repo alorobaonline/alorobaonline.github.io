@@ -1008,6 +1008,24 @@
     </div>
 
     <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('personalCouponSectionContent', this)">
+            <span>🎁 كوبون شخصي (توصيل مجاني لزبون محدد)</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="personalCouponSectionContent">
+            <div style="font-size: 0.65rem; color: #4b5563; margin-bottom: 8px; line-height: 1.4;">
+                لزبون معيّن (مثلاً كافأة على نشر بالستاتوس) - بيولّد كود خاص فيه تلقائيًا، توصيل مجاني، ومرة استخدام وحدة بس (بعد أول طلب يستخدمه، الكود بينقفل تلقائيًا).
+            </div>
+            <div class="form-group">
+                <label>رقم هاتف الزبون</label>
+                <input type="tel" id="personalCouponPhone" class="form-control" placeholder="مثلاً: 0501234567">
+            </div>
+            <button class="btn-main" style="background: #7c3aed; margin-bottom: 8px;" onclick="generatePersonalCoupon()">🎟️ توليد الكوبون</button>
+            <div id="personalCouponResult"></div>
+        </div>
+    </div>
+
+    <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('couponsSectionContent', this)">
             <span>🎟️ الكوبونات</span>
             <span class="toggle-arrow">▼</span>
@@ -1044,6 +1062,7 @@
                             <th>الكود</th>
                             <th>الخصم</th>
                             <th>الحد الأدنى</th>
+                            <th>الاستخدام</th>
                             <th>الحالة</th>
                             <th>الإجراءات</th>
                         </tr>
@@ -1772,6 +1791,57 @@
         }
     }
 
+    // ===================== كوبون شخصي (توصيل مجاني لزبون محدد، استخدام مرة وحدة) =====================
+    async function generatePersonalCoupon() {
+        const phoneRaw = document.getElementById('personalCouponPhone').value.trim();
+        const resultBox = document.getElementById('personalCouponResult');
+        const digitsOnly = phoneRaw.replace(/[^0-9]/g, '');
+
+        if (digitsOnly.length < 6) {
+            alert("الرجاء إدخال رقم هاتف صحيح.");
+            return;
+        }
+
+        resultBox.innerHTML = `<p style="text-align:center; color:#888; padding:6px;">⏳ جاري التوليد...</p>`;
+
+        let code = "VIP" + digitsOnly.slice(-4);
+        try {
+            // نتأكد إنه الكود مش مستخدم أصلاً - لو مستخدم، نضيف رقم عشوائي حتى يصير فريد
+            let attempt = 0;
+            while (attempt < 5) {
+                const existing = await window.getDoc(window.doc(window.db, "coupons", code));
+                if (!existing.exists()) break;
+                attempt++;
+                code = "VIP" + digitsOnly.slice(-4) + Math.floor(Math.random() * 90 + 10);
+            }
+
+            await window.setDoc(window.doc(window.db, "coupons", code), {
+                discountType: "freeDelivery",
+                discountValue: 0,
+                minOrderValue: null,
+                active: true,
+                maxUses: 1,
+                usedCount: 0,
+                assignedPhone: digitsOnly
+            });
+
+            const waPhone = digitsOnly.startsWith('0') ? '972' + digitsOnly.slice(1) : digitsOnly;
+            const waMessage = `🎉 تفضل، هذا كوبون التوصيل المجاني الخاص فيك من العروبة أونلاين 🚚\nاستخدم الكود: ${code}\nاطلب الآن: alorobaonline.github.io\n\n(الكود صالح لطلبية وحدة بس)`;
+            const waLink = `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}`;
+
+            resultBox.innerHTML = `
+                <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px; margin-top:6px;">
+                    <div style="font-weight:900; font-size:0.9rem; color:#166534; text-align:center; margin-bottom:8px;">الكود: ${code}</div>
+                    <a href="${waLink}" target="_blank" style="display:block; text-align:center; background:#25D366; color:white; padding:8px; border-radius:8px; font-weight:800; font-size:0.75rem; text-decoration:none;">💬 افتح واتساب وابعتله الكود جاهز</a>
+                </div>
+            `;
+            document.getElementById('personalCouponPhone').value = '';
+        } catch(e) {
+            console.error(e);
+            resultBox.innerHTML = `<p style="text-align:center; color:red; padding:6px;">حدث خطأ أثناء توليد الكوبون.</p>`;
+        }
+    }
+
     // ===================== الكوبونات =====================
     let coupons = [];
 
@@ -1795,18 +1865,22 @@
         const tbody = document.getElementById('adminCouponsListBody');
         if (!tbody) return;
         if (coupons.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #888; padding: 10px;">لا توجد كوبونات مضافة حالياً</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #888; padding: 10px;">لا توجد كوبونات مضافة حالياً</td></tr>`;
             return;
         }
         tbody.innerHTML = coupons.map(c => {
             const active = c.active !== false;
             const discountLabel = c.discountType === 'percentage' ? `${c.discountValue}%` : (c.discountType === 'freeDelivery' ? 'توصيل مجاني 🚚' : `${c.discountValue} ₪`);
             const minLabel = (c.minOrderValue !== undefined && c.minOrderValue !== null && c.minOrderValue !== '') ? `${c.minOrderValue} ₪` : '—';
+            const maxUses = Number(c.maxUses) || 0;
+            const usedCount = Number(c.usedCount) || 0;
+            const usageLabel = maxUses > 0 ? `${usedCount}/${maxUses}${c.assignedPhone ? ' 👤' : ''}` : '∞';
             return `
                 <tr>
                     <td><b>${c.id}</b></td>
                     <td style="color: #16a34a; font-weight: bold;">${discountLabel}</td>
                     <td>${minLabel}</td>
+                    <td>${usageLabel}</td>
                     <td>
                         <span onclick="toggleCouponActive('${c.id}', ${active})" style="cursor:pointer; padding:2px 8px; border-radius:12px; font-size:0.65rem; font-weight:800; ${active ? 'background:#dcfce7; color:#166534;' : 'background:#fee2e2; color:#991b1b;'}">
                             ${active ? '✅ مفعّل' : '🚫 معطّل'}
