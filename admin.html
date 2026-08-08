@@ -3388,7 +3388,7 @@
             document.getElementById('reportProfit').innerText = metrics.totalProfit.toFixed(2) + ' ₪';
             document.getElementById('reportMargin').innerText = metrics.margin.toFixed(1) + '%';
 
-            let topProducts = Object.entries(metrics.productSales).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            let topProducts = Object.entries(metrics.productSales).sort((a, b) => b[1] - a[1]).slice(0, 10);
             let topHtml = topProducts.length > 0
                 ? topProducts.map((p, i) => `
                     <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.72rem;">
