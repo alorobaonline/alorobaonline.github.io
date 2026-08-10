@@ -62,13 +62,13 @@
         .store-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; position: relative; box-shadow: 0 0 24px rgba(0,0,0,0.04); container-type: inline-size; container-name: store; }
         
         .store-header { background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: 22px; border-bottom-right-radius: 22px; box-shadow: 0 4px 16px rgba(78, 128, 16, 0.25); }
-        .store-title { font-size: 1.18rem; font-weight: 900; letter-spacing: -0.2px; }
+        .store-title { font-size: 19px; font-weight: 900; letter-spacing: -0.2px; }
         .header-actions { display: flex; gap: 6px; align-items: center; }
-        .admin-link { background: rgba(255,255,255,0.18); backdrop-filter: blur(4px); color: white; padding: 6px 11px; border-radius: 10px; text-decoration: none; font-size: 0.74rem; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); transition: background .2s ease, transform .15s ease; }
+        .admin-link { background: rgba(255,255,255,0.18); backdrop-filter: blur(4px); color: white; padding: 6px 11px; border-radius: 10px; text-decoration: none; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); transition: background .2s ease, transform .15s ease; white-space: nowrap; }
         .admin-link:active { transform: scale(0.95); background: rgba(255,255,255,0.3); }
 
         .search-bar-container { padding: 14px 15px 10px 15px; background: white; }
-        .search-input { width: 100%; padding: 11px 16px; border: 1.5px solid var(--border-color); border-radius: 14px; font-size: 0.85rem; font-weight: 600; outline: none; background: #f8faf7; transition: border-color .2s ease, background .2s ease; }
+        .search-input { width: 100%; padding: 11px 16px; border: 1.5px solid var(--border-color); border-radius: 14px; font-size: 13.5px; font-weight: 600; outline: none; background: #f8faf7; transition: border-color .2s ease, background .2s ease; }
         .search-input:focus { border-color: var(--accent-green); background: white; }
 
         /* الأقسام الدائرية السريعة */
@@ -87,16 +87,16 @@
         }
         .sub-cats-spacer { display: none; }
         .categories-scroll::-webkit-scrollbar { display: none; }
-        .cat-chip { background: white; border: 1.5px solid var(--border-color); padding: 8px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; white-space: nowrap; cursor: pointer; color: #334155; display: flex; align-items: center; gap: 4px; transition: all .18s ease; }
+        .cat-chip { background: white; border: 1.5px solid var(--border-color); padding: 8px 15px; border-radius: 20px; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; color: #334155; display: flex; align-items: center; gap: 4px; transition: all .18s ease; }
         .cat-chip:active { transform: scale(0.95); }
         .cat-chip.active { background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; border-color: transparent; box-shadow: 0 3px 10px rgba(78, 128, 16, 0.3); }
 
         /* أقسام العرض الأفقي للمتجر */
         .horizontal-section { margin-bottom: 22px; padding: 0 15px; }
-        .horizontal-section-title { font-size: 0.95rem; font-weight: 900; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .horizontal-section-title { font-size: 15px; font-weight: 900; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         
         .section-category-title {
-            font-size: 0.97rem;
+            font-size: 15.5px;
             font-weight: 900;
             display: flex;
             align-items: center;
@@ -111,7 +111,7 @@
         }
 
         .section-view-all {
-            font-size: 0.76rem;
+            font-size: 12px;
             font-weight: 900;
             background: linear-gradient(135deg, var(--price-orange) 0%, var(--price-orange-dark) 100%);
             -webkit-background-clip: text;
@@ -131,12 +131,12 @@
         /* بطاقة أصغر خاصة بقسم العروض */
         .product-card.product-card-small { min-width: 122px; max-width: 122px; padding: 8px; }
         .product-card.product-card-small .product-img-box { height: 100px; margin-bottom: 6px; }
-        .product-card.product-card-small .product-name { font-size: 0.73rem; height: 28px; }
-        .product-card.product-card-small .product-weight { font-size: 0.62rem; margin-bottom: 6px; }
-        .product-card.product-card-small .price-text { font-size: 0.97rem; }
-        .product-card.product-card-small .price-text.sale-price { font-size: 1.08rem; }
-        .product-card.product-card-small .old-price { font-size: 0.7rem; }
-        .product-card.product-card-small .add-to-cart-btn { width: 28px; height: 28px; font-size: 1rem; }
+        .product-card.product-card-small .product-name { font-size: 11.5px; height: 28px; }
+        .product-card.product-card-small .product-weight { font-size: 10px; margin-bottom: 6px; }
+        .product-card.product-card-small .price-text { font-size: 15.5px; }
+        .product-card.product-card-small .price-text.sale-price { font-size: 17.5px; }
+        .product-card.product-card-small .old-price { font-size: 11px; }
+        .product-card.product-card-small .add-to-cart-btn { width: 28px; height: 28px; font-size: 16px; }
         .product-card.product-card-small .discount-badge { font-size: 9px; padding: 2px 6px; }
 
         .view-all-card {
@@ -163,10 +163,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.3rem;
+            font-size: 21px;
         }
         .view-all-card .view-all-text {
-            font-size: 0.72rem;
+            font-size: 11.5px;
             font-weight: 800;
             line-height: 1.3;
         }
@@ -256,15 +256,15 @@
 
         .product-img-box { width: 100%; height: 100px; position: relative; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, #fafbfa 0%, #ffffff 100%); border-radius: 12px; margin-bottom: 6px; cursor: pointer; }
         .product-img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .product-name { font-size: 0.73rem; font-weight: 700; color: #1e293b; margin-bottom: 4px; height: 28px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .product-weight { font-size: 0.62rem; font-weight: 600; color: #94a3b8; margin-bottom: 6px; }
+        .product-name { font-size: 11.5px; font-weight: 700; color: #1e293b; margin-bottom: 4px; height: 28px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .product-weight { font-size: 10px; font-weight: 600; color: #94a3b8; margin-bottom: 6px; }
         
         .product-price-row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
         .product-price-top { margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
 
         /* السعر الأصلي (بدون عرض) - برتقالي جذاب */
         .price-text { 
-            font-size: 0.97rem; 
+            font-size: 15.5px; 
             font-weight: 700; 
             color: var(--price-orange);
             letter-spacing: 0;
@@ -275,7 +275,7 @@
         /* سعر العرض/التخفيض - أحمر لافت */
         .price-text.sale-price {
             color: var(--price-red);
-            font-size: 1.08rem; 
+            font-size: 17.5px; 
             font-weight: 900;
             animation: priceGlow 1.8s infinite ease-in-out;
             unicode-bidi: plaintext;
@@ -284,7 +284,7 @@
 
         /* السعر الأصلي المشطوب عند وجود عرض - أسود */
         .old-price { 
-            font-size: 0.7rem; 
+            font-size: 11px; 
             font-weight: 700; 
             color: var(--price-black); 
             text-decoration: line-through;
@@ -293,7 +293,7 @@
             white-space: nowrap;
         }
         
-        .add-to-cart-btn { background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; border: none; width: 28px; height: 28px; min-width: 28px; min-height: 28px; flex-shrink: 0; border-radius: 50%; font-size: 1rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; padding-bottom: 2px; box-shadow: 0 2px 8px rgba(78, 128, 16, 0.35); transition: transform .15s ease; }
+        .add-to-cart-btn { background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; border: none; width: 28px; height: 28px; min-width: 28px; min-height: 28px; flex-shrink: 0; border-radius: 50%; font-size: 16px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; padding-bottom: 2px; box-shadow: 0 2px 8px rgba(78, 128, 16, 0.35); transition: transform .15s ease; }
         .add-to-cart-btn:active { transform: scale(0.88); }
         
         .quantity-control-full {
@@ -310,11 +310,11 @@
             box-shadow: 0 2px 8px rgba(78, 128, 16, 0.3);
         }
         .quantity-control-full .qty-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; font-weight: 900; }
-        .quantity-control-full .qty-display { font-weight: 900; font-size: 0.9rem; text-align: center; }
+        .quantity-control-full .qty-display { font-weight: 900; font-size: 14.5px; text-align: center; }
 
         .products-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 0 12px; }
         .products-grid .product-card { min-width: 0; max-width: none; width: 100%; }
-        .subcategory-title { font-size: 0.92rem; font-weight: 900; color: #1f2937; margin-bottom: 10px; padding: 0 15px; }
+        .subcategory-title { font-size: 14.5px; font-weight: 900; color: #1f2937; margin-bottom: 10px; padding: 0 15px; }
 
         /* تنسيق بانر عروض الحزمة المتحرك (يعتمد على السحب باللمس حصراً وبدون حواف ظاهرة مسبقة) */
         .bundle-banner-wrapper {
@@ -367,7 +367,7 @@
         .bundle-slide-item::before {
             content: '🎁';
             position: absolute;
-            font-size: 5.5rem;
+            font-size: 88px;
             opacity: 0.07;
             left: -12px;
             bottom: -20px;
@@ -377,7 +377,7 @@
         }
         .bundle-eyebrow {
             display: inline-block;
-            font-size: 0.66rem;
+            font-size: 10.5px;
             font-weight: 800;
             color: #c2410c;
             background: rgba(234, 88, 12, 0.09);
@@ -388,10 +388,10 @@
         .bundle-thumbs-row { display: flex; justify-content: center; margin-bottom: 8px; }
         .bundle-thumb-img { width: 34px; height: 34px; border-radius: 50%; object-fit: contain; background: white; border: 2px solid #fffaf5; box-shadow: 0 1px 5px rgba(0,0,0,0.14); margin-inline-start: -10px; }
         .bundle-thumb-img:first-child { margin-inline-start: 0; }
-        .bundle-card-name { font-size: 1.08rem; font-weight: 900; color: #1f2937; margin-bottom: 10px; letter-spacing: -0.2px; }
+        .bundle-card-name { font-size: 17.5px; font-weight: 900; color: #1f2937; margin-bottom: 10px; letter-spacing: -0.2px; }
 
         .bundle-badges-row { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
-        .bundle-savings-badge { font-size: 0.74rem; font-weight: 800; color: #15803d; background: rgba(22, 163, 74, 0.1); padding: 6px 12px; border-radius: 10px; }
+        .bundle-savings-badge { font-size: 12px; font-weight: 800; color: #15803d; background: rgba(22, 163, 74, 0.1); padding: 6px 12px; border-radius: 10px; }
 
         /* شارة السعر بشكل تذكرة/كوبون */
         .bundle-price-ticket {
@@ -416,17 +416,17 @@
         }
         .bundle-price-ticket::before { left: -5px; }
         .bundle-price-ticket::after { right: -5px; }
-        .bundle-ticket-qty { font-size: 0.78rem; font-weight: 700; opacity: 0.9; }
-        .bundle-ticket-sep { opacity: 0.5; font-size: 0.7rem; }
-        .bundle-ticket-price { font-size: 1rem; font-weight: 900; }
+        .bundle-ticket-qty { font-size: 12.5px; font-weight: 700; opacity: 0.9; }
+        .bundle-ticket-sep { opacity: 0.5; font-size: 11px; }
+        .bundle-ticket-price { font-size: 16px; font-weight: 900; }
 
-        .bundle-select-btn { background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; border: none; padding: 12px 16px; border-radius: 14px; font-size: 0.85rem; font-weight: 800; width: 100%; cursor: pointer; text-align: center; box-shadow: 0 3px 10px rgba(78, 128, 16, 0.3); transition: transform .15s ease; }
+        .bundle-select-btn { background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; border: none; padding: 12px 16px; border-radius: 14px; font-size: 13.5px; font-weight: 800; width: 100%; cursor: pointer; text-align: center; box-shadow: 0 3px 10px rgba(78, 128, 16, 0.3); transition: transform .15s ease; }
         .bundle-select-btn:active { transform: scale(0.97); }
 
         /* تلميح بسيط يدعو الزبون يسحب يشوف باقي العروض */
         .bundle-swipe-hint {
             text-align: center;
-            font-size: 0.68rem;
+            font-size: 11px;
             font-weight: 700;
             color: #c2410c;
             margin-top: 8px;
@@ -477,13 +477,13 @@
             border-color: var(--accent-green);
         }
         .bundle-item-thumb { width: 42px; height: 42px; object-fit: contain; background: white; border-radius: 10px; border: 1px solid #eee; box-shadow: 0 1px 4px rgba(0,0,0,0.06); flex-shrink: 0; cursor: pointer; }
-        .bundle-item-name { font-size: 0.8rem; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
-        .bundle-item-unit-price { font-size: 0.68rem; color: #94a3b8; font-weight: 600; }
+        .bundle-item-name { font-size: 13px; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+        .bundle-item-unit-price { font-size: 11px; color: #94a3b8; font-weight: 600; }
         .bundle-stepper-group { display: flex; align-items: center; gap: 2px; background: white; border: 1.5px solid var(--border-color); border-radius: 20px; padding: 3px; }
-        .bundle-stepper-btn { width: 26px; height: 26px; border-radius: 50%; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: transform .12s ease; }
+        .bundle-stepper-btn { width: 26px; height: 26px; border-radius: 50%; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: transform .12s ease; }
         .bundle-stepper-btn:active { transform: scale(0.88); }
-        .bundle-item-qty { min-width: 22px; text-align: center; font-weight: 800; font-size: 0.85rem; font-family: 'Poppins', 'Cairo', sans-serif; }
-        .bundle-price-badge { display: inline-block; background: linear-gradient(135deg, var(--price-red) 0%, #b91c1c 100%); color: white; font-size: 0.68rem; font-weight: 800; padding: 3px 10px; border-radius: 7px; margin-top: 5px; cursor: pointer; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3); }
+        .bundle-item-qty { min-width: 22px; text-align: center; font-weight: 800; font-size: 13.5px; font-family: 'Poppins', 'Cairo', sans-serif; }
+        .bundle-price-badge { display: inline-block; background: linear-gradient(135deg, var(--price-red) 0%, #b91c1c 100%); color: white; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 7px; margin-top: 5px; cursor: pointer; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3); }
 
         /* شريط السلة السفلي */
         .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; padding: 15px 20px; display: none; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 18px; border-top-right-radius: 18px; z-index: 100; cursor: pointer; box-shadow: 0 -4px 16px rgba(0,0,0,0.12); }
@@ -493,16 +493,16 @@
         
         .image-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 300; max-width: 480px; margin: 0 auto; padding: 20px; }
 
-        .subscribe-fab { position: fixed; bottom: 90px; left: 16px; z-index: 150; background: #25D366; color: white; border: none; border-radius: 30px; padding: 10px 16px; font-size: 0.72rem; font-weight: 800; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.4); cursor: pointer; display: flex; align-items: center; gap: 6px; max-width: calc(480px - 32px); }
-        .subscribe-fab .fab-close { background: rgba(255,255,255,0.25); border: none; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 0.6rem; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-inline-start: 4px; }
+        .subscribe-fab { position: fixed; bottom: 90px; left: 16px; z-index: 150; background: #25D366; color: white; border: none; border-radius: 30px; padding: 10px 16px; font-size: 11.5px; font-weight: 800; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.4); cursor: pointer; display: flex; align-items: center; gap: 6px; max-width: calc(480px - 32px); }
+        .subscribe-fab .fab-close { background: rgba(255,255,255,0.25); border: none; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 9.5px; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-inline-start: 4px; }
         .subscribe-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 400; max-width: 480px; margin: 0 auto; padding: 20px; }
         .subscribe-modal-box { background: white; border-radius: 18px; padding: 22px 18px; width: 100%; max-width: 380px; }
         .image-modal-content { background: white; width: 100%; border-radius: 18px; padding: 15px; text-align: center; position: relative; }
         .image-modal-content img { max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 10px; margin-bottom: 10px; }
 
-        .form-control { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border-color); border-radius: 10px; font-size: 0.8rem; font-weight: 600; margin-bottom: 8px; outline: none; background: #f8faf7; transition: border-color .2s ease; }
+        .form-control { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border-color); border-radius: 10px; font-size: 13px; font-weight: 600; margin-bottom: 8px; outline: none; background: #f8faf7; transition: border-color .2s ease; }
         .form-control:focus { border-color: var(--accent-green); background: white; }
-        .btn-main { width: 100%; background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 800; font-size: 0.9rem; cursor: pointer; margin-top: 5px; box-shadow: 0 3px 10px rgba(78, 128, 16, 0.25); transition: transform .12s ease; }
+        .btn-main { width: 100%; background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 800; font-size: 14.5px; cursor: pointer; margin-top: 5px; box-shadow: 0 3px 10px rgba(78, 128, 16, 0.25); transition: transform .12s ease; }
         .btn-main:active { transform: scale(0.98); }
         
         .profile-tabs { display: flex; gap: 5px; margin-bottom: 12px; background: #f1f5f9; padding: 4px; border-radius: 10px; }
@@ -511,14 +511,14 @@
         .payment-method-card:active { transform: scale(0.95); }
         .payment-method-card.selected { border-color: var(--accent-green); background: linear-gradient(135deg, rgba(78,128,16,0.08) 0%, rgba(96,155,21,0.08) 100%); box-shadow: 0 2px 8px rgba(78,128,16,0.15); }
         .payment-method-card.disabled { cursor: not-allowed; opacity: 0.5; filter: grayscale(0.6); }
-        .payment-pending-badge { display: none; position: absolute; top: -6px; left: 50%; transform: translateX(-50%); background: #f59e0b; color: white; font-size: 0.55rem; font-weight: 800; padding: 1px 6px; border-radius: 20px; white-space: nowrap; }
+        .payment-pending-badge { display: none; position: absolute; top: -6px; left: 50%; transform: translateX(-50%); background: #f59e0b; color: white; font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 20px; white-space: nowrap; }
 
         .fulfillment-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #f8fafc; border: 2px solid var(--border-color); border-radius: 14px; padding: 12px 6px; cursor: pointer; transition: all .15s ease; }
         .fulfillment-card:active { transform: scale(0.97); }
         .fulfillment-card input[type="radio"] { display: none; }
         .fulfillment-card:has(input:checked) { border-color: var(--accent-green); background: linear-gradient(135deg, rgba(78,128,16,0.08) 0%, rgba(96,155,21,0.08) 100%); box-shadow: 0 2px 8px rgba(78,128,16,0.15); }
-        .fulfillment-icon { font-size: 1.5rem; }
-        .fulfillment-label { font-size: 0.78rem; font-weight: 800; }
+        .fulfillment-icon { font-size: 24px; }
+        .fulfillment-label { font-size: 12.5px; font-weight: 800; }
 
         /* أزرار تحديد الموقع - ألوان قوية وحركة نبض خفيفة عشان ما تنطمس جنب زر التأكيد الأخضر */
         .map-trigger-btn {
@@ -529,7 +529,7 @@
             padding: 12px;
             border-radius: 10px;
             font-weight: 900;
-            font-size: 0.85rem;
+            font-size: 13.5px;
             cursor: pointer;
             margin-bottom: 6px;
             display: flex;
@@ -547,7 +547,7 @@
             padding: 12px;
             border-radius: 10px;
             font-weight: 900;
-            font-size: 0.85rem;
+            font-size: 13.5px;
             cursor: pointer;
             margin-bottom: 10px;
             display: flex;
@@ -561,7 +561,7 @@
             0%, 100% { transform: scale(1); box-shadow: 0 3px 12px rgba(37, 99, 235, 0.35); }
             50% { transform: scale(1.025); box-shadow: 0 4px 18px rgba(37, 99, 235, 0.55); }
         }
-        .profile-tab { flex: 1; text-align: center; padding: 6px; font-size: 0.8rem; font-weight: 700; cursor: pointer; border-radius: 8px; color: #64748b; transition: all .15s ease; }
+        .profile-tab { flex: 1; text-align: center; padding: 6px; font-size: 13px; font-weight: 700; cursor: pointer; border-radius: 8px; color: #64748b; transition: all .15s ease; }
         .profile-tab.active { background: white; color: var(--primary-green); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 
         @keyframes logoDance {
@@ -647,7 +647,7 @@
 <div id="splashScreen" style="position: fixed; inset: 0; background: #ffffff; display: flex; align-items: center; justify-content: center; z-index: 9999; max-width: 480px; margin: 0 auto; transition: opacity 0.5s ease;">
     <div style="background: white; padding: 30px; border-radius: 30px; text-align: center;">
         <img src="logo.png" class="dancing-logo" style="width: 160px; height: 160px; object-fit: contain; border-radius: 20px;" alt="شعار العروبة أونلاين">
-        <div style="font-size: 0.9rem; font-weight: 800; color: var(--primary-green); margin-top: 15px;">العروبة أونلاين - جاري تجهيز السوبر ماركت... 🛒</div>
+        <div style="font-size: 14.5px; font-weight: 800; color: var(--primary-green); margin-top: 15px;">العروبة أونلاين - جاري تجهيز السوبر ماركت... 🛒</div>
     </div>
 </div>
 
@@ -661,7 +661,7 @@
         </div>
     </div>
 
-    <div id="storeClosedBanner" style="display:none; background:#fef2f2; border-bottom:2px solid #fecaca; color:#991b1b; text-align:center; padding:10px 15px; font-size:0.8rem; font-weight:800;"></div>
+    <div id="storeClosedBanner" style="display:none; background:#fef2f2; border-bottom:2px solid #fecaca; color:#991b1b; text-align:center; padding:10px 15px; font-size:13px; font-weight:800;"></div>
 
     <!-- شريط البحث -->
     <div class="search-bar-container">
@@ -682,22 +682,22 @@
     <div id="storeMainContent"></div>
     
     <!-- مؤشر التحميل عند النزول للأسفل -->
-    <div id="loadMoreIndicator" style="text-align: center; padding: 15px; font-size: 0.75rem; color: #64748b; font-weight: 700; display: none;">
+    <div id="loadMoreIndicator" style="text-align: center; padding: 15px; font-size: 12px; color: #64748b; font-weight: 700; display: none;">
         جاري تحميل المزيد من الفئات... ⬇️
     </div>
 </div>
 
 <!-- شريط السلة السفلي -->
 <div class="cart-bar" id="cartBar" onclick="openCartModal()">
-    <div style="font-size: 0.9rem; font-weight: 900;">للذهاب للدفع 🛒</div>
-    <div style="font-size: 1rem; font-weight: 900;" id="cartTotalText">0.00 ₪</div>
+    <div style="font-size: 14.5px; font-weight: 900;">للذهاب للدفع 🛒</div>
+    <div style="font-size: 16px; font-weight: 900;" id="cartTotalText">0.00 ₪</div>
 </div>
 
 <!-- نافذة اختيار منتجات عرض الحزمة -->
 <div class="cart-modal" id="bundleModal" onclick="closeBundleModal(event)">
     <div class="cart-modal-content" onclick="event.stopPropagation()" style="border-radius: 22px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h3 id="bundleModalTitle" style="font-size: 1.02rem; font-weight: 900; color: var(--primary-green);"></h3>
+            <h3 id="bundleModalTitle" style="font-size: 16.5px; font-weight: 900; color: var(--primary-green);"></h3>
             <button onclick="closeBundleModal()" style="background: #f1f5f9; border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 15px; cursor: pointer; color: #64748b;">✕</button>
         </div>
         <div style="margin-bottom: 16px; background: linear-gradient(150deg, #fffaf5 0%, #fff5eb 100%); border: 1px solid #fde8cf; border-radius: 16px; padding: 14px;">
@@ -705,12 +705,12 @@
             <div style="background: #f3e4d3; border-radius: 20px; height: 9px; overflow: hidden; margin-top: 10px;">
                 <div id="bundleModalBarFill" style="background: linear-gradient(90deg, var(--price-orange) 0%, var(--price-red) 100%); height: 100%; width: 0%; border-radius: 20px; transition: width .3s ease;"></div>
             </div>
-            <div id="bundleModalBarText" style="text-align: center; font-weight: 800; font-size: 0.8rem; margin-top: 9px; color: #7c2d12;"></div>
+            <div id="bundleModalBarText" style="text-align: center; font-weight: 800; font-size: 13px; margin-top: 9px; color: #7c2d12;"></div>
         </div>
         <div id="bundleModalItemsList"></div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding: 12px 14px; background: rgba(78,128,16,0.06); border-radius: 14px;">
-            <span style="font-weight: 800; font-size: 0.85rem; color: #1f2937;">المجموع:</span>
-            <span id="bundleModalTotalText" style="font-weight: 900; font-size: 1.15rem; color: var(--primary-green);">0.00 ₪</span>
+            <span style="font-weight: 800; font-size: 13.5px; color: #1f2937;">المجموع:</span>
+            <span id="bundleModalTotalText" style="font-weight: 900; font-size: 18.5px; color: var(--primary-green);">0.00 ₪</span>
         </div>
     </div>
 </div>
@@ -719,10 +719,10 @@
 <div class="cart-modal" id="offerGroupModal" onclick="closeOfferGroupModal(event)">
     <div class="cart-modal-content" onclick="event.stopPropagation()" style="border-radius: 22px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h3 id="offerGroupModalTitle" style="font-size: 1.02rem; font-weight: 900; color: var(--primary-green);"></h3>
+            <h3 id="offerGroupModalTitle" style="font-size: 16.5px; font-weight: 900; color: var(--primary-green);"></h3>
             <button onclick="closeOfferGroupModal()" style="background: #f1f5f9; border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 15px; cursor: pointer; color: #64748b;">✕</button>
         </div>
-        <div id="offerGroupLimitText" style="font-size: 0.75rem; font-weight: 800; color: #c2410c; margin-bottom: 12px; text-align: center; background: #fff7ed; border: 1px solid #fde8cf; border-radius: 12px; padding: 9px; display: none;"></div>
+        <div id="offerGroupLimitText" style="font-size: 12px; font-weight: 800; color: #c2410c; margin-bottom: 12px; text-align: center; background: #fff7ed; border: 1px solid #fde8cf; border-radius: 12px; padding: 9px; display: none;"></div>
         <div id="offerGroupItemsList"></div>
     </div>
 </div>
@@ -731,26 +731,26 @@
 <!-- نافذة التحقق من رقم الهاتف - تفتح تلقائيًا عند الضغط على إرسال الطلبية -->
 <div class="cart-modal" id="inlineOtpModal" style="display: none; z-index: 260;">
     <div class="cart-modal-content" style="text-align: center;">
-        <div style="font-size: 2.2rem; margin-bottom: 8px;">🔒</div>
-        <h3 style="color: var(--primary-green); margin-bottom: 6px; font-size: 1rem;">تحقق من رقم هاتفك لإتمام الطلب</h3>
-        <div style="font-size: 0.78rem; color: #64748b; font-weight: 600; margin-bottom: 14px;">
+        <div style="font-size: 35px; margin-bottom: 8px;">🔒</div>
+        <h3 style="color: var(--primary-green); margin-bottom: 6px; font-size: 16px;">تحقق من رقم هاتفك لإتمام الطلب</h3>
+        <div style="font-size: 12.5px; color: #64748b; font-weight: 600; margin-bottom: 14px;">
             أرسلنا رمز تحقق برسالة SMS إلى <span id="inlineOtpPhoneText" dir="ltr" style="font-weight: 800; color: #1f2937;"></span>
         </div>
-        <input type="text" id="inlineOtpInput" class="form-control" placeholder="أدخل الرمز المكوّن من 6 أرقام" style="text-align: center; font-size: 1.1rem; font-weight: 800; letter-spacing: 4px;" inputmode="numeric">
-        <div id="inlineOtpStatus" style="font-size: 0.72rem; font-weight: 700; margin-bottom: 10px; min-height: 16px;"></div>
+        <input type="text" id="inlineOtpInput" class="form-control" placeholder="أدخل الرمز المكوّن من 6 أرقام" style="text-align: center; font-size: 17.5px; font-weight: 800; letter-spacing: 4px;" inputmode="numeric">
+        <div id="inlineOtpStatus" style="font-size: 11.5px; font-weight: 700; margin-bottom: 10px; min-height: 16px;"></div>
         <button id="inlineOtpConfirmBtn" class="btn-main" onclick="confirmInlineOtpAndSubmit()" style="background: var(--accent-green);">✅ تأكيد ومتابعة الطلب</button>
-        <button type="button" onclick="resendInlineOtp()" style="background: none; border: none; color: #2563eb; font-weight: 700; font-size: 0.75rem; margin-top: 10px; cursor: pointer;">لم يصلك الرمز؟ إعادة الإرسال</button>
-        <button type="button" onclick="closeInlineOtpModal()" style="background: none; border: none; color: #94a3b8; font-weight: 700; font-size: 0.72rem; margin-top: 8px; cursor: pointer; display: block; width: 100%;">إلغاء</button>
+        <button type="button" onclick="resendInlineOtp()" style="background: none; border: none; color: #2563eb; font-weight: 700; font-size: 12px; margin-top: 10px; cursor: pointer;">لم يصلك الرمز؟ إعادة الإرسال</button>
+        <button type="button" onclick="closeInlineOtpModal()" style="background: none; border: none; color: #94a3b8; font-weight: 700; font-size: 11.5px; margin-top: 8px; cursor: pointer; display: block; width: 100%;">إلغاء</button>
     </div>
 </div>
 
 <!-- نافذة نجاح الطلب + مشاركة واتساب -->
 <div class="cart-modal" id="orderSuccessModal" style="display: none;">
     <div class="cart-modal-content" style="text-align: center;">
-        <div style="font-size: 2.5rem; margin-bottom: 8px;">🎉</div>
-        <h3 style="color: var(--primary-green); margin-bottom: 6px; font-size: 1rem;">تم إتمام طلبك بنجاح!</h3>
-        <div id="orderSuccessNumberText" style="font-weight: 900; font-size: 1.05rem; margin-bottom: 16px; color: #1f2937;"></div>
-        <a id="whatsappOrderBtn" href="#" target="_blank" rel="noopener" style="display: none; background: #25D366; color: white; padding: 12px; border-radius: 12px; font-weight: 800; text-decoration: none; margin-bottom: 10px; align-items: center; justify-content: center; gap: 8px; font-size: 0.85rem;">
+        <div style="font-size: 40px; margin-bottom: 8px;">🎉</div>
+        <h3 style="color: var(--primary-green); margin-bottom: 6px; font-size: 16px;">تم إتمام طلبك بنجاح!</h3>
+        <div id="orderSuccessNumberText" style="font-weight: 900; font-size: 17px; margin-bottom: 16px; color: #1f2937;"></div>
+        <a id="whatsappOrderBtn" href="#" target="_blank" rel="noopener" style="display: none; background: #25D366; color: white; padding: 12px; border-radius: 12px; font-weight: 800; text-decoration: none; margin-bottom: 10px; align-items: center; justify-content: center; gap: 8px; font-size: 13.5px;">
             📱 إرسال نسخة من طلبيتي عبر واتساب
         </a>
         <button class="btn-main" onclick="closeOrderSuccessModal()" style="background: var(--accent-green);">تم ✅</button>
@@ -761,8 +761,8 @@
 <div class="image-modal" id="imageModal" onclick="closeImageModal()">
     <div class="image-modal-content" onclick="event.stopPropagation()">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h3 id="zoomImageTitle" style="font-size: 0.9rem; font-weight: 900; color: var(--primary-green);"></h3>
-            <button onclick="closeImageModal()" style="background:none; border:none; font-size: 1.1rem; cursor:pointer; font-weight: 900;">✕</button>
+            <h3 id="zoomImageTitle" style="font-size: 14.5px; font-weight: 900; color: var(--primary-green);"></h3>
+            <button onclick="closeImageModal()" style="background:none; border:none; font-size: 17.5px; cursor:pointer; font-weight: 900;">✕</button>
         </div>
         <img id="zoomImageSrc" src="" alt="صورة المنتج" onerror="this.onerror=null; this.src='logo.png';">
     </div>
@@ -772,8 +772,8 @@
 <div class="cart-modal" id="profileModal">
     <div class="cart-modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h3 style="font-size: 0.95rem; font-weight: 900; color: var(--primary-green);">👤 حسابي الشخصي</h3>
-            <button onclick="closeProfileModal()" style="background:none; border:none; font-size: 1.1rem; cursor:pointer; font-weight: 900;">✕</button>
+            <h3 style="font-size: 15px; font-weight: 900; color: var(--primary-green);">👤 حسابي الشخصي</h3>
+            <button onclick="closeProfileModal()" style="background:none; border:none; font-size: 17.5px; cursor:pointer; font-weight: 900;">✕</button>
         </div>
         
         <div class="profile-tabs">
@@ -783,22 +783,22 @@
         </div>
 
         <div id="profileInfoSection">
-            <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 8px;">قم بحفظ بياناتك لتسهيل وتسريع عملية الطلب في كل مرة:</div>
-            <label style="font-size: 0.75rem; font-weight: 700;">الاسم الكريم:</label>
+            <div style="font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 8px;">قم بحفظ بياناتك لتسهيل وتسريع عملية الطلب في كل مرة:</div>
+            <label style="font-size: 12px; font-weight: 700;">الاسم الكريم:</label>
             <input type="text" id="userProfileName" class="form-control" placeholder="ادخل اسمك الكامل">
             
-            <label style="font-size: 0.75rem; font-weight: 700;">رقم الهاتف:</label>
+            <label style="font-size: 12px; font-weight: 700;">رقم الهاتف:</label>
             <input type="tel" id="userProfilePhone" class="form-control" placeholder="05xxxxxxxx">
             
-            <label style="font-size: 0.75rem; font-weight: 700;">المدينة/القرية:</label>
+            <label style="font-size: 12px; font-weight: 700;">المدينة/القرية:</label>
             <select id="userProfileCity" class="form-control">
                 <option value="">المدينة...</option>
             </select>
 
-            <label style="font-size: 0.75rem; font-weight: 700;">عنوان التوصيل (افتراضي):</label>
+            <label style="font-size: 12px; font-weight: 700;">عنوان التوصيل (افتراضي):</label>
             <input type="text" id="userProfileAddress" class="form-control" placeholder="الحارة / الحي">
 
-            <label style="font-size: 0.75rem; font-weight: 700;">رقم البيت / الشقة:</label>
+            <label style="font-size: 12px; font-weight: 700;">رقم البيت / الشقة:</label>
             <input type="text" id="userProfileBuilding" class="form-control" placeholder="رقم البيت أو الشقة">
             
             <button class="btn-main" onclick="saveUserProfile()">حفظ البيانات 💾</button>
@@ -806,14 +806,14 @@
 
         <div id="profileCurrentOrderSection" style="display: none;">
             <div id="myCurrentOrderContent">
-                <p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">جاري التحقق من طلبيتك...</p>
+                <p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 15px;">جاري التحقق من طلبيتك...</p>
             </div>
         </div>
 
         <div id="profileOrdersSection" style="display: none;">
-            <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 8px;">الطلبات المرتبطة برقم هاتفك:</div>
+            <div style="font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 8px;">الطلبات المرتبطة برقم هاتفك:</div>
             <div id="myPreviousOrdersList" style="max-height: 250px; overflow-y: auto;">
-                <p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">الرجاء حفظ رقم هاتفك أولاً أو لا توجد طلبات سابقة.</p>
+                <p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 15px;">الرجاء حفظ رقم هاتفك أولاً أو لا توجد طلبات سابقة.</p>
             </div>
         </div>
     </div>
@@ -823,19 +823,19 @@
 <div class="cart-modal" id="cartModal">
     <div class="cart-modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h3 style="font-size: 0.95rem; font-weight: 900; color: var(--primary-green);" id="cartModalTitle">🛒 مراجعة السلة والمنتجات</h3>
-            <button onclick="closeCartModal()" style="background:none; border:none; font-size: 1.1rem; cursor:pointer; font-weight: 900;">✕</button>
+            <h3 style="font-size: 15px; font-weight: 900; color: var(--primary-green);" id="cartModalTitle">🛒 مراجعة السلة والمنتجات</h3>
+            <button onclick="closeCartModal()" style="background:none; border:none; font-size: 17.5px; cursor:pointer; font-weight: 900;">✕</button>
         </div>
         
         <!-- الخطوة 1: مراجعة المنتجات -->
         <div id="cartStep1">
-            <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 8px;">تأكد من المنتجات والكميات المطلوبة:</div>
+            <div style="font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 8px;">تأكد من المنتجات والكميات المطلوبة:</div>
             <div id="cartItemsWithImagesList" style="max-height: 260px; overflow-y: auto; margin-bottom: 12px;"></div>
-            <div id="cartStep1BundleDiscountRow" style="display: none; justify-content: space-between; margin-bottom: 4px; font-size: 0.8rem; font-weight: 800; color: #dc2626;">
+            <div id="cartStep1BundleDiscountRow" style="display: none; justify-content: space-between; margin-bottom: 4px; font-size: 13px; font-weight: 800; color: #dc2626;">
                 <span>خصم عروض الحزمة 🎉:</span>
                 <span id="cartStep1BundleDiscountText">-0.00 ₪</span>
             </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-weight: 900; font-size: 0.95rem; color: var(--primary-green); border-top: 1px solid var(--border-color); padding-top: 8px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-weight: 900; font-size: 15px; color: var(--primary-green); border-top: 1px solid var(--border-color); padding-top: 8px;">
                 <span>مجموع المنتجات:</span>
                 <span id="cartStep1TotalText">0.00 ₪</span>
             </div>
@@ -844,9 +844,9 @@
 
         <!-- الخطوة 2: قسم الاستلام والبيانات الشخصية والموقع -->
         <div id="cartStep2" style="display: none;">
-            <div style="font-size: 0.8rem; margin-bottom: 8px; cursor: pointer; color: var(--primary-green); font-weight: 800;" onclick="goToStep1()">← عودة لمراجعة المنتجات</div>
+            <div style="font-size: 13px; margin-bottom: 8px; cursor: pointer; color: var(--primary-green); font-weight: 800;" onclick="goToStep1()">← عودة لمراجعة المنتجات</div>
             
-            <label class="price-text" style="font-size: 0.85rem; font-weight: 900; display: block; margin-bottom: 6px;">طريقة الاستلام:</label>
+            <label class="price-text" style="font-size: 13.5px; font-weight: 900; display: block; margin-bottom: 6px;">طريقة الاستلام:</label>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
                 <label class="fulfillment-card">
                     <input type="radio" name="fulfillmentType" value="توصيل" checked onchange="toggleFulfillmentType()">
@@ -859,9 +859,9 @@
                     <span class="fulfillment-label">استلام ذاتي <span id="pickupOptionFeeText" style="color: var(--accent-green); font-weight: 900;"></span></span>
                 </label>
             </div>
-            <div id="deliveryFreeHintText" style="font-size: 0.72rem; font-weight: 700; margin-bottom: 10px; display: none;"></div>
+            <div id="deliveryFreeHintText" style="font-size: 11.5px; font-weight: 700; margin-bottom: 10px; display: none;"></div>
 
-            <label class="price-text" style="font-size: 0.85rem; font-weight: 900; display: block; margin-bottom: 6px;">البيانات الشخصية وموقع التوصيل:</label>
+            <label class="price-text" style="font-size: 13.5px; font-weight: 900; display: block; margin-bottom: 6px;">البيانات الشخصية وموقع التوصيل:</label>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
                 <input type="text" id="customerName" class="form-control" placeholder="اسم الزبون الكريم" style="margin-bottom: 0;">
@@ -878,7 +878,7 @@
                     <input type="text" id="customerStreet" class="form-control" placeholder="الحارة" style="margin-bottom: 0;">
                     <input type="text" id="customerBuilding" class="form-control" placeholder="البيت" style="margin-bottom: 0;">
                 </div>
-                <div id="noDeliveryNotice" style="display:none; background:#fef2f2; border:1px solid #fecaca; color:#991b1b; font-size:0.72rem; font-weight:700; padding:8px; border-radius:8px; margin-bottom:8px;">
+                <div id="noDeliveryNotice" style="display:none; background:#fef2f2; border:1px solid #fecaca; color:#991b1b; font-size:11.5px; font-weight:700; padding:8px; border-radius:8px; margin-bottom:8px;">
                     😔 عذراً، لا يوجد توصيل متوفر حالياً. تقدر تختار "استلام ذاتي" بدلاً من التوصيل.
                 </div>
 
@@ -886,13 +886,13 @@
                     📍 اضغط هنا لحفظ موقعي الحالي تلقائيًا
                 </button>
                 <div style="text-align: center; margin-bottom: 8px;">
-                    <button type="button" onclick="openMapModal()" style="background: none; border: none; color: #2563eb; font-weight: 700; font-size: 0.72rem; cursor: pointer; text-decoration: underline;">أو حدد موقعك يدويًا من الخريطة 🗺️</button>
+                    <button type="button" onclick="openMapModal()" style="background: none; border: none; color: #2563eb; font-weight: 700; font-size: 11.5px; cursor: pointer; text-decoration: underline;">أو حدد موقعك يدويًا من الخريطة 🗺️</button>
                 </div>
                 <input type="hidden" id="customerGpsLocation" value="">
-                <div id="selectedLocationText" style="font-size: 0.75rem; font-weight: 700; color: var(--accent-green); margin-bottom: 8px; text-align: center;"></div>
+                <div id="selectedLocationText" style="font-size: 12px; font-weight: 700; color: var(--accent-green); margin-bottom: 8px; text-align: center;"></div>
             </div>
 
-            <label class="price-text" style="font-size: 0.85rem; font-weight: 900; display: block; margin-bottom: 6px;">ملاحظات على الطلب (اختياري):</label>
+            <label class="price-text" style="font-size: 13.5px; font-weight: 900; display: block; margin-bottom: 6px;">ملاحظات على الطلب (اختياري):</label>
             <textarea id="customerNotes" class="form-control" style="width: 100%; min-height: 60px; margin-bottom: 10px; resize: vertical;"></textarea>
 
             <button class="btn-main" onclick="goToStep3()">التالي: الدفع والكوبون ➡️</button>
@@ -900,31 +900,31 @@
 
         <!-- الخطوة 3: قسم طريقة الدفع، الكوبون، والمجموع الكلي -->
         <div id="cartStep3" style="display: none;">
-            <div style="font-size: 0.8rem; margin-bottom: 8px; cursor: pointer; color: var(--primary-green); font-weight: 800;" onclick="goToStep2()">← عودة للاستلام والبيانات</div>
+            <div style="font-size: 13px; margin-bottom: 8px; cursor: pointer; color: var(--primary-green); font-weight: 800;" onclick="goToStep2()">← عودة للاستلام والبيانات</div>
             
-            <label class="price-text" style="font-size: 0.85rem; font-weight: 900; display: block; margin-bottom: 6px;">طريقة الدفع:</label>
+            <label class="price-text" style="font-size: 13.5px; font-weight: 900; display: block; margin-bottom: 6px;">طريقة الدفع:</label>
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px;">
                 <div class="payment-method-card" data-value="فيزا" onclick="selectPaymentMethod('فيزا', this)">
                     <div class="payment-pending-badge">قيد التجهيز</div>
-                    <div style="font-size: 1.4rem;">📲</div>
-                    <div style="font-size: 0.7rem; font-weight: 800; margin-top: 3px;">فيزا</div>
+                    <div style="font-size: 22.5px;">📲</div>
+                    <div style="font-size: 11px; font-weight: 800; margin-top: 3px;">فيزا</div>
                 </div>
                 <div class="payment-method-card selected" data-value="نقداً عند الاستلام" onclick="selectPaymentMethod('نقداً عند الاستلام', this)">
                     <div class="payment-pending-badge">قيد التجهيز</div>
-                    <div style="font-size: 1.4rem;">💵</div>
-                    <div style="font-size: 0.7rem; font-weight: 800; margin-top: 3px;">نقدًا</div>
+                    <div style="font-size: 22.5px;">💵</div>
+                    <div style="font-size: 11px; font-weight: 800; margin-top: 3px;">نقدًا</div>
                 </div>
             </div>
             <input type="hidden" id="paymentMethodSelect" value="نقداً عند الاستلام">
 
-            <label class="price-text" style="font-size: 0.85rem; font-weight: 900; display: block; margin-bottom: 6px;">كوبون:</label>
+            <label class="price-text" style="font-size: 13.5px; font-weight: 900; display: block; margin-bottom: 6px;">كوبون:</label>
             <div style="display: flex; gap: 6px; margin-bottom: 12px;">
                 <input type="text" id="couponInput" class="form-control" placeholder="ادخل كود الكوبون" style="margin-bottom: 0;">
-                <button type="button" onclick="applyCoupon()" style="background: var(--accent-green); color: white; border: none; padding: 0 14px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer;">تطبيق</button>
+                <button type="button" onclick="applyCoupon()" style="background: var(--accent-green); color: white; border: none; padding: 0 14px; border-radius: 8px; font-weight: 800; font-size: 13px; cursor: pointer;">تطبيق</button>
             </div>
-            <div id="couponMsg" style="font-size: 0.7rem; font-weight: 700; margin-bottom: 8px;"></div>
+            <div id="couponMsg" style="font-size: 11px; font-weight: 700; margin-bottom: 8px;"></div>
 
-            <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 0.8rem; font-weight: 600;">
+            <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; font-weight: 600;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
                     <span>مجموع المنتجات:</span>
                     <span id="cartSubtotalText">0.00 ₪</span>
@@ -941,13 +941,13 @@
                     <span>خصم عروض الحزمة 🎉:</span>
                     <span id="bundleDiscountText">-0.00 ₪</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-weight: 900; border-top: 1px solid #e2e8f0; padding-top: 8px; color: var(--primary-green); font-size: 0.9rem;">
+                <div style="display: flex; justify-content: space-between; font-weight: 900; border-top: 1px solid #e2e8f0; padding-top: 8px; color: var(--primary-green); font-size: 14.5px;">
                     <span>المجموع الكلي النهائي:</span>
                     <span id="cartFinalTotalText">0.00 ₪</span>
                 </div>
             </div>
 
-            <button class="btn-main" id="submitOrderBtn" onclick="submitOrder()" style="background: var(--accent-green); font-size: 0.95rem;">إرسال الطلبية والدفع 💳🚀</button>
+            <button class="btn-main" id="submitOrderBtn" onclick="submitOrder()" style="background: var(--accent-green); font-size: 15px;">إرسال الطلبية والدفع 💳🚀</button>
         </div>
     </div>
 </div>
@@ -956,10 +956,10 @@
 <div class="cart-modal" id="mapModal">
     <div class="cart-modal-content" style="padding: 15px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h3 style="font-size: 0.95rem; font-weight: 900; color: var(--primary-green);">📍 تحديد موقع التوصيل بدقة</h3>
-            <button onclick="closeMapModal()" style="background:none; border:none; font-size: 1.1rem; cursor:pointer; font-weight: 900;">✕</button>
+            <h3 style="font-size: 15px; font-weight: 900; color: var(--primary-green);">📍 تحديد موقع التوصيل بدقة</h3>
+            <button onclick="closeMapModal()" style="background:none; border:none; font-size: 17.5px; cursor:pointer; font-weight: 900;">✕</button>
         </div>
-        <div style="font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 8px; text-align: center;">اضغط على زر الـ GPS أدناه للوصول لموقعك فوراً، أو اسحب الدبوس على الخريطة:</div>
+        <div style="font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 8px; text-align: center;">اضغط على زر الـ GPS أدناه للوصول لموقعك فوراً، أو اسحب الدبوس على الخريطة:</div>
         
         <button type="button" onclick="panToCurrentLocation()" class="gps-locate-btn">
             🎯 اضغط هنا لتحديد موقعي تلقائيًا 🛰️
@@ -1870,8 +1870,8 @@
             let color = state === 'pending' ? '#cbd5e1' : 'var(--accent-green)';
             return `
                 <div style="display: flex; flex-direction: column; align-items: center; flex: 1; position: relative;">
-                    <div style="width: 30px; height: 30px; border-radius: 50%; background: ${state === 'pending' ? '#f1f5f9' : color}; color: ${state === 'pending' ? '#94a3b8' : 'white'}; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; ${state === 'active' ? 'box-shadow: 0 0 0 4px rgba(96,155,21,0.18);' : ''}">${stage.icon}</div>
-                    <span style="font-size: 0.6rem; font-weight: 700; text-align: center; margin-top: 4px; color: ${state === 'pending' ? '#94a3b8' : '#1f2937'};">${stage.label}</span>
+                    <div style="width: 30px; height: 30px; border-radius: 50%; background: ${state === 'pending' ? '#f1f5f9' : color}; color: ${state === 'pending' ? '#94a3b8' : 'white'}; display: flex; align-items: center; justify-content: center; font-size: 13.5px; ${state === 'active' ? 'box-shadow: 0 0 0 4px rgba(96,155,21,0.18);' : ''}">${stage.icon}</div>
+                    <span style="font-size: 9.5px; font-weight: 700; text-align: center; margin-top: 4px; color: ${state === 'pending' ? '#94a3b8' : '#1f2937'};">${stage.label}</span>
                 </div>
             `;
         }).join(`<div style="flex: 0.4; height: 2px; background: #e2e8f0; margin-top: 15px;"></div>`);
@@ -1880,14 +1880,14 @@
         let orderLabel = (order.orderNumber !== undefined && order.orderNumber !== null && order.orderNumber !== '') ? `#${order.orderNumber}` : '';
         let mapHtml = order.status === 'قيد التوصيل'
             ? `<div style="margin-bottom: 14px;">
-                   <div style="font-size: 0.68rem; font-weight: 800; color: #64748b; margin-bottom: 6px;">📍 موقع السائق الحي:</div>
+                   <div style="font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 6px;">📍 موقع السائق الحي:</div>
                    <div id="liveDriverMap" style="height: 200px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color);"></div>
                </div>`
             : '';
 
         return `
             <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 14px; padding: 14px; margin-bottom: 10px;">
-                <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 0.8rem; margin-bottom: 14px;">
+                <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 13px; margin-bottom: 14px;">
                     <span>طلبية ${orderLabel}</span>
                     <span class="price-text">${(order.total || 0).toFixed ? order.total.toFixed(2) : order.total} ₪</span>
                 </div>
@@ -1895,7 +1895,7 @@
                     ${stagesHtml}
                 </div>
                 ${mapHtml}
-                <div style="font-size: 0.72rem; color: #64748b; font-weight: 600; border-top: 1px solid var(--border-color); padding-top: 8px;">المنتجات: ${itemsListHtml}</div>
+                <div style="font-size: 11.5px; color: #64748b; font-weight: 600; border-top: 1px solid var(--border-color); padding-top: 8px;">المنتجات: ${itemsListHtml}</div>
             </div>
         `;
     }
@@ -1975,7 +1975,7 @@
         if (storedOrderId) {
             // مسار حي حقيقي: نتابع نفس الطلبية اللي هذا الجهاز طلبها مباشرة عن طريق رقمها
             // (رقم عشوائي طويل - آمن، حتى لو الصلاحية مفتوحة لقراءة طلبية وحدة بمعرفتها بالظبط)
-            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">جاري التحقق من طلبيتك...</p>`;
+            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 15px;">جاري التحقق من طلبيتك...</p>`;
             currentOrderLiveUnsub = window.onSnapshot(window.doc(window.db, "orders", storedOrderId), (snap) => {
                 if (!snap.exists() || !activeStatuses.includes(snap.data().status)) {
                     // خلصت الطلبية أو انلغت أو مش موجودة - ننضّف ونرجع نجرب طريقة رقم الهاتف الاحتياطية
@@ -2001,7 +2001,7 @@
     function watchCurrentOrderByPhone(container, activeStatuses) {
         let phone = localStorage.getItem('aloroba_user_phone');
         if(!phone) {
-            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">الرجاء حفظ رقم هاتفك في تبويب "بيانات العميل" أولاً لمتابعة طلبيتك.</p>`;
+            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 15px;">الرجاء حفظ رقم هاتفك في تبويب "بيانات العميل" أولاً لمتابعة طلبيتك.</p>`;
             return;
         }
 
@@ -2011,7 +2011,7 @@
                 orders = orders.filter(o => activeStatuses.includes(o.status));
 
                 if (orders.length === 0) {
-                    container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">ما فيه طلبية شغالة حاليًا 🙂</p>`;
+                    container.innerHTML = `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 15px;">ما فيه طلبية شغالة حاليًا 🙂</p>`;
                     return;
                 }
 
@@ -2019,11 +2019,11 @@
                 renderCurrentOrderIntoContainer(orders[0], container);
             } catch (err) {
                 console.error('خطأ في متابعة الطلبية:', err);
-                container.innerHTML = `<p style="text-align: center; color: #d32f2f; font-size: 0.8rem; font-weight: 600; padding: 15px;">تعذّر تحميل حالة الطلبية.</p>`;
+                container.innerHTML = `<p style="text-align: center; color: #d32f2f; font-size: 13px; font-weight: 600; padding: 15px;">تعذّر تحميل حالة الطلبية.</p>`;
             }
         }
 
-        container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">جاري التحقق من طلبيتك...</p>`;
+        container.innerHTML = `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 15px;">جاري التحقق من طلبيتك...</p>`;
         refreshCurrentOrder();
         currentOrderPollTimer = setInterval(refreshCurrentOrder, 15000);
     }
@@ -2034,18 +2034,18 @@
         let container = document.getElementById('myPreviousOrdersList');
         
         if(!phone) {
-            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">الرجاء حفظ رقم هاتفك في تبويب "بيانات العميل" أولاً لعرض طلباتك.</p>`;
+            container.innerHTML = `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 15px;">الرجاء حفظ رقم هاتفك في تبويب "بيانات العميل" أولاً لعرض طلباتك.</p>`;
             return;
         }
 
-        container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">جاري جلب الطلبات من السحابة...</p>`;
+        container.innerHTML = `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 15px;">جاري جلب الطلبات من السحابة...</p>`;
 
         try {
             let allOrders = await fetchMyOrdersFromCloud(phone);
             let completedOrders = allOrders.filter(o => o.status === "مكتمل" || o.status === "delivered");
 
             if(completedOrders.length === 0) {
-                container.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">لا توجد طلبات سابقة مسجلة بهذا الرقم.</p>`;
+                container.innerHTML = `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 15px;">لا توجد طلبات سابقة مسجلة بهذا الرقم.</p>`;
                 return;
             }
 
@@ -2065,7 +2065,7 @@
                 let itemsListHtml = order.items.map(i => `${i.name} (${i.quantity})`).join('، ');
 
                 container.innerHTML += `
-                    <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 8px; border-radius: 8px; margin-bottom: 8px; font-size: 0.8rem; font-weight: 600;">
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 8px; border-radius: 8px; margin-bottom: 8px; font-size: 13px; font-weight: 600;">
                         <div style="display: flex; justify-content: space-between; font-weight: 800; margin-bottom: 4px;">
                             <span>الحالة: <span style="color: var(--accent-green);">${order.status || 'جديد'}</span></span>
                             <span dir="ltr">${dateStr}</span>
@@ -2073,13 +2073,13 @@
                         <div style="color: #64748b; margin-bottom: 4px;">المنتجات: ${itemsListHtml}</div>
                         <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 4px; font-weight: 800;">
                             <span>المجموع: ${order.total.toFixed(2)} ₪</span>
-                            <button onclick='reorderPrevious(${JSON.stringify(order.items)})' style="background: var(--accent-green); color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; cursor: pointer;">إعادة الطلب 🔄</button>
+                            <button onclick='reorderPrevious(${JSON.stringify(order.items)})' style="background: var(--accent-green); color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 800; cursor: pointer;">إعادة الطلب 🔄</button>
                         </div>
                     </div>
                 `;
             });
         } catch(e) {
-            container.innerHTML = `<p style="text-align: center; color: red; font-size: 0.8rem; font-weight: 700; padding: 15px;">حدث خطأ أثناء جلب الطلبات.</p>`;
+            container.innerHTML = `<p style="text-align: center; color: red; font-size: 13px; font-weight: 700; padding: 15px;">حدث خطأ أثناء جلب الطلبات.</p>`;
         }
     }
 
@@ -2254,7 +2254,7 @@
     function triggerCategoryLoadingAndRender() {
         const container = document.getElementById('storeMainContent');
         document.getElementById('loadMoreIndicator').style.display = 'none';
-        container.innerHTML = `<div style="text-align: center; padding: 45px; font-size: 0.85rem; color: var(--primary-green); font-weight: 800;">جاري تحميل منتجات القسم... ⏳</div>`;
+        container.innerHTML = `<div style="text-align: center; padding: 45px; font-size: 13.5px; color: var(--primary-green); font-weight: 800;">جاري تحميل منتجات القسم... ⏳</div>`;
         
         setTimeout(() => {
             requestAnimationFrame(() => { renderMainStoreContent(); });
@@ -2284,7 +2284,7 @@
             let allOffers = products.filter(p => p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null);
             container.innerHTML = allOffers.length > 0
                 ? `<div class="products-grid" style="margin-top: 10px;">${allOffers.map(p => createProductCardHtml(p)).join('')}</div>`
-                : `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 20px;">لا توجد عروض حالياً</p>`;
+                : `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد عروض حالياً</p>`;
             return;
         }
 
@@ -2296,7 +2296,7 @@
                 let subProducts = products.filter(p => productBelongsToCategory(p, currentSubCategory));
                 container.innerHTML = subProducts.length > 0
                     ? `<div class="products-grid" style="margin-top: 10px;">${subProducts.map(p => createProductCardHtml(p)).join('')}</div>`
-                    : `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 20px;">لا توجد منتجات مطابقة</p>`;
+                    : `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد منتجات مطابقة</p>`;
                 return;
             }
 
@@ -2328,7 +2328,7 @@
                         `;
                     }
 
-                    container.innerHTML = sectionsHtml || `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 20px;">لا توجد منتجات مطابقة</p>`;
+                    container.innerHTML = sectionsHtml || `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد منتجات مطابقة</p>`;
                     return;
                 }
             }
@@ -2341,7 +2341,7 @@
 
             let gridHtml = `<div class="products-grid" style="margin-top: 10px;">`;
             if(filtered.length === 0) {
-                gridHtml = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 20px;">لا توجد منتجات مطابقة</p>`;
+                gridHtml = `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد منتجات مطابقة</p>`;
             } else {
                 filtered.forEach(p => { gridHtml += createProductCardHtml(p); });
                 gridHtml += `</div>`;
@@ -2932,7 +2932,7 @@
             let stockNoteHtml = '';
             if (isTracked) {
                 stockNoteHtml = isOutOfStock
-                    ? `<div style="color:#dc2626; font-size:0.65rem; font-weight:800; margin-top:2px;">🚫 نفذت الكمية</div>`
+                    ? `<div style="color:#dc2626; font-size:10.5px; font-weight:800; margin-top:2px;">🚫 نفذت الكمية</div>`
                     : '';
             }
 
@@ -2964,7 +2964,7 @@
         let listEl = document.getElementById('bundleModalItemsList');
 
         if (list.length === 0) {
-            listEl.innerHTML = `<p style="text-align: center; color: #888; font-size: 0.8rem; font-weight: 600; padding: 15px;">لا توجد منتجات متاحة لهذا العرض حالياً.</p>`;
+            listEl.innerHTML = `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 15px;">لا توجد منتجات متاحة لهذا العرض حالياً.</p>`;
         } else {
             listEl.innerHTML = list.map(p => {
                 let cartItem = cart.find(c => c.id == p.id);
@@ -2978,7 +2978,7 @@
                 let stockNoteHtml = '';
                 if (isTracked) {
                     stockNoteHtml = isOutOfStock
-                        ? `<div style="color:#dc2626; font-size:0.65rem; font-weight:800; margin-top:2px;">🚫 نفذت الكمية</div>`
+                        ? `<div style="color:#dc2626; font-size:10.5px; font-weight:800; margin-top:2px;">🚫 نفذت الكمية</div>`
                         : '';
                 }
 
@@ -3344,8 +3344,8 @@
             grandTotal += itemTotal;
             if (info.hasBundle) grandBundleDiscount += (normalLineTotal - itemTotal);
 
-            let subDetails = item.isBundle && item.items ? `<div style="color: #64748b; font-size: 0.65rem; margin-top:2px;">المكونات: ${item.items.map(i => i.name).join('، ')}</div>` : '';
-            let bundleTag = info.hasBundle ? `<div style="color: #dc2626; font-size: 0.65rem; font-weight: 800; margin-top: 2px;">🎉 ضمن عرض حزمة: ${info.bundleName}</div>` : '';
+            let subDetails = item.isBundle && item.items ? `<div style="color: #64748b; font-size: 10.5px; margin-top:2px;">المكونات: ${item.items.map(i => i.name).join('، ')}</div>` : '';
+            let bundleTag = info.hasBundle ? `<div style="color: #dc2626; font-size: 10.5px; font-weight: 800; margin-top: 2px;">🎉 ضمن عرض حزمة: ${info.bundleName}</div>` : '';
 
             let originalProduct = products.find(pp => pp.id == item.id);
             let hasSaleOriginal = originalProduct && originalProduct.price !== undefined && originalProduct.price !== null && Number(originalProduct.price) !== Number(item.price);
@@ -3360,18 +3360,18 @@
             }
 
             listContainer.innerHTML += `
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; background: #f8fafc; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; margin-bottom: 6px; background: #f8fafc; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border-color);">
                     <div style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
                         <img src="${item.img || 'logo.png'}" style="width: 40px; height: 40px; object-fit: contain; background: white; border-radius: 6px; border: 1px solid #eee;" onerror="this.onerror=null; this.src='logo.png';">
                         <div>
                             <div style="font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">${item.name}</div>
-                            <div style="color: #64748b; font-size: 0.7rem; font-weight: 600;">الكمية: ${item.quantity} × ${unitPriceDisplay}</div>
+                            <div style="color: #64748b; font-size: 11px; font-weight: 600;">الكمية: ${item.quantity} × ${unitPriceDisplay}</div>
                             ${bundleTag}
                             ${subDetails}
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <span class="price-text" style="font-size: 0.95rem; white-space: nowrap;">${itemTotal.toFixed(2)} ₪</span>
+                        <span class="price-text" style="font-size: 15px; white-space: nowrap;">${itemTotal.toFixed(2)} ₪</span>
                         <button onclick='removeCartItemCompletely("${item.id}")' style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px; font-weight: 900;" title="حذف">🗑️</button>
                     </div>
                 </div>
@@ -3894,18 +3894,18 @@
 <div id="marketingSubscribeModal" class="subscribe-modal-overlay">
     <div class="subscribe-modal-box">
         <div style="text-align:center; margin-bottom:14px;">
-            <div style="font-size:2rem; margin-bottom:6px;">🔔</div>
-            <div style="font-size:1rem; font-weight:900; color:var(--primary-green);">اشترك بعروضنا عبر واتساب</div>
-            <div style="font-size:0.72rem; color:#94a3b8; margin-top:4px;">بنبعتلك عروضنا الجديدة والتخفيضات بس - مو أكتر</div>
+            <div style="font-size:32px; margin-bottom:6px;">🔔</div>
+            <div style="font-size:16px; font-weight:900; color:var(--primary-green);">اشترك بعروضنا عبر واتساب</div>
+            <div style="font-size:11.5px; color:#94a3b8; margin-top:4px;">بنبعتلك عروضنا الجديدة والتخفيضات بس - مو أكتر</div>
         </div>
         <input type="tel" id="marketingPhoneInput" class="form-control" placeholder="رقم الواتساب (مثال: 0501234567)" style="width:100%; padding:11px 14px; border:1.5px solid #e5e7eb; border-radius:12px; font-size:16px; font-weight:600; margin-bottom:10px; outline:none; box-sizing:border-box;">
-        <label style="display:flex; align-items:flex-start; gap:8px; font-size:0.68rem; color:#4b5563; font-weight:600; margin-bottom:14px; cursor:pointer; line-height:1.5;">
+        <label style="display:flex; align-items:flex-start; gap:8px; font-size:11px; color:#4b5563; font-weight:600; margin-bottom:14px; cursor:pointer; line-height:1.5;">
             <input type="checkbox" id="marketingConsentCheckbox" style="width:18px; height:18px; flex-shrink:0; margin-top:2px;">
             <span>أوافق على استقبال رسائل تسويقية عبر واتساب من العروبة أونلاين (عروض وتحديثات). يمكنني إلغاء الاشتراك بأي وقت.</span>
         </label>
-        <div id="marketingSubscribeError" style="color:#dc2626; font-size:0.7rem; font-weight:800; min-height:16px; margin-bottom:8px;"></div>
-        <button id="marketingSubscribeSubmitBtn" onclick="submitMarketingSubscribe()" style="width:100%; background:#25D366; color:white; border:none; padding:12px; border-radius:12px; font-weight:800; font-size:0.85rem; cursor:pointer; margin-bottom:8px;">اشتراك ✅</button>
-        <button onclick="closeMarketingSubscribeModal()" style="width:100%; background:#f1f5f9; color:#4b5563; border:none; padding:10px; border-radius:12px; font-weight:700; font-size:0.78rem; cursor:pointer;">مو هلأ</button>
+        <div id="marketingSubscribeError" style="color:#dc2626; font-size:11px; font-weight:800; min-height:16px; margin-bottom:8px;"></div>
+        <button id="marketingSubscribeSubmitBtn" onclick="submitMarketingSubscribe()" style="width:100%; background:#25D366; color:white; border:none; padding:12px; border-radius:12px; font-weight:800; font-size:13.5px; cursor:pointer; margin-bottom:8px;">اشتراك ✅</button>
+        <button onclick="closeMarketingSubscribeModal()" style="width:100%; background:#f1f5f9; color:#4b5563; border:none; padding:10px; border-radius:12px; font-weight:700; font-size:12.5px; cursor:pointer;">مو هلأ</button>
     </div>
 </div>
 
