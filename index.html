@@ -1170,13 +1170,11 @@
             let outB = isOutOfStockProduct(b) ? 1 : 0;
             if (outA !== outB) return outA - outB;
 
-            let valA = (a.displayOrder !== undefined && a.displayOrder !== null && a.displayOrder !== "") ? a.displayOrder : 
-                       ((a.order !== undefined && a.order !== null && a.order !== "") ? a.order : 
-                       ((a.sortOrder !== undefined && a.sortOrder !== null && a.sortOrder !== "") ? a.sortOrder : 9999));
-            
-            let valB = (b.displayOrder !== undefined && b.displayOrder !== null && b.displayOrder !== "") ? b.displayOrder : 
-                       ((b.order !== undefined && b.order !== null && b.order !== "") ? b.order : 
-                       ((b.sortOrder !== undefined && b.sortOrder !== null && b.sortOrder !== "") ? b.sortOrder : 9999));
+            // نعتمد فقط على sortOrder (نفس الحقل يلي admin.html بيتحكم فيه بـ"رقم الظهور") - 
+            // كان فيه فحص لحقول قديمة (displayOrder / order) ممكن تكون موجودة على منتجات قديمة من نظام سابق
+            // وتتغلب صامتة على رقم الظهور الحالي رغم إن admin.html ما بيعرضها ولا بيعدلها
+            let valA = (a.sortOrder !== undefined && a.sortOrder !== null && a.sortOrder !== "") ? a.sortOrder : 9999;
+            let valB = (b.sortOrder !== undefined && b.sortOrder !== null && b.sortOrder !== "") ? b.sortOrder : 9999;
 
             let numA = !isNaN(Number(valA)) ? Number(valA) : 9999;
             let numB = !isNaN(Number(valB)) ? Number(valB) : 9999;
@@ -1537,6 +1535,7 @@
                         categories.push(catData);
                     }
                 });
+                categories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
                 localStorage.setItem('aloroba_cached_categories', JSON.stringify(categories));
             }
             renderCategoriesScroll();
