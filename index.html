@@ -1164,22 +1164,28 @@
             return isTracked && Number(p.stockQty) <= 0;
         }
 
+        function hasSortOrder(p) {
+            return p.sortOrder !== undefined && p.sortOrder !== null && p.sortOrder !== "" && !isNaN(Number(p.sortOrder));
+        }
+
         products.sort((a, b) => {
-            // نفذت الكمية دايماً بآخر القائمة/الفئة يلي فيها، بغض النظر عن الترتيب اليدوي
+            // نفذت الكمية دايماً بآخر القائمة/الفئة يلي فيها، بغض النظر عن أي شي تاني
             let outA = isOutOfStockProduct(a) ? 1 : 0;
             let outB = isOutOfStockProduct(b) ? 1 : 0;
             if (outA !== outB) return outA - outB;
 
-            // نعتمد فقط على sortOrder (نفس الحقل يلي admin.html بيتحكم فيه بـ"رقم الظهور") - 
-            // كان فيه فحص لحقول قديمة (displayOrder / order) ممكن تكون موجودة على منتجات قديمة من نظام سابق
-            // وتتغلب صامتة على رقم الظهور الحالي رغم إن admin.html ما بيعرضها ولا بيعدلها
-            let valA = (a.sortOrder !== undefined && a.sortOrder !== null && a.sortOrder !== "") ? a.sortOrder : 9999;
-            let valB = (b.sortOrder !== undefined && b.sortOrder !== null && b.sortOrder !== "") ? b.sortOrder : 9999;
+            // المنتجات يلي إلها رقم ظهور محفوظ فعلياً بتطلع أول، مرتبة حسب الرقم تصاعدياً؛
+            // يلي مالوش رقم ظهور خالص (undefined بقاعدة البيانات) بينزل بعدهم بآخر القائمة
+            let hasA = hasSortOrder(a) ? 0 : 1;
+            let hasB = hasSortOrder(b) ? 0 : 1;
+            if (hasA !== hasB) return hasA - hasB;
 
-            let numA = !isNaN(Number(valA)) ? Number(valA) : 9999;
-            let numB = !isNaN(Number(valB)) ? Number(valB) : 9999;
+            if (hasA === 0) {
+                let numA = Number(a.sortOrder);
+                let numB = Number(b.sortOrder);
+                if (numA !== numB) return numA - numB;
+            }
 
-            if (numA !== numB) return numA - numB;
             return (a.name || "").localeCompare(b.name || "");
         });
     }

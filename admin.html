@@ -2439,7 +2439,7 @@
                                     ${catName !== 'أخرى غير مصنفة' ? `
                                     <div style="display: flex; align-items: center; gap: 6px; margin-top: 3px;">
                                         <span style="font-size: 0.6rem; color: var(--primary-green); font-weight: bold;">رقم الظهور:</span>
-                                        <input type="number" class="sort-order-input" data-id="${p.id}" value="${p.sortOrder !== undefined ? p.sortOrder : 0}" onfocus="this.select()" style="width: 50px; padding: 1px 3px; font-size: 0.65rem; text-align: center; border: 1px solid #cbd5e1; border-radius: 4px;">
+                                        <input type="number" class="sort-order-input" data-id="${p.id}" value="${p.sortOrder !== undefined ? p.sortOrder : ''}" placeholder="—" onfocus="this.select()" style="width: 50px; padding: 1px 3px; font-size: 0.65rem; text-align: center; border: 1px solid #cbd5e1; border-radius: 4px;">
                                     </div>
                                     ` : ''}
                                 </div>
