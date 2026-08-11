@@ -630,6 +630,7 @@
         .bundle-item-qty { min-width: 22px; text-align: center; font-weight: 800; font-size: 13.5px; font-family: 'Poppins', 'Cairo', sans-serif; }
         .bundle-price-badge { display: inline-block; background: linear-gradient(135deg, var(--price-red) 0%, #b91c1c 100%); color: white; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 7px; margin-top: 5px; cursor: pointer; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3); }
         .spend-offer-price-badge { display: block; background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); color: white; font-size: 10.5px; font-weight: 800; padding: 4px 10px; border-radius: 7px; margin-top: 5px; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.3); }
+        .spend-offer-price-badge.spend-offer-badge-achieved { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3); text-align: center; }
 
         /* شريط السلة السفلي */
         .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; padding: 15px 20px; display: none; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 18px; border-top-right-radius: 18px; z-index: 100; cursor: pointer; box-shadow: 0 -4px 16px rgba(0,0,0,0.12); }
@@ -2976,8 +2977,10 @@
 
     // بيحدّث سطر "قربت توصل" جوا شارة كل منتج مرتبط بعرض شراء بأي فئة/قسم كان معروض فيها حالياً بالصفحة -
     // بدون إعادة رسم كل الشبكة (حتى ما يقفز السكرول لو الزبون عم يتصفح ويعدّل السلة بنفس الوقت)
+    // بيحدّث سطر "قربت توصل" جوا شارة كل منتج مرتبط بعرض شراء (لسا ما تحقق بس - حالة "مفعّل" ثابتة نصياً
+    // ومابتحتاج تحديث رقمي، والسعر الفعلي بينحدث بإعادة رسم كاملة لما تتغيّر حالة التفعيل - شوف الدالة تحتها)
     function updateSpendOfferBadgesInPlace() {
-        let badges = document.querySelectorAll('.spend-offer-price-badge[data-offer-product]');
+        let badges = document.querySelectorAll('.spend-offer-price-badge[data-offer-product]:not(.spend-offer-badge-achieved)');
         if (badges.length === 0) return;
         let adjustedSubtotal = getSpendOffersAdjustedSubtotal();
         badges.forEach(badge => {
@@ -2985,14 +2988,25 @@
             let offer = (spendOffers || []).find(o => o.active && o.productId === productId && o.threshold);
             if (!offer) return;
             let required = getSpendOfferCumulativeThreshold(offer);
-            let achieved = adjustedSubtotal >= required;
             let gap = required - adjustedSubtotal;
-            let prod = products.find(p => p.id === productId);
-            let originalPriceForBadge = offer.originalPrice || (prod && prod.price);
-            badge.innerHTML = achieved
-                ? `✅ مفعّل <span style="text-decoration:line-through; opacity:0.75;">${originalPriceForBadge}₪</span> <b>${offer.discountedPrice}₪</b>`
-                : `🎯 أضف كمان ${gap.toFixed(2)}₪ وخذه بـ ${offer.discountedPrice}₪`;
+            if (gap <= 0) return; // صار مفعّل فعلياً - رح ينعرض صح بإعادة الرسم الكاملة يلي بتصير تلقائياً
+            badge.innerHTML = `🎯 أضف كمان ${gap.toFixed(2)}₪ وخذه بـ ${offer.discountedPrice}₪`;
         });
+    }
+
+    let lastSpendOfferAchievedSignature = "";
+    // بيتحقق إذا تغيّرت حالة "تفعيل" أي عرض شراء (من غير مفعّل لمفعّل أو العكس) مقارنة بآخر مرة - لو تغيّرت
+    // لازم إعادة رسم كاملة حتى تنعرض الأسعار صح (مش بس تحديث سطر الشارة)، لو ما تغيّرت نكتفي بالتحديث الخفيف
+    function spendOfferAchievedStateChanged() {
+        let adjustedSubtotal = getSpendOffersAdjustedSubtotal();
+        let achievedIds = getActiveSpendOffersInOrder()
+            .filter(o => adjustedSubtotal >= getSpendOfferCumulativeThreshold(o))
+            .map(o => o.productId)
+            .sort();
+        let signature = achievedIds.join(',');
+        let changed = signature !== lastSpendOfferAchievedSignature;
+        lastSpendOfferAchievedSignature = signature;
+        return changed;
     }
 
     function goToProductFromSpendOffer(productId) {
@@ -3668,15 +3682,39 @@
     }
 
     function createProductCardHtml(p, sizeVariant) {
+        let matchedBundle = findBundleForProduct(p);
+
+        // عرض "اشتري بقيمة كذا، خذ هالمنتج بسعر مخفض" - نتحقق منه بدري حتى نقدر نبدّل عرض السعر نفسه لو تحقق فعلياً
+        let matchedSpendOffer = !matchedBundle ? (spendOffers || []).find(o => o.active && o.productId === p.id && o.threshold) : null;
+        let spendOfferAchieved = false;
+        let spendOfferGap = 0;
+        if (matchedSpendOffer) {
+            let required = getSpendOfferCumulativeThreshold(matchedSpendOffer);
+            let adjustedSubtotal = getSpendOffersAdjustedSubtotal();
+            spendOfferAchieved = adjustedSubtotal >= required;
+            spendOfferGap = required - adjustedSubtotal;
+        }
+
         let hasSale = (p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null);
-        let priceDisplay = hasSale ? `${p.salePrice} ₪` : `${p.price} ₪`;
-        let oldPriceDisplay = hasSale ? `<span class="old-price">${p.price} ₪</span>` : "";
+        let priceDisplay, oldPriceDisplay, priceClass;
+        if (matchedSpendOffer && spendOfferAchieved) {
+            // العرض تحقق فعلياً - نعرض سعر العرض المخفض هون مباشرة، بنفس ستايل "old-price / sale-price" المستخدم بكل الموقع
+            priceDisplay = `${matchedSpendOffer.discountedPrice} ₪`;
+            oldPriceDisplay = `<span class="old-price">${matchedSpendOffer.originalPrice || p.price} ₪</span>`;
+            priceClass = "price-text sale-price";
+        } else if (hasSale) {
+            priceDisplay = `${p.salePrice} ₪`;
+            oldPriceDisplay = `<span class="old-price">${p.price} ₪</span>`;
+            priceClass = "price-text sale-price";
+        } else {
+            priceDisplay = `${p.price} ₪`;
+            oldPriceDisplay = "";
+            priceClass = "price-text";
+        }
         let badgeHtml = hasSale ? `<span class="discount-badge">عرض خاص</span>` : "";
-        let priceClass = hasSale ? "price-text sale-price" : "price-text";
-        let cardClass = hasSale ? "product-card has-sale" : "product-card";
+        let cardClass = (hasSale || (matchedSpendOffer && spendOfferAchieved)) ? "product-card has-sale" : "product-card";
         if (sizeVariant === 'small') cardClass += " product-card-small";
 
-        let matchedBundle = findBundleForProduct(p);
         let bundleBadgeHtml = "";
         if (matchedBundle) {
             let bQty = Number(matchedBundle.qty) || 4;
@@ -3684,19 +3722,14 @@
             bundleBadgeHtml = `<span class="bundle-price-badge" onclick='openBundleModal("${matchedBundle.id}")'>${bQty} بـ ${bPrice.toFixed(2)} ₪</span>`;
         }
 
-        // شارة عرض "اشتري بقيمة كذا، خذ هالمنتج بسعر مخفض" - بتظهر وهو يتصفح المنتج قبل ما يوصل السلة للحد المطلوب أصلاً
-        let matchedSpendOffer = !matchedBundle ? (spendOffers || []).find(o => o.active && o.productId === p.id && o.threshold) : null;
+        // شارة عرض "اشتري بقيمة كذا" - لو تحقق، بتبقى بس تأكيد بسيط (السعر نفسه انعرض فوق بالفعل)؛ لو لسا ما تحقق، بتفصّل قديش الباقي
         let spendOfferBadgeHtml = "";
         if (matchedSpendOffer) {
-            let required = getSpendOfferCumulativeThreshold(matchedSpendOffer);
-            let adjustedSubtotal = getSpendOffersAdjustedSubtotal();
-            let achieved = adjustedSubtotal >= required;
-            let gap = required - adjustedSubtotal;
-            let originalPriceForBadge = matchedSpendOffer.originalPrice || p.price;
-            let badgeLine = achieved
-                ? `✅ مفعّل <span style="text-decoration:line-through; opacity:0.75;">${originalPriceForBadge}₪</span> <b>${matchedSpendOffer.discountedPrice}₪</b>`
-                : `🎯 أضف كمان ${gap.toFixed(2)}₪ وخذه بـ ${matchedSpendOffer.discountedPrice}₪`;
-            spendOfferBadgeHtml = `<span class="spend-offer-price-badge" data-offer-product="${p.id}">${badgeLine}</span>`;
+            let badgeLine = spendOfferAchieved
+                ? `✅ مفعّل`
+                : `🎯 أضف كمان ${spendOfferGap.toFixed(2)}₪ وخذه بـ ${matchedSpendOffer.discountedPrice}₪`;
+            let badgeExtraClass = spendOfferAchieved ? " spend-offer-badge-achieved" : "";
+            spendOfferBadgeHtml = `<span class="spend-offer-price-badge${badgeExtraClass}" data-offer-product="${p.id}">${badgeLine}</span>`;
         }
 
         let cartItem = cart.find(item => item.id == p.id);
@@ -3882,7 +3915,11 @@
 
         document.getElementById('cartTotalText').innerText = finalDisplayTotal.toFixed(2) + " ₪";
         renderSpendOffersBanner();
-        updateSpendOfferBadgesInPlace();
+        if (spendOfferAchievedStateChanged()) {
+            renderMainStoreContent();
+        } else {
+            updateSpendOfferBadgesInPlace();
+        }
 
         const cartBar = document.getElementById('cartBar');
         if (totalCount > 0) {
