@@ -1107,6 +1107,8 @@
     let initialHash = decodeURIComponent(window.location.hash.replace('#', ''));
     let currentCategory = initialHash ? initialHash : "الكل";
     let currentSubCategory = "الكل";
+    const ALL_OFFERS_KEY = "__ALL_OFFERS__";
+    const ALL_BUNDLES_KEY = "__ALL_BUNDLES__";
 
     let bundles = [];
     let offerGroups = [];
@@ -2271,7 +2273,6 @@
     }
 
     // "كل العروض" مش فئة حقيقية - بس وضع خاص بيعرض كل منتج عليه سعر عرض حالياً
-    const ALL_OFFERS_KEY = "__ALL_OFFERS__";
     function viewAllOffers() {
         currentCategory = ALL_OFFERS_KEY;
         currentSubCategory = "الكل";
@@ -2282,7 +2283,6 @@
     }
 
     // "كل الحزم" مش فئة حقيقية - بس وضع خاص بيعرض كل منتج مشارك بحزمة محددة حالياً
-    const ALL_BUNDLES_KEY = "__ALL_BUNDLES__";
     function viewAllBundleProducts() {
         currentCategory = ALL_BUNDLES_KEY;
         currentSubCategory = "الكل";
@@ -2313,6 +2313,18 @@
     }
 
     function renderMainStoreContent() {
+        try {
+            renderMainStoreContentInner();
+        } catch (e) {
+            console.error('renderMainStoreContent error:', e);
+            const container = document.getElementById('storeMainContent');
+            if (container) {
+                container.innerHTML = `<p style="text-align: center; color: #dc2626; font-size: 13px; font-weight: 700; padding: 25px;">حدث خطأ أثناء عرض المنتجات ⚠️<br><span style="font-size: 11px; color: #94a3b8; font-weight: 600;">${(e && e.message) || ''}</span></p>`;
+            }
+        }
+    }
+
+    function renderMainStoreContentInner() {
         const container = document.getElementById('storeMainContent');
         if (products.length === 0) return;
 
@@ -2357,27 +2369,30 @@
                 let children = getCategoryChildren(currentCategory);
                 if (children.length > 0) {
                     let sectionsHtml = '';
+
+                    // منتجات مربوطة بالفئة الأم نفسها مباشرة (بدون فئة فرعية محددة) بتطلع أول شي، قبل الفئات الفرعية
+                    let directProducts = products.filter(p => productBelongsToCategory(p, currentCategory));
+                    if (directProducts.length > 0) {
+                        let parentCatObj = categories.find(c => c.name === currentCategory);
+                        let parentIcon = (parentCatObj && parentCatObj.icon) || '🗂️';
+                        sectionsHtml += `
+                            <div class="subcategory-section" data-subcat-section="الكل" style="margin-top: 6px;">
+                                <div class="subcategory-title">${parentIcon} ${currentCategory}</div>
+                                <div class="products-grid">${directProducts.map(p => createProductCardHtml(p)).join('')}</div>
+                            </div>
+                        `;
+                    }
+
                     children.forEach((child, idx) => {
                         let childProducts = products.filter(p => productBelongsToCategory(p, child.name));
                         if (childProducts.length === 0) return;
                         sectionsHtml += `
-                            <div class="subcategory-section" data-subcat-section="${child.name}" style="${idx > 0 ? 'border-top: 1px solid var(--border-color); margin-top: 18px; padding-top: 16px;' : 'margin-top: 6px;'}">
+                            <div class="subcategory-section" data-subcat-section="${child.name}" style="${(idx > 0 || directProducts.length > 0) ? 'border-top: 1px solid var(--border-color); margin-top: 18px; padding-top: 16px;' : 'margin-top: 6px;'}">
                                 <div class="subcategory-title">${child.icon || '📦'} ${child.name}</div>
                                 <div class="products-grid">${childProducts.map(p => createProductCardHtml(p)).join('')}</div>
                             </div>
                         `;
                     });
-
-                    // منتجات مربوطة بالفئة الرئيسية نفسها مباشرة بدون فئة فرعية محددة
-                    let directProducts = products.filter(p => productBelongsToCategory(p, currentCategory));
-                    if (directProducts.length > 0) {
-                        sectionsHtml += `
-                            <div class="subcategory-section" style="border-top: 1px solid var(--border-color); margin-top: 18px; padding-top: 16px;">
-                                <div class="subcategory-title">📦 منتجات أخرى</div>
-                                <div class="products-grid">${directProducts.map(p => createProductCardHtml(p)).join('')}</div>
-                            </div>
-                        `;
-                    }
 
                     container.innerHTML = sectionsHtml || `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد منتجات مطابقة</p>`;
                     return;
