@@ -3302,9 +3302,20 @@
     }
 
     // التراكم بيصير بس بين العروض يلي منتجاتها فعلياً موجودة بالسلة (مش كل العروض المفعّلة بلوحة التحكم بشكل عام) -
-    // عرض منتج مش موجود بالسلة أصلاً ما بياخد "حصة" ولا بيأثر على حساب عرض تاني. الترتيب بينهم هو ترتيبهم بلوحة التحكم
+    // عرض منتج مش موجود بالسلة أصلاً ما بياخد "حصة" ولا بيأثر على حساب عرض تاني.
+    // الترتيب بينهم هو ترتيب إضافتهم الفعلي للسلة (أول منتج ضافه الزبون بياخد الدور الأرخص) - مش ترتيبهم
+    // بلوحة التحكم، حتى ما يصير إنه إضافة منتج جديد "تلغي" خصم منتج تاني كان أصلاً مفعّل قبله بالسلة
     function getActiveSpendOffersInCartOrder() {
-        return (spendOffers || []).filter(o => o.active && o.productId && o.threshold && cart.some(c => c.id === o.productId));
+        let offersByProductId = new Map();
+        (spendOffers || []).forEach(o => {
+            if (o.active && o.productId && o.threshold) offersByProductId.set(o.productId, o);
+        });
+        let ordered = [];
+        cart.forEach(item => {
+            let offer = offersByProductId.get(item.id);
+            if (offer) ordered.push(offer);
+        });
+        return ordered;
     }
 
     // نفس الحقيقة اللي بالأعلى، بس تشمل حتى العروض يلي منتجاتها لسا مش بالسلة (تُستخدم بالشارات والبانر وتنبيه
