@@ -955,6 +955,22 @@
             <button class="btn-main" onclick="saveFreeDeliveryPromo()">حفظ إعدادات البانر 💾</button>
         </div>
     </div>
+
+    <!-- عروض "اشتري بقيمة معينة، خذ منتج بسعر مخفض" -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('spendOffersSectionContent', this)">
+            <span>🎯 عروض اشتري واحصل على خصم</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="spendOffersSectionContent">
+            <div style="font-size: 0.65rem; color: #6b7280; margin-bottom: 10px; line-height: 1.5;">
+                عروض بشكل "اشتري بقيمة كذا، وخذ منتج معين بسعر مخفض بدل سعره الأصلي" - بتظهر كبانر إعلاني بالصفحة الرئيسية للمتجر (بدون ربط فعلي بالسلة حالياً). تقدر تضيف أكتر من عرض بنفس الوقت.
+            </div>
+            <div id="spendOffersContainer"></div>
+            <button class="btn-main" style="background: #059669; margin-bottom: 8px;" onclick="addNewSpendOffer()">➕ إضافة عرض جديد</button>
+            <button class="btn-main" onclick="saveSpendOffers()">حفظ عروض الشراء 💾</button>
+        </div>
+    </div>
     </div>
 
     <div class="admin-tab-panel" id="tabPanel_staff">
@@ -1794,6 +1810,7 @@
             renderAdminCategoriesList();
             initBannerForm();
             loadFreeDeliveryPromo();
+            loadSpendOffers();
 
             offerGroups = [];
             if(offerGroupsSnap) {
@@ -3077,6 +3094,94 @@
             alert("تم حفظ إعدادات بانر التوصيل المجاني بنجاح! 🚚");
         } catch(e) {
             alert("خطأ في حفظ إعدادات البانر");
+        }
+    }
+
+    let spendOffers = [];
+
+    async function loadSpendOffers() {
+        try {
+            const snap = await window.getDoc(window.doc(window.db, "settings", "spendOffers"));
+            spendOffers = (snap.exists() && Array.isArray(snap.data().offers)) ? snap.data().offers : [];
+        } catch(e) {
+            spendOffers = [];
+            console.log("خطأ في جلب عروض الشراء:", e);
+        }
+        renderSpendOffersForm();
+    }
+
+    function renderSpendOffersForm() {
+        const container = document.getElementById('spendOffersContainer');
+        if (!container) return;
+        if (spendOffers.length === 0) {
+            container.innerHTML = `<div style="text-align:center; color:#9ca3af; font-size:0.72rem; font-weight:700; padding:10px;">ما في عروض مضافة حالياً</div>`;
+            return;
+        }
+        container.innerHTML = spendOffers.map((o, i) => `
+            <div style="border:1.5px solid #e5e7eb; border-radius:12px; padding:10px; margin-bottom:10px; position:relative;">
+                <button onclick="removeSpendOffer(${i})" style="position:absolute; top:8px; left:8px; background:#fee2e2; color:#dc2626; border:none; border-radius:8px; width:24px; height:24px; font-size:12px; cursor:pointer;">✕</button>
+                <label style="display:flex; align-items:center; gap:8px; font-size:0.74rem; font-weight:700; margin-bottom:8px; cursor:pointer;">
+                    <input type="checkbox" class="spendOfferActive" data-idx="${i}" ${o.active ? 'checked' : ''} style="width:16px; height:16px;"> تفعيل هذا العرض
+                </label>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <label style="display:block; font-size:0.66rem; font-weight:700; margin-bottom:3px;">اشتري بقيمة (₪)</label>
+                        <input type="number" class="spendOfferThreshold" data-idx="${i}" value="${o.threshold || ''}" style="width:100%; padding:7px 8px; border:1.5px solid #e5e7eb; border-radius:8px; font-size:0.74rem; font-weight:700; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.66rem; font-weight:700; margin-bottom:3px;">اسم المنتج</label>
+                        <input type="text" class="spendOfferProductName" data-idx="${i}" value="${o.productName || ''}" style="width:100%; padding:7px 8px; border:1.5px solid #e5e7eb; border-radius:8px; font-size:0.74rem; font-weight:700; box-sizing:border-box;">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <div>
+                        <label style="display:block; font-size:0.66rem; font-weight:700; margin-bottom:3px;">السعر المخفض (₪)</label>
+                        <input type="number" class="spendOfferDiscountedPrice" data-idx="${i}" value="${o.discountedPrice || ''}" style="width:100%; padding:7px 8px; border:1.5px solid #e5e7eb; border-radius:8px; font-size:0.74rem; font-weight:700; box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.66rem; font-weight:700; margin-bottom:3px;">السعر الأصلي (₪)</label>
+                        <input type="number" class="spendOfferOriginalPrice" data-idx="${i}" value="${o.originalPrice || ''}" style="width:100%; padding:7px 8px; border:1.5px solid #e5e7eb; border-radius:8px; font-size:0.74rem; font-weight:700; box-sizing:border-box;">
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function addNewSpendOffer() {
+        collectCurrentSpendOffersData();
+        spendOffers.push({ active: true, threshold: 100, productName: "", discountedPrice: "", originalPrice: "" });
+        renderSpendOffersForm();
+    }
+
+    function removeSpendOffer(index) {
+        collectCurrentSpendOffersData();
+        spendOffers.splice(index, 1);
+        renderSpendOffersForm();
+    }
+
+    function collectCurrentSpendOffersData() {
+        document.querySelectorAll('#spendOffersContainer .spendOfferThreshold').forEach(input => {
+            let i = Number(input.dataset.idx);
+            if (!spendOffers[i]) return;
+            spendOffers[i].threshold = Number(input.value) || 0;
+            let nameInput = document.querySelector(`#spendOffersContainer .spendOfferProductName[data-idx="${i}"]`);
+            let discInput = document.querySelector(`#spendOffersContainer .spendOfferDiscountedPrice[data-idx="${i}"]`);
+            let origInput = document.querySelector(`#spendOffersContainer .spendOfferOriginalPrice[data-idx="${i}"]`);
+            let activeInput = document.querySelector(`#spendOffersContainer .spendOfferActive[data-idx="${i}"]`);
+            spendOffers[i].productName = nameInput ? nameInput.value.trim() : spendOffers[i].productName;
+            spendOffers[i].discountedPrice = discInput ? (Number(discInput.value) || 0) : spendOffers[i].discountedPrice;
+            spendOffers[i].originalPrice = origInput ? (Number(origInput.value) || 0) : spendOffers[i].originalPrice;
+            spendOffers[i].active = activeInput ? activeInput.checked : spendOffers[i].active;
+        });
+    }
+
+    async function saveSpendOffers() {
+        collectCurrentSpendOffersData();
+        try {
+            await window.setDoc(window.doc(window.db, "settings", "spendOffers"), { offers: spendOffers });
+            alert("تم حفظ عروض الشراء بنجاح! 🎯");
+        } catch(e) {
+            alert("خطأ في حفظ عروض الشراء");
         }
     }
 
