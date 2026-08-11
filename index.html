@@ -2823,8 +2823,8 @@
             let achieved = adjustedSubtotal >= required;
             let gap = required - adjustedSubtotal;
             let statusLine = achieved
-                ? `<div class="spend-status-line spend-status-done">✅ مفعّل! خذه بالسعر المخفض</div>`
-                : `<div class="spend-status-line">أضف كمان ${gap.toFixed(2)}₪ عشان تفعّله</div>`;
+                ? `<div class="spend-status-line spend-status-done" onclick='goToProductFromSpendOffer("${prod.id}")' style="cursor:pointer;">🛒 اشتري الآن</div>`
+                : `<div class="spend-status-line">اشتري بـ${gap.toFixed(2)}₪ واحصل على ${prod.name}</div>`;
             let ctaText = achieved ? `🛒 شوف ${prod.name}` : `🎯 روح للمنتج (${gap.toFixed(2)}₪ متبقية)`;
 
             slidesHtml += `
@@ -2841,6 +2841,7 @@
                                 <img src="${optimizeImg(prod.img, 150) || 'logo.png'}" onerror="this.onerror=null; this.src='logo.png';">
                             </div>
                         </div>
+                        ${statusLine}
                         <div class="spend-card-name">${prod.name}</div>
                         <div class="spend-badges-row">
                             <div class="spend-price-ticket">
@@ -2848,7 +2849,6 @@
                                 <span class="spend-ticket-new">${o.discountedPrice}₪</span>
                             </div>
                         </div>
-                        ${statusLine}
                     </div>
                     <button class="spend-cta-btn" onclick='goToProductFromSpendOffer("${prod.id}")'>${ctaText}</button>
                 </div>
