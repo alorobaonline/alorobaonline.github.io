@@ -2281,6 +2281,17 @@
         triggerCategoryLoadingAndRender();
     }
 
+    // "كل الحزم" مش فئة حقيقية - بس وضع خاص بيعرض كل منتج مشارك بحزمة محددة حالياً
+    const ALL_BUNDLES_KEY = "__ALL_BUNDLES__";
+    function viewAllBundleProducts() {
+        currentCategory = ALL_BUNDLES_KEY;
+        currentSubCategory = "الكل";
+        document.getElementById('searchInput').value = '';
+        renderCategoriesScroll();
+        renderSubCategoriesScroll();
+        triggerCategoryLoadingAndRender();
+    }
+
     function triggerCategoryLoadingAndRender() {
         const container = document.getElementById('storeMainContent');
         document.getElementById('loadMoreIndicator').style.display = 'none';
@@ -2315,6 +2326,16 @@
             container.innerHTML = allOffers.length > 0
                 ? `<div class="products-grid" style="margin-top: 10px;">${allOffers.map(p => createProductCardHtml(p)).join('')}</div>`
                 : `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد عروض حالياً</p>`;
+            return;
+        }
+
+        // وضع "كل الحزم" - كل منتج مشارك بحزمة محددة بالاسم حالياً، بدون حد أقصى
+        if (currentCategory === ALL_BUNDLES_KEY) {
+            document.getElementById('loadMoreIndicator').style.display = 'none';
+            let allBundleProducts = products.filter(p => bundles.some(b => b.selectedItems && b.selectedItems.length > 0 && b.selectedItems.includes(p.name)));
+            container.innerHTML = allBundleProducts.length > 0
+                ? `<div class="products-grid" style="margin-top: 10px;">${allBundleProducts.map(p => createProductCardHtml(p)).join('')}</div>`
+                : `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد حزم حالياً</p>`;
             return;
         }
 
@@ -2430,6 +2451,30 @@
             }
             offersHtml += `</div></div>`;
             htmlParts.push(offersHtml);
+        }
+
+        // قسم "حزم" - يجمع تلقائيًا كل منتج مشارك بحزمة محددة بالاسم من لوحة التحكم، ويظهر مباشرة تحت قسم العروض
+        let bundleSectionProducts = products.filter(p => bundles.some(b => b.selectedItems && b.selectedItems.length > 0 && b.selectedItems.includes(p.name)));
+        if (bundleSectionProducts.length > 0) {
+            let bundlesRowHtml = `
+                <div class="horizontal-section">
+                    <div class="horizontal-section-title">
+                        <span class="section-category-title"><span>🎁</span> <span class="category-text-gradient">حزم</span></span>
+                    </div>
+                    <div class="products-horizontal-scroll">
+            `;
+            let shownBundleProds = bundleSectionProducts.slice(0, 12);
+            shownBundleProds.forEach(p => { bundlesRowHtml += createProductCardHtml(p, 'small'); });
+            if (bundleSectionProducts.length > shownBundleProds.length) {
+                bundlesRowHtml += `
+                    <div class="view-all-card" onclick="viewAllBundleProducts()">
+                        <div class="view-all-arrow">←</div>
+                        <div class="view-all-text">عرض كل الحزم<br>(${bundleSectionProducts.length})</div>
+                    </div>
+                `;
+            }
+            bundlesRowHtml += `</div></div>`;
+            htmlParts.push(bundlesRowHtml);
         }
 
         let sectionsList = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection].filter(Boolean);
