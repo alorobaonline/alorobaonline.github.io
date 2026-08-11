@@ -1175,10 +1175,23 @@
             let outB = isOutOfStockProduct(b) ? 1 : 0;
             if (outA !== outB) return outA - outB;
 
-            // المنتجات المشاركة بعرض حزمة (باقة) بتطلع أول شي بكل قسم/فئة تتواجد فيها
-            let bundleA = findBundleForProduct(a) ? 0 : 1;
-            let bundleB = findBundleForProduct(b) ? 0 : 1;
+            // المنتجات المشاركة بعرض حزمة محددة (باقة إلها منتجات مختارة بالاسم) بتطلع أول شي بكل قسم/فئة تتواجد فيها
+            // (متجاهلين حزم "كل المنتجات" اللي بتشمل الكل، عشان ما يصير تعادل بين كل المنتجات)
+            function isSpecificBundleProduct(p) {
+                if (!bundles || bundles.length === 0) return false;
+                return bundles.some(b => b.selectedItems && b.selectedItems.length > 0 && b.selectedItems.includes(p.name));
+            }
+            let bundleA = isSpecificBundleProduct(a) ? 0 : 1;
+            let bundleB = isSpecificBundleProduct(b) ? 0 : 1;
             if (bundleA !== bundleB) return bundleA - bundleB;
+
+            // بعد منتجات الحزم، منتجات العروض (سعر مخفض) بتطلع أول شي بكل قسم/فئة تتواجد فيها
+            function isOfferProduct(p) {
+                return p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
+            }
+            let offerA = isOfferProduct(a) ? 0 : 1;
+            let offerB = isOfferProduct(b) ? 0 : 1;
+            if (offerA !== offerB) return offerA - offerB;
 
             // المنتجات يلي إلها رقم ظهور محفوظ فعلياً بتطلع أول، مرتبة حسب الرقم تصاعدياً؛
             // يلي مالوش رقم ظهور خالص (undefined بقاعدة البيانات) بينزل بعدهم بآخر القائمة
