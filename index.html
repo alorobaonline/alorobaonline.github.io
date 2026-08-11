@@ -2687,7 +2687,7 @@
                     <div class="spend-offer-card">
                         <img class="spend-offer-img" src="${prod.img || 'https://i.ibb.co/3m1K2wP/basket.png'}" alt="${prod.name}">
                         <div class="spend-offer-text">
-                            اشتري بقيمة <b>${getSpendOfferCumulativeThreshold(o)}₪</b> وخذ ${prod.name}
+                            اشتري بقيمة <b>${o.threshold}₪</b> وخذ ${prod.name}
                             <div class="spend-offer-prices">
                                 <span class="spend-offer-new-price">${o.discountedPrice}₪</span>
                                 ${o.originalPrice ? `<span class="spend-offer-old-price">${o.originalPrice}₪</span>` : ''}
@@ -2976,21 +2976,10 @@
         return totalDiscount;
     }
 
-    // ترتيب عروض "اشتري بقيمة كذا" هو نفسه ترتيبها بلوحة التحكم: أول عرض بالقائمة يحتاج فقط قيمة "اشتري بقيمة"
-    // الخاصة فيه، وكل عرض بعده بيحتاج نفس القيمة تراكمياً فوق يلي قبله (يعني أول 100₪ بتفعّل العرض الأول،
-    // وبعدين لازم 100₪ تانية إضافية (المجموع صار 200₪) لتفعيل العرض الثاني، وهكذا).
+    // كل عرض "اشتري بقيمة كذا" مستقل تماماً عن باقي العروض - كل عرض بيتفعل بمجرد ما "باقي السلة"
+    // (بعد استثناء كل منتجات عروض الشراء) يوصل لقيمته هو بالضبط، بدون أي علاقة بترتيبه أو بالعروض التانية
     function getActiveSpendOffersInOrder() {
         return (spendOffers || []).filter(o => o.active && o.productId && o.threshold);
-    }
-
-    function getSpendOfferCumulativeThreshold(offer) {
-        let ordered = getActiveSpendOffersInOrder();
-        let cum = 0;
-        for (let i = 0; i < ordered.length; i++) {
-            cum += Number(ordered[i].threshold) || 0;
-            if (ordered[i] === offer) return cum;
-        }
-        return Number(offer.threshold) || 0;
     }
 
     // المجموع المعتمد لمقارنة أي حد "اشتري بقيمة كذا" - مجموع السلة بالأسعار العادية بعد استثناء منتجات
@@ -3009,7 +2998,7 @@
     // مجموع خصم عروض "اشتري بقيمة كذا، خذ هالمنتج بسعر مخفض" على كل السلة - قطعة وحدة بس بتاخد الخصم لكل منتج
     // (بنستثني أي منتج داخل بعرض حزمة أصلاً حتى ما يصير تكرار بالخصم لنفس المنتج، وبنستثني كل منتجات عروض
     // الشراء من حساب الحد الأدنى - الزبون لازم يشتري بقيمة الحد من منتجات عادية بالكامل، مش من منتجات العروض نفسها.
-    // والحد المطلوب لكل عرض تراكمي حسب ترتيبه - شوف getSpendOfferCumulativeThreshold فوق)
+    // كل عرض بيتفعل لحاله على قيمته هو بس - مش تراكمي مع العروض التانية)
     function computeSpendOffersDiscountTotal() {
         if (!spendOffers || spendOffers.length === 0) return 0;
         let adjustedSubtotal = getSpendOffersAdjustedSubtotal();
@@ -3019,8 +3008,7 @@
             if (p && findBundleForProduct(p)) return;
             let matchedOffer = spendOffers.find(o => o.active && o.productId === item.id && o.threshold);
             if (!matchedOffer) return;
-            let requiredThreshold = getSpendOfferCumulativeThreshold(matchedOffer);
-            if (adjustedSubtotal < requiredThreshold) return;
+            if (adjustedSubtotal < Number(matchedOffer.threshold)) return;
             totalDiscount += (item.price - Number(matchedOffer.discountedPrice));
         });
         return totalDiscount > 0 ? totalDiscount : 0;
@@ -3366,7 +3354,7 @@
 
         // شارة عرض "اشتري بقيمة كذا، خذ هالمنتج بسعر مخفض" - بتظهر وهو يتصفح المنتج قبل ما يوصل السلة للحد المطلوب أصلاً
         let matchedSpendOffer = !matchedBundle ? (spendOffers || []).find(o => o.active && o.productId === p.id && o.threshold) : null;
-        let spendOfferBadgeHtml = matchedSpendOffer ? `<span class="spend-offer-price-badge">🎯 اشتري بـ ${getSpendOfferCumulativeThreshold(matchedSpendOffer)}₪ وخذه بـ ${matchedSpendOffer.discountedPrice}₪</span>` : "";
+        let spendOfferBadgeHtml = matchedSpendOffer ? `<span class="spend-offer-price-badge">🎯 اشتري بـ ${matchedSpendOffer.threshold}₪ وخذه بـ ${matchedSpendOffer.discountedPrice}₪</span>` : "";
 
         let cartItem = cart.find(item => item.id == p.id);
         let qty = cartItem ? cartItem.quantity : 0;
@@ -3642,10 +3630,10 @@
 
         // عرض "اشتري بقيمة كذا، خذ هالمنتج بسعر مخفض" - قطعة وحدة بس من نفس المنتج بتاخد السعر المخفض، والباقي بالسعر العادي.
         // قيمة الـ 100₪ المطلوبة لازم تتحقق من منتجات عادية بالكامل، بعيدًا عن كل منتجات عروض الشراء (مش بس منتج
-        // هالعرض نفسه)، والحد تراكمي حسب ترتيب العرض بلوحة التحكم (شوف getSpendOfferCumulativeThreshold)
+        // هالعرض نفسه). كل عرض مستقل تماماً بقيمته هو - بدون أي علاقة بترتيبه أو بالعروض التانية
         let matchedSpendOffer = (spendOffers || []).find(o => o.active && o.productId === item.id && o.threshold);
         if (matchedSpendOffer) {
-            let requiredThreshold = getSpendOfferCumulativeThreshold(matchedSpendOffer);
+            let requiredThreshold = Number(matchedSpendOffer.threshold);
             if (getSpendOffersAdjustedSubtotal() >= requiredThreshold) {
                 let discountedQty = Math.min(1, item.quantity);
                 let remainderQty = item.quantity - discountedQty;
@@ -3734,23 +3722,31 @@
         let spendTotal = computeSpendOffersDiscountTotal();
         let totalSavings = bundleTotal + spendTotal;
 
-        // نبحث عن أقرب عرض شراء تراكمي لسا ما تحقق (بالترتيب) عشان نحفّز الزبون يكمل
+        // نبحث عن أقرب عرض شراء لسا ما تحقق (أصغر فرق ناقص) عشان نحفّز الزبون يكمل - كل عرض مستقل فبنقارن
+        // الكل ونعرض الأقرب للزبون، مش بس حسب ترتيبه بالقائمة
         let adjustedSubtotal = getSpendOffersAdjustedSubtotal();
         let nudgeHtml = '';
         let orderedOffers = getActiveSpendOffersInOrder();
-        for (let i = 0; i < orderedOffers.length; i++) {
-            let offer = orderedOffers[i];
-            let required = getSpendOfferCumulativeThreshold(offer);
-            if (adjustedSubtotal >= required) continue;
+        let closestUnmet = null;
+        let closestGap = Infinity;
+        orderedOffers.forEach(offer => {
+            let required = Number(offer.threshold);
+            if (adjustedSubtotal >= required) return;
             let gap = required - adjustedSubtotal;
-            let prod = products.find(p => p.id === offer.productId);
-            if (!prod) break;
-            let inCart = cart.some(c => c.id === offer.productId);
-            let actionText = inCart
-                ? `لسا ناقصك <b>${gap.toFixed(2)}₪</b> من منتجات عادية عشان يتفعل عرض ${prod.name} بسعر ${offer.discountedPrice}₪`
-                : `ضيف ${prod.name} لسلتك واشتري <b>${gap.toFixed(2)}₪</b> زيادة من منتجات عادية عشان تاخده بـ ${offer.discountedPrice}₪ بدل ${prod.price}₪`;
-            nudgeHtml = `<div style="background:#fff7ed; border:1.5px solid #fed7aa; border-radius:10px; padding:8px 10px; font-size:11.5px; font-weight:700; color:#9a3412; margin-top:6px;">🎯 ${actionText}</div>`;
-            break;
+            if (gap < closestGap) {
+                closestGap = gap;
+                closestUnmet = offer;
+            }
+        });
+        if (closestUnmet) {
+            let prod = products.find(p => p.id === closestUnmet.productId);
+            if (prod) {
+                let inCart = cart.some(c => c.id === closestUnmet.productId);
+                let actionText = inCart
+                    ? `لسا ناقصك <b>${closestGap.toFixed(2)}₪</b> من منتجات عادية عشان يتفعل عرض ${prod.name} بسعر ${closestUnmet.discountedPrice}₪`
+                    : `ضيف ${prod.name} لسلتك واشتري <b>${closestGap.toFixed(2)}₪</b> زيادة من منتجات عادية عشان تاخده بـ ${closestUnmet.discountedPrice}₪ بدل ${prod.price}₪`;
+                nudgeHtml = `<div style="background:#fff7ed; border:1.5px solid #fed7aa; border-radius:10px; padding:8px 10px; font-size:11.5px; font-weight:700; color:#9a3412; margin-top:6px;">🎯 ${actionText}</div>`;
+            }
         }
 
         let savingsSummaryHtml = totalSavings > 0
