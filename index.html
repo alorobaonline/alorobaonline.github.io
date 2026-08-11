@@ -2987,8 +2987,10 @@
             let required = getSpendOfferCumulativeThreshold(offer);
             let achieved = adjustedSubtotal >= required;
             let gap = required - adjustedSubtotal;
+            let prod = products.find(p => p.id === productId);
+            let originalPriceForBadge = offer.originalPrice || (prod && prod.price);
             badge.innerHTML = achieved
-                ? `✅ مفعّل! خذه بـ ${offer.discountedPrice}₪`
+                ? `✅ مفعّل <span style="text-decoration:line-through; opacity:0.75;">${originalPriceForBadge}₪</span> <b>${offer.discountedPrice}₪</b>`
                 : `🎯 أضف كمان ${gap.toFixed(2)}₪ وخذه بـ ${offer.discountedPrice}₪`;
         });
     }
@@ -3690,8 +3692,9 @@
             let adjustedSubtotal = getSpendOffersAdjustedSubtotal();
             let achieved = adjustedSubtotal >= required;
             let gap = required - adjustedSubtotal;
+            let originalPriceForBadge = matchedSpendOffer.originalPrice || p.price;
             let badgeLine = achieved
-                ? `✅ مفعّل! خذه بـ ${matchedSpendOffer.discountedPrice}₪`
+                ? `✅ مفعّل <span style="text-decoration:line-through; opacity:0.75;">${originalPriceForBadge}₪</span> <b>${matchedSpendOffer.discountedPrice}₪</b>`
                 : `🎯 أضف كمان ${gap.toFixed(2)}₪ وخذه بـ ${matchedSpendOffer.discountedPrice}₪`;
             spendOfferBadgeHtml = `<span class="spend-offer-price-badge" data-offer-product="${p.id}">${badgeLine}</span>`;
         }
