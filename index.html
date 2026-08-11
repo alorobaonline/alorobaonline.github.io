@@ -859,7 +859,7 @@
             <div style="font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 8px;">تأكد من المنتجات والكميات المطلوبة:</div>
             <div id="cartItemsWithImagesList" style="max-height: 260px; overflow-y: auto; margin-bottom: 12px;"></div>
             <div id="cartStep1BundleDiscountRow" style="display: none; justify-content: space-between; margin-bottom: 4px; font-size: 13px; font-weight: 800; color: #dc2626;">
-                <span>خصم عروض الحزمة 🎉:</span>
+                <span>خصم العروض 🎉:</span>
                 <span id="cartStep1BundleDiscountText">-0.00 ₪</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-weight: 900; font-size: 15px; color: var(--primary-green); border-top: 1px solid var(--border-color); padding-top: 8px;">
@@ -965,7 +965,7 @@
                     <span id="couponDiscountText">-0.00 ₪</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #ef4444; display: none;" id="bundleDiscountRow">
-                    <span>خصم عروض الحزمة 🎉:</span>
+                    <span>خصم العروض 🎉:</span>
                     <span id="bundleDiscountText">-0.00 ₪</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-weight: 900; border-top: 1px solid #e2e8f0; padding-top: 8px; color: var(--primary-green); font-size: 14.5px;">
@@ -2961,6 +2961,22 @@
         return totalDiscount;
     }
 
+    // مجموع خصم عروض "اشتري بقيمة كذا، خذ هالمنتج بسعر مخفض" على كل السلة - قطعة وحدة بس بتاخد الخصم لكل منتج
+    // (بنستثني أي منتج داخل بعرض حزمة أصلاً حتى ما يصير تكرار بالخصم لنفس المنتج)
+    function computeSpendOffersDiscountTotal() {
+        if (!spendOffers || spendOffers.length === 0) return 0;
+        let baseSubtotal = getCartBaseSubtotal();
+        let totalDiscount = 0;
+        cart.forEach(item => {
+            let p = products.find(pp => pp.id == item.id);
+            if (p && findBundleForProduct(p)) return;
+            let matchedOffer = spendOffers.find(o => o.active && o.productId === item.id && o.threshold);
+            if (!matchedOffer || baseSubtotal < Number(matchedOffer.threshold)) return;
+            totalDiscount += (item.price - Number(matchedOffer.discountedPrice));
+        });
+        return totalDiscount > 0 ? totalDiscount : 0;
+    }
+
     // ===================== حساب رسوم التوصيل حسب إعدادات لوحة التحكم =====================
     function populateDeliveryCitySelect() {
         ['customerCity', 'userProfileCity'].forEach(selectId => fillCitySelectOptions(selectId));
@@ -3539,33 +3555,55 @@
         return { qtyNeeded, bundlePrice, sets, perProduct };
     }
 
+    // مجموع السلة بالأسعار العادية (قبل أي خصم عروض) - نستخدمه كأساس لمقارنة حد "اشتري بقيمة كذا"
+    // حتى ما يصير تعاقب دائري (خصم يفعّل خصم يفعّل خصم...)
+    function getCartBaseSubtotal() {
+        return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    }
+
     function getEffectiveLineInfo(item) {
         let p = products.find(pp => pp.id == item.id);
         if (!p) return { unitPrice: item.price, lineTotal: item.price * item.quantity, hasBundle: false };
 
         let matchedBundle = findBundleForProduct(p);
-        if (!matchedBundle) return { unitPrice: item.price, lineTotal: item.price * item.quantity, hasBundle: false };
+        if (matchedBundle) {
+            let allocation = computeBundleUnitAllocation(matchedBundle);
+            let alloc = allocation.perProduct[item.id];
+            if (alloc && alloc.discountedQty > 0) {
+                // سعر الحبة الواحدة ضمن العرض (مثال: 99.9 ₪ ÷ 3 = 33.3 ₪ للحبة)
+                let perUnitDiscountedPrice = allocation.bundlePrice / allocation.qtyNeeded;
+                let discountedQty = Math.min(alloc.discountedQty, item.quantity);
+                let remainderQty = item.quantity - discountedQty;
+                let lineTotal = (discountedQty * perUnitDiscountedPrice) + (remainderQty * item.price);
+                let blendedUnitPrice = lineTotal / item.quantity;
 
-        let allocation = computeBundleUnitAllocation(matchedBundle);
-        let alloc = allocation.perProduct[item.id];
-        if (!alloc || alloc.discountedQty === 0) {
-            // ما فيه أي حبة من هذا المنتج دخلت ضمن مجموعة مكتملة للعرض - يبقى بالسعر العادي
-            return { unitPrice: item.price, lineTotal: item.price * item.quantity, hasBundle: false };
+                return {
+                    unitPrice: blendedUnitPrice,
+                    lineTotal: lineTotal,
+                    hasBundle: true,
+                    bundleName: matchedBundle.name
+                };
+            }
         }
 
-        // سعر الحبة الواحدة ضمن العرض (مثال: 99.9 ₪ ÷ 3 = 33.3 ₪ للحبة)
-        let perUnitDiscountedPrice = allocation.bundlePrice / allocation.qtyNeeded;
-        let discountedQty = Math.min(alloc.discountedQty, item.quantity);
-        let remainderQty = item.quantity - discountedQty;
-        let lineTotal = (discountedQty * perUnitDiscountedPrice) + (remainderQty * item.price);
-        let blendedUnitPrice = lineTotal / item.quantity;
+        // عرض "اشتري بقيمة كذا، خذ هالمنتج بسعر مخفض" - قطعة وحدة بس من نفس المنتج بتاخد السعر المخفض، والباقي بالسعر العادي
+        let matchedSpendOffer = (spendOffers || []).find(o => o.active && o.productId === item.id && o.threshold);
+        if (matchedSpendOffer && getCartBaseSubtotal() >= Number(matchedSpendOffer.threshold)) {
+            let discountedQty = Math.min(1, item.quantity);
+            let remainderQty = item.quantity - discountedQty;
+            let lineTotal = (discountedQty * Number(matchedSpendOffer.discountedPrice)) + (remainderQty * item.price);
+            let blendedUnitPrice = lineTotal / item.quantity;
 
-        return {
-            unitPrice: blendedUnitPrice,
-            lineTotal: lineTotal,
-            hasBundle: true,
-            bundleName: matchedBundle.name
-        };
+            return {
+                unitPrice: blendedUnitPrice,
+                lineTotal: lineTotal,
+                hasBundle: false,
+                hasSpendOffer: true,
+                spendOfferThreshold: matchedSpendOffer.threshold
+            };
+        }
+
+        return { unitPrice: item.price, lineTotal: item.price * item.quantity, hasBundle: false };
     }
 
     function renderCartModalProducts() {
@@ -3580,16 +3618,16 @@
             let itemTotal = info.lineTotal;
             let normalLineTotal = item.price * item.quantity;
             grandTotal += itemTotal;
-            if (info.hasBundle) grandBundleDiscount += (normalLineTotal - itemTotal);
+            if (info.hasBundle || info.hasSpendOffer) grandBundleDiscount += (normalLineTotal - itemTotal);
 
             let subDetails = item.isBundle && item.items ? `<div style="color: #64748b; font-size: 10.5px; margin-top:2px;">المكونات: ${item.items.map(i => i.name).join('، ')}</div>` : '';
-            let bundleTag = info.hasBundle ? `<div style="color: #dc2626; font-size: 10.5px; font-weight: 800; margin-top: 2px;">🎉 ضمن عرض حزمة: ${info.bundleName}</div>` : '';
+            let bundleTag = info.hasBundle ? `<div style="color: #dc2626; font-size: 10.5px; font-weight: 800; margin-top: 2px;">🎉 ضمن عرض حزمة: ${info.bundleName}</div>` : (info.hasSpendOffer ? `<div style="color: #dc2626; font-size: 10.5px; font-weight: 800; margin-top: 2px;">🎯 ضمن عرض: اشتري بـ ${info.spendOfferThreshold}₪</div>` : '');
 
             let originalProduct = products.find(pp => pp.id == item.id);
             let hasSaleOriginal = originalProduct && originalProduct.price !== undefined && originalProduct.price !== null && Number(originalProduct.price) !== Number(item.price);
 
             let unitPriceDisplay;
-            if (info.hasBundle) {
+            if (info.hasBundle || info.hasSpendOffer) {
                 unitPriceDisplay = `<span style="text-decoration: line-through; color: #94a3b8;">${item.price.toFixed(2)} ₪</span> <span style="color: #dc2626; font-weight: 800;">${info.unitPrice.toFixed(2)} ₪</span>`;
             } else if (hasSaleOriginal) {
                 unitPriceDisplay = `<span style="text-decoration: line-through; color: #94a3b8;">${Number(originalProduct.price).toFixed(2)} ₪</span> <span style="color: #dc2626; font-weight: 800;">${item.price.toFixed(2)} ₪</span>`;
@@ -3728,7 +3766,7 @@
             const c = snap.data();
             let subtotal = 0;
             cart.forEach(i => subtotal += (i.price * i.quantity));
-            let orderValueForCoupon = subtotal - computeBundleDiscountTotal();
+            let orderValueForCoupon = subtotal - computeBundleDiscountTotal() - computeSpendOffersDiscountTotal();
 
             const minOrderValue = (c.minOrderValue !== undefined && c.minOrderValue !== null && c.minOrderValue !== "") ? Number(c.minOrderValue) : 0;
             if (minOrderValue > 0 && orderValueForCoupon < minOrderValue) {
@@ -3790,7 +3828,7 @@
         let subtotal = 0;
         cart.forEach(i => subtotal += (i.price * i.quantity));
 
-        let bundleDiscount = computeBundleDiscountTotal();
+        let bundleDiscount = computeBundleDiscountTotal() + computeSpendOffersDiscountTotal();
         let bundleDiscountRow = document.getElementById('bundleDiscountRow');
         let bundleDiscountText = document.getElementById('bundleDiscountText');
         if (bundleDiscount > 0) {
