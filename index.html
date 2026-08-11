@@ -74,15 +74,15 @@
         .free-delivery-timer .fd-label { color: #b91c1c; font-size: 8.5px; font-weight: 700; margin-top: 2px; }
 
         /* شريط عروض "اشتري بقيمة معينة، خذ منتج بسعر مخفض" */
-        .spend-offers-strip { display: flex; gap: 10px; overflow-x: auto; padding: 4px 15px 8px; margin: 8px 0; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
+        .spend-offers-strip { display: flex; gap: 8px; overflow-x: auto; padding: 4px 12px 8px; margin: 8px 0; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
         .spend-offers-strip::-webkit-scrollbar { display: none; }
-        .spend-offer-card { flex-shrink: 0; scroll-snap-align: start; width: 240px; background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border: 1.5px solid #fed7aa; border-radius: 16px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
-        .spend-offer-img { width: 52px; height: 52px; border-radius: 12px; object-fit: cover; flex-shrink: 0; background: #fff; border: 1.5px solid #fed7aa; }
-        .spend-offer-text { font-size: 11.5px; font-weight: 700; color: #7c2d12; line-height: 1.5; }
+        .spend-offer-card { flex-shrink: 0; scroll-snap-align: start; width: calc((100% - 24px) / 3); background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border: 1.5px solid #fed7aa; border-radius: 14px; padding: 8px 6px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; }
+        .spend-offer-img { width: 46px; height: 46px; border-radius: 10px; object-fit: cover; flex-shrink: 0; background: #fff; border: 1.5px solid #fed7aa; }
+        .spend-offer-text { font-size: 9.5px; font-weight: 700; color: #7c2d12; line-height: 1.4; }
         .spend-offer-text b { color: #ea580c; font-weight: 900; }
-        .spend-offer-prices { display: inline-flex; align-items: baseline; gap: 5px; margin-top: 3px; }
-        .spend-offer-new-price { color: #16a34a; font-weight: 900; font-size: 13px; }
-        .spend-offer-old-price { color: #9ca3af; font-weight: 700; font-size: 10.5px; text-decoration: line-through; }
+        .spend-offer-prices { display: flex; align-items: baseline; justify-content: center; gap: 4px; margin-top: 2px; }
+        .spend-offer-new-price { color: #16a34a; font-weight: 900; font-size: 11.5px; }
+        .spend-offer-old-price { color: #9ca3af; font-weight: 700; font-size: 9.5px; text-decoration: line-through; }
         .store-title { font-size: 19px; font-weight: 900; letter-spacing: -0.2px; }
         .header-actions { display: flex; gap: 6px; align-items: center; }
         .admin-link { background: rgba(255,255,255,0.18); backdrop-filter: blur(4px); color: white; padding: 6px 11px; border-radius: 10px; text-decoration: none; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); transition: background .2s ease, transform .15s ease; white-space: nowrap; }
@@ -3734,19 +3734,6 @@
         let spendTotal = computeSpendOffersDiscountTotal();
         let totalSavings = bundleTotal + spendTotal;
 
-        let appliedList = [];
-        cart.forEach(item => {
-            let info = getEffectiveLineInfo(item);
-            let normalLineTotal = item.price * item.quantity;
-            let saved = normalLineTotal - info.lineTotal;
-            if (saved <= 0) return;
-            if (info.hasBundle) {
-                appliedList.push({ label: `عرض حزمة: ${info.bundleName}`, saved });
-            } else if (info.hasSpendOffer) {
-                appliedList.push({ label: `عرض شراء: ${item.name}`, saved });
-            }
-        });
-
         // نبحث عن أقرب عرض شراء تراكمي لسا ما تحقق (بالترتيب) عشان نحفّز الزبون يكمل
         let adjustedSubtotal = getSpendOffersAdjustedSubtotal();
         let nudgeHtml = '';
@@ -3766,24 +3753,11 @@
             break;
         }
 
-        let breakdownHtml = '';
-        if (bundleTotal > 0 || spendTotal > 0) {
-            let parts = [];
-            if (bundleTotal > 0) parts.push(`من عروض الحزمة: ${bundleTotal.toFixed(2)}₪`);
-            if (spendTotal > 0) parts.push(`من عروض الشراء: ${spendTotal.toFixed(2)}₪`);
-            breakdownHtml = `<div style="font-size:10.5px; color:#94a3b8; font-weight:700; margin-bottom:6px;">${parts.join(' | ')}</div>`;
-        }
-
-        let appliedListHtml = '';
-        if (appliedList.length > 0) {
-            appliedListHtml = `<div style="margin-bottom:6px;">${appliedList.map(a => `<div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:#16a34a; padding:2px 0;"><span>✅ ${a.label}</span><span>وفرت ${a.saved.toFixed(2)}₪</span></div>`).join('')}</div>`;
-        }
-
         let savingsSummaryHtml = totalSavings > 0
             ? `<div style="background:#f0fdf4; border:1.5px solid #bbf7d0; border-radius:10px; padding:7px 10px; font-size:12px; font-weight:800; color:#16a34a; text-align:center;">🎉 وفرت ${totalSavings.toFixed(2)}₪ باستخدام العروض الحالية</div>`
             : '';
 
-        let finalHtml = breakdownHtml + appliedListHtml + savingsSummaryHtml + nudgeHtml;
+        let finalHtml = savingsSummaryHtml + nudgeHtml;
         if (finalHtml.trim() === '') {
             box.style.display = 'none';
             box.innerHTML = '';
