@@ -505,6 +505,7 @@
         .bundle-stepper-btn:active { transform: scale(0.88); }
         .bundle-item-qty { min-width: 22px; text-align: center; font-weight: 800; font-size: 13.5px; font-family: 'Poppins', 'Cairo', sans-serif; }
         .bundle-price-badge { display: inline-block; background: linear-gradient(135deg, var(--price-red) 0%, #b91c1c 100%); color: white; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 7px; margin-top: 5px; cursor: pointer; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3); }
+        .spend-offer-price-badge { display: inline-block; background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); color: white; font-size: 10.5px; font-weight: 800; padding: 3px 10px; border-radius: 7px; margin-top: 5px; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.3); }
 
         /* شريط السلة السفلي */
         .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; padding: 15px 20px; display: none; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 18px; border-top-right-radius: 18px; z-index: 100; cursor: pointer; box-shadow: 0 -4px 16px rgba(0,0,0,0.12); }
@@ -1207,7 +1208,16 @@
             let outB = isOutOfStockProduct(b) ? 1 : 0;
             if (outA !== outB) return outA - outB;
 
-            // المنتجات المشاركة بعرض حزمة محددة (باقة إلها منتجات مختارة بالاسم) بتطلع أول شي بكل قسم/فئة تتواجد فيها
+            // منتجات عروض "اشتري بقيمة كذا، خذ هالمنتج بسعر مخفض" بتطلع أول شي بكل قسم/فئة تتواجد فيها
+            function isSpendOfferProduct(p) {
+                if (!spendOffers || spendOffers.length === 0) return false;
+                return spendOffers.some(o => o.active && o.productId === p.id && o.threshold);
+            }
+            let spendA = isSpendOfferProduct(a) ? 0 : 1;
+            let spendB = isSpendOfferProduct(b) ? 0 : 1;
+            if (spendA !== spendB) return spendA - spendB;
+
+            // بعدها المنتجات المشاركة بعرض حزمة محددة (باقة إلها منتجات مختارة بالاسم)
             // (متجاهلين حزم "كل المنتجات" اللي بتشمل الكل، عشان ما يصير تعادل بين كل المنتجات)
             function isSpecificBundleProduct(p) {
                 if (!bundles || bundles.length === 0) return false;
@@ -1217,7 +1227,7 @@
             let bundleB = isSpecificBundleProduct(b) ? 0 : 1;
             if (bundleA !== bundleB) return bundleA - bundleB;
 
-            // بعد منتجات الحزم، منتجات العروض (سعر مخفض) بتطلع أول شي بكل قسم/فئة تتواجد فيها
+            // بعد هيك، منتجات العروض (سعر مخفض) بتطلع أول شي بكل قسم/فئة تتواجد فيها
             function isOfferProduct(p) {
                 return p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
             }
@@ -1586,6 +1596,10 @@
         window.onSnapshot(window.doc(window.db, "settings", "spendOffers"), (docSnap) => {
             spendOffers = (docSnap.exists() && Array.isArray(docSnap.data().offers)) ? docSnap.data().offers : [];
             renderSpendOffersBanner();
+            if (products.length > 0) {
+                sortProducts();
+                renderMainStoreContent();
+            }
         });
 
         window.onSnapshot(window.collection(window.db, "offerGroups"), (groupSnap) => {
@@ -2962,7 +2976,8 @@
     }
 
     // مجموع خصم عروض "اشتري بقيمة كذا، خذ هالمنتج بسعر مخفض" على كل السلة - قطعة وحدة بس بتاخد الخصم لكل منتج
-    // (بنستثني أي منتج داخل بعرض حزمة أصلاً حتى ما يصير تكرار بالخصم لنفس المنتج)
+    // (بنستثني أي منتج داخل بعرض حزمة أصلاً حتى ما يصير تكرار بالخصم لنفس المنتج، وبنستثني قيمة القطعة المخفضة
+    // نفسها من حساب الحد الأدنى - الزبون لازم يشتري بقيمة الحد من منتجات تانية، مش إن المنتج نفسه يحسب ضمنها)
     function computeSpendOffersDiscountTotal() {
         if (!spendOffers || spendOffers.length === 0) return 0;
         let baseSubtotal = getCartBaseSubtotal();
@@ -2971,7 +2986,9 @@
             let p = products.find(pp => pp.id == item.id);
             if (p && findBundleForProduct(p)) return;
             let matchedOffer = spendOffers.find(o => o.active && o.productId === item.id && o.threshold);
-            if (!matchedOffer || baseSubtotal < Number(matchedOffer.threshold)) return;
+            if (!matchedOffer) return;
+            let subtotalExcludingThisOffer = baseSubtotal - item.price;
+            if (subtotalExcludingThisOffer < Number(matchedOffer.threshold)) return;
             totalDiscount += (item.price - Number(matchedOffer.discountedPrice));
         });
         return totalDiscount > 0 ? totalDiscount : 0;
@@ -3315,6 +3332,10 @@
             bundleBadgeHtml = `<span class="bundle-price-badge" onclick='openBundleModal("${matchedBundle.id}")'>${bQty} بـ ${bPrice.toFixed(2)} ₪</span>`;
         }
 
+        // شارة عرض "اشتري بقيمة كذا، خذ هالمنتج بسعر مخفض" - بتظهر وهو يتصفح المنتج قبل ما يوصل السلة للحد المطلوب أصلاً
+        let matchedSpendOffer = !matchedBundle ? (spendOffers || []).find(o => o.active && o.productId === p.id && o.threshold) : null;
+        let spendOfferBadgeHtml = matchedSpendOffer ? `<span class="spend-offer-price-badge">🎯 اشتري بـ ${matchedSpendOffer.threshold}₪ وخذه بـ ${matchedSpendOffer.discountedPrice}₪</span>` : "";
+
         let cartItem = cart.find(item => item.id == p.id);
         let qty = cartItem ? cartItem.quantity : 0;
         let hasQty = qty > 0;
@@ -3340,7 +3361,7 @@
                     <div class="product-price-top" style="${hasQty ? 'display: flex; flex-wrap: wrap;' : 'display: none;'}">
                         <span class="${priceClass}">${priceDisplay}</span>
                         ${oldPriceDisplay}
-                        ${hasQty ? `<div style="width: 100%;">${bundleBadgeHtml}</div>` : ''}
+                        ${hasQty ? `<div style="width: 100%;">${bundleBadgeHtml}${spendOfferBadgeHtml}</div>` : ''}
                     </div>
                 </div>
                 <div>
@@ -3353,6 +3374,7 @@
                             ${addBtnHtml}
                         </div>
                         ${bundleBadgeHtml}
+                        ${spendOfferBadgeHtml}
                     </div>
                     <div class="quantity-control-full" style="${hasQty ? 'display: flex;' : 'display: none;'}">
                         <button class="qty-btn" onclick='decreaseCartQty("${p.id}")'>-</button>
@@ -3586,21 +3608,26 @@
             }
         }
 
-        // عرض "اشتري بقيمة كذا، خذ هالمنتج بسعر مخفض" - قطعة وحدة بس من نفس المنتج بتاخد السعر المخفض، والباقي بالسعر العادي
+        // عرض "اشتري بقيمة كذا، خذ هالمنتج بسعر مخفض" - قطعة وحدة بس من نفس المنتج بتاخد السعر المخفض، والباقي بالسعر العادي.
+        // قيمة الـ 100₪ المطلوبة لازم تتحقق من باقي مشتريات السلة بدون احتساب قيمة القطعة المخفضة نفسها
+        // (يعني الزبون يشتري بقيمة 100₪ منتجات تانية، وبعدين ينضاف له سعر العرض فوق هيك - مش إن الـ100 تشمل المنتج نفسه)
         let matchedSpendOffer = (spendOffers || []).find(o => o.active && o.productId === item.id && o.threshold);
-        if (matchedSpendOffer && getCartBaseSubtotal() >= Number(matchedSpendOffer.threshold)) {
-            let discountedQty = Math.min(1, item.quantity);
-            let remainderQty = item.quantity - discountedQty;
-            let lineTotal = (discountedQty * Number(matchedSpendOffer.discountedPrice)) + (remainderQty * item.price);
-            let blendedUnitPrice = lineTotal / item.quantity;
+        if (matchedSpendOffer) {
+            let subtotalExcludingThisOffer = getCartBaseSubtotal() - item.price;
+            if (subtotalExcludingThisOffer >= Number(matchedSpendOffer.threshold)) {
+                let discountedQty = Math.min(1, item.quantity);
+                let remainderQty = item.quantity - discountedQty;
+                let lineTotal = (discountedQty * Number(matchedSpendOffer.discountedPrice)) + (remainderQty * item.price);
+                let blendedUnitPrice = lineTotal / item.quantity;
 
-            return {
-                unitPrice: blendedUnitPrice,
-                lineTotal: lineTotal,
-                hasBundle: false,
-                hasSpendOffer: true,
-                spendOfferThreshold: matchedSpendOffer.threshold
-            };
+                return {
+                    unitPrice: blendedUnitPrice,
+                    lineTotal: lineTotal,
+                    hasBundle: false,
+                    hasSpendOffer: true,
+                    spendOfferThreshold: matchedSpendOffer.threshold
+                };
+            }
         }
 
         return { unitPrice: item.price, lineTotal: item.price * item.quantity, hasBundle: false };
