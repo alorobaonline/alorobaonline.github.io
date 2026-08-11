@@ -2146,6 +2146,13 @@
 
         container.style.display = 'flex';
         let html = '';
+        let parentCatObj = categories.find(c => c.name === currentCategory);
+        let parentActiveClass = currentSubCategory === "الكل" ? 'active' : '';
+        html += `
+            <div class="cat-chip ${parentActiveClass}" data-subcat="الكل" onclick="selectSubCategory('الكل')">
+                <span>${(parentCatObj && parentCatObj.icon) || '🗂️'}</span> ${currentCategory}
+            </div>
+        `;
         children.forEach(child => {
             let activeClass = currentSubCategory === child.name ? 'active' : '';
             html += `
