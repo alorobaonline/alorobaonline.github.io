@@ -1113,6 +1113,7 @@
     let currentBundle = null;
     let bundleBannerInterval = null;
     let currentBundleIndex = 0;
+    let visibleBundlesCount = 0;
 
     let splashTimeout = setTimeout(() => {
         hideSplashScreen();
@@ -2466,7 +2467,9 @@
             bundleBannerInterval = null;
         }
 
-        if (!bundles || bundles.length === 0) {
+        let visibleBundles = (bundles || []).filter(b => b.hiddenFromCarousel !== true);
+
+        if (!visibleBundles || visibleBundles.length === 0) {
             container.innerHTML = '';
             return;
         }
@@ -2474,7 +2477,7 @@
         let slidesHtml = '';
         let dotsHtml = '';
 
-        bundles.forEach((b, index) => {
+        visibleBundles.forEach((b, index) => {
             let price = parseBundlePrice(b);
             let qty = Number(b.qty) || 4;
 
@@ -2508,7 +2511,8 @@
             dotsHtml += `<div class="bundle-dot ${index === 0 ? 'active' : ''}" onclick="goToBundleSlide(${index})"></div>`;
         });
 
-        let swipeHintHtml = bundles.length > 1 ? `<div class="bundle-swipe-hint">👉 اسحب لعرض عروض أكتر</div>` : '';
+        visibleBundlesCount = visibleBundles.length;
+        let swipeHintHtml = visibleBundles.length > 1 ? `<div class="bundle-swipe-hint">👉 اسحب لعرض عروض أكتر</div>` : '';
 
         container.innerHTML = `
             <div class="horizontal-section">
@@ -2557,20 +2561,20 @@
         let threshold = 40;
         if (touchEndX < touchStartX - threshold) {
             // سحب لليسار -> الانتقال للبانر التالي
-            currentBundleIndex = (currentBundleIndex + 1) % bundles.length;
+            currentBundleIndex = (currentBundleIndex + 1) % visibleBundlesCount;
             updateBundleBannerPosition();
         } else if (touchEndX > touchStartX + threshold) {
             // سحب لليمين -> الانتقال للبانر السابق
-            currentBundleIndex = (currentBundleIndex - 1 + bundles.length) % bundles.length;
+            currentBundleIndex = (currentBundleIndex - 1 + visibleBundlesCount) % visibleBundlesCount;
             updateBundleBannerPosition();
         }
     }
 
     function startBundleTimer() {
-        if (bundles.length > 1) {
+        if (visibleBundlesCount > 1) {
             if (bundleBannerInterval) clearInterval(bundleBannerInterval);
             bundleBannerInterval = setInterval(() => {
-                currentBundleIndex = (currentBundleIndex + 1) % bundles.length;
+                currentBundleIndex = (currentBundleIndex + 1) % visibleBundlesCount;
                 updateBundleBannerPosition();
             }, 4500);
         }

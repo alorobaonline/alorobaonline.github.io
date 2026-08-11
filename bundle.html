@@ -447,6 +447,9 @@
                     </div>
 
                     <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <button onclick="toggleCarouselVisibility('${docId}', ${bundle.hiddenFromCarousel !== true})" class="icon-btn w-9 h-9 flex items-center justify-center ${bundle.hiddenFromCarousel === true ? 'bg-gray-100 text-gray-400' : 'bg-amber-50 text-amber-600'} rounded-xl hover:bg-amber-100 cursor-pointer" title="${bundle.hiddenFromCarousel === true ? 'مخفي عن شريط عروض الحزمة - اضغط للإظهار' : 'ظاهر بشريط عروض الحزمة - اضغط للإخفاء'}">
+                            <i class="fa-solid ${bundle.hiddenFromCarousel === true ? 'fa-eye-slash' : 'fa-eye'} text-xs"></i>
+                        </button>
                         <button onclick="openEditModal('${docId}')" class="icon-btn w-9 h-9 flex items-center justify-center bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 cursor-pointer" title="تعديل">
                             <i class="fa-solid fa-pen text-xs"></i>
                         </button>
@@ -479,6 +482,17 @@
             try {
                 await updateDoc(doc(db, "bundles", docId), { active: newState });
                 showToast(newState ? 'تم تفعيل العرض ✅' : 'تم تعطيل العرض');
+                loadBundles();
+            } catch (error) {
+                console.error("خطأ في التحديث:", error);
+                showToast('حدث خطأ أثناء تحديث الحالة', 'error');
+            }
+        };
+
+        window.toggleCarouselVisibility = async function(docId, newHiddenState) {
+            try {
+                await updateDoc(doc(db, "bundles", docId), { hiddenFromCarousel: newHiddenState });
+                showToast(newHiddenState ? 'تم إخفاء العرض عن الشريط (بيضل ظاهر بفئاته)' : 'تم إظهار العرض بالشريط');
                 loadBundles();
             } catch (error) {
                 console.error("خطأ في التحديث:", error);
