@@ -932,6 +932,29 @@
             <button class="btn-main" onclick="saveBannerSettings()">حفظ وتحديث شرائح البانر ✨</button>
         </div>
     </div>
+
+    <!-- بانر عرض التوصيل المجاني المؤقت مع عداد تنازلي -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('freeDeliveryPromoSectionContent', this)">
+            <span>🚚 بانر عرض التوصيل المجاني (عداد تنازلي)</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="freeDeliveryPromoSectionContent">
+            <div style="font-size: 0.65rem; color: #6b7280; margin-bottom: 10px; line-height: 1.5;">
+                لما تفعّله، بيظهر بانر أخضر فوق الصفحة الرئيسية بعداد تنازلي حتى الوقت اللي تحدده. البانر بيختفي أوتوماتيك لما ينتهي الوقت أو لو فكيت التفعيل.
+            </div>
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.78rem; font-weight:700; margin-bottom:12px; cursor:pointer;">
+                <input type="checkbox" id="fdPromoActive" style="width:18px; height:18px;"> تفعيل البانر
+            </label>
+            <label style="display:block; font-size:0.72rem; font-weight:700; margin-bottom:4px;">عنوان البانر</label>
+            <input type="text" id="fdPromoTitle" placeholder="🚚 توصيل مجاني لفترة محدودة!" style="width:100%; padding:9px 10px; border:1.5px solid #e5e7eb; border-radius:10px; font-size:0.78rem; font-weight:700; margin-bottom:10px; box-sizing:border-box;">
+            <label style="display:block; font-size:0.72rem; font-weight:700; margin-bottom:4px;">نص فرعي (اختياري)</label>
+            <input type="text" id="fdPromoSubtitle" placeholder="استعجل قبل ما ينتهي الوقت" style="width:100%; padding:9px 10px; border:1.5px solid #e5e7eb; border-radius:10px; font-size:0.78rem; font-weight:700; margin-bottom:10px; box-sizing:border-box;">
+            <label style="display:block; font-size:0.72rem; font-weight:700; margin-bottom:4px;">تاريخ ووقت انتهاء العرض</label>
+            <input type="datetime-local" id="fdPromoEndDateTime" style="width:100%; padding:9px 10px; border:1.5px solid #e5e7eb; border-radius:10px; font-size:0.78rem; font-weight:700; margin-bottom:12px; box-sizing:border-box;">
+            <button class="btn-main" onclick="saveFreeDeliveryPromo()">حفظ إعدادات البانر 💾</button>
+        </div>
+    </div>
     </div>
 
     <div class="admin-tab-panel" id="tabPanel_staff">
@@ -1770,6 +1793,7 @@
             renderNewProdCategoriesCheckboxes();
             renderAdminCategoriesList();
             initBannerForm();
+            loadFreeDeliveryPromo();
 
             offerGroups = [];
             if(offerGroupsSnap) {
@@ -3017,6 +3041,42 @@
             alert("تم حفظ شرائح البانر في السحابة بنجاح! ✨");
         } catch(e) {
             alert("خطأ في حفظ البانر");
+        }
+    }
+
+    async function loadFreeDeliveryPromo() {
+        try {
+            const snap = await window.getDoc(window.doc(window.db, "settings", "freeDeliveryPromo"));
+            if (snap.exists()) {
+                let data = snap.data();
+                document.getElementById('fdPromoActive').checked = !!data.active;
+                document.getElementById('fdPromoTitle').value = data.title || '';
+                document.getElementById('fdPromoSubtitle').value = data.subtitle || '';
+                document.getElementById('fdPromoEndDateTime').value = data.endDateTime || '';
+            }
+        } catch(e) {
+            console.log("خطأ في جلب إعدادات بانر التوصيل المجاني:", e);
+        }
+    }
+
+    async function saveFreeDeliveryPromo() {
+        let active = document.getElementById('fdPromoActive').checked;
+        let title = document.getElementById('fdPromoTitle').value.trim();
+        let subtitle = document.getElementById('fdPromoSubtitle').value.trim();
+        let endDateTime = document.getElementById('fdPromoEndDateTime').value;
+
+        if (active && !endDateTime) {
+            alert("لازم تحدد تاريخ ووقت انتهاء العرض قبل ما تفعّل البانر");
+            return;
+        }
+
+        try {
+            await window.setDoc(window.doc(window.db, "settings", "freeDeliveryPromo"), {
+                active, title, subtitle, endDateTime
+            });
+            alert("تم حفظ إعدادات بانر التوصيل المجاني بنجاح! 🚚");
+        } catch(e) {
+            alert("خطأ في حفظ إعدادات البانر");
         }
     }
 

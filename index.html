@@ -62,6 +62,16 @@
         .store-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; position: relative; box-shadow: 0 0 24px rgba(0,0,0,0.04); container-type: inline-size; container-name: store; }
         
         .store-header { background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: 22px; border-bottom-right-radius: 22px; box-shadow: 0 4px 16px rgba(78, 128, 16, 0.25); }
+
+        /* بانر عرض التوصيل المجاني المؤقت مع عداد تنازلي */
+        .free-delivery-banner { margin: 10px 15px; padding: 14px 16px; border-radius: 18px; background: linear-gradient(135deg, #0ea472 0%, #059669 100%); box-shadow: 0 6px 18px rgba(5, 150, 105, 0.28); position: relative; overflow: hidden; }
+        .free-delivery-banner::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 90% 10%, rgba(255,255,255,0.18) 0%, transparent 55%); pointer-events: none; }
+        .free-delivery-top { display: flex; align-items: center; gap: 8px; color: #ffffff; font-weight: 800; font-size: 14px; margin-bottom: 3px; }
+        .free-delivery-sub { color: rgba(255,255,255,0.9); font-size: 11.5px; font-weight: 600; margin-bottom: 10px; }
+        .free-delivery-timer { display: flex; gap: 6px; direction: ltr; justify-content: flex-end; }
+        .free-delivery-timer .fd-unit { background: rgba(255,255,255,0.16); backdrop-filter: blur(2px); border-radius: 10px; padding: 6px 4px; min-width: 46px; text-align: center; }
+        .free-delivery-timer .fd-num { color: #ffffff; font-weight: 800; font-size: 16px; line-height: 1; font-variant-numeric: tabular-nums; }
+        .free-delivery-timer .fd-label { color: rgba(255,255,255,0.85); font-size: 8.5px; font-weight: 700; margin-top: 2px; }
         .store-title { font-size: 19px; font-weight: 900; letter-spacing: -0.2px; }
         .header-actions { display: flex; gap: 6px; align-items: center; }
         .admin-link { background: rgba(255,255,255,0.18); backdrop-filter: blur(4px); color: white; padding: 6px 11px; border-radius: 10px; text-decoration: none; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); transition: background .2s ease, transform .15s ease; white-space: nowrap; }
@@ -668,6 +678,9 @@
         <input type="text" id="searchInput" class="search-input" placeholder="ابحث عن أي منتج تريده..." oninput="filterProducts()">
     </div>
 
+    <!-- بانر عرض التوصيل المجاني المؤقت (بعد إلى تاريخ ووقت محدد) -->
+    <div id="freeDeliveryPromoBanner" style="display:none;"></div>
+
     <!-- بانر عروض الحزمة المتحرك -->
     <div id="bundlesSection"></div>
 
@@ -1109,6 +1122,8 @@
     let currentSubCategory = "الكل";
     const ALL_OFFERS_KEY = "__ALL_OFFERS__";
     const ALL_BUNDLES_KEY = "__ALL_BUNDLES__";
+    let freeDeliveryPromo = null;
+    let freeDeliveryTimerInterval = null;
 
     let bundles = [];
     let offerGroups = [];
@@ -1545,6 +1560,11 @@
                 sortProducts();
                 renderMainStoreContent();
             }
+        });
+
+        window.onSnapshot(window.doc(window.db, "settings", "freeDeliveryPromo"), (docSnap) => {
+            freeDeliveryPromo = docSnap.exists() ? docSnap.data() : null;
+            renderFreeDeliveryBanner();
         });
 
         window.onSnapshot(window.collection(window.db, "offerGroups"), (groupSnap) => {
@@ -2539,6 +2559,75 @@
     }
 
     // ===================== بانر عروض الحزمة المتحرك (باللمس والسحب التلقائي/اليدوي) =====================
+
+    // ===================== بانر عرض التوصيل المجاني المؤقت مع عداد تنازلي =====================
+    function renderFreeDeliveryBanner() {
+        const container = document.getElementById('freeDeliveryPromoBanner');
+        if (!container) return;
+
+        if (freeDeliveryTimerInterval) {
+            clearInterval(freeDeliveryTimerInterval);
+            freeDeliveryTimerInterval = null;
+        }
+
+        if (!freeDeliveryPromo || !freeDeliveryPromo.active || !freeDeliveryPromo.endDateTime) {
+            container.innerHTML = '';
+            container.style.display = 'none';
+            return;
+        }
+
+        let endTime = new Date(freeDeliveryPromo.endDateTime).getTime();
+        if (isNaN(endTime) || endTime <= Date.now()) {
+            container.innerHTML = '';
+            container.style.display = 'none';
+            return;
+        }
+
+        let title = freeDeliveryPromo.title || '🚚 توصيل مجاني لفترة محدودة!';
+        let subtitle = freeDeliveryPromo.subtitle || 'استعجل قبل ما ينتهي الوقت';
+
+        container.style.display = 'block';
+        container.innerHTML = `
+            <div class="free-delivery-banner">
+                <div class="free-delivery-top"><span>${title}</span></div>
+                <div class="free-delivery-sub">${subtitle}</div>
+                <div class="free-delivery-timer" id="freeDeliveryTimerNums">
+                    <div class="fd-unit"><div class="fd-num" id="fdDays">00</div><div class="fd-label">يوم</div></div>
+                    <div class="fd-unit"><div class="fd-num" id="fdHours">00</div><div class="fd-label">ساعة</div></div>
+                    <div class="fd-unit"><div class="fd-num" id="fdMinutes">00</div><div class="fd-label">دقيقة</div></div>
+                    <div class="fd-unit"><div class="fd-num" id="fdSeconds">00</div><div class="fd-label">ثانية</div></div>
+                </div>
+            </div>
+        `;
+
+        function tick() {
+            let diff = endTime - Date.now();
+            if (diff <= 0) {
+                clearInterval(freeDeliveryTimerInterval);
+                freeDeliveryTimerInterval = null;
+                container.innerHTML = '';
+                container.style.display = 'none';
+                return;
+            }
+            let d = Math.floor(diff / (1000 * 60 * 60 * 24));
+            let h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            let m = Math.floor((diff / (1000 * 60)) % 60);
+            let s = Math.floor((diff / 1000) % 60);
+            let pad = n => String(n).padStart(2, '0');
+            let elD = document.getElementById('fdDays');
+            let elH = document.getElementById('fdHours');
+            let elM = document.getElementById('fdMinutes');
+            let elS = document.getElementById('fdSeconds');
+            if (!elD) return; // البانر انشال من الـ DOM (تغيّرت الفئة/الصفحة)، بلاش نكمل التايمر
+            elD.textContent = pad(d);
+            elH.textContent = pad(h);
+            elM.textContent = pad(m);
+            elS.textContent = pad(s);
+        }
+
+        tick();
+        freeDeliveryTimerInterval = setInterval(tick, 1000);
+    }
 
     function renderBundlesSection() {
         const container = document.getElementById('bundlesSection');
