@@ -1175,6 +1175,11 @@
             let outB = isOutOfStockProduct(b) ? 1 : 0;
             if (outA !== outB) return outA - outB;
 
+            // المنتجات المشاركة بعرض حزمة (باقة) بتطلع أول شي بكل قسم/فئة تتواجد فيها
+            let bundleA = findBundleForProduct(a) ? 0 : 1;
+            let bundleB = findBundleForProduct(b) ? 0 : 1;
+            if (bundleA !== bundleB) return bundleA - bundleB;
+
             // المنتجات يلي إلها رقم ظهور محفوظ فعلياً بتطلع أول، مرتبة حسب الرقم تصاعدياً؛
             // يلي مالوش رقم ظهور خالص (undefined بقاعدة البيانات) بينزل بعدهم بآخر القائمة
             let hasA = hasSortOrder(a) ? 0 : 1;
@@ -1521,6 +1526,10 @@
                 }
             });
             renderBundlesSection();
+            if (products.length > 0) {
+                sortProducts();
+                renderMainStoreContent();
+            }
         });
 
         window.onSnapshot(window.collection(window.db, "offerGroups"), (groupSnap) => {
