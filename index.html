@@ -1266,6 +1266,7 @@
     let freeDeliveryPromo = null;
     let freeDeliveryTimerInterval = null;
     let spendOffers = [];
+    let lastSpendOfferAchievedSignature = "";
 
     let bundles = [];
     let offerGroups = [];
@@ -2994,7 +2995,6 @@
         });
     }
 
-    let lastSpendOfferAchievedSignature = "";
     // بيتحقق إذا تغيّرت حالة "تفعيل" أي عرض شراء (من غير مفعّل لمفعّل أو العكس) مقارنة بآخر مرة - لو تغيّرت
     // لازم إعادة رسم كاملة حتى تنعرض الأسعار صح (مش بس تحديث سطر الشارة)، لو ما تغيّرت نكتفي بالتحديث الخفيف
     function spendOfferAchievedStateChanged() {
