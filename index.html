@@ -3025,6 +3025,13 @@
         setTimeout(() => scrollToAndHighlightProduct(productId), context.subCategory ? 550 : 420);
     }
 
+    // نفس فكرة goToProductFromSpendOffer، بس مستدعاة من جوا شباك مراجعة السلة - لازم نسكّر الشباك أول قبل
+    // ما ننقل الزبون ونعمل الهايلايت، وإلا الصفحة الرئيسية بتتغيّر تحت شباك لسا مفتوح فوقها
+    function goToProductFromCartNudge(productId) {
+        closeCartModal();
+        setTimeout(() => goToProductFromSpendOffer(productId), 50);
+    }
+
     function renderBundlesSection() {
         const container = document.getElementById('bundlesSection');
         if (!container) return;
@@ -4126,11 +4133,9 @@
             let gap = required - adjustedSubtotal;
             let prod = products.find(p => p.id === offer.productId);
             if (!prod) break;
-            let inCart = cart.some(c => c.id === offer.productId);
-            let actionText = inCart
-                ? `لسا ناقصك <b>${gap.toFixed(2)}₪</b> من منتجات عادية عشان يتفعل عرض ${prod.name} بسعر ${offer.discountedPrice}₪`
-                : `ضيف ${prod.name} لسلتك واشتري <b>${gap.toFixed(2)}₪</b> زيادة من منتجات عادية عشان تاخده بـ ${offer.discountedPrice}₪ بدل ${prod.price}₪`;
-            nudgeHtml = `<div style="background:#fff7ed; border:1.5px solid #fed7aa; border-radius:10px; padding:8px 10px; font-size:11.5px; font-weight:700; color:#9a3412; margin-top:6px;">🎯 ${actionText}</div>`;
+            let originalPriceForNudge = offer.originalPrice || prod.price;
+            let actionText = `اشتري كمان بـ<b>${gap.toFixed(2)}₪</b> وخذ ${prod.name} بدل <span style="text-decoration:line-through; opacity:0.7;">${originalPriceForNudge}₪</span> بـ<b>${offer.discountedPrice}₪</b>`;
+            nudgeHtml = `<div class="cart-nudge-clickable" onclick='goToProductFromCartNudge("${prod.id}")' style="background:#fff7ed; border:1.5px solid #fed7aa; border-radius:10px; padding:8px 10px; font-size:11.5px; font-weight:700; color:#9a3412; margin-top:6px; cursor:pointer;">🎯 ${actionText} ←</div>`;
             break;
         }
 
