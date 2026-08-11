@@ -83,6 +83,8 @@
         .spend-offer-prices { display: flex; align-items: baseline; justify-content: center; gap: 4px; margin-top: 2px; }
         .spend-offer-new-price { color: #16a34a; font-weight: 900; font-size: 11.5px; }
         .spend-offer-old-price { color: #9ca3af; font-weight: 700; font-size: 9.5px; text-decoration: line-through; }
+        .spend-offer-progress { margin-top: 3px; font-size: 8.5px; font-weight: 800; color: #c2410c; background: #ffedd5; border-radius: 6px; padding: 2px 5px; }
+        .spend-offer-progress-done { color: #16a34a; background: #dcfce7; }
         @keyframes spendOfferHighlightFade {
             0% { background-color: #fef3c7; box-shadow: 0 0 0 3px #fbbf24; }
             70% { background-color: #fef3c7; box-shadow: 0 0 0 3px #fbbf24; }
@@ -511,7 +513,9 @@
         .bundle-stepper-btn:active { transform: scale(0.88); }
         .bundle-item-qty { min-width: 22px; text-align: center; font-weight: 800; font-size: 13.5px; font-family: 'Poppins', 'Cairo', sans-serif; }
         .bundle-price-badge { display: inline-block; background: linear-gradient(135deg, var(--price-red) 0%, #b91c1c 100%); color: white; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 7px; margin-top: 5px; cursor: pointer; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3); }
-        .spend-offer-price-badge { display: inline-block; background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); color: white; font-size: 10.5px; font-weight: 800; padding: 3px 10px; border-radius: 7px; margin-top: 5px; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.3); }
+        .spend-offer-price-badge { display: block; background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); color: white; font-size: 10.5px; font-weight: 800; padding: 4px 10px; border-radius: 7px; margin-top: 5px; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.3); }
+        .spend-offer-badge-progress { display: block; margin-top: 3px; font-size: 9px; font-weight: 800; color: #fff7ed; background: rgba(255,255,255,0.18); border-radius: 5px; padding: 2px 5px; width: fit-content; }
+        .spend-offer-badge-progress-done { color: #dcfce7; background: rgba(255,255,255,0.22); }
 
         /* شريط السلة السفلي */
         .cart-bar { position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; padding: 15px 20px; display: none; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 18px; border-top-right-radius: 18px; z-index: 100; cursor: pointer; box-shadow: 0 -4px 16px rgba(0,0,0,0.12); }
@@ -2684,20 +2688,28 @@
         }
 
         container.style.display = 'block';
+        let adjustedSubtotal = getSpendOffersAdjustedSubtotal();
         container.innerHTML = `
             <div class="spend-offers-strip">
                 ${activeOffers.map(o => {
                     let prod = products.find(p => p.id === o.productId);
                     if (!prod) return '';
+                    let required = getSpendOfferCumulativeThreshold(o);
+                    let achieved = adjustedSubtotal >= required;
+                    let gap = required - adjustedSubtotal;
+                    let progressHtml = achieved
+                        ? `<div class="spend-offer-progress spend-offer-progress-done">✅ مفعّل بسلتك</div>`
+                        : `<div class="spend-offer-progress">🎯 ناقصك ${gap.toFixed(2)}₪</div>`;
                     return `
                     <div class="spend-offer-card" onclick='goToProductFromSpendOffer("${prod.id}")'>
                         <img class="spend-offer-img" src="${prod.img || 'https://i.ibb.co/3m1K2wP/basket.png'}" alt="${prod.name}">
                         <div class="spend-offer-text">
-                            اشتري بقيمة <b>${getSpendOfferCumulativeThreshold(o)}₪</b> وخذ ${prod.name}
+                            اشتري بقيمة <b>${required}₪</b> وخذ ${prod.name}
                             <div class="spend-offer-prices">
                                 <span class="spend-offer-new-price">${o.discountedPrice}₪</span>
                                 ${o.originalPrice ? `<span class="spend-offer-old-price">${o.originalPrice}₪</span>` : ''}
                             </div>
+                            ${progressHtml}
                         </div>
                     </div>
                 `;
@@ -2733,6 +2745,26 @@
         card.classList.remove('product-card-highlight');
         void card.offsetWidth; // إعادة تشغيل الأنيميشن لو كانت اتشغلت قبل شوي على نفس البطاقة
         card.classList.add('product-card-highlight');
+    }
+
+    // بيحدّث سطر "قربت توصل" جوا شارة كل منتج مرتبط بعرض شراء بأي فئة/قسم كان معروض فيها حالياً بالصفحة -
+    // بدون إعادة رسم كل الشبكة (حتى ما يقفز السكرول لو الزبون عم يتصفح ويعدّل السلة بنفس الوقت)
+    function updateSpendOfferBadgesInPlace() {
+        let badges = document.querySelectorAll('.spend-offer-price-badge[data-offer-product]');
+        if (badges.length === 0) return;
+        let adjustedSubtotal = getSpendOffersAdjustedSubtotal();
+        badges.forEach(badge => {
+            let productId = badge.getAttribute('data-offer-product');
+            let offer = (spendOffers || []).find(o => o.active && o.productId === productId && o.threshold);
+            if (!offer) return;
+            let required = getSpendOfferCumulativeThreshold(offer);
+            let achieved = adjustedSubtotal >= required;
+            let gap = required - adjustedSubtotal;
+            let progressHtml = achieved
+                ? `<span class="spend-offer-badge-progress spend-offer-badge-progress-done">✅ مفعّل بسلتك</span>`
+                : `<span class="spend-offer-badge-progress">🎯 ناقصك ${gap.toFixed(2)}₪</span>`;
+            badge.innerHTML = `🎯 اشتري بـ ${required}₪ وخذه بـ ${offer.discountedPrice}₪ ${progressHtml}`;
+        });
     }
 
     function goToProductFromSpendOffer(productId) {
@@ -3426,7 +3458,17 @@
 
         // شارة عرض "اشتري بقيمة كذا، خذ هالمنتج بسعر مخفض" - بتظهر وهو يتصفح المنتج قبل ما يوصل السلة للحد المطلوب أصلاً
         let matchedSpendOffer = !matchedBundle ? (spendOffers || []).find(o => o.active && o.productId === p.id && o.threshold) : null;
-        let spendOfferBadgeHtml = matchedSpendOffer ? `<span class="spend-offer-price-badge">🎯 اشتري بـ ${getSpendOfferCumulativeThreshold(matchedSpendOffer)}₪ وخذه بـ ${matchedSpendOffer.discountedPrice}₪</span>` : "";
+        let spendOfferBadgeHtml = "";
+        if (matchedSpendOffer) {
+            let required = getSpendOfferCumulativeThreshold(matchedSpendOffer);
+            let adjustedSubtotal = getSpendOffersAdjustedSubtotal();
+            let achieved = adjustedSubtotal >= required;
+            let gap = required - adjustedSubtotal;
+            let progressHtml = achieved
+                ? `<span class="spend-offer-badge-progress spend-offer-badge-progress-done">✅ مفعّل بسلتك</span>`
+                : `<span class="spend-offer-badge-progress">🎯 ناقصك ${gap.toFixed(2)}₪</span>`;
+            spendOfferBadgeHtml = `<span class="spend-offer-price-badge" data-offer-product="${p.id}">🎯 اشتري بـ ${required}₪ وخذه بـ ${matchedSpendOffer.discountedPrice}₪ ${progressHtml}</span>`;
+        }
 
         let cartItem = cart.find(item => item.id == p.id);
         let qty = cartItem ? cartItem.quantity : 0;
@@ -3610,6 +3652,8 @@
         if(finalDisplayTotal < 0) finalDisplayTotal = 0;
 
         document.getElementById('cartTotalText').innerText = finalDisplayTotal.toFixed(2) + " ₪";
+        renderSpendOffersBanner();
+        updateSpendOfferBadgesInPlace();
 
         const cartBar = document.getElementById('cartBar');
         if (totalCount > 0) {
