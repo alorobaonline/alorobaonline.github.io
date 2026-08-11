@@ -2976,21 +2976,31 @@
         return totalDiscount;
     }
 
-    // ترتيب عروض "اشتري بقيمة كذا" هو نفسه ترتيبها بلوحة التحكم: أول عرض بالقائمة يحتاج فقط قيمة "اشتري بقيمة"
-    // الخاصة فيه، وكل عرض بعده بيحتاج نفس القيمة تراكمياً فوق يلي قبله (يعني أول 100₪ بتفعّل عرض واحد، وإذا الزبون
-    // بده يفعّل عرض تاني كمان، لازم 100₪ إضافية فوق هيك - كل عرض بياخد "حصة" منفصلة من مجموع السلة)
+    // التراكم بيصير بس بين العروض يلي منتجاتها فعلياً موجودة بالسلة (مش كل العروض المفعّلة بلوحة التحكم بشكل عام) -
+    // عرض منتج مش موجود بالسلة أصلاً ما بياخد "حصة" ولا بيأثر على حساب عرض تاني. الترتيب بينهم هو ترتيبهم بلوحة التحكم
+    function getActiveSpendOffersInCartOrder() {
+        return (spendOffers || []).filter(o => o.active && o.productId && o.threshold && cart.some(c => c.id === o.productId));
+    }
+
+    // نفس الحقيقة اللي بالأعلى، بس تشمل حتى العروض يلي منتجاتها لسا مش بالسلة (تُستخدم بالشارات والبانر وتنبيه
+    // "قربت توصل" لعرض المعلومة قبل ما يضيف المنتج أصلاً)
     function getActiveSpendOffersInOrder() {
         return (spendOffers || []).filter(o => o.active && o.productId && o.threshold);
     }
 
+    // الحد المطلوب فعلياً لعرض معيّن: لو منتجه موجود بالسلة، بناخد مجموعه التراكمي بس مع باقي عروض السلة يلي
+    // منتجاتها موجودة فعلاً (مش عروض غايبة عن السلة). لو منتجه لسا مش بالسلة، بنفترض إنه هيضاف فوق يلي بالسلة
+    // أصلاً (لعرض رقم واقعي بالشارة/البانر/التنبيه قبل ما ينضاف)
     function getSpendOfferCumulativeThreshold(offer) {
-        let ordered = getActiveSpendOffersInOrder();
+        let inCartOrdered = getActiveSpendOffersInCartOrder();
         let cum = 0;
-        for (let i = 0; i < ordered.length; i++) {
-            cum += Number(ordered[i].threshold) || 0;
-            if (ordered[i] === offer) return cum;
+        for (let i = 0; i < inCartOrdered.length; i++) {
+            cum += Number(inCartOrdered[i].threshold) || 0;
+            if (inCartOrdered[i] === offer) return cum;
         }
-        return Number(offer.threshold) || 0;
+        // العرض مش بالسلة بعد - نفترض إنه هينضاف فوق يلي بالسلة أصلاً من عروض تانية
+        let alreadyCommitted = inCartOrdered.reduce((sum, o) => sum + (Number(o.threshold) || 0), 0);
+        return alreadyCommitted + (Number(offer.threshold) || 0);
     }
 
     // المجموع المعتمد لمقارنة أي حد "اشتري بقيمة كذا" - مجموع السلة بالأسعار العادية بعد استثناء منتجات
