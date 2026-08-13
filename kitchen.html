@@ -275,6 +275,16 @@
     </div>
 </div>
 
+<!-- نافذة إضافة منتج نسيه الزبون -->
+<div id="addItemModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:30000; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:white; border-radius:16px; padding:18px; max-width:400px; width:100%; max-height:85vh; display:flex; flex-direction:column;">
+        <h3 style="font-size:0.9rem; font-weight:900; color:var(--primary-green); margin-bottom:10px;">➕ إضافة منتج نسيه الزبون</h3>
+        <input type="text" id="addItemSearchInput" placeholder="🔍 دور باسم المنتج..." style="width:100%; padding:9px 10px; border:1.5px solid #e5e7eb; border-radius:10px; font-size:0.8rem; margin-bottom:10px; box-sizing:border-box;" oninput="renderAddItemResults(this.value.trim())">
+        <div id="addItemResultsContainer" style="overflow-y:auto; flex:1;"></div>
+        <button onclick="closeAddItemModal()" style="margin-top:10px; background:#94a3b8; color:white; border:none; padding:10px; border-radius:10px; font-weight:800; cursor:pointer;">إلغاء</button>
+    </div>
+</div>
+
 <!-- منطقة الطباعة (تظهر فقط عند الطباعة) -->
 <div id="printArea"></div>
 
@@ -500,8 +510,9 @@
                 ord.items.forEach((item, itemIdx) => {
                     let imgSrc = item.image || item.img || item.imageUrl || item.photo || item.productImage || (item.product && (item.product.image || item.product.img)) || "";
                     let qty = Number(item.qty || item.quantity || 1);
-                    totalQty += qty;
-                    
+                    let isUnavailable = !!item.unavailable;
+                    if (!isUnavailable) totalQty += qty;
+
                     let imageElement = '';
                     if(imgSrc) {
                         imageElement = `<div class="product-thumb" onclick="openImageModal('${imgSrc}')"><img src="${imgSrc}" alt="" onerror="this.style.display='none'; this.parentElement.innerHTML='🛒';"></div>`;
@@ -511,18 +522,29 @@
 
                     let isChecked = Array.isArray(ord.checkedItems) && ord.checkedItems[itemIdx] === true;
 
+                    let priceHtml = isUnavailable
+                        ? `<span style="color:#dc2626; font-weight:800;">🚫 نفذت الكمية - ما بتحسب بالمجموع</span>`
+                        : `<span class="product-price">${(Number(item.price) || 0).toFixed(2)} ₪ × ${qty} = ${((Number(item.price) || 0) * qty).toFixed(2)} ₪</span>`;
+                    let addedBadge = (item.addedByStaff && !isUnavailable) ? `<span style="background:#dcfce7; color:#166534; font-size:0.6rem; font-weight:800; padding:1px 6px; border-radius:6px; margin-right:4px;">➕ أضيف لاحقاً</span>` : '';
+
+                    let actionsHtml = isUnavailable
+                        ? `<button class="item-mini-btn" title="تراجع - رجّع المنتج للطلبية" onclick="restoreOrderItem('${ord.id}', ${itemIdx})">↩️</button>`
+                        : `
+                            <button class="item-mini-btn" title="تعديل الكمية" onclick="editOrderItemQty('${ord.id}', ${itemIdx})">✏️</button>
+                            <button class="item-mini-btn" title="استبدال المنتج" onclick="openReplaceItemModal('${ord.id}', ${itemIdx})">🔄</button>
+                            <button class="item-mini-btn item-mini-btn-danger" title="نفذت الكمية" onclick="markOrderItemUnavailable('${ord.id}', ${itemIdx})">🗑️</button>
+                        `;
+
                     itemsHtml += `
-                        <div class="product-item-row ${isChecked ? 'item-checked' : ''}">
-                            <input type="checkbox" class="item-check-box" ${isChecked ? 'checked' : ''} onchange="toggleItemCheck('${ord.id}', ${itemIdx}, this)">
+                        <div class="product-item-row ${isChecked ? 'item-checked' : ''}" ${isUnavailable ? 'style="opacity:0.65; background:#fef2f2;"' : ''}>
+                            <input type="checkbox" class="item-check-box" ${isChecked ? 'checked' : ''} ${isUnavailable ? 'disabled' : ''} onchange="toggleItemCheck('${ord.id}', ${itemIdx}, this)">
                             ${imageElement}
                             <div class="product-details">
-                                <span class="product-name">${item.name || item.productName || 'منتج'}</span>
-                                <span class="product-qty">الكمية: (${qty}) &nbsp;•&nbsp; <span class="product-price">${(Number(item.price) || 0).toFixed(2)} ₪ × ${qty} = ${((Number(item.price) || 0) * qty).toFixed(2)} ₪</span></span>
+                                <span class="product-name" ${isUnavailable ? 'style="text-decoration:line-through; color:#9ca3af;"' : ''}>${addedBadge}${item.name || item.productName || 'منتج'}</span>
+                                <span class="product-qty" ${isUnavailable ? 'style="text-decoration:line-through;"' : ''}>الكمية: (${qty}) &nbsp;•&nbsp; ${priceHtml}</span>
                             </div>
                             <div class="item-edit-actions">
-                                <button class="item-mini-btn" title="تعديل الكمية" onclick="editOrderItemQty('${ord.id}', ${itemIdx})">✏️</button>
-                                <button class="item-mini-btn" title="استبدال المنتج" onclick="openReplaceItemModal('${ord.id}', ${itemIdx})">🔄</button>
-                                <button class="item-mini-btn item-mini-btn-danger" title="حذف من الطلب" onclick="deleteOrderItem('${ord.id}', ${itemIdx})">🗑️</button>
+                                ${actionsHtml}
                             </div>
                         </div>
                     `;
@@ -579,6 +601,7 @@
                     <div class="products-section">
                         <div class="section-label">المنتجات المطلوبة:</div>
                         ${itemsHtml}
+                        <button class="btn-secondary-action" style="margin-top:8px; background:#f0fdf4; color:#166534; border-color:#bbf7d0;" onclick="openAddItemModal('${ord.id}')">➕ إضافة منتج نسيه الزبون</button>
                     </div>
 
                     ${notifyRemovedItemsHtml}
@@ -607,12 +630,11 @@
 
     // ===================== تتبّع تعليم المنتجات المجهّزة قبل إرسال الطلب للسائق (محفوظة بقاعدة البيانات) =====================
     function isOrderFullyChecked(ord) {
-        let itemsCount = (ord && ord.items) ? ord.items.length : 0;
-        if (itemsCount === 0) return true;
+        let items = (ord && ord.items) ? ord.items : [];
         let arr = ord ? ord.checkedItems : null;
-        if (!Array.isArray(arr)) return false;
-        for (let i = 0; i < itemsCount; i++) {
-            if (!arr[i]) return false;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].unavailable) continue; // نفذت الكمية - مش لازم تتشيّك
+            if (!Array.isArray(arr) || !arr[i]) return false;
         }
         return true;
     }
@@ -666,11 +688,13 @@
     // ===================== تعديل/حذف/استبدال منتجات الطلب =====================
     // نعيد حساب المجموع الكلي بعد أي تعديل على المنتجات: سعر المنتجات الجديد
     // ناقص خصم الباقات/الكوبون القديم (كما هو) زائد رسوم التوصيل (كما هي).
+    // المنتجات المعلّمة "نفذت الكمية" (unavailable) بتضل ظاهرة بالطلبية لكن ما بتحسب بالمجموع أبداً.
     // ملاحظة: خصم الباقات ما بيتعاد حسابه من جديد حسب التركيبة الجديدة - تصحيح
     // يدوي بسيط لحالات استثنائية (نفذت الكمية...الخ)، مش محرك تسعير كامل.
     function recomputeOrderTotal(ord) {
         let newSubtotal = 0;
         (ord.items || []).forEach(it => {
+            if (it.unavailable) return;
             newSubtotal += (Number(it.price) || 0) * (Number(it.quantity || it.qty) || 0);
         });
         let bundleDiscount = Number(ord.bundleDiscount) || 0;
@@ -715,18 +739,24 @@
         await saveOrderItemsUpdate(orderId, newItems);
     }
 
-    async function deleteOrderItem(orderId, itemIdx) {
+    // بدل ما نحذف المنتج من الطلبية نهائياً، منعلّمه "نفذت الكمية" ومنخليه ظاهر (مشطوب) بالطلبية -
+    // حتى الموظف والزبون يفهموا إنه المنتج هذا نفذ ومش هيوصل، بدل ما يختفي بدون تفسير. ما بيندخل بالمجموع.
+    async function markOrderItemUnavailable(orderId, itemIdx) {
         const ord = currentOrdersList.find(o => o.id === orderId);
         if (!ord || !ord.items || !ord.items[itemIdx]) return;
         const item = ord.items[itemIdx];
-        if (ord.items.length === 1) {
-            if (!confirm(`"${item.name || 'المنتج'}" هو آخر منتج بالطلبية. حذفه رح يخلي الطلبية فاضية - بالأفضل تستخدم "إلغاء الطلبية بالكامل" بدلاً من هيك. تحب تكمل الحذف برضه؟`)) return;
-        } else {
-            if (!confirm(`حذف "${item.name || 'المنتج'}" من الطلبية؟`)) return;
-        }
-        const newItems = ord.items.filter((it, i) => i !== itemIdx);
+        if (!confirm(`تعليم "${item.name || 'المنتج'}" كـ"نفذت الكمية"؟ رح يضل ظاهر بالطلبية (مشطوب) بس ما رح يتحسب بالمجموع.`)) return;
+        const newItems = ord.items.map((it, i) => i === itemIdx ? { ...it, unavailable: true } : it);
         const newRemovedLog = [...(ord.removedItemsLog || []), { name: item.name || 'منتج', price: Number(item.price) || 0, quantity: Number(item.quantity || item.qty) || 1 }];
         await saveOrderItemsUpdate(orderId, newItems, { removedItemsLog: newRemovedLog });
+    }
+
+    // تراجع عن "نفذت الكمية" - يرجّع المنتج يتحسب بالمجموع عادي (لو انعلّم غلط مثلاً)
+    async function restoreOrderItem(orderId, itemIdx) {
+        const ord = currentOrdersList.find(o => o.id === orderId);
+        if (!ord || !ord.items || !ord.items[itemIdx]) return;
+        const newItems = ord.items.map((it, i) => i === itemIdx ? { ...it, unavailable: false } : it);
+        await saveOrderItemsUpdate(orderId, newItems);
     }
 
     // ===================== إشعار الزبون بالمنتجات المحذوفة (رسالة واحدة تجمع كل المنتجات المحذوفة من هاي الطلبية) =====================
@@ -823,6 +853,81 @@
         await saveOrderItemsUpdate(orderId, newItems);
     }
 
+    // ===================== إضافة منتج نسيه الزبون (يضيفه الموظف من المطبخ للطلبية) =====================
+    let addItemContext = { orderId: null };
+
+    function openAddItemModal(orderId) {
+        addItemContext = { orderId };
+        document.getElementById('addItemSearchInput').value = '';
+        renderAddItemResults('');
+        document.getElementById('addItemModal').style.display = 'flex';
+    }
+
+    function closeAddItemModal() {
+        document.getElementById('addItemModal').style.display = 'none';
+    }
+
+    function renderAddItemResults(query) {
+        const container = document.getElementById('addItemResultsContainer');
+        let list = catalogProducts.slice();
+        if (query) list = list.filter(p => (p.name || '').includes(query));
+        list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        list = list.slice(0, 30);
+
+        if (list.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#888; font-size:0.75rem; padding:15px;">لا يوجد منتج مطابق</p>';
+            return;
+        }
+
+        container.innerHTML = list.map(p => {
+            let price = (p.salePrice !== undefined && p.salePrice !== null && p.salePrice !== '') ? p.salePrice : p.price;
+            return `
+                <div style="display:flex; align-items:center; gap:8px; padding:7px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:5px; cursor:pointer;" onclick="confirmAddItem('${p.id}')">
+                    <img src="${p.img || ''}" style="width:34px; height:34px; object-fit:contain; border-radius:6px; flex-shrink:0; background:white;" onerror="this.style.display='none'">
+                    <span style="flex:1; font-size:0.75rem; font-weight:700;">${p.name}</span>
+                    <span style="font-size:0.7rem; color:#16a34a; font-weight:800; flex-shrink:0;">${price || 0} ₪</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function confirmAddItem(productId) {
+        const { orderId } = addItemContext;
+        const ord = currentOrdersList.find(o => o.id === orderId);
+        const product = catalogProducts.find(p => p.id === productId);
+        if (!ord || !product) return;
+
+        const input = prompt(`الكمية المطلوبة من "${product.name}":`, "1");
+        if (input === null) return;
+        const qty = parseInt(input);
+        if (!qty || qty < 1) {
+            alert('كمية غير صالحة');
+            return;
+        }
+
+        const price = (product.salePrice !== undefined && product.salePrice !== null && product.salePrice !== '') ? Number(product.salePrice) : Number(product.price) || 0;
+
+        // لو المنتج أصلاً موجود بالطلبية (ومش معلّم نفذت الكمية)، منزيد على كميته بدل ما نكرره كصف مستقل
+        let existingIdx = (ord.items || []).findIndex(it => it.id === product.id && !it.unavailable);
+        let newItems;
+        if (existingIdx > -1) {
+            newItems = ord.items.map((it, i) => i === existingIdx ? { ...it, quantity: Number(it.quantity || it.qty || 0) + qty, qty: Number(it.quantity || it.qty || 0) + qty } : it);
+        } else {
+            newItems = [...(ord.items || []), {
+                id: product.id,
+                name: product.name,
+                img: product.img || '',
+                price: price,
+                quantity: qty,
+                qty: qty,
+                addedByStaff: true
+            }];
+        }
+
+        closeAddItemModal();
+        await saveOrderItemsUpdate(orderId, newItems);
+    }
+
     // ===================== إلغاء الطلبية بالكامل =====================
     async function cancelWholeOrder(orderId) {
         const ord = currentOrdersList.find(o => o.id === orderId);
@@ -882,10 +987,12 @@
         let itemsRows = '';
         if (ord.items && Array.isArray(ord.items)) {
             ord.items.forEach(item => {
+                let isUnavailable = !!item.unavailable;
+                let rowStyle = isUnavailable ? 'text-decoration:line-through; color:#999;' : '';
                 itemsRows += `
                     <tr>
-                        <td style="padding:4px 6px; border-bottom:1px solid #ddd;">${item.name || item.productName || 'منتج'}</td>
-                        <td style="padding:4px 6px; border-bottom:1px solid #ddd; text-align:center;">${item.qty || item.quantity || 1}</td>
+                        <td style="padding:4px 6px; border-bottom:1px solid #ddd; ${rowStyle}">${item.name || item.productName || 'منتج'}${isUnavailable ? ' (نفذت الكمية)' : ''}</td>
+                        <td style="padding:4px 6px; border-bottom:1px solid #ddd; text-align:center; ${rowStyle}">${item.qty || item.quantity || 1}</td>
                     </tr>
                 `;
             });

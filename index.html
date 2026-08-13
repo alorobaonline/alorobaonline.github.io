@@ -2074,16 +2074,30 @@
     // وتحتها نوع الاستلام (توصيل مع سعره، أو استلام ذاتي)، وبالآخر المجموع الكلي - تُستخدم بمتابعة
     // الطلبية الحالية وبقائمة الطلبيات السابقة سوا حتى يكون نفس مستوى التفصيل بالمكانين
     function renderOrderItemsDetailedHtml(order) {
-        let itemsHtml = (order.items || []).map(i => `
+        let itemsHtml = (order.items || []).map(i => {
+            let isUnavailable = !!i.unavailable;
+            if (isUnavailable) {
+                return `
+                    <div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #eee; opacity:0.6; background:#fef2f2;">
+                        <img src="${i.img || 'https://i.ibb.co/3m1K2wP/basket.png'}" style="width:38px; height:38px; border-radius:8px; object-fit:cover; border:1px solid #eee; flex-shrink:0; background:white; filter:grayscale(1);" onerror="this.src='https://i.ibb.co/3m1K2wP/basket.png'">
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-weight:700; font-size:12.5px; text-decoration:line-through; color:#9ca3af; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${i.name}</div>
+                            <div style="color:#dc2626; font-size:10.5px; font-weight:800;">🚫 نفذت الكمية - غير محسوبة بالمجموع</div>
+                        </div>
+                    </div>
+                `;
+            }
+            return `
             <div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #eee;">
                 <img src="${i.img || 'https://i.ibb.co/3m1K2wP/basket.png'}" style="width:38px; height:38px; border-radius:8px; object-fit:cover; border:1px solid #eee; flex-shrink:0; background:white;" onerror="this.src='https://i.ibb.co/3m1K2wP/basket.png'">
                 <div style="flex:1; min-width:0;">
-                    <div style="font-weight:700; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${i.name}</div>
+                    <div style="font-weight:700; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${i.addedByStaff ? '<span style="background:#dcfce7; color:#166534; font-size:9px; font-weight:800; padding:1px 6px; border-radius:6px; margin-left:4px;">➕ أضيف لطلبك</span>' : ''}${i.name}</div>
                     <div style="color:#64748b; font-size:11px; font-weight:600;">الكمية: ${i.quantity}</div>
                 </div>
                 <div style="text-align:left; font-weight:800; font-size:12.5px; color:var(--accent-green); flex-shrink:0; white-space:nowrap;">${(Number(i.price) || 0).toFixed(2)} ₪</div>
             </div>
-        `).join('');
+        `;
+        }).join('');
 
         let isDelivery = (order.fulfillmentType || 'توصيل') === 'توصيل';
         let fulfillmentLineHtml = isDelivery
