@@ -967,6 +967,7 @@
                 عروض بشكل "اشتري بقيمة كذا، وخذ منتج معين بسعر مخفض بدل سعره الأصلي" - بتظهر كبانر إعلاني بالصفحة الرئيسية للمتجر (بدون ربط فعلي بالسلة حالياً). تقدر تضيف أكتر من عرض بنفس الوقت.
             </div>
             <div id="spendOffersContainer"></div>
+            <datalist id="spendOfferProductsDatalist"></datalist>
             <button class="btn-main" style="background: #059669; margin-bottom: 8px;" onclick="addNewSpendOffer()">➕ إضافة عرض جديد</button>
             <button class="btn-main" onclick="saveSpendOffers()">حفظ عروض الشراء 💾</button>
         </div>
@@ -3113,6 +3114,7 @@
     function renderSpendOffersForm() {
         const container = document.getElementById('spendOffersContainer');
         if (!container) return;
+        populateSpendOfferProductsDatalist();
         if (spendOffers.length === 0) {
             container.innerHTML = `<div style="text-align:center; color:#9ca3af; font-size:0.72rem; font-weight:700; padding:10px;">ما في عروض مضافة حالياً</div>`;
             return;
@@ -3133,10 +3135,8 @@
                     <label style="display:block; font-size:0.66rem; font-weight:700; margin-bottom:3px;">اختر المنتج</label>
                     <div style="display:flex; align-items:center; gap:8px;">
                         <img class="spendOfferPreviewImg" data-idx="${i}" src="${(selectedProd && selectedProd.img) || 'https://i.ibb.co/3m1K2wP/basket.png'}" style="width:38px; height:38px; border-radius:8px; object-fit:cover; border:1.5px solid #e5e7eb; flex-shrink:0;">
-                        <select class="spendOfferProductId" data-idx="${i}" onchange="onSpendOfferProductChange(${i})" style="flex:1; padding:7px 8px; border:1.5px solid #e5e7eb; border-radius:8px; font-size:0.74rem; font-weight:700; box-sizing:border-box;">
-                            <option value="">-- اختر منتج --</option>
-                            ${products.map(p => `<option value="${p.id}" ${o.productId === p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
-                        </select>
+                        <input type="text" class="spendOfferProductSearch" list="spendOfferProductsDatalist" data-idx="${i}" value="${selectedProd ? selectedProd.name : ''}" placeholder="اكتب اسم المنتج للبحث..." oninput="onSpendOfferProductSearchInput(${i})" style="flex:1; padding:7px 8px; border:1.5px solid #e5e7eb; border-radius:8px; font-size:0.74rem; font-weight:700; box-sizing:border-box;">
+                        <input type="hidden" class="spendOfferProductId" data-idx="${i}" value="${o.productId || ''}">
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
@@ -3154,16 +3154,33 @@
         }).join('');
     }
 
-    function onSpendOfferProductChange(index) {
+    function populateSpendOfferProductsDatalist() {
+        const datalist = document.getElementById('spendOfferProductsDatalist');
+        if (!datalist) return;
+        datalist.innerHTML = products.map(p => `<option value="${p.name}"></option>`).join('');
+    }
+
+    // بالبحث بالكتابة (datalist) بنلاقي المنتج بالاسم - أول تطابق تام بالاسم، وإلا أول منتج اسمه يحتوي النص المكتوب
+    function onSpendOfferProductSearchInput(index) {
         collectCurrentSpendOffersData();
-        let select = document.querySelector(`#spendOffersContainer .spendOfferProductId[data-idx="${index}"]`);
-        let selectedProd = products.find(p => p.id === select.value);
+        let input = document.querySelector(`#spendOffersContainer .spendOfferProductSearch[data-idx="${index}"]`);
+        let typed = input.value.trim();
+        let matched = products.find(p => p.name === typed) || products.find(p => p.name.includes(typed) && typed.length >= 2);
+        let hiddenIdInput = document.querySelector(`#spendOffersContainer .spendOfferProductId[data-idx="${index}"]`);
         let img = document.querySelector(`#spendOffersContainer .spendOfferPreviewImg[data-idx="${index}"]`);
-        if (img) img.src = (selectedProd && selectedProd.img) || 'https://i.ibb.co/3m1K2wP/basket.png';
+
+        if (!matched) {
+            // لسا ما لقينا تطابق واضح - منسيب productId متل ما هو لحد ما يكمل الكتابة أو يختار من القائمة
+            return;
+        }
+
+        if (hiddenIdInput) hiddenIdInput.value = matched.id;
+        spendOffers[index].productId = matched.id;
+        if (img) img.src = matched.img || 'https://i.ibb.co/3m1K2wP/basket.png';
         // نقترح السعر الأصلي أوتوماتيك من سعر المنتج الحالي لو الحقل فاضي، والأدمن يقدر يعدله
-        if (selectedProd && !spendOffers[index].originalPrice) {
+        if (!spendOffers[index].originalPrice) {
             let origInput = document.querySelector(`#spendOffersContainer .spendOfferOriginalPrice[data-idx="${index}"]`);
-            if (origInput) origInput.value = selectedProd.price || '';
+            if (origInput) origInput.value = matched.price || '';
         }
     }
 
