@@ -837,14 +837,30 @@
         const newProduct = catalogProducts.find(p => p.id === newProductId);
         if (!ord || !ord.items || !ord.items[itemIdx] || !newProduct) return;
 
-        const oldQty = Number(ord.items[itemIdx].quantity || ord.items[itemIdx].qty || 1);
-        const newPrice = (newProduct.salePrice !== undefined && newProduct.salePrice !== null && newProduct.salePrice !== '') ? Number(newProduct.salePrice) : Number(newProduct.price) || 0;
+        const oldItem = ord.items[itemIdx];
+        const oldQty = Number(oldItem.quantity || oldItem.qty || 1);
+        const oldPrice = Number(oldItem.price) || 0; // ممكن يكون سعر مخفّض ضمن عرض حزمة/شراء - هاد هو الافتراضي الآمن
+        const newProductOwnPrice = (newProduct.salePrice !== undefined && newProduct.salePrice !== null && newProduct.salePrice !== '') ? Number(newProduct.salePrice) : Number(newProduct.price) || 0;
+
+        // الافتراضي هو سعر المنتج القديم (يحافظ على أي خصم/عرض كان محسوب)، بس تقدر تعدّله يدوياً هون كاحتياط
+        // لو الحالة مختلفة (مثلاً المنتج البديل أغلى فعلاً وبدك تحسب فرق، أو أي سبب تاني)
+        let promptMsg = `سعر "${newProduct.name}" لكل قطعة:`;
+        if (Math.abs(newProductOwnPrice - oldPrice) > 0.01) {
+            promptMsg = `سعر المنتج البديل الأصلي ${newProductOwnPrice.toFixed(2)}₪، والمنتج القديم كان محسوب بـ${oldPrice.toFixed(2)}₪ (ممكن ضمن عرض). عدّل السعر هون لو بدك، أو سيبه متل ما هو:`;
+        }
+        const priceInput = prompt(promptMsg, oldPrice.toFixed(2));
+        if (priceInput === null) return; // ألغى الاستبدال
+        const finalPrice = parseFloat(priceInput);
+        if (isNaN(finalPrice) || finalPrice < 0) {
+            alert('سعر غير صالح');
+            return;
+        }
 
         const newItems = ord.items.map((it, i) => i === itemIdx ? {
             id: newProduct.id,
             name: newProduct.name,
             img: newProduct.img || '',
-            price: newPrice,
+            price: finalPrice,
             quantity: oldQty,
             qty: oldQty
         } : it);
