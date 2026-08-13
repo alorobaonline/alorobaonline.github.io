@@ -2070,6 +2070,38 @@
         { key: 'قيد التوصيل', label: 'السائق في الطريق إليك', icon: '🛵' }
     ];
 
+    // بطاقة تفصيلية لمنتجات الطلبية: صورة + اسم + كمية + السعر الفعلي بعد أي خصم لكل صنف،
+    // وتحتها نوع الاستلام (توصيل مع سعره، أو استلام ذاتي)، وبالآخر المجموع الكلي - تُستخدم بمتابعة
+    // الطلبية الحالية وبقائمة الطلبيات السابقة سوا حتى يكون نفس مستوى التفصيل بالمكانين
+    function renderOrderItemsDetailedHtml(order) {
+        let itemsHtml = (order.items || []).map(i => `
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #eee;">
+                <img src="${i.img || 'https://i.ibb.co/3m1K2wP/basket.png'}" style="width:38px; height:38px; border-radius:8px; object-fit:cover; border:1px solid #eee; flex-shrink:0; background:white;" onerror="this.src='https://i.ibb.co/3m1K2wP/basket.png'">
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:700; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${i.name}</div>
+                    <div style="color:#64748b; font-size:11px; font-weight:600;">الكمية: ${i.quantity}</div>
+                </div>
+                <div style="text-align:left; font-weight:800; font-size:12.5px; color:var(--accent-green); flex-shrink:0; white-space:nowrap;">${(Number(i.price) || 0).toFixed(2)} ₪</div>
+            </div>
+        `).join('');
+
+        let isDelivery = (order.fulfillmentType || 'توصيل') === 'توصيل';
+        let fulfillmentLineHtml = isDelivery
+            ? `<div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; padding:3px 0;"><span>🚚 توصيل</span><span>${(Number(order.deliveryFee) || 0).toFixed(2)} ₪</span></div>`
+            : `<div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; padding:3px 0;"><span>🏪 استلام ذاتي</span><span>-</span></div>`;
+
+        return `
+            <div style="margin-top:4px;">${itemsHtml}</div>
+            <div style="border-top:1px solid #e2e8f0; padding-top:6px; margin-top:4px;">
+                ${fulfillmentLineHtml}
+                <div style="display:flex; justify-content:space-between; font-weight:900; font-size:14px; color:var(--primary-green); border-top:1px solid #e2e8f0; margin-top:4px; padding-top:6px;">
+                    <span>الإجمالي:</span>
+                    <span>${(Number(order.total) || 0).toFixed(2)} ₪</span>
+                </div>
+            </div>
+        `;
+    }
+
     function renderOrderTrackerHtml(order) {
         let status = order.status || 'جديد';
         let currentIndex = ORDER_STAGES.findIndex(s => s.key === status);
@@ -2086,7 +2118,6 @@
             `;
         }).join(`<div style="flex: 0.4; height: 2px; background: #e2e8f0; margin-top: 15px;"></div>`);
 
-        let itemsListHtml = (order.items || []).map(i => `${i.name} (${i.quantity})`).join('، ');
         let orderLabel = (order.orderNumber !== undefined && order.orderNumber !== null && order.orderNumber !== '') ? `#${order.orderNumber}` : '';
         let mapHtml = order.status === 'قيد التوصيل'
             ? `<div style="margin-bottom: 14px;">
@@ -2105,7 +2136,7 @@
                     ${stagesHtml}
                 </div>
                 ${mapHtml}
-                <div style="font-size: 11.5px; color: #64748b; font-weight: 600; border-top: 1px solid var(--border-color); padding-top: 8px;">المنتجات: ${itemsListHtml}</div>
+                <div style="border-top: 1px solid var(--border-color); padding-top: 4px;">${renderOrderItemsDetailedHtml(order)}</div>
             </div>
         `;
     }
@@ -2272,19 +2303,14 @@
                         dateStr = `${dateOnly} - ${timeOnly}`;
                     }
                 }
-                let itemsListHtml = order.items.map(i => `${i.name} (${i.quantity})`).join('، ');
-
                 container.innerHTML += `
-                    <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 8px; border-radius: 8px; margin-bottom: 8px; font-size: 13px; font-weight: 600;">
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); padding: 10px; border-radius: 10px; margin-bottom: 8px; font-size: 13px; font-weight: 600;">
                         <div style="display: flex; justify-content: space-between; font-weight: 800; margin-bottom: 4px;">
                             <span>الحالة: <span style="color: var(--accent-green);">${order.status || 'جديد'}</span></span>
                             <span dir="ltr">${dateStr}</span>
                         </div>
-                        <div style="color: #64748b; margin-bottom: 4px;">المنتجات: ${itemsListHtml}</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 4px; font-weight: 800;">
-                            <span>المجموع: ${order.total.toFixed(2)} ₪</span>
-                            <button onclick='reorderPrevious(${JSON.stringify(order.items)})' style="background: var(--accent-green); color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 800; cursor: pointer;">إعادة الطلب 🔄</button>
-                        </div>
+                        ${renderOrderItemsDetailedHtml(order)}
+                        <button onclick='reorderPrevious(${JSON.stringify(order.items)})' style="width:100%; margin-top:8px; background: var(--accent-green); color: white; border: none; padding: 7px 10px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer;">إعادة الطلب 🔄</button>
                     </div>
                 `;
             });

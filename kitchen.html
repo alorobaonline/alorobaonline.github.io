@@ -70,6 +70,8 @@
         .product-details { display: flex; flex-direction: column; }
         .product-name { font-weight: 600; color: #1f2937; font-size: 0.75rem; }
         .product-qty { font-size: 0.7rem; color: #6b7280; }
+        .product-price { color: #16a34a; font-weight: 700; }
+        .item-checked .product-price { color: #9ca3af; }
 
         .btn-action { background: var(--accent-green); color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
         .btn-action:hover { background: #558b2f; }
@@ -515,7 +517,7 @@
                             ${imageElement}
                             <div class="product-details">
                                 <span class="product-name">${item.name || item.productName || 'منتج'}</span>
-                                <span class="product-qty">الكمية: (${qty})</span>
+                                <span class="product-qty">الكمية: (${qty}) &nbsp;•&nbsp; <span class="product-price">${(Number(item.price) || 0).toFixed(2)} ₪ × ${qty} = ${((Number(item.price) || 0) * qty).toFixed(2)} ₪</span></span>
                             </div>
                             <div class="item-edit-actions">
                                 <button class="item-mini-btn" title="تعديل الكمية" onclick="editOrderItemQty('${ord.id}', ${itemIdx})">✏️</button>
