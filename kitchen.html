@@ -686,21 +686,20 @@
     }
 
     // ===================== تعديل/حذف/استبدال منتجات الطلب =====================
-    // نعيد حساب المجموع الكلي بعد أي تعديل على المنتجات: سعر المنتجات الجديد
-    // ناقص خصم الباقات/الكوبون القديم (كما هو) زائد رسوم التوصيل (كما هي).
-    // المنتجات المعلّمة "نفذت الكمية" (unavailable) بتضل ظاهرة بالطلبية لكن ما بتحسب بالمجموع أبداً.
-    // ملاحظة: خصم الباقات ما بيتعاد حسابه من جديد حسب التركيبة الجديدة - تصحيح
-    // يدوي بسيط لحالات استثنائية (نفذت الكمية...الخ)، مش محرك تسعير كامل.
+    // نعيد حساب المجموع الكلي بعد أي تعديل على المنتجات. مهم: سعر كل صنف بمصفوفة items هو أصلاً السعر
+    // "الصافي" بعد أي خصم عرض حزمة/شراء (مو السعر الخام) - انضاف هيك لما صار كل صنف يتحفظ بسعره الحقيقي
+    // بعد الخصم مباشرة. يعني مجموع الأصناف (newSubtotal) هون أصلاً شامل الخصم جواته، فما لازم نطرح
+    // bundleDiscount مرة تانية فوقه (كان في خطأ سابق هون بيطرحه مرتين ويطلّع مجموع أوطى من الصح).
+    // الخصم الوحيد المنفصل يلي لازم نطرحه هو خصم الكوبون (discount) لأنه ما بينعكس بسعر الصنف نفسه.
     function recomputeOrderTotal(ord) {
         let newSubtotal = 0;
         (ord.items || []).forEach(it => {
             if (it.unavailable) return;
             newSubtotal += (Number(it.price) || 0) * (Number(it.quantity || it.qty) || 0);
         });
-        let bundleDiscount = Number(ord.bundleDiscount) || 0;
-        let discount = Number(ord.discount) || 0;
+        let discount = Number(ord.discount) || 0; // خصم الكوبون بس - منفصل عن خصم الحزمة/الشراء (مدمج أصلاً بسعر الصنف)
         let deliveryFee = Number(ord.deliveryFee) || 0;
-        let newTotal = newSubtotal - bundleDiscount - discount + deliveryFee;
+        let newTotal = newSubtotal - discount + deliveryFee;
         // نقرّب لخانتين عشريتين هون - جمع/طرح أسعار عشرية (زي 99.9، 25.9) بجافاسكريبت
         // بينتج أحيانًا أرقام زي 283.40000000000003 بدون هالتقريب
         return { subtotal: Number(newSubtotal.toFixed(2)), total: Number(Math.max(0, newTotal).toFixed(2)) };
@@ -713,7 +712,10 @@
         const { subtotal, total } = recomputeOrderTotal(ord);
         ord.subtotal = subtotal;
         ord.total = total;
-        const fieldsToSave = { items: newItems, subtotal: subtotal, total: total, ...(extraFields || {}) };
+        // خلّينا bundleDiscount صفر من هون وطالع، لأنه صار مدمج جوا سعر كل صنف مباشرة (subtotal صار "صافي")
+        // - أي مكان تاني بيحسب "subtotal - bundleDiscount - discount" (زي شارة 🛒 المنتجات بالأعلى) بيضل صحيح
+        ord.bundleDiscount = 0;
+        const fieldsToSave = { items: newItems, subtotal: subtotal, total: total, bundleDiscount: 0, ...(extraFields || {}) };
         Object.assign(ord, extraFields || {}); // نحدّث النسخة المحلية كمان (زي removedItemsLog) حتى تنعرض فوراً بدون انتظار الـ listener
         try {
             await window.updateDoc(window.doc(window.db, "orders", orderId), fieldsToSave);
