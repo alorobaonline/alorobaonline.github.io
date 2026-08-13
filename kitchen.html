@@ -299,10 +299,13 @@
     let isFirstSnapshot = true;
     let soundUnlocked = false;
     let catalogProducts = [];
+    let bundlesList = [];
+    let spendOffersList = [];
 
     window.addEventListener('firebase-ready', function() {
         initKitchenOrdersListener();
         loadCatalogProducts();
+        loadBundlesAndSpendOffers();
     });
 
     async function loadCatalogProducts() {
@@ -313,6 +316,170 @@
         } catch(e) {
             console.error('تعذر تحميل كتالوج المنتجات (خاصية الاستبدال قد لا تعمل):', e);
         }
+    }
+
+    // عروض الحزمة وعروض "اشتري واحصل على خصم" - حتى لما نضيف منتج نسيه الزبون من المطبخ، نقدر نطبّق
+    // نفس أسعار العروض المفعّلة (مو بس السعر العادي)، بنفس منطق المتجر والـ Cloud Function بالضبط
+    function loadBundlesAndSpendOffers() {
+        window.onSnapshot(window.collection(window.db, "bundles"), (snap) => {
+            bundlesList = [];
+            snap.forEach(docSnap => {
+                let b = docSnap.data();
+                if (b.active) bundlesList.push({ id: docSnap.id, ...b });
+            });
+        });
+        window.onSnapshot(window.doc(window.db, "settings", "spendOffers"), (docSnap) => {
+            spendOffersList = (docSnap.exists() && Array.isArray(docSnap.data().offers)) ? docSnap.data().offers : [];
+        });
+    }
+
+    // ===================== نفس منطق تسعير العروض المستخدم بالمتجر والـ Cloud Function بالضبط، =====================
+    // ===================== بس مطبّق هون على منتجات طلبية معينة بدل السلة =====================
+    function getEffectiveCatalogPrice(product) {
+        let hasSale = product.salePrice !== undefined && product.salePrice !== null && product.salePrice !== '';
+        return hasSale ? Number(product.salePrice) : Number(product.price) || 0;
+    }
+
+    function parseBundlePriceKitchen(bundle) {
+        return Number(String(bundle.priceText || "0").replace(",", ".")) || 0;
+    }
+
+    function getBundleParticipatingProductsKitchen(bundle) {
+        if (bundle.selectedItems && bundle.selectedItems.length > 0) {
+            return catalogProducts.filter(p => bundle.selectedItems.includes(p.name));
+        }
+        return catalogProducts;
+    }
+
+    function findBundleForProductKitchen(product) {
+        if (!bundlesList || bundlesList.length === 0) return null;
+        return bundlesList.find(b => {
+            if (!b.selectedItems || b.selectedItems.length === 0) return true;
+            return b.selectedItems.includes(product.name);
+        }) || null;
+    }
+
+    // توزيع خصم الحزمة على القطع الفعلية بالطلبية (نفس منطق computeBundleUnitAllocation بالمتصفح/السيرفر)
+    function computeBundleUnitAllocationKitchen(bundle, orderItems) {
+        let qtyNeeded = Number(bundle.qty) || 0;
+        let bundlePrice = parseBundlePriceKitchen(bundle);
+        let participating = getBundleParticipatingProductsKitchen(bundle);
+
+        let units = [];
+        participating.forEach(p => {
+            let it = orderItems.find(oi => oi.id === p.id && !oi.unavailable);
+            let qty = it ? Number(it.quantity || it.qty || 0) : 0;
+            let price = getEffectiveCatalogPrice(p);
+            for (let i = 0; i < qty; i++) units.push({ productId: p.id, price });
+        });
+
+        let totalSelected = units.length;
+        if (qtyNeeded <= 0 || totalSelected === 0) return { qtyNeeded, bundlePrice, sets: 0, perProduct: {} };
+
+        let sortedUnits = units.slice().sort((a, c) => c.price - a.price);
+        let sets = Math.floor(totalSelected / qtyNeeded);
+        let discountedCountTotal = sets * qtyNeeded;
+
+        let perProduct = {};
+        sortedUnits.forEach((u, idx) => {
+            if (!perProduct[u.productId]) perProduct[u.productId] = { discountedQty: 0, remainderQty: 0 };
+            if (idx < discountedCountTotal) perProduct[u.productId].discountedQty++;
+            else perProduct[u.productId].remainderQty++;
+        });
+
+        return { qtyNeeded, bundlePrice, sets, perProduct };
+    }
+
+    // ترتيب عروض الشراء حسب ترتيب إضافتهم الفعلي للطلبية (نفس منطق المتجر بالضبط) - عروض منتجات مش
+    // موجودة بالطلبية ما بتاخد "حصة" ولا بتأثر على غيرها
+    function getActiveSpendOffersInOrderItems(orderItems) {
+        let offersByProductId = new Map();
+        (spendOffersList || []).forEach(o => {
+            if (o.active && o.productId && o.threshold) offersByProductId.set(o.productId, o);
+        });
+        let ordered = [];
+        orderItems.forEach(it => {
+            if (it.unavailable) return;
+            let offer = offersByProductId.get(it.id);
+            if (offer && !ordered.includes(offer)) ordered.push(offer);
+        });
+        return ordered;
+    }
+
+    function getSpendOfferCumulativeThresholdKitchen(offer, orderItems) {
+        let inCartOrdered = getActiveSpendOffersInOrderItems(orderItems);
+        let cum = 0;
+        for (let i = 0; i < inCartOrdered.length; i++) {
+            cum += Number(inCartOrdered[i].threshold) || 0;
+            if (inCartOrdered[i] === offer) return cum;
+        }
+        let alreadyCommitted = inCartOrdered.reduce((sum, o) => sum + (Number(o.threshold) || 0), 0);
+        return alreadyCommitted + (Number(offer.threshold) || 0);
+    }
+
+    function getSpendOffersAdjustedSubtotalKitchen(orderItems) {
+        let baseSubtotal = 0;
+        orderItems.forEach(it => {
+            if (it.unavailable) return;
+            let p = catalogProducts.find(cp => cp.id === it.id);
+            let rawPrice = p ? getEffectiveCatalogPrice(p) : (Number(it.price) || 0);
+            baseSubtotal += rawPrice * (Number(it.quantity || it.qty) || 0);
+        });
+        let excluded = 0;
+        getActiveSpendOffersInOrderItems(orderItems).forEach(o => {
+            let it = orderItems.find(oi => oi.id === o.productId && !oi.unavailable);
+            let p = it ? catalogProducts.find(cp => cp.id === it.id) : null;
+            if (it && p) excluded += getEffectiveCatalogPrice(p);
+        });
+        return baseSubtotal - excluded;
+    }
+
+    // بيرجع السعر الصافي الصحيح (بعد أي خصم حزمة/عرض شراء) لمنتج معيّن ضمن قائمة منتجات طلبية معينة -
+    // نفس منطق getEffectiveLineInfo بالمتصفح بالضبط، بس معتمد على orderItems بدل السلة
+    function computeEffectivePriceForOrderItem(productId, orderItems) {
+        let product = catalogProducts.find(p => p.id === productId);
+        if (!product) return null;
+        let it = orderItems.find(oi => oi.id === productId && !oi.unavailable);
+        let quantity = it ? Number(it.quantity || it.qty || 1) : 1;
+        let basePrice = getEffectiveCatalogPrice(product);
+
+        let matchedBundle = findBundleForProductKitchen(product);
+        if (matchedBundle) {
+            let allocation = computeBundleUnitAllocationKitchen(matchedBundle, orderItems);
+            let alloc = allocation.perProduct[productId];
+            if (alloc && alloc.discountedQty > 0) {
+                let perUnitDiscountedPrice = allocation.bundlePrice / allocation.qtyNeeded;
+                let discountedQty = Math.min(alloc.discountedQty, quantity);
+                let remainderQty = quantity - discountedQty;
+                let lineTotal = discountedQty * perUnitDiscountedPrice + remainderQty * basePrice;
+                return { unitPrice: lineTotal / quantity, bundleName: matchedBundle.name };
+            }
+        }
+
+        let matchedOffer = (spendOffersList || []).find(o => o.active && o.productId === productId && o.threshold);
+        if (matchedOffer) {
+            let required = getSpendOfferCumulativeThresholdKitchen(matchedOffer, orderItems);
+            let adjustedSubtotal = getSpendOffersAdjustedSubtotalKitchen(orderItems);
+            if (adjustedSubtotal >= required) {
+                let discountedQty = Math.min(1, quantity);
+                let remainderQty = quantity - discountedQty;
+                let lineTotal = discountedQty * Number(matchedOffer.discountedPrice) + remainderQty * basePrice;
+                return { unitPrice: lineTotal / quantity, spendOfferName: product.name };
+            }
+        }
+
+        return { unitPrice: basePrice };
+    }
+
+    // بعد أي إضافة/تعديل، منعيد حساب سعر **كل** منتجات الطلبية (مش بس المنتج المضاف) لأنه إضافة قطعة
+    // جديدة ممكن تغيّر توزيع خصم الحزمة على باقي القطع (مثلاً تكمّل مجموعة جديدة مخفّضة)
+    function recomputeAllItemPricesWithPromos(orderItems) {
+        return orderItems.map(it => {
+            if (it.unavailable) return it;
+            let effective = computeEffectivePriceForOrderItem(it.id, orderItems);
+            if (!effective) return it; // منتج مش موجود بالكتالوج (نادر) - نسيبه متل ما هو
+            return { ...it, price: Number(effective.unitPrice.toFixed(2)) };
+        });
     }
 
     function initKitchenOrdersListener() {
@@ -737,7 +904,9 @@
             alert('كمية غير صالحة');
             return;
         }
-        const newItems = ord.items.map((it, i) => i === itemIdx ? { ...it, quantity: newQty, qty: newQty } : it);
+        let newItems = ord.items.map((it, i) => i === itemIdx ? { ...it, quantity: newQty, qty: newQty } : it);
+        // تغيير الكمية ممكن يفعّل/يلغي عرض حزمة أو شراء لباقي منتجات الطلبية - منعيد حساب الكل
+        newItems = recomputeAllItemPricesWithPromos(newItems);
         await saveOrderItemsUpdate(orderId, newItems);
     }
 
@@ -748,7 +917,9 @@
         if (!ord || !ord.items || !ord.items[itemIdx]) return;
         const item = ord.items[itemIdx];
         if (!confirm(`تعليم "${item.name || 'المنتج'}" كـ"نفذت الكمية"؟ رح يضل ظاهر بالطلبية (مشطوب) بس ما رح يتحسب بالمجموع.`)) return;
-        const newItems = ord.items.map((it, i) => i === itemIdx ? { ...it, unavailable: true } : it);
+        let newItems = ord.items.map((it, i) => i === itemIdx ? { ...it, unavailable: true } : it);
+        // شيل هالمنتج ممكن يفكّ مجموعة عرض حزمة كانت كاملة، فباقي القطع لازم ترجع لسعرها العادي
+        newItems = recomputeAllItemPricesWithPromos(newItems);
         const newRemovedLog = [...(ord.removedItemsLog || []), { name: item.name || 'منتج', price: Number(item.price) || 0, quantity: Number(item.quantity || item.qty) || 1 }];
         await saveOrderItemsUpdate(orderId, newItems, { removedItemsLog: newRemovedLog });
     }
@@ -757,7 +928,8 @@
     async function restoreOrderItem(orderId, itemIdx) {
         const ord = currentOrdersList.find(o => o.id === orderId);
         if (!ord || !ord.items || !ord.items[itemIdx]) return;
-        const newItems = ord.items.map((it, i) => i === itemIdx ? { ...it, unavailable: false } : it);
+        let newItems = ord.items.map((it, i) => i === itemIdx ? { ...it, unavailable: false } : it);
+        newItems = recomputeAllItemPricesWithPromos(newItems);
         await saveOrderItemsUpdate(orderId, newItems);
     }
 
@@ -923,7 +1095,7 @@
             return;
         }
 
-        const price = (product.salePrice !== undefined && product.salePrice !== null && product.salePrice !== '') ? Number(product.salePrice) : Number(product.price) || 0;
+        const rawPrice = getEffectiveCatalogPrice(product);
 
         // لو المنتج أصلاً موجود بالطلبية (ومش معلّم نفذت الكمية)، منزيد على كميته بدل ما نكرره كصف مستقل
         let existingIdx = (ord.items || []).findIndex(it => it.id === product.id && !it.unavailable);
@@ -935,11 +1107,19 @@
                 id: product.id,
                 name: product.name,
                 img: product.img || '',
-                price: price,
+                price: rawPrice,
                 quantity: qty,
                 qty: qty,
                 addedByStaff: true
             }];
+        }
+
+        // منعيد حساب سعر كل الأصناف (مش بس المضاف) - المنتج الجديد ممكن يفعّل أو يغيّر عرض حزمة/شراء
+        // كان شغال على منتجات تانية بنفس الطلبية أصلاً
+        newItems = recomputeAllItemPricesWithPromos(newItems);
+        let matchedInfo = computeEffectivePriceForOrderItem(product.id, newItems);
+        if (matchedInfo && (matchedInfo.bundleName || matchedInfo.spendOfferName) && Math.abs(matchedInfo.unitPrice - rawPrice) > 0.01) {
+            alert(`تنبيه: "${product.name}" مشمول بعرض مفعّل حالياً بالطلبية، فانحسب سعره ${matchedInfo.unitPrice.toFixed(2)}₪ بدل سعره العادي ${rawPrice.toFixed(2)}₪.`);
         }
 
         closeAddItemModal();
