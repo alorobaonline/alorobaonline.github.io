@@ -333,6 +333,26 @@
         });
     }
 
+    // نجيب أحدث نسخة من الحزم وعروض الشراء مباشرة (بدل ما نعتمد بس على onSnapshot يلي ممكن ما يكون
+    // وصل لأول تحديث له بعد لو الموظف فتح الصفحة وضاف منتج بسرعة) - نستخدمها قبل أي حساب سعر مباشرة
+    async function ensureFreshBundlesAndSpendOffers() {
+        try {
+            const [bundlesSnap, spendOffersDoc] = await Promise.all([
+                window.getDocs(window.collection(window.db, "bundles")),
+                window.getDoc(window.doc(window.db, "settings", "spendOffers"))
+            ]);
+            let freshBundles = [];
+            bundlesSnap.forEach(docSnap => {
+                let b = docSnap.data();
+                if (b.active) freshBundles.push({ id: docSnap.id, ...b });
+            });
+            bundlesList = freshBundles;
+            spendOffersList = (spendOffersDoc.exists() && Array.isArray(spendOffersDoc.data().offers)) ? spendOffersDoc.data().offers : [];
+        } catch(e) {
+            console.error('تعذر تحديث بيانات العروض قبل الحساب:', e);
+        }
+    }
+
     // ===================== نفس منطق تسعير العروض المستخدم بالمتجر والـ Cloud Function بالضبط، =====================
     // ===================== بس مطبّق هون على منتجات طلبية معينة بدل السلة =====================
     function getEffectiveCatalogPrice(product) {
@@ -905,7 +925,9 @@
             return;
         }
         let newItems = ord.items.map((it, i) => i === itemIdx ? { ...it, quantity: newQty, qty: newQty } : it);
-        // تغيير الكمية ممكن يفعّل/يلغي عرض حزمة أو شراء لباقي منتجات الطلبية - منعيد حساب الكل
+        // تغيير الكمية ممكن يفعّل/يلغي عرض حزمة أو شراء لباقي منتجات الطلبية - منحدث بيانات العروض
+        // لأحدث نسخة أول (تحسباً لو ما وصلت onSnapshot لسا) وبعدين نعيد حساب الكل
+        await ensureFreshBundlesAndSpendOffers();
         newItems = recomputeAllItemPricesWithPromos(newItems);
         await saveOrderItemsUpdate(orderId, newItems);
     }
@@ -919,6 +941,7 @@
         if (!confirm(`تعليم "${item.name || 'المنتج'}" كـ"نفذت الكمية"؟ رح يضل ظاهر بالطلبية (مشطوب) بس ما رح يتحسب بالمجموع.`)) return;
         let newItems = ord.items.map((it, i) => i === itemIdx ? { ...it, unavailable: true } : it);
         // شيل هالمنتج ممكن يفكّ مجموعة عرض حزمة كانت كاملة، فباقي القطع لازم ترجع لسعرها العادي
+        await ensureFreshBundlesAndSpendOffers();
         newItems = recomputeAllItemPricesWithPromos(newItems);
         const newRemovedLog = [...(ord.removedItemsLog || []), { name: item.name || 'منتج', price: Number(item.price) || 0, quantity: Number(item.quantity || item.qty) || 1 }];
         await saveOrderItemsUpdate(orderId, newItems, { removedItemsLog: newRemovedLog });
@@ -929,6 +952,7 @@
         const ord = currentOrdersList.find(o => o.id === orderId);
         if (!ord || !ord.items || !ord.items[itemIdx]) return;
         let newItems = ord.items.map((it, i) => i === itemIdx ? { ...it, unavailable: false } : it);
+        await ensureFreshBundlesAndSpendOffers();
         newItems = recomputeAllItemPricesWithPromos(newItems);
         await saveOrderItemsUpdate(orderId, newItems);
     }
@@ -1115,7 +1139,9 @@
         }
 
         // منعيد حساب سعر كل الأصناف (مش بس المضاف) - المنتج الجديد ممكن يفعّل أو يغيّر عرض حزمة/شراء
-        // كان شغال على منتجات تانية بنفس الطلبية أصلاً
+        // كان شغال على منتجات تانية بنفس الطلبية أصلاً. منحدث بيانات العروض لأحدث نسخة أول
+        // (تحسباً لو الموظف فتح الصفحة وضاف منتج بسرعة قبل ما توصل onSnapshot)
+        await ensureFreshBundlesAndSpendOffers();
         newItems = recomputeAllItemPricesWithPromos(newItems);
         let matchedInfo = computeEffectivePriceForOrderItem(product.id, newItems);
         if (matchedInfo && (matchedInfo.bundleName || matchedInfo.spendOfferName) && Math.abs(matchedInfo.unitPrice - rawPrice) > 0.01) {
