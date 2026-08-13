@@ -4588,6 +4588,28 @@
             return;
         }
 
+        // ننظّف السلة أول شي من أي منتج انحذف من الكتالوج (مثلاً كان بالسلة من زيارة سابقة والأدمن حذفه
+        // بعدين) - حتى ما توصل رسالة خطأ تقنية غير مفهومة للزبون من السيرفر، ونعطيه سبب واضح بدل هيك
+        let removedProductNames = [];
+        cart = cart.filter(item => {
+            let stillExists = products.some(p => p.id == item.id);
+            if (!stillExists) removedProductNames.push(item.name || 'منتج');
+            return stillExists;
+        });
+        if (removedProductNames.length > 0) {
+            saveCartToLocalStorage();
+            updateCartStateUI();
+            if (document.getElementById('cartModal').style.display === 'flex') {
+                renderCartModalProducts();
+            }
+            alert('عذرًا، هاي المنتجات صارت غير متوفرة حالياً وتم حذفها من سلتك:\n' + removedProductNames.join('، ') + '\n\nراجع سلتك وكمّل الطلب.');
+            return;
+        }
+        if (cart.length === 0) {
+            alert('سلتك فاضية، ضيف منتجات أول قبل ما تكمل الطلب.');
+            return;
+        }
+
         let type = document.querySelector('input[name="fulfillmentType"]:checked').value;
         const name = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('customerPhone').value.trim();
@@ -4680,8 +4702,13 @@
             showOrderSuccessScreen(newOrder);
         } catch(e) {
             console.error(e);
-            // e.message من HttpsError بيكون بالعربي (نفس رسالة الفنكشن) لو الرفض كان بسبب مخزون/تحقق
-            alert("خطأ في إرسال الطلب: " + (e.message || e));
+            // e.message من HttpsError بيكون بالعربي (نفس رسالة الفنكشن) لو الرفض كان بسبب مخزون/تحقق.
+            // لو كانت "منتج غير موجود" (نادر - لو انحذف من الكتالوج بالضبط لحظة الإرسال بعد ما فحصنا فوق)،
+            // نعطي رسالة مفهومة للزبون بدل معرّف المنتج التقني
+            let friendlyMsg = (e.message || '').includes('منتج غير موجود')
+                ? 'عذرًا، أحد المنتجات بسلتك صار غير متوفر. أعد فتح الصفحة وحاول من جديد.'
+                : (e.message || e);
+            alert("خطأ في إرسال الطلب: " + friendlyMsg);
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerText = 'إرسال الطلبية والدفع 💳🚀';
