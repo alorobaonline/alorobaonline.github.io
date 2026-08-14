@@ -832,12 +832,13 @@
             let notesVal = ord.notes || ord.orderNotes || ord.customerNotes || '';
             let notesHtml = notesVal ? `<div class="order-notes">📝 ملاحظة الزبون: ${notesVal}</div>` : '';
 
-            let allChecked = isOrderFullyChecked(ord);
+            let isPickupOrderRow = (ord.fulfillmentType || 'توصيل') === 'استلام ذاتي';
+            let allChecked = isOrderFullyChecked(ord) || isPickupOrderRow; // بالاستلام الذاتي مش شرط تشطيب كل المنتجات، الزبون بيجي ونقله ايش ناقص أو نبدله بالمحل
             let actionButtonHtml = currentStatus === 'جاهز للاستلام'
                 ? `<button class="btn-action" style="background:#7c3aed;" onclick="markPickupCollected('${ord.id}')">✅ تم الاستلام والدفع</button>`
                 : currentStatus === 'قيد التحضير'
-                ? `<button class="btn-action" id="readyBtn_${ord.id}" ${allChecked ? '' : 'disabled'} onclick="markOrderReady('${ord.id}')">✅ ${((ord.fulfillmentType || 'توصيل') === 'استلام ذاتي') ? 'تم التجهيز - جاهز للاستلام' : 'تم التحضير - جاهز للتوصيل'}</button>
-                   <div class="ready-hint" id="readyHint_${ord.id}" style="${allChecked ? 'display:none;' : ''}">✅ علّم كل المنتجات (اشطبها) أولاً عشان تقدر تكمّل</div>`
+                ? `<button class="btn-action" id="readyBtn_${ord.id}" ${allChecked ? '' : 'disabled'} onclick="markOrderReady('${ord.id}')">✅ ${isPickupOrderRow ? 'تم التجهيز - جاهز للاستلام' : 'تم التحضير - جاهز للتوصيل'}</button>
+                   ${isPickupOrderRow ? '' : `<div class="ready-hint" id="readyHint_${ord.id}" style="${allChecked ? 'display:none;' : ''}">✅ علّم كل المنتجات (اشطبها) أولاً عشان تقدر تكمّل</div>`}`
                 : `<button class="btn-action btn-prepare-action" onclick="startPreparingOrder('${ord.id}')">🔥 بدء التحضير</button>`;
 
             let productsTotalForDisplay = (Number(ord.subtotal) || 0) - (Number(ord.bundleDiscount) || 0) - (Number(ord.discount) || 0);
@@ -935,7 +936,7 @@
         let row = checkboxEl.closest('.product-item-row');
         if (row) row.classList.toggle('item-checked', checkboxEl.checked);
 
-        let allChecked = isOrderFullyChecked(ord);
+        let allChecked = isOrderFullyChecked(ord) || (ord.fulfillmentType || 'توصيل') === 'استلام ذاتي';
         let btn = document.getElementById(`readyBtn_${orderId}`);
         let hint = document.getElementById(`readyHint_${orderId}`);
         if (btn) btn.disabled = !allChecked;
@@ -1277,12 +1278,14 @@
 
     async function markOrderReady(orderId) {
         let ord = currentOrdersList.find(o => o.id === orderId);
-        if (!isOrderFullyChecked(ord)) {
+        let isPickupOrder = (ord.fulfillmentType || 'توصيل') === 'استلام ذاتي';
+
+        // شرط تشطيب كل المنتجات ينطبق بس على التوصيل - بالاستلام الذاتي الزبون بيجي ونقله ايش ناقص
+        // أو يبدله بالمحل مباشرة، فما في داعي نوقفه هون
+        if (!isPickupOrder && !isOrderFullyChecked(ord)) {
             alert("لازم تعلّم (تشطب) كل المنتجات كمجهّزة أولاً قبل ما ترسل الطلب للسائق ✅");
             return;
         }
-
-        let isPickupOrder = (ord.fulfillmentType || 'توصيل') === 'استلام ذاتي';
 
         if (isPickupOrder) {
             // استلام ذاتي - ما بتروح لشاشة السائق إطلاقاً، بتضل بالمطبخ لحد ما الزبون يجي ويدفع
