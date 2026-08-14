@@ -534,7 +534,7 @@
         // بدل ما نحمّل كل تاريخ الطلبات كل مرة (هذا كان يبطّئ الشاشة مع تراكم الطلبات)
         const activeQuery = window.query(
             window.collection(window.db, "orders"),
-            window.where("status", "in", ["جديد", "new", "قيد التحضير"])
+            window.where("status", "in", ["جديد", "new", "قيد التحضير", "جاهز للاستلام"])
         );
         window.onSnapshot(activeQuery, (snapshot) => {
             let allOrders = [];
@@ -543,7 +543,7 @@
             });
             currentOrdersList = allOrders;
 
-            let activeOrders = allOrders.filter(o => !o.status || o.status === "جديد" || o.status === "new" || o.status === "قيد التحضير");
+            let activeOrders = allOrders.filter(o => !o.status || o.status === "جديد" || o.status === "new" || o.status === "قيد التحضير" || o.status === "جاهز للاستلام");
             let currentIds = new Set(activeOrders.map(o => o.id));
 
             if (!isFirstSnapshot) {
@@ -750,7 +750,7 @@
         const container = document.getElementById('kitchenOrdersContainer');
         if(!container) return;
         
-        let activeOrders = orders.filter(o => !o.status || o.status === "جديد" || o.status === "new" || o.status === "قيد التحضير");
+        let activeOrders = orders.filter(o => !o.status || o.status === "جديد" || o.status === "new" || o.status === "قيد التحضير" || o.status === "جاهز للاستلام");
 
         // ترتيب الطلبات: الأقدم أولاً (أعلى القائمة) عشان ما يتنسى ولا طلب
         activeOrders.sort((a, b) => {
@@ -821,7 +821,9 @@
             let orderLabel = (ord.orderNumber !== undefined && ord.orderNumber !== null && ord.orderNumber !== '') ? `#${ord.orderNumber}` : `#${index + 1}`;
 
             let currentStatus = ord.status || "جديد";
-            let statusBadgeHtml = currentStatus === 'قيد التحضير'
+            let statusBadgeHtml = currentStatus === 'جاهز للاستلام'
+                ? `<span class="status-badge" style="background:#ede9fe; color:#5b21b6;">🏪 جاهز للاستلام</span>`
+                : currentStatus === 'قيد التحضير'
                 ? `<span class="status-badge status-preparing">🔥 قيد التحضير</span>`
                 : `<span class="status-badge status-new">🆕 جديد</span>`;
 
@@ -831,9 +833,11 @@
             let notesHtml = notesVal ? `<div class="order-notes">📝 ملاحظة الزبون: ${notesVal}</div>` : '';
 
             let allChecked = isOrderFullyChecked(ord);
-            let actionButtonHtml = currentStatus === 'قيد التحضير'
-                ? `<button class="btn-action" id="readyBtn_${ord.id}" ${allChecked ? '' : 'disabled'} onclick="markOrderReady('${ord.id}')">✅ تم التحضير - جاهز للتوصيل</button>
-                   <div class="ready-hint" id="readyHint_${ord.id}" style="${allChecked ? 'display:none;' : ''}">✅ علّم كل المنتجات (اشطبها) أولاً عشان تقدر ترسل الطلب للسائق</div>`
+            let actionButtonHtml = currentStatus === 'جاهز للاستلام'
+                ? `<button class="btn-action" style="background:#7c3aed;" onclick="markPickupCollected('${ord.id}')">✅ تم الاستلام والدفع</button>`
+                : currentStatus === 'قيد التحضير'
+                ? `<button class="btn-action" id="readyBtn_${ord.id}" ${allChecked ? '' : 'disabled'} onclick="markOrderReady('${ord.id}')">✅ ${((ord.fulfillmentType || 'توصيل') === 'استلام ذاتي') ? 'تم التجهيز - جاهز للاستلام' : 'تم التحضير - جاهز للتوصيل'}</button>
+                   <div class="ready-hint" id="readyHint_${ord.id}" style="${allChecked ? 'display:none;' : ''}">✅ علّم كل المنتجات (اشطبها) أولاً عشان تقدر تكمّل</div>`
                 : `<button class="btn-action btn-prepare-action" onclick="startPreparingOrder('${ord.id}')">🔥 بدء التحضير</button>`;
 
             let productsTotalForDisplay = (Number(ord.subtotal) || 0) - (Number(ord.bundleDiscount) || 0) - (Number(ord.discount) || 0);
@@ -1278,6 +1282,23 @@
             return;
         }
 
+        let isPickupOrder = (ord.fulfillmentType || 'توصيل') === 'استلام ذاتي';
+
+        if (isPickupOrder) {
+            // استلام ذاتي - ما بتروح لشاشة السائق إطلاقاً، بتضل بالمطبخ لحد ما الزبون يجي ويدفع
+            if (!confirm("هل أنت متأكد من أن الطلب جاهز للاستلام من الزبون؟")) return;
+            try {
+                await window.updateDoc(window.doc(window.db, "orders", orderId), {
+                    status: "جاهز للاستلام"
+                });
+                sendOrderNotification(ord.customerPhone, `📦 طلبك ${getOrderLabelFor(ord)} جاهز! تقدر تجي تستلمه من المتجر - العروبة أونلاين`);
+            } catch(e) {
+                console.error(e);
+                alert("خطأ أثناء تحديث حالة الطلب.");
+            }
+            return;
+        }
+
         if(confirm("هل أنت متأكد من أن الطلب جاهز للتوصيل؟")) {
             try {
                 await window.updateDoc(window.doc(window.db, "orders", orderId), {
@@ -1288,6 +1309,33 @@
                 console.error(e);
                 alert("خطأ أثناء تحديث حالة الطلب.");
             }
+        }
+    }
+
+    // لما الزبون يجي فعلياً للمتجر ويدفع ويستلم طلبيته (استلام ذاتي) - نكمّل الطلبية من هون مباشرة
+    // بدون ما تحتاج تمر على شاشة السائق إطلاقاً، ونحدّث إحصائيات المبيعات متل ما بيصير بالتوصيل تماماً
+    async function markPickupCollected(orderId) {
+        let ord = currentOrdersList.find(o => o.id === orderId);
+        if (!ord) return;
+        if (!confirm("هل استلم الزبون طلبيته ودفع فعلياً؟")) return;
+        try {
+            let orderTotal = Number(ord.total) || 0;
+            await window.updateDoc(window.doc(window.db, "orders", orderId), {
+                status: "مكتمل",
+                completedAt: window.serverTimestamp()
+            });
+            await window.setDoc(window.doc(window.db, "settings", "salesStats"), {
+                totalRevenue: window.increment(orderTotal),
+                completedCount: window.increment(1)
+            }, { merge: true });
+            const todayKey = new Date().toISOString().slice(0, 10);
+            await window.setDoc(window.doc(window.db, "salesStatsDaily", todayKey), {
+                revenue: window.increment(orderTotal),
+                completedCount: window.increment(1)
+            }, { merge: true });
+        } catch(e) {
+            console.error(e);
+            alert("خطأ أثناء تأكيد الاستلام: " + (e.message || e));
         }
     }
 

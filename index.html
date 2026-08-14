@@ -2068,12 +2068,19 @@
         }
     }
 
-    // خطوات تتبّع الطلبية من الاستلام للتسليم
+    // خطوات تتبّع الطلبية من الاستلام للتسليم (توصيل)
     const ORDER_STAGES = [
         { key: 'جديد', label: 'تم استلام الطلب', icon: '🆕' },
         { key: 'قيد التحضير', label: 'قيد التحضير', icon: '🍳' },
         { key: 'جاهز للتوصيل', label: 'جاهزة، وقريبًا بالطريق إليك', icon: '📦' },
         { key: 'قيد التوصيل', label: 'السائق في الطريق إليك', icon: '🛵' }
+    ];
+
+    // نفس الخطوات بس لطلبيات الاستلام الذاتي - ما في سائق ولا توصيل، بتوقف عند "جاهزة بانتظارك بالمتجر"
+    const PICKUP_ORDER_STAGES = [
+        { key: 'جديد', label: 'تم استلام الطلب', icon: '🆕' },
+        { key: 'قيد التحضير', label: 'قيد التحضير', icon: '🍳' },
+        { key: 'جاهز للاستلام', label: 'جاهزة بانتظارك بالمتجر', icon: '🏪' }
     ];
 
     // بطاقة تفصيلية لمنتجات الطلبية: صورة + اسم + كمية + السعر الفعلي بعد أي خصم لكل صنف،
@@ -2124,10 +2131,12 @@
 
     function renderOrderTrackerHtml(order) {
         let status = order.status || 'جديد';
-        let currentIndex = ORDER_STAGES.findIndex(s => s.key === status);
+        let isPickupOrder = (order.fulfillmentType || 'توصيل') === 'استلام ذاتي';
+        let stagesList = isPickupOrder ? PICKUP_ORDER_STAGES : ORDER_STAGES;
+        let currentIndex = stagesList.findIndex(s => s.key === status);
         if (currentIndex === -1) currentIndex = 0;
 
-        let stagesHtml = ORDER_STAGES.map((stage, idx) => {
+        let stagesHtml = stagesList.map((stage, idx) => {
             let state = idx < currentIndex ? 'done' : (idx === currentIndex ? 'active' : 'pending');
             let color = state === 'pending' ? '#cbd5e1' : 'var(--accent-green)';
             return `
@@ -2229,7 +2238,7 @@
         let container = document.getElementById('myCurrentOrderContent');
         stopCurrentOrderTracking();
 
-        const activeStatuses = ["جديد", "new", "قيد التحضير", "جاهز للتوصيل", "قيد التوصيل"];
+        const activeStatuses = ["جديد", "new", "قيد التحضير", "جاهز للتوصيل", "قيد التوصيل", "جاهز للاستلام"];
         let storedOrderId = null;
         try { storedOrderId = localStorage.getItem('aloroba_current_order_id'); } catch(e) {}
 
