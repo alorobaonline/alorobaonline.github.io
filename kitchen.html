@@ -236,11 +236,23 @@
 </div>
 
 
-<div id="newOrderBanner" onclick="dismissNewOrderAlert()" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(220,38,38,0.96); flex-direction: column; align-items: center; justify-content: center; cursor: pointer; animation: bannerPulse 1s infinite;">
+<div id="newOrderBanner" onclick="openNewOrdersPopup()" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(220,38,38,0.96); flex-direction: column; align-items: center; justify-content: center; cursor: pointer; animation: bannerPulse 1s infinite;">
     <div style="font-size: 4rem; margin-bottom: 10px;">🔔</div>
     <div style="color: white; font-size: 1.4rem; font-weight: 900; margin-bottom: 8px;">طلبية جديدة وصلت!</div>
-    <div style="color: white; font-size: 0.85rem; font-weight: 700; background: rgba(255,255,255,0.2); padding: 10px 24px; border-radius: 30px; margin-top: 14px;">✅ اضغط هنا عشان توقف التنبيه</div>
+    <div style="color: white; font-size: 0.85rem; font-weight: 700; background: rgba(255,255,255,0.2); padding: 10px 24px; border-radius: 30px; margin-top: 14px;">👀 اضغط هنا عشان تشوف الطلبية</div>
 </div>
+
+<!-- نافذة تعرض تفاصيل الطلبيات الجديدة يلي لسا ما اتشافت - عشان ما تحتاج تدور بقائمة طويلة -->
+<div id="newOrdersPopup" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:20000; align-items:center; justify-content:center; padding:16px;">
+    <div style="background:white; border-radius:16px; padding:14px; max-width:420px; width:100%; max-height:85vh; display:flex; flex-direction:column;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <h3 style="font-size:0.95rem; font-weight:900; color:#dc2626;">🔔 طلبيات جديدة</h3>
+            <button onclick="closeNewOrdersPopup()" style="background:#f1f5f9; border:none; width:26px; height:26px; border-radius:8px; font-weight:900; cursor:pointer;">✕</button>
+        </div>
+        <div id="newOrdersPopupBody" style="overflow-y:auto; flex:1;"></div>
+    </div>
+</div>
+
 <style>
 @keyframes bannerPulse {
     0%, 100% { background: rgba(220,38,38,0.96); }
@@ -305,6 +317,7 @@
     let catalogProducts = [];
     let bundlesList = [];
     let spendOffersList = [];
+    let pendingNewOrderIds = [];
 
     window.addEventListener('firebase-ready', function() {
         initKitchenOrdersListener();
@@ -524,8 +537,11 @@
             let currentIds = new Set(activeOrders.map(o => o.id));
 
             if (!isFirstSnapshot) {
-                let hasNewOrder = activeOrders.some(o => !knownActiveOrderIds.has(o.id));
-                if (hasNewOrder) showNewOrderAlert();
+                let newOnes = activeOrders.filter(o => !knownActiveOrderIds.has(o.id));
+                if (newOnes.length > 0) {
+                    newOnes.forEach(o => { if (!pendingNewOrderIds.includes(o.id)) pendingNewOrderIds.push(o.id); });
+                    showNewOrderAlert();
+                }
             }
             isFirstSnapshot = false;
             knownActiveOrderIds = currentIds;
@@ -616,6 +632,53 @@
         }
         let banner = document.getElementById('newOrderBanner');
         if (banner) banner.style.display = 'none';
+    }
+
+    // بيوقف صوت/وميض التنبيه، وبيفتح نافذة فيها تفاصيل كل الطلبيات الجديدة يلي وصلت من آخر مرة
+    // شافها الموظف (ممكن تكون أكتر من طلبية لو وصلت أكتر من وحدة بنفس الوقت) - عشان ما يحتاج يدور
+    // بقائمة طويلة يلقى الطلبية الجديدة
+    function openNewOrdersPopup() {
+        dismissNewOrderAlert();
+        const body = document.getElementById('newOrdersPopupBody');
+        const newOrders = currentOrdersList.filter(o => pendingNewOrderIds.includes(o.id));
+
+        if (newOrders.length === 0) {
+            body.innerHTML = '<p style="text-align:center; color:#888; font-size:0.8rem; padding:15px;">ما في طلبيات جديدة حالياً</p>';
+        } else {
+            body.innerHTML = newOrders.map(ord => {
+                const orderLabel = (ord.orderNumber !== undefined && ord.orderNumber !== null && ord.orderNumber !== '') ? `#${ord.orderNumber}` : '';
+                const itemsListHtml = (ord.items || []).map(it => `<li>${it.name || 'منتج'} × ${it.quantity || it.qty || 1}</li>`).join('');
+                let isPickupPopup = (ord.fulfillmentType || 'توصيل') === 'استلام ذاتي';
+                let popupFulfillmentBadge = isPickupPopup
+                    ? `<span style="background:#f5f3ff; border:1px solid #ddd6fe; color:#5b21b6; font-size:0.62rem; font-weight:800; padding:2px 7px; border-radius:6px;">🏪 استلام ذاتي</span>`
+                    : `<span style="background:#f0f9ff; border:1px solid #bae6fd; color:#0369a1; font-size:0.62rem; font-weight:800; padding:2px 7px; border-radius:6px;">🚚 توصيل</span>`;
+                return `
+                    <div style="border:1.5px solid #fecaca; background:#fef2f2; border-radius:12px; padding:10px; margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; font-weight:900; font-size:0.85rem; margin-bottom:4px;">
+                            <span>طلب ${orderLabel} - ${ord.customerName || 'زبون'}</span>
+                            <span style="color:#16a34a;">${ord.total || 0} ₪</span>
+                        </div>
+                        <div style="margin-bottom:6px;">${popupFulfillmentBadge}</div>
+                        <div style="font-size:0.7rem; color:#6b7280; margin-bottom:6px;">${ord.customerPhone || ''}</div>
+                        <ul style="margin:0 0 8px; padding-right:18px; font-size:0.75rem; font-weight:600; color:#374151;">${itemsListHtml}</ul>
+                        <button class="btn-secondary-action" style="width:100%; background:#16a34a; color:white; border:none;" onclick="startPreparingOrder('${ord.id}'); markNewOrderSeen('${ord.id}')">🔥 بدء التحضير</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        document.getElementById('newOrdersPopup').style.display = 'flex';
+    }
+
+    function closeNewOrdersPopup() {
+        document.getElementById('newOrdersPopup').style.display = 'none';
+        pendingNewOrderIds = [];
+    }
+
+    function markNewOrderSeen(orderId) {
+        pendingNewOrderIds = pendingNewOrderIds.filter(id => id !== orderId);
+        if (pendingNewOrderIds.length === 0) closeNewOrdersPopup();
+        else openNewOrdersPopup();
     }
 
     function formatOrderTime(ord) {
@@ -770,13 +833,20 @@
                 ? `<button class="btn-action" style="background:#25D366; margin-top:4px;" onclick="notifyCustomerRemovedItems('${ord.id}')">📤 إشعار الزبون بالمنتجات المحذوفة (${ord.removedItemsLog.length})</button>`
                 : '';
 
+            let isPickup = (ord.fulfillmentType || 'توصيل') === 'استلام ذاتي';
+            let fulfillmentBorderColor = isPickup ? '#8b5cf6' : '#0ea5e9'; // بنفسجي = استلام ذاتي، أزرق = توصيل
+            let fulfillmentBadgeHtml = isPickup
+                ? `<span style="background:#f5f3ff; border:1px solid #ddd6fe; color:#5b21b6; font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:8px;">🏪 استلام ذاتي</span>`
+                : `<span style="background:#f0f9ff; border:1px solid #bae6fd; color:#0369a1; font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:8px;">🚚 توصيل</span>`;
+
             container.innerHTML += `
-                <div class="order-card">
+                <div class="order-card" style="border-right: 5px solid ${fulfillmentBorderColor};">
                     <div class="order-header">
                         <span>طلب ${orderLabel} - ${ord.customerName || ord.clientName || 'زبون'} ${statusBadgeHtml}</span>
                         <span style="color: #16a34a;">${ord.total || 0} ₪</span>
                     </div>
                     <div style="display:flex; gap:8px; margin: 4px 0 8px 0; flex-wrap: wrap;">
+                        ${fulfillmentBadgeHtml}
                         <span style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:8px;">🛒 المنتجات: ${productsTotalForDisplay.toFixed(2)} ₪</span>
                         <span style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:8px;">🚚 التوصيل: ${deliveryFeeForDisplay.toFixed(2)} ₪</span>
                     </div>
