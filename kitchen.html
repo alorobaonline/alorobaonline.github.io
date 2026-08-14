@@ -318,6 +318,16 @@
     let bundlesList = [];
     let spendOffersList = [];
     let pendingNewOrderIds = [];
+    let expandedOrderIds = new Set();
+
+    function toggleOrderExpanded(orderId) {
+        if (expandedOrderIds.has(orderId)) {
+            expandedOrderIds.delete(orderId);
+        } else {
+            expandedOrderIds.add(orderId);
+        }
+        renderKitchenOrders(currentOrdersList);
+    }
 
     window.addEventListener('firebase-ready', function() {
         initKitchenOrdersListener();
@@ -677,6 +687,7 @@
 
     function markNewOrderSeen(orderId) {
         pendingNewOrderIds = pendingNewOrderIds.filter(id => id !== orderId);
+        expandedOrderIds.add(orderId); // نفتحها موسّعة بالقائمة الرئيسية أول ما يبلش تحضيرها من النافذة
         if (pendingNewOrderIds.length === 0) closeNewOrdersPopup();
         else openNewOrdersPopup();
     }
@@ -839,18 +850,23 @@
                 ? `<span style="background:#f5f3ff; border:1px solid #ddd6fe; color:#5b21b6; font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:8px;">🏪 استلام ذاتي</span>`
                 : `<span style="background:#f0f9ff; border:1px solid #bae6fd; color:#0369a1; font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:8px;">🚚 توصيل</span>`;
 
+            let isExpanded = expandedOrderIds.has(ord.id);
+
             container.innerHTML += `
-                <div class="order-card" style="border-right: 5px solid ${fulfillmentBorderColor};">
-                    <div class="order-header">
+                <div class="order-card" style="border-right: 5px solid ${fulfillmentBorderColor}; padding-bottom: ${isExpanded ? '12px' : '8px'};">
+                    <div class="order-header" style="cursor:pointer;" onclick="toggleOrderExpanded('${ord.id}')">
                         <span>طلب ${orderLabel} - ${ord.customerName || ord.clientName || 'زبون'} ${statusBadgeHtml}</span>
-                        <span style="color: #16a34a;">${ord.total || 0} ₪</span>
+                        <span style="display:flex; align-items:center; gap:6px;">
+                            <span style="color: #16a34a;">${ord.total || 0} ₪</span>
+                            <span style="font-size:0.7rem; color:#94a3b8;">${isExpanded ? '▲' : '▼'}</span>
+                        </span>
                     </div>
-                    <div style="display:flex; gap:8px; margin: 4px 0 8px 0; flex-wrap: wrap;">
+                    <div style="display:flex; gap:8px; margin: 4px 0 ${isExpanded ? '8px' : '0'}; flex-wrap: wrap;">
                         ${fulfillmentBadgeHtml}
                         <span style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:8px;">🛒 المنتجات: ${productsTotalForDisplay.toFixed(2)} ₪</span>
                         <span style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:8px;">🚚 التوصيل: ${deliveryFeeForDisplay.toFixed(2)} ₪</span>
                     </div>
-                    
+                    <div style="${isExpanded ? '' : 'display:none;'}">
                     <div class="order-info">
                         <p><strong>الهاتف:</strong> ${ord.customerPhone || ord.phone || ''}</p>
                         <p><strong>العنوان:</strong> ${ord.customerAddress || ord.address || ''}</p>
@@ -869,6 +885,7 @@
                     ${actionButtonHtml}
                     <button class="btn-secondary-action" onclick="printOrder('${ord.id}')">🖨️ طباعة فاتورة التحضير</button>
                     <button class="btn-secondary-action" style="background:#fee2e2; color:#991b1b; border-color:#fecaca;" onclick="cancelWholeOrder('${ord.id}')">❌ إلغاء الطلبية بالكامل</button>
+                    </div>
                 </div>
             `;
         });
