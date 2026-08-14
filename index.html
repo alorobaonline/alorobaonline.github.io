@@ -1492,6 +1492,12 @@
             const fab = document.getElementById('subscribeFab');
             if (fab) fab.style.display = 'none';
             alert('✅ تم تسجيلك بنجاح! رح نبعتلك عروضنا الجديدة عبر واتساب');
+            // نفتحله واتساب المتجر برسالة جاهزة، حتى تتسجل محادثة مباشرة بين الزبون والمتجر فوراً
+            // (مفيد لحد ما يتفعّل نظام واتساب بزنس رسمي للإرسال الجماعي)
+            if (storeWhatsappNumber) {
+                let readyMessage = 'مرحباً، حابب أشترك بعروضكم عبر واتساب 🔔';
+                window.open(`https://wa.me/${storeWhatsappNumber}?text=${encodeURIComponent(readyMessage)}`, '_blank');
+            }
         } catch(e) {
             console.error(e);
             errEl.innerText = '❌ ' + (e.message || 'تعذر التسجيل، حاول مرة أخرى');
