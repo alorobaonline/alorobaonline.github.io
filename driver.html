@@ -411,7 +411,10 @@
                     <div class="order-card">
                         <div class="order-header">
                             <span>${seqBadgeHtml}طلب ${orderLabel} - ${escapeHtml(ord.customerName) || 'زبون'} ${statusBadgeHtml}</span>
-                            <span style="color: #16a34a;">${ord.total || 0} ₪</span>
+                            <span style="display:flex; align-items:center; gap:6px;">
+                                <span style="color: #16a34a;">${ord.total || 0} ₪</span>
+                                <button onclick="cancelOrderByDriver('${ord.id}')" title="إلغاء الطلبية" style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:6px; width:22px; height:22px; font-size:11px; line-height:1; cursor:pointer; flex-shrink:0;">❌</button>
+                            </span>
                         </div>
                         <div style="font-size: 0.7rem; margin-bottom: 4px;"><b>الهاتف:</b> <a href="${buildWhatsAppLink(ord.customerPhone)}" target="_blank" rel="noopener" style="color: #059669; text-decoration: underline; font-weight: 800;">${escapeHtml(ord.customerPhone)}</a></div>
                         <div style="font-size: 0.7rem; margin-bottom: 6px;"><b>العنوان:</b> ${escapeHtml(ord.customerAddress || ord.address)}</div>
@@ -575,6 +578,27 @@
                 console.error(e);
                 alert("خطأ أثناء تحديث حالة الطلب.");
             }
+        }
+    }
+
+    // الزبون ما رد عالتلفون أو غيّر رأيه ومش بده الطلبية - منسجلها "ملغية" (مش حذف نهائي) حتى تضل
+    // موجودة بالسجل للمراجعة لاحقاً، وبتختفي تلقائياً من قائمة السائق (الاستعلام بيجيب بس "جاهز للتوصيل"/"قيد التوصيل")
+    async function cancelOrderByDriver(orderId) {
+        const ord = currentOrdersList.find(o => o.id === orderId);
+        const label = ord ? `#${ord.orderNumber || orderId}` : '';
+        const reason = prompt(`سبب إلغاء الطلبية ${label} (اختياري - مثلاً: الزبون ما رد عالتلفون):`, '');
+        if (reason === null) return; // ضغط إلغاء بمربع السبب - نوقف كمان
+        if (!confirm(`متأكد من إلغاء الطلبية ${label}؟`)) return;
+        try {
+            await window.updateDoc(window.doc(window.db, "orders", orderId), {
+                status: "ملغية",
+                cancelledAt: window.serverTimestamp(),
+                cancelledBy: "السائق",
+                cancelReason: reason || ''
+            });
+        } catch(e) {
+            console.error(e);
+            alert("خطأ أثناء إلغاء الطلبية: " + (e.message || e));
         }
     }
 
