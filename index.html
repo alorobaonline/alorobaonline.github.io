@@ -1498,7 +1498,7 @@
             // نفتحله واتساب المتجر برسالة جاهزة، حتى تتسجل محادثة مباشرة بين الزبون والمتجر فوراً
             // (مفيد لحد ما يتفعّل نظام واتساب بزنس رسمي للإرسال الجماعي)
             if (storeWhatsappNumber) {
-                let readyMessage = 'مرحباً، حابب أشترك بعروضكم عبر واتساب 🔔';
+                let readyMessage = 'مرحباً 👋 حفظت رقمكم عشان ألحق عروضكم الجديدة على الحالة (Status) 🔔 محتاج تحفظوا رقمي كمان لو سمحتوا 🙏';
                 window.open(`https://wa.me/${storeWhatsappNumber}?text=${encodeURIComponent(readyMessage)}`, '_blank');
             }
         } catch(e) {
@@ -4784,6 +4784,9 @@
             <div style="font-size:11.5px; color:#94a3b8; margin-top:4px;">بنبعتلك عروضنا الجديدة والتخفيضات بس - مو أكتر</div>
         </div>
         <input type="tel" id="marketingPhoneInput" class="form-control" placeholder="رقم الواتساب (مثال: 0501234567)" style="width:100%; padding:11px 14px; border:1.5px solid #e5e7eb; border-radius:12px; font-size:16px; font-weight:600; margin-bottom:10px; outline:none; box-sizing:border-box;">
+        <div id="marketingSaveUsHint" style="background:#f0fdf4; border:1.5px solid #bbf7d0; border-radius:12px; padding:10px 12px; font-size:11.5px; font-weight:700; color:#166534; margin-bottom:12px; line-height:1.6;">
+            📱 بعد ما تضغط "اشتراك"، رح نفتحلك واتساب برسالة جاهزة - <b>احفظ رقمنا بجهات اتصالك</b> وابعتها، حتى تلحق عروضنا الجديدة كل ما ننزلها على "الحالة" (Status) 🔔
+        </div>
         <label style="display:flex; align-items:flex-start; gap:8px; font-size:11px; color:#4b5563; font-weight:600; margin-bottom:14px; cursor:pointer; line-height:1.5;">
             <input type="checkbox" id="marketingConsentCheckbox" style="width:18px; height:18px; flex-shrink:0; margin-top:2px;">
             <span>أوافق على استقبال رسائل تسويقية عبر واتساب من العروبة أونلاين (عروض وتحديثات). يمكنني إلغاء الاشتراك بأي وقت.</span>
