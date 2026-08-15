@@ -2643,9 +2643,10 @@
             }
 
             let filtered = products.filter(p => {
-                let matchesQuery = p.name.toLowerCase().includes(query);
-                let matchesCat = currentCategory === "الكل" || productBelongsToCategory(p, currentCategory);
-                return matchesQuery && matchesCat;
+                // البحث لازم يدوّر بكل الكتالوج بغض النظر عن الفئة المفتوحة حالياً - قبل هيك كان
+                // البحث محصور بالفئة النشطة، فمنتج موجود فعلاً بس بفئة تانية كان يختفي من نتائج البحث
+                if (query !== "") return p.name.toLowerCase().includes(query);
+                return currentCategory === "الكل" || productBelongsToCategory(p, currentCategory);
             });
 
             let gridHtml = `<div class="products-grid" style="margin-top: 10px;">`;
