@@ -2,6 +2,9 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <title>سوبر ماركت العروبة - اونلاين</title>
     <link rel="manifest" href="manifest.json">
@@ -892,7 +895,7 @@
         <input type="text" id="inlineOtpInput" class="form-control" placeholder="أدخل الرمز المكوّن من 6 أرقام" style="text-align: center; font-size: 17.5px; font-weight: 800; letter-spacing: 4px;" inputmode="numeric">
         <div id="inlineOtpStatus" style="font-size: 11.5px; font-weight: 700; margin-bottom: 10px; min-height: 16px;"></div>
         <button id="inlineOtpConfirmBtn" class="btn-main" onclick="confirmInlineOtpAndSubmit()" style="background: var(--accent-green);">✅ تأكيد ومتابعة الطلب</button>
-        <button type="button" onclick="resendInlineOtp()" style="background: none; border: none; color: #2563eb; font-weight: 700; font-size: 12px; margin-top: 10px; cursor: pointer;">لم يصلك الرمز؟ إعادة الإرسال</button>
+        <button type="button" id="inlineOtpResendBtn" onclick="resendInlineOtp()" style="background: none; border: none; color: #2563eb; font-weight: 700; font-size: 12px; margin-top: 10px; cursor: pointer;">لم يصلك الرمز؟ إعادة الإرسال</button>
         <button type="button" onclick="closeInlineOtpModal()" style="background: none; border: none; color: #94a3b8; font-weight: 700; font-size: 11.5px; margin-top: 8px; cursor: pointer; display: block; width: 100%;">إلغاء</button>
     </div>
 </div>
@@ -4530,14 +4533,48 @@
         document.getElementById('inlineOtpStatus').innerText = '';
         lockBodyScroll();
         document.getElementById('inlineOtpModal').style.display = 'flex';
+        startOtpResendCooldown(); // أول رسالة توّها انبعتت (من زر إرسال الطلبية) - نبلش العدّاد فوراً
+    }
+
+    let otpResendCooldownInterval = null;
+    // يمنع الزبون يضغط "إعادة الإرسال" أكتر من مرة بفترة قصيرة (كان بيصير يبعث رسائل SMS حقيقية
+    // متكررة بدون أي حد أدنى بين الطلبات - كل ضغطة كانت رسالة فعلية جديدة بتكلفة حقيقية)
+    function startOtpResendCooldown() {
+        const btn = document.getElementById('inlineOtpResendBtn');
+        if (!btn) return;
+        let seconds = 45;
+        btn.disabled = true;
+        btn.style.color = '#94a3b8';
+        btn.style.cursor = 'not-allowed';
+        btn.innerText = `لم يصلك الرمز؟ إعادة الإرسال (${seconds})`;
+        if (otpResendCooldownInterval) clearInterval(otpResendCooldownInterval);
+        otpResendCooldownInterval = setInterval(() => {
+            seconds--;
+            if (seconds <= 0) {
+                clearInterval(otpResendCooldownInterval);
+                otpResendCooldownInterval = null;
+                btn.disabled = false;
+                btn.style.color = '#2563eb';
+                btn.style.cursor = 'pointer';
+                btn.innerText = 'لم يصلك الرمز؟ إعادة الإرسال';
+            } else {
+                btn.innerText = `لم يصلك الرمز؟ إعادة الإرسال (${seconds})`;
+            }
+        }, 1000);
     }
 
     function closeInlineOtpModal() {
         unlockBodyScroll();
         document.getElementById('inlineOtpModal').style.display = 'none';
+        if (otpResendCooldownInterval) {
+            clearInterval(otpResendCooldownInterval);
+            otpResendCooldownInterval = null;
+        }
     }
 
     async function resendInlineOtp() {
+        const btn = document.getElementById('inlineOtpResendBtn');
+        if (btn && btn.disabled) return; // احتياط إضافي - الزر أصلاً بيتعطّل بالعداد، بس منتأكد هون كمان
         const phone = document.getElementById('customerPhone').value.trim();
         const statusEl = document.getElementById('inlineOtpStatus');
         statusEl.style.color = '#64748b';
@@ -4546,6 +4583,7 @@
             await triggerSendVerificationCode(phone);
             statusEl.style.color = 'var(--accent-green)';
             statusEl.innerText = '📩 تم إرسال رمز جديد برسالة SMS';
+            startOtpResendCooldown();
         } catch (e) {
             console.error(e);
             statusEl.style.color = '#dc2626';
