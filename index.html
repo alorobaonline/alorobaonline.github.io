@@ -885,7 +885,7 @@
 
 
 <!-- نافذة التحقق من رقم الهاتف - تفتح تلقائيًا عند الضغط على إرسال الطلبية -->
-<div class="cart-modal" id="inlineOtpModal" style="display: none; z-index: 260;">
+<div class="cart-modal" id="inlineOtpModal" style="display: none; z-index: 450;">
     <div class="cart-modal-content" style="text-align: center;">
         <div style="font-size: 35px; margin-bottom: 8px;">🔒</div>
         <h3 style="color: var(--primary-green); margin-bottom: 6px; font-size: 16px;">تحقق من رقم هاتفك لإتمام الطلب</h3>
@@ -1447,13 +1447,26 @@
         if (localStorage.getItem('aloroba_marketing_subscribed') === '1') return;
         if (localStorage.getItem('aloroba_marketing_dismissed') === '1') return;
         setTimeout(() => {
-            // نفتح نافذة الاشتراك أوتوماتيكياً بعد شوي ثواني من فتح الموقع (بدل ما ننتظر يضغط الزبون
-            // على الزر العائم بنفسه) - وبنخلي الزر العائم ظاهر بالخلفية كمان كتذكير لو سكّر النافذة
-            // بدون ما يشترك، حتى يقدر يرجعلها لاحقاً وهو يتصفح
             const fab = document.getElementById('subscribeFab');
             if (fab) fab.style.display = 'flex';
-            openMarketingSubscribeModal();
+            tryAutoOpenSubscribeModal();
         }, 6000); // نعرضها بعد 6 ثواني، مش فوراً - نعطي الزبون فرصة يتصفح أول
+    }
+
+    // ما نفتح نافذة الاشتراك تلقائياً لو الزبون أصلاً وسط عملية شراء (شباك السلة أو رمز التحقق مفتوح) -
+    // كانت هاي بتظهر فوق كل شي وتغطي شباك التحقق بالكامل (نفس الشكوى يلي وصلت: "بضغط إرسال وما بيصير شي" -
+    // فعلياً كان بيصير شي، بس نافذة الاشتراك كانت مغطّية عليه). لو الزبون مشغول، نأجّل ونعيد المحاولة كل شوي.
+    function tryAutoOpenSubscribeModal() {
+        if (localStorage.getItem('aloroba_marketing_subscribed') === '1') return;
+        if (localStorage.getItem('aloroba_marketing_dismissed') === '1') return;
+        const cartModal = document.getElementById('cartModal');
+        const otpModal = document.getElementById('inlineOtpModal');
+        const isCustomerBusy = (cartModal && cartModal.style.display === 'flex') || (otpModal && otpModal.style.display === 'flex');
+        if (isCustomerBusy) {
+            setTimeout(tryAutoOpenSubscribeModal, 3000);
+            return;
+        }
+        openMarketingSubscribeModal();
     }
 
     function dismissSubscribeFab() {
