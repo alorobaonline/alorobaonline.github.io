@@ -1447,9 +1447,13 @@
         if (localStorage.getItem('aloroba_marketing_subscribed') === '1') return;
         if (localStorage.getItem('aloroba_marketing_dismissed') === '1') return;
         setTimeout(() => {
+            // نفتح نافذة الاشتراك أوتوماتيكياً بعد شوي ثواني من فتح الموقع (بدل ما ننتظر يضغط الزبون
+            // على الزر العائم بنفسه) - وبنخلي الزر العائم ظاهر بالخلفية كمان كتذكير لو سكّر النافذة
+            // بدون ما يشترك، حتى يقدر يرجعلها لاحقاً وهو يتصفح
             const fab = document.getElementById('subscribeFab');
             if (fab) fab.style.display = 'flex';
-        }, 8000); // نعرضه بعد 8 ثواني، مش فوراً - نعطي الزبون فرصة يتصفح أول
+            openMarketingSubscribeModal();
+        }, 6000); // نعرضها بعد 6 ثواني، مش فوراً - نعطي الزبون فرصة يتصفح أول
     }
 
     function dismissSubscribeFab() {
@@ -1467,6 +1471,9 @@
 
     function closeMarketingSubscribeModal() {
         document.getElementById('marketingSubscribeModal').style.display = 'none';
+        // سكّر النافذة بدون ما يشترك - منسجل هيك ما تفتحله تلقائياً تاني بنفس الزيارات الجاية، بس الزر
+        // العائم بيضل ظاهر إله كخيار يرجعلها بإرادته أي وقت
+        localStorage.setItem('aloroba_marketing_dismissed', '1');
     }
 
     async function submitMarketingSubscribe() {
