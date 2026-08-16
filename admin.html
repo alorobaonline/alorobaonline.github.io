@@ -887,6 +887,24 @@
         </div>
     </div>
 
+    <!-- رابط ويز لموقع المتجر -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('wazeSectionContent', this)">
+            <span>🚗 رابط ويز لموقع المتجر</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="wazeSectionContent">
+            <div class="form-group">
+                <label>رابط ويز لموقع المتجر</label>
+                <input type="text" id="storeWazeLinkInput" class="form-control" placeholder="https://waze.com/ul?ll=32.xxxx,35.xxxx&navigate=yes">
+            </div>
+            <div style="font-size: 0.65rem; color: #6b7280; margin-bottom: 10px; line-height: 1.5;">
+                افتح تطبيق ويز على موقع المتجر بالظبط، دوس على "مشاركة" (Share) وانسخ الرابط من هون. بعد الحفظ، بيظهر زر بأعلى الموقع (بالراس) الزبون يقدر يضغط عليه ويوديه ويز مباشرة لموقعكم.
+            </div>
+            <button class="btn-main" onclick="saveWazeSettings()">حفظ رابط ويز 💾</button>
+        </div>
+    </div>
+
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('paymentMethodsSectionContent', this)">
             <span>💳 طرق الدفع الظاهرة للزبون</span>
@@ -1777,6 +1795,10 @@
                     if(data.whatsappNumber) {
                         const waInput = document.getElementById('storeWhatsappNumberInput');
                         if(waInput) waInput.value = data.whatsappNumber;
+                    }
+                    if(data.wazeLink) {
+                        const wazeInput = document.getElementById('storeWazeLinkInput');
+                        if(wazeInput) wazeInput.value = data.wazeLink;
                     }
                 }
             } catch(e) {
@@ -3697,6 +3719,17 @@
         } catch(e) {
             console.error(e);
             alert("خطأ في حفظ الرقم.");
+        }
+    }
+
+    async function saveWazeSettings() {
+        const link = document.getElementById('storeWazeLinkInput').value.trim();
+        try {
+            await window.setDoc(window.doc(window.db, "settings", "storeSettings"), { wazeLink: link }, { merge: true });
+            alert("تم حفظ رابط ويز بنجاح! 🚗");
+        } catch(e) {
+            console.error(e);
+            alert("خطأ في حفظ الرابط.");
         }
     }
 

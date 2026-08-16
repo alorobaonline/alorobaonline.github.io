@@ -806,8 +806,17 @@
     <div class="store-header">
         <div class="store-title">🛒 العروبة أونلاين</div>
         <div class="header-actions">
+            <button class="admin-link" onclick="openProfileModal('current')" title="طلبيتي الحالية">📦</button>
+            <a id="storeWazeHeaderLink" href="#" target="_blank" rel="noopener" class="admin-link" style="display:none; padding: 6px 9px;" title="وصلنا بويز">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+                    <circle cx="12" cy="12" r="11" fill="#33CCFF"/>
+                    <path d="M12 5.5C8.96 5.5 6.5 7.96 6.5 11c0 3.5 3.2 6.2 5 7.7.3.25.7.25 1 0 1.8-1.5 5-4.2 5-7.7 0-3.04-2.46-5.5-5.5-5.5z" fill="white"/>
+                    <circle cx="10" cy="10.5" r="1" fill="#1a1a2e"/>
+                    <circle cx="14" cy="10.5" r="1" fill="#1a1a2e"/>
+                </svg>
+            </a>
+            <a id="storeWhatsappHeaderLink" href="#" target="_blank" rel="noopener" class="admin-link" style="display:none;" title="واتساب المتجر">💬</a>
             <button class="admin-link" onclick="openProfileModal()">👤 حسابي</button>
-            <a id="storeWhatsappHeaderLink" href="#" target="_blank" rel="noopener" class="admin-link" style="display:none;">💬 واتساب المتجر</a>
         </div>
     </div>
 
@@ -1208,6 +1217,7 @@
     }
 
     let storeWhatsappNumber = '';
+    let storeWazeLink = '';
     let businessHoursSchedule = null;
     const BUSINESS_DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const BUSINESS_DAY_LABELS = { sunday: 'الأحد', monday: 'الاثنين', tuesday: 'الثلاثاء', wednesday: 'الأربعاء', thursday: 'الخميس', friday: 'الجمعة', saturday: 'السبت' };
@@ -1701,11 +1711,17 @@
             applyPaymentMethodSettings();
             if(storeSettingsDoc.exists()) {
                 storeWhatsappNumber = storeSettingsDoc.data().whatsappNumber || '';
+                storeWazeLink = storeSettingsDoc.data().wazeLink || '';
             }
             const headerWaLink = document.getElementById('storeWhatsappHeaderLink');
             if (headerWaLink && storeWhatsappNumber) {
                 headerWaLink.href = `https://wa.me/${storeWhatsappNumber}`;
                 headerWaLink.style.display = 'inline-flex';
+            }
+            const headerWazeLink = document.getElementById('storeWazeHeaderLink');
+            if (headerWazeLink && storeWazeLink) {
+                headerWazeLink.href = storeWazeLink;
+                headerWazeLink.style.display = 'inline-flex';
             }
             businessHoursSchedule = (hoursDoc.exists() && hoursDoc.data().schedule) ? hoursDoc.data().schedule : null;
             applyStoreOpenStatus();
@@ -1888,10 +1904,11 @@
         closeProfileModal();
     }
 
-    function openProfileModal() {
+    function openProfileModal(tab) {
         lockBodyScroll(); 
         document.getElementById('profileModal').style.display = 'flex';
         loadUserProfileData();
+        if (tab) switchProfileTab(tab);
     }
 
     function closeProfileModal() {
