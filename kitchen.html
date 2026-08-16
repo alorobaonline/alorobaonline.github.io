@@ -1266,11 +1266,26 @@
     }
 
     async function startPreparingOrder(orderId) {
+        let ord = currentOrdersList.find(o => o.id === orderId);
+        let isPickupOrder = ord && (ord.fulfillmentType || 'توصيل') === 'استلام ذاتي';
+        let fieldsToSave = { status: "قيد التحضير" };
+
+        if (isPickupOrder) {
+            // بالاستلام الذاتي، منسأل الموظف قديش الوقت المتوقع حتى تنعرض للزبون على شاشته وهو مستني
+            let suggested = 5 + ((ord.items ? ord.items.reduce((s, it) => s + (Number(it.quantity || it.qty) || 0), 0) : 0) * 2);
+            let input = prompt("قديش تقريباً الوقت المتوقع لجهوز الطلبية (بالدقائق)؟ رح يظهر للزبون على شاشته.", suggested);
+            if (input === null) return; // ألغى - نوقف هون وما نبدأ التحضير
+            let minutes = parseInt(input);
+            if (!minutes || minutes < 1) {
+                alert('وقت غير صالح');
+                return;
+            }
+            fieldsToSave.pickupEtaMinutes = minutes;
+        }
+
         try {
-            await window.updateDoc(window.doc(window.db, "orders", orderId), {
-                status: "قيد التحضير"
-            });
-            let ord = currentOrdersList.find(o => o.id === orderId);
+            await window.updateDoc(window.doc(window.db, "orders", orderId), fieldsToSave);
+            // ما منبعت وقت التجهيز بالواتساب - بيظهر مباشرة بشباك "طلبيتي الحالية" عند الزبون تلقائياً
             if (ord) {
                 sendOrderNotification(ord.customerPhone, `🍳 طلبك ${getOrderLabelFor(ord)} قيد التحضير الآن! - العروبة أونلاين`);
             }

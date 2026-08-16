@@ -2178,6 +2178,11 @@
                </div>`
             : '';
 
+        // بالاستلام الذاتي، الوقت المتوقع يلي حدده المطبخ بيظهر للزبون طول ما الطلبية قيد التحضير
+        let pickupEtaHtml = (isPickupOrder && status === 'قيد التحضير' && order.pickupEtaMinutes)
+            ? `<div style="background:#fff7ed; border:1.5px solid #fed7aa; border-radius:10px; padding:9px 12px; margin-bottom:14px; text-align:center; font-size:12.5px; font-weight:800; color:#9a3412;">⏱️ طلبيتك تقريباً بتكون جاهزة خلال ${order.pickupEtaMinutes} دقيقة</div>`
+            : '';
+
         return `
             <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 14px; padding: 14px; margin-bottom: 10px;">
                 <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 13px; margin-bottom: 14px;">
@@ -2187,6 +2192,7 @@
                 <div style="display: flex; align-items: flex-start; margin-bottom: 14px;">
                     ${stagesHtml}
                 </div>
+                ${pickupEtaHtml}
                 ${mapHtml}
                 <div style="border-top: 1px solid var(--border-color); padding-top: 4px;">${renderOrderItemsDetailedHtml(order)}</div>
             </div>
