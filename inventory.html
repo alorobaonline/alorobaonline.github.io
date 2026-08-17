@@ -661,9 +661,9 @@
         }
         return `
                 <div class="inv-card" id="invCard_${p.id}" style="background: ${low ? '#fef2f2' : '#f8fafc'}; border: 1px solid ${low ? '#fecaca' : '#cbd5e1'};">
-                    <div class="inv-img-box" onclick="document.getElementById('imgFileInput_${p.id}').click()">
+                    <div class="inv-img-box" onclick="openImageZoom('${img}', '${escapeHtml(p.name).replace(/'/g, "\\'")}')">
                         <img src="${img}" alt="${escapeHtml(p.name)}">
-                        <div class="change-badge">📷</div>
+                        <div class="change-badge" onclick="event.stopPropagation(); document.getElementById('imgFileInput_${p.id}').click();">📷 تغيير</div>
                         <input type="file" id="imgFileInput_${p.id}" accept="image/*" style="display:none;" onchange="handleInventoryImageChange(event, '${p.id}')">
                     </div>
                     <div class="inv-fields">
@@ -756,7 +756,10 @@
             if (!placed) catGroups["أخرى غير مصنفة"].push(p);
         });
 
-        const isFiltering = !!(searchVal || supplierFilter || lowStockOnly);
+        // البحث النصي/فلتر الشركة بيفتحوا كل الفئات تلقائياً (عشان تلاقي نتيجة البحث بسرعة بدون ما تفتش
+        // بفئات مقفولة يدوياً) - أما "المخزون المنخفض بس" فما بيفرض الفتح، وبيحترم حالة كل فئة (مفتوحة/مقفولة)
+        // يلي إنت حددتها يدوياً بالسهم، عشان تقدر تقفل/تفتح فئات وإنت مفعّل الفلتر هذا
+        const isFiltering = !!(searchVal || supplierFilter);
         let html = '';
 
         Object.keys(catGroups).forEach(catName => {
@@ -995,6 +998,14 @@
     function openScannerForRow(productId) {
         scannerTargetProductId = productId;
         launchScanner();
+    }
+
+    // تكبير صورة المنتج بالضغط عليها - نافذة منفصلة عن زر "تغيير الصورة" حتى ما يصير خلط بينهم
+    function openImageZoom(imgSrc, title) {
+        if (!imgSrc) return;
+        document.getElementById('modalImg').src = imgSrc;
+        document.getElementById('modalImg').alt = title || '';
+        document.getElementById('imageModal').style.display = 'flex';
     }
 
     function launchScanner() {
