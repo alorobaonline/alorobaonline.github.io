@@ -191,6 +191,7 @@
     </div>
 
     <button class="scan-btn" onclick="openScannerModal()">📷 مسح باركود منتج</button>
+    <button class="scan-btn" style="background: linear-gradient(135deg, #92400e 0%, #b45309 100%); margin-top: -6px;" onclick="openSupplierAccountsModal()">🏭 حسابات الموردين</button>
 
     <div class="low-stock-badge" id="lowStockBadge"></div>
 
@@ -288,16 +289,278 @@
     <img id="modalImg" style="max-width:100%; max-height:100%; border-radius:12px;">
 </div>
 
+<!-- نافذة قائمة حسابات الموردين (الشركات) - كل شركة مع رصيدها (المستحق عليها) -->
+<div id="supplierAccountsModal" class="modal-overlay">
+    <div class="modal-box">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div class="modal-title" style="margin-bottom:0;">🏭 حسابات الموردين</div>
+            <button onclick="closeSupplierAccountsModal()" style="background:#f1f5f9; border:none; width:26px; height:26px; border-radius:8px; font-weight:900; cursor:pointer;">✕</button>
+        </div>
+
+        <div style="display:flex; gap:6px; margin-bottom:12px;">
+            <input type="text" id="newSupplierNameInput" class="form-control" placeholder="اسم شركة/مورّد جديد..." style="margin-bottom:0;">
+            <button class="save-btn" style="padding:8px 14px; font-size:0.7rem;" onclick="addNewSupplierManually()">➕ إضافة</button>
+        </div>
+
+        <div id="supplierAccountsListContainer"></div>
+    </div>
+</div>
+
+<!-- نافذة تفاصيل حساب مورد معيّن: الرصيد، سجل الحركات، وإضافة بضاعة/دفعة جديدة -->
+<div id="supplierDetailModal" class="modal-overlay">
+    <div class="modal-box">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div class="modal-title" style="margin-bottom:0;" id="supplierDetailTitle">🏭 المورّد</div>
+            <button onclick="closeSupplierDetailModal()" style="background:#f1f5f9; border:none; width:26px; height:26px; border-radius:8px; font-weight:900; cursor:pointer;">✕</button>
+        </div>
+
+        <div id="supplierDetailBalanceBox" style="text-align:center; border-radius:12px; padding:12px; margin-bottom:14px; font-weight:900;"></div>
+
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+            <button class="btn-main" style="background:#b45309;" onclick="showSupplierTxForm('purchase')">📦 بضاعة جبناها</button>
+            <button class="btn-main" style="background:#16a34a;" onclick="showSupplierTxForm('payment')">💵 دفعة دفعناها</button>
+        </div>
+
+        <!-- نموذج إضافة حركة جديدة (بضاعة أو دفعة) - نفس النموذج لكلا النوعين، بيتغيّر العنوان بس -->
+        <div id="supplierTxForm" style="display:none; background:#f8fafc; border:1px solid #e5e7eb; border-radius:12px; padding:10px; margin-bottom:14px;">
+            <div id="supplierTxFormTitle" style="font-size:0.75rem; font-weight:900; color:var(--primary-green); margin-bottom:8px;"></div>
+            <label style="font-size:0.68rem; font-weight:800; color:#4b5563; display:block; margin-bottom:3px;">المبلغ (₪)</label>
+            <input type="number" step="0.01" id="supplierTxAmount" class="form-control" placeholder="0.00">
+            <label style="font-size:0.68rem; font-weight:800; color:#4b5563; display:block; margin-bottom:3px;" id="supplierTxNoteLabel">وصف البضاعة (اختياري)</label>
+            <input type="text" id="supplierTxNote" class="form-control" placeholder="مثلاً: 20 كرتونة مشروبات">
+            <label style="font-size:0.68rem; font-weight:800; color:#4b5563; display:block; margin-bottom:3px;">التاريخ</label>
+            <input type="date" id="supplierTxDate" class="form-control">
+            <div class="error-text" id="supplierTxError"></div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn-main" style="background:#94a3b8;" onclick="hideSupplierTxForm()">إلغاء</button>
+                <button class="btn-main" id="supplierTxSaveBtn" onclick="saveSupplierTx()">حفظ</button>
+            </div>
+        </div>
+
+        <div style="font-size:0.75rem; font-weight:900; color:#4b5563; margin-bottom:8px;">📜 سجل الحركات</div>
+        <div id="supplierTxHistoryContainer"></div>
+    </div>
+</div>
+
 <script>
     let products = [];
     let productCosts = {}; // { productId: costPrice }
     let newProductImageDataUrl = '';
+    let supplierTransactions = [];
+    let suppliersList = [];
+    let currentSupplierDetail = null;
 
     window.addEventListener('firebase-ready', function() {
         initProductsListener();
         initProductCostsListener();
         initCategoriesListener();
+        initSupplierTransactionsListener();
+        initSuppliersListener();
     });
+
+    function initSuppliersListener() {
+        window.onSnapshot(window.collection(window.db, "suppliers"), (snapshot) => {
+            suppliersList = [];
+            snapshot.forEach(docSnap => suppliersList.push({ id: docSnap.id, ...docSnap.data() }));
+            renderSupplierAccountsList();
+        });
+    }
+
+    // ===================== حسابات الموردين (بضاعة جبناها / دفعات دفعناها لكل شركة) =====================
+    function initSupplierTransactionsListener() {
+        window.onSnapshot(window.collection(window.db, "supplierTransactions"), (snapshot) => {
+            supplierTransactions = [];
+            snapshot.forEach(docSnap => supplierTransactions.push({ id: docSnap.id, ...docSnap.data() }));
+            // نرتبهم تنازلي حسب التاريخ (الأحدث فوق)
+            supplierTransactions.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0));
+            renderSupplierAccountsList();
+            if (currentSupplierDetail) renderSupplierDetail(currentSupplierDetail);
+        });
+    }
+
+    // نجمع أسماء كل الموردين من تلاتة مصادر: جدول الموردين المستقل (اللي منضيف عليه يدوي)،
+    // المنتجات (حقل supplier)، وسجل الحركات - حتى مورد لسا ما له منتجات ولا حركات يضل ظاهر بالقائمة
+    function getAllSupplierNames() {
+        let fromSuppliers = suppliersList.map(s => (s.name || '').trim()).filter(s => s);
+        let fromProducts = products.map(p => (p.supplier || '').trim()).filter(s => s);
+        let fromTx = supplierTransactions.map(t => (t.supplier || '').trim()).filter(s => s);
+        return [...new Set([...fromSuppliers, ...fromProducts, ...fromTx])].sort((a, b) => a.localeCompare(b));
+    }
+
+    function computeSupplierBalance(supplierName) {
+        let purchases = 0, payments = 0;
+        supplierTransactions.forEach(t => {
+            if (t.supplier !== supplierName) return;
+            if (t.type === 'purchase') purchases += Number(t.amount) || 0;
+            else if (t.type === 'payment') payments += Number(t.amount) || 0;
+        });
+        return { purchases, payments, balance: purchases - payments };
+    }
+
+    function openSupplierAccountsModal() {
+        renderSupplierAccountsList();
+        document.getElementById('newSupplierNameInput').value = '';
+        document.getElementById('supplierAccountsModal').style.display = 'flex';
+    }
+
+    function closeSupplierAccountsModal() {
+        document.getElementById('supplierAccountsModal').style.display = 'none';
+    }
+
+    function renderSupplierAccountsList() {
+        const container = document.getElementById('supplierAccountsListContainer');
+        if (!container) return;
+        const names = getAllSupplierNames();
+
+        if (names.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#94a3b8; font-size:0.72rem; padding:16px;">ما في شركات/موردين مضافين بعد</p>';
+            return;
+        }
+
+        container.innerHTML = names.map(name => {
+            const { balance } = computeSupplierBalance(name);
+            const balanceColor = balance > 0 ? '#dc2626' : (balance < 0 ? '#16a34a' : '#6b7280');
+            const balanceLabel = balance > 0 ? `مستحق عليهم ${balance.toFixed(2)}₪` : (balance < 0 ? `دفعنا زيادة ${Math.abs(balance).toFixed(2)}₪` : 'الحساب مسدّد');
+            return `
+                <div onclick="openSupplierDetail('${escapeHtml(name).replace(/'/g, "\\'")}')" style="display:flex; justify-content:space-between; align-items:center; padding:10px; border:1px solid #e5e7eb; border-radius:10px; margin-bottom:6px; cursor:pointer; background:white;">
+                    <span style="font-size:0.75rem; font-weight:800;">🏭 ${escapeHtml(name)}</span>
+                    <span style="font-size:0.68rem; font-weight:900; color:${balanceColor};">${balanceLabel}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function addNewSupplierManually() {
+        const input = document.getElementById('newSupplierNameInput');
+        const name = input.value.trim();
+        if (!name) return;
+        if (getAllSupplierNames().includes(name)) {
+            input.value = '';
+            openSupplierDetail(name);
+            return;
+        }
+        try {
+            await window.addDoc(window.collection(window.db, "suppliers"), { name: name, createdAt: Date.now() });
+            input.value = '';
+            openSupplierDetail(name);
+        } catch(e) {
+            console.error(e);
+            alert('خطأ أثناء إضافة المورّد: ' + (e.message || e));
+        }
+    }
+
+    function openSupplierDetail(supplierName) {
+        currentSupplierDetail = supplierName;
+        hideSupplierTxForm();
+        renderSupplierDetail(supplierName);
+        document.getElementById('supplierDetailModal').style.display = 'flex';
+    }
+
+    function closeSupplierDetailModal() {
+        document.getElementById('supplierDetailModal').style.display = 'none';
+        currentSupplierDetail = null;
+    }
+
+    function renderSupplierDetail(supplierName) {
+        document.getElementById('supplierDetailTitle').innerText = `🏭 ${supplierName}`;
+
+        const { purchases, payments, balance } = computeSupplierBalance(supplierName);
+        const balanceBox = document.getElementById('supplierDetailBalanceBox');
+        const balanceColor = balance > 0 ? '#dc2626' : (balance < 0 ? '#16a34a' : '#6b7280');
+        const bg = balance > 0 ? '#fef2f2' : (balance < 0 ? '#f0fdf4' : '#f8fafc');
+        const balanceLabel = balance > 0 ? `مستحق عليهم: ${balance.toFixed(2)}₪` : (balance < 0 ? `دفعنا زيادة: ${Math.abs(balance).toFixed(2)}₪` : 'الحساب مسدّد بالكامل');
+        balanceBox.style.background = bg;
+        balanceBox.style.color = balanceColor;
+        balanceBox.style.border = `1.5px solid ${balanceColor}33`;
+        balanceBox.innerHTML = `
+            <div style="font-size:0.95rem; margin-bottom:4px;">${balanceLabel}</div>
+            <div style="font-size:0.62rem; font-weight:700; opacity:0.8;">إجمالي البضاعة: ${purchases.toFixed(2)}₪ &nbsp;•&nbsp; إجمالي المدفوع: ${payments.toFixed(2)}₪</div>
+        `;
+
+        const txList = supplierTransactions.filter(t => t.supplier === supplierName);
+        const historyContainer = document.getElementById('supplierTxHistoryContainer');
+        if (txList.length === 0) {
+            historyContainer.innerHTML = '<p style="text-align:center; color:#94a3b8; font-size:0.7rem; padding:10px;">ما في حركات مسجّلة بعد</p>';
+        } else {
+            historyContainer.innerHTML = txList.map(t => {
+                const isPurchase = t.type === 'purchase';
+                return `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; border:1px solid #e5e7eb; border-radius:8px; margin-bottom:5px;">
+                        <div style="min-width:0;">
+                            <div style="font-size:0.7rem; font-weight:800; color:${isPurchase ? '#b45309' : '#16a34a'};">${isPurchase ? '📦 بضاعة' : '💵 دفعة'}</div>
+                            ${t.note ? `<div style="font-size:0.62rem; color:#6b7280; margin-top:2px;">${escapeHtml(t.note)}</div>` : ''}
+                            <div style="font-size:0.6rem; color:#9ca3af; margin-top:2px;">${t.date || ''}</div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                            <span style="font-size:0.75rem; font-weight:900; color:${isPurchase ? '#b45309' : '#16a34a'};">${isPurchase ? '+' : '-'}${(Number(t.amount) || 0).toFixed(2)}₪</span>
+                            <button onclick="deleteSupplierTx('${t.id}')" style="background:#fee2e2; color:#991b1b; border:none; width:22px; height:22px; border-radius:6px; font-size:0.6rem; cursor:pointer;">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+    let pendingSupplierTxType = null;
+
+    function showSupplierTxForm(type) {
+        pendingSupplierTxType = type;
+        document.getElementById('supplierTxFormTitle').innerText = type === 'purchase' ? '📦 تسجيل بضاعة جبناها' : '💵 تسجيل دفعة دفعناها';
+        document.getElementById('supplierTxNoteLabel').innerText = type === 'purchase' ? 'وصف البضاعة (اختياري)' : 'ملاحظة (اختياري)';
+        document.getElementById('supplierTxNote').placeholder = type === 'purchase' ? 'مثلاً: 20 كرتونة مشروبات' : 'مثلاً: تحويل بنكي';
+        document.getElementById('supplierTxAmount').value = '';
+        document.getElementById('supplierTxNote').value = '';
+        document.getElementById('supplierTxDate').value = new Date().toISOString().slice(0, 10);
+        document.getElementById('supplierTxError').innerText = '';
+        document.getElementById('supplierTxForm').style.display = 'block';
+    }
+
+    function hideSupplierTxForm() {
+        document.getElementById('supplierTxForm').style.display = 'none';
+        pendingSupplierTxType = null;
+    }
+
+    async function saveSupplierTx() {
+        const errorEl = document.getElementById('supplierTxError');
+        errorEl.innerText = '';
+        const amount = parseFloat(document.getElementById('supplierTxAmount').value);
+        if (!amount || amount <= 0) {
+            errorEl.innerText = 'أدخل مبلغ صحيح أكبر من صفر';
+            return;
+        }
+        const note = document.getElementById('supplierTxNote').value.trim();
+        const date = document.getElementById('supplierTxDate').value || new Date().toISOString().slice(0, 10);
+        const btn = document.getElementById('supplierTxSaveBtn');
+        btn.disabled = true;
+        btn.innerText = 'جاري الحفظ...';
+        try {
+            await window.addDoc(window.collection(window.db, "supplierTransactions"), {
+                supplier: currentSupplierDetail,
+                type: pendingSupplierTxType,
+                amount: amount,
+                note: note,
+                date: date,
+                createdAt: Date.now()
+            });
+            hideSupplierTxForm();
+        } catch(e) {
+            console.error(e);
+            errorEl.innerText = 'خطأ أثناء الحفظ: ' + (e.message || e);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'حفظ';
+        }
+    }
+
+    async function deleteSupplierTx(txId) {
+        if (!confirm('حذف هالحركة نهائياً؟')) return;
+        try {
+            await window.deleteDoc(window.doc(window.db, "supplierTransactions", txId));
+        } catch(e) {
+            console.error(e);
+            alert('خطأ أثناء الحذف: ' + (e.message || e));
+        }
+    }
 
     let categories = [];
     let openCategoryNames = new Set();
@@ -321,6 +584,7 @@
                 products.push({ id: docSnap.id, ...docSnap.data() });
             });
             renderInventoryList();
+            renderSupplierAccountsList(); // قائمة الموردين بتضم أسماء من المنتجات كمان
         });
     }
 
