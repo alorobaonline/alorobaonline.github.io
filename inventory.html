@@ -417,16 +417,99 @@
             return;
         }
 
-        container.innerHTML = names.map(name => {
+        // نحطهم بترتيبين: الحسابات يلي فيها مبلغ (مدين أو دائن) أول، وبعدين الحسابات المسدّدة (صفر) بالآخر
+        let withBalance = [];
+        let zeroBalance = [];
+        names.forEach(name => {
             const { balance } = computeSupplierBalance(name);
-            const balanceLabel = balance > 0 ? `مستحق عليهم ${balance.toFixed(2)}₪` : (balance < 0 ? `دفعنا زيادة ${Math.abs(balance).toFixed(2)}₪` : 'الحساب مسدّد');
+            if (balance === 0) zeroBalance.push(name);
+            else withBalance.push(name);
+        });
+        withBalance.sort((a, b) => a.localeCompare(b));
+        zeroBalance.sort((a, b) => a.localeCompare(b));
+        const orderedNames = [...withBalance, ...zeroBalance];
+
+        let rowsHtml = orderedNames.map(name => {
+            const { balance } = computeSupplierBalance(name);
+            // مديون إلهم (اشترينا بضاعة أكتر مما دفعنا) = سالب بالأحمر
+            // مدينلنا (دفعنا أكتر مما اشترينا) = موجب بالأخضر
+            // الحساب صفر = 00
+            let balanceLabel, balanceColor;
+            if (balance > 0) {
+                balanceLabel = `-${balance.toFixed(2)}₪`;
+                balanceColor = '#dc2626';
+            } else if (balance < 0) {
+                balanceLabel = `+${Math.abs(balance).toFixed(2)}₪`;
+                balanceColor = '#16a34a';
+            } else {
+                balanceLabel = '00';
+                balanceColor = '#6b7280';
+            }
             return `
                 <div onclick="openSupplierDetail('${escapeHtml(name).replace(/'/g, "\\'")}')" style="display:flex; justify-content:space-between; align-items:center; padding:10px; border:1px solid #e5e7eb; border-radius:10px; margin-bottom:6px; cursor:pointer; background:white;">
                     <span style="font-size:0.75rem; font-weight:800;">🏭 ${escapeHtml(name)}</span>
-                    <span style="font-size:0.68rem; font-weight:900; color:#1f2937;">${balanceLabel}</span>
+                    <span style="font-size:0.75rem; font-weight:900; color:${balanceColor};">${balanceLabel}</span>
                 </div>
             `;
         }).join('');
+
+        container.innerHTML = rowsHtml + buildOverallSupplierSummaryHtml();
+    }
+
+    let overallSupplierSummaryOpen = false;
+
+    function toggleOverallSupplierSummary() {
+        overallSupplierSummaryOpen = !overallSupplierSummaryOpen;
+        renderSupplierAccountsList();
+    }
+
+    // ملخص عام بالآخر: إجمالي كل البضاعة يلي اشتريناها وإجمالي كل الدفعات (من كل الموردين سوا)،
+    // مع سجل كامل لكل الحركات مرتب حسب التاريخ - قابل للطي/الفتح حتى ما ياخد مساحة لو مش محتاجه
+    function buildOverallSupplierSummaryHtml() {
+        let totalPurchases = 0, totalPayments = 0;
+        supplierTransactions.forEach(t => {
+            if (t.type === 'purchase') totalPurchases += Number(t.amount) || 0;
+            else if (t.type === 'payment') totalPayments += Number(t.amount) || 0;
+        });
+
+        let allTxSorted = supplierTransactions.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0));
+
+        let historyHtml = allTxSorted.length === 0
+            ? '<p style="text-align:center; color:#94a3b8; font-size:0.68rem; padding:10px;">ما في حركات مسجّلة بعد</p>'
+            : allTxSorted.map(t => {
+                const isPurchase = t.type === 'purchase';
+                const txColor = isPurchase ? '#16a34a' : '#dc2626';
+                return `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 8px; border-bottom:1px solid #f1f5f9;">
+                        <div style="min-width:0;">
+                            <div style="font-size:0.66rem; font-weight:800; color:#374151;">🏭 ${escapeHtml(t.supplier || '')}</div>
+                            <div style="font-size:0.58rem; color:#9ca3af;">${t.date || ''}${t.note ? ' · ' + escapeHtml(t.note) : ''}</div>
+                        </div>
+                        <span style="font-size:0.7rem; font-weight:900; color:${txColor}; flex-shrink:0;">${isPurchase ? '+' : '-'}${(Number(t.amount) || 0).toFixed(2)}₪</span>
+                    </div>
+                `;
+            }).join('');
+
+        return `
+            <div style="border:1.5px solid #e5e7eb; border-radius:10px; margin-top:10px; overflow:hidden;">
+                <div onclick="toggleOverallSupplierSummary()" style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:#f1f5f9; cursor:pointer; font-weight:900; font-size:0.75rem; color:var(--primary-green);">
+                    <span>📊 الإجمالي الكلي</span>
+                    <span>${overallSupplierSummaryOpen ? '▲' : '▼'}</span>
+                </div>
+                <div style="display:${overallSupplierSummaryOpen ? 'block' : 'none'}; padding:10px;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.72rem; font-weight:800; margin-bottom:4px;">
+                        <span style="color:#16a34a;">📦 إجمالي البضاعة</span>
+                        <span style="color:#16a34a;">${totalPurchases.toFixed(2)}₪</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.72rem; font-weight:800; margin-bottom:10px;">
+                        <span style="color:#dc2626;">💵 إجمالي الدفعات</span>
+                        <span style="color:#dc2626;">${totalPayments.toFixed(2)}₪</span>
+                    </div>
+                    <div style="font-size:0.68rem; font-weight:900; color:#4b5563; margin-bottom:6px;">سجل كل الحركات (الأحدث أول)</div>
+                    ${historyHtml}
+                </div>
+            </div>
+        `;
     }
 
     async function addNewSupplierManually() {
