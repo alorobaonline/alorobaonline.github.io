@@ -417,7 +417,9 @@
             return;
         }
 
-        // نحطهم بترتيبين: الحسابات يلي فيها مبلغ (مدين أو دائن) أول، وبعدين الحسابات المسدّدة (صفر) بالآخر
+        // نحطهم بترتيبين: الحسابات يلي فيها مبلغ (مدين أو دائن) أول مرتبين تصاعدي من الأقل دين للأكثر
+        // دين (يعني لو دائنين إلنا/رصيد إلنا بيطلعوا فوق، وبعدهم أصغر دين لأكبر دين)، وبعدين الحسابات
+        // المسدّدة (صفر) بالآخر
         let withBalance = [];
         let zeroBalance = [];
         names.forEach(name => {
@@ -425,7 +427,7 @@
             if (balance === 0) zeroBalance.push(name);
             else withBalance.push(name);
         });
-        withBalance.sort((a, b) => a.localeCompare(b));
+        withBalance.sort((a, b) => computeSupplierBalance(a).balance - computeSupplierBalance(b).balance);
         zeroBalance.sort((a, b) => a.localeCompare(b));
         const orderedNames = [...withBalance, ...zeroBalance];
 
@@ -448,7 +450,7 @@
             return `
                 <div onclick="openSupplierDetail('${escapeHtml(name).replace(/'/g, "\\'")}')" style="display:flex; justify-content:space-between; align-items:center; padding:10px; border:1px solid #e5e7eb; border-radius:10px; margin-bottom:6px; cursor:pointer; background:white;">
                     <span style="font-size:0.75rem; font-weight:800;">🏭 ${escapeHtml(name)}</span>
-                    <span style="font-size:0.75rem; font-weight:900; color:${balanceColor};">${balanceLabel}</span>
+                    <span style="font-size:0.75rem; font-weight:900; color:${balanceColor};" dir="ltr">${balanceLabel}</span>
                 </div>
             `;
         }).join('');
@@ -472,6 +474,21 @@
             else if (t.type === 'payment') totalPayments += Number(t.amount) || 0;
         });
 
+        // الفرق الكلي: قيمة كل البضاعة يلي جبناها من كل الموردين ناقص كل يلي دفعناهم - يعني
+        // المستحق الكلي علينا (لو موجب) أو يلي دفعناه زيادة (لو سالب)
+        let diff = totalPurchases - totalPayments;
+        let diffLabel, diffColor;
+        if (diff > 0) {
+            diffLabel = `-${diff.toFixed(2)}₪`;
+            diffColor = '#dc2626';
+        } else if (diff < 0) {
+            diffLabel = `+${Math.abs(diff).toFixed(2)}₪`;
+            diffColor = '#16a34a';
+        } else {
+            diffLabel = '00';
+            diffColor = '#6b7280';
+        }
+
         let allTxSorted = supplierTransactions.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0));
 
         let historyHtml = allTxSorted.length === 0
@@ -485,7 +502,7 @@
                             <div style="font-size:0.66rem; font-weight:800; color:#374151;">🏭 ${escapeHtml(t.supplier || '')}</div>
                             <div style="font-size:0.58rem; color:#9ca3af;">${t.date || ''}${t.note ? ' · ' + escapeHtml(t.note) : ''}</div>
                         </div>
-                        <span style="font-size:0.7rem; font-weight:900; color:${txColor}; flex-shrink:0;">${isPurchase ? '+' : '-'}${(Number(t.amount) || 0).toFixed(2)}₪</span>
+                        <span style="font-size:0.7rem; font-weight:900; color:${txColor}; flex-shrink:0;" dir="ltr">${isPurchase ? '+' : '-'}${(Number(t.amount) || 0).toFixed(2)}₪</span>
                     </div>
                 `;
             }).join('');
@@ -501,9 +518,13 @@
                         <span style="color:#16a34a;">📦 إجمالي البضاعة</span>
                         <span style="color:#16a34a;">${totalPurchases.toFixed(2)}₪</span>
                     </div>
-                    <div style="display:flex; justify-content:space-between; font-size:0.72rem; font-weight:800; margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.72rem; font-weight:800; margin-bottom:4px;">
                         <span style="color:#dc2626;">💵 إجمالي الدفعات</span>
                         <span style="color:#dc2626;">${totalPayments.toFixed(2)}₪</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:900; border-top:1px solid #e5e7eb; padding-top:6px; margin-bottom:10px;">
+                        <span style="color:#1f2937;">⚖️ الفرق (المستحق الكلي)</span>
+                        <span style="color:${diffColor};" dir="ltr">${diffLabel}</span>
                     </div>
                     <div style="font-size:0.68rem; font-weight:900; color:#4b5563; margin-bottom:6px;">سجل كل الحركات (الأحدث أول)</div>
                     ${historyHtml}
@@ -574,7 +595,7 @@
                             <div style="font-size:0.6rem; color:#9ca3af; margin-top:2px;">${t.date || ''}</div>
                         </div>
                         <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-                            <span style="font-size:0.75rem; font-weight:900; color:${txColor};">${isPurchase ? '+' : '-'}${(Number(t.amount) || 0).toFixed(2)}₪</span>
+                            <span style="font-size:0.75rem; font-weight:900; color:${txColor};" dir="ltr">${isPurchase ? '+' : '-'}${(Number(t.amount) || 0).toFixed(2)}₪</span>
                             <button onclick="deleteSupplierTx('${t.id}')" style="background:#fee2e2; color:#991b1b; border:none; width:22px; height:22px; border-radius:6px; font-size:0.6rem; cursor:pointer;">🗑️</button>
                         </div>
                     </div>
