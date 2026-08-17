@@ -317,8 +317,8 @@
         <div id="supplierDetailBalanceBox" style="text-align:center; border-radius:12px; padding:12px; margin-bottom:14px; font-weight:900;"></div>
 
         <div style="display:flex; gap:8px; margin-bottom:14px;">
-            <button class="btn-main" style="background:#b45309;" onclick="showSupplierTxForm('purchase')">📦 بضاعة جبناها</button>
-            <button class="btn-main" style="background:#16a34a;" onclick="showSupplierTxForm('payment')">💵 دفعة دفعناها</button>
+            <button class="btn-main" style="background:#16a34a;" onclick="showSupplierTxForm('purchase')">📦 بضاعة جبناها</button>
+            <button class="btn-main" style="background:#dc2626;" onclick="showSupplierTxForm('payment')">💵 دفعة دفعناها</button>
         </div>
 
         <!-- نموذج إضافة حركة جديدة (بضاعة أو دفعة) - نفس النموذج لكلا النوعين، بيتغيّر العنوان بس -->
@@ -419,12 +419,11 @@
 
         container.innerHTML = names.map(name => {
             const { balance } = computeSupplierBalance(name);
-            const balanceColor = balance > 0 ? '#dc2626' : (balance < 0 ? '#16a34a' : '#6b7280');
             const balanceLabel = balance > 0 ? `مستحق عليهم ${balance.toFixed(2)}₪` : (balance < 0 ? `دفعنا زيادة ${Math.abs(balance).toFixed(2)}₪` : 'الحساب مسدّد');
             return `
                 <div onclick="openSupplierDetail('${escapeHtml(name).replace(/'/g, "\\'")}')" style="display:flex; justify-content:space-between; align-items:center; padding:10px; border:1px solid #e5e7eb; border-radius:10px; margin-bottom:6px; cursor:pointer; background:white;">
                     <span style="font-size:0.75rem; font-weight:800;">🏭 ${escapeHtml(name)}</span>
-                    <span style="font-size:0.68rem; font-weight:900; color:${balanceColor};">${balanceLabel}</span>
+                    <span style="font-size:0.68rem; font-weight:900; color:#1f2937;">${balanceLabel}</span>
                 </div>
             `;
         }).join('');
@@ -466,12 +465,11 @@
 
         const { purchases, payments, balance } = computeSupplierBalance(supplierName);
         const balanceBox = document.getElementById('supplierDetailBalanceBox');
-        const balanceColor = balance > 0 ? '#dc2626' : (balance < 0 ? '#16a34a' : '#6b7280');
         const bg = balance > 0 ? '#fef2f2' : (balance < 0 ? '#f0fdf4' : '#f8fafc');
         const balanceLabel = balance > 0 ? `مستحق عليهم: ${balance.toFixed(2)}₪` : (balance < 0 ? `دفعنا زيادة: ${Math.abs(balance).toFixed(2)}₪` : 'الحساب مسدّد بالكامل');
         balanceBox.style.background = bg;
-        balanceBox.style.color = balanceColor;
-        balanceBox.style.border = `1.5px solid ${balanceColor}33`;
+        balanceBox.style.color = '#1f2937';
+        balanceBox.style.border = `1.5px solid #e5e7eb`;
         balanceBox.innerHTML = `
             <div style="font-size:0.95rem; margin-bottom:4px;">${balanceLabel}</div>
             <div style="font-size:0.62rem; font-weight:700; opacity:0.8;">إجمالي البضاعة: ${purchases.toFixed(2)}₪ &nbsp;•&nbsp; إجمالي المدفوع: ${payments.toFixed(2)}₪</div>
@@ -484,15 +482,16 @@
         } else {
             historyContainer.innerHTML = txList.map(t => {
                 const isPurchase = t.type === 'purchase';
+                const txColor = isPurchase ? '#16a34a' : '#dc2626'; // بضاعة = أخضر، دفعة = أحمر
                 return `
                     <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; border:1px solid #e5e7eb; border-radius:8px; margin-bottom:5px;">
                         <div style="min-width:0;">
-                            <div style="font-size:0.7rem; font-weight:800; color:${isPurchase ? '#b45309' : '#16a34a'};">${isPurchase ? '📦 بضاعة' : '💵 دفعة'}</div>
+                            <div style="font-size:0.7rem; font-weight:800; color:${txColor};">${isPurchase ? '📦 بضاعة' : '💵 دفعة'}</div>
                             ${t.note ? `<div style="font-size:0.62rem; color:#6b7280; margin-top:2px;">${escapeHtml(t.note)}</div>` : ''}
                             <div style="font-size:0.6rem; color:#9ca3af; margin-top:2px;">${t.date || ''}</div>
                         </div>
                         <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-                            <span style="font-size:0.75rem; font-weight:900; color:${isPurchase ? '#b45309' : '#16a34a'};">${isPurchase ? '+' : '-'}${(Number(t.amount) || 0).toFixed(2)}₪</span>
+                            <span style="font-size:0.75rem; font-weight:900; color:${txColor};">${isPurchase ? '+' : '-'}${(Number(t.amount) || 0).toFixed(2)}₪</span>
                             <button onclick="deleteSupplierTx('${t.id}')" style="background:#fee2e2; color:#991b1b; border:none; width:22px; height:22px; border-radius:6px; font-size:0.6rem; cursor:pointer;">🗑️</button>
                         </div>
                     </div>
