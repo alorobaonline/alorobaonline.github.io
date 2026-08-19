@@ -486,6 +486,7 @@
 
         .products-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 0 12px; align-items: start; }
         .products-grid .product-card { min-width: 0; max-width: none; width: 100%; }
+        .bundle-group-divider { margin: 14px 12px 8px; padding: 8px 12px; background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border: 1.5px solid #fdba74; border-radius: 12px; color: #9a3412; font-size: 12.5px; font-weight: 800; text-align: center; }
         .subcategory-title { font-size: 14.5px; font-weight: 900; color: #1f2937; margin-bottom: 10px; padding: 0 15px; }
 
         /* تنسيق بانر عروض الحزمة المتحرك (يعتمد على السحب باللمس حصراً وبدون حواف ظاهرة مسبقة) */
@@ -1416,6 +1417,18 @@
             let bundleA = isSpecificBundleProduct(a) ? 0 : 1;
             let bundleB = isSpecificBundleProduct(b) ? 0 : 1;
             if (bundleA !== bundleB) return bundleA - bundleB;
+
+            // كمان منتجات نفس الحزمة يطلعوا مع بعض متلاصقين، بدون ما يتداخلوا مع منتجات حزمة تانية
+            // (بدون هيك، حزمتين مختلفتين ممكن يتشابكوا حسب الترتيب الأبجدي ويصير الفاصل البصري غلط)
+            if (bundleA === 0 && bundleB === 0) {
+                function getSpecificBundleIndex(p) {
+                    let idx = bundles.findIndex(b => b.selectedItems && b.selectedItems.length > 0 && b.selectedItems.includes(p.name));
+                    return idx === -1 ? 9999 : idx;
+                }
+                let bundleIdxA = getSpecificBundleIndex(a);
+                let bundleIdxB = getSpecificBundleIndex(b);
+                if (bundleIdxA !== bundleIdxB) return bundleIdxA - bundleIdxB;
+            }
 
             // بعد هيك، منتجات العروض (سعر مخفض) بتطلع أول شي بكل قسم/فئة تتواجد فيها
             function isOfferProduct(p) {
@@ -2604,6 +2617,13 @@
         const shouldBeFixed = window.scrollY >= subCatsNaturalTop;
         const isFixed = container.classList.contains('sub-cats-fixed');
 
+        // لو بانر التوصيل المجاني ثابت هو كمان بنفس اللحظة، منزل شريط الفئات الفرعية تحته
+        // بدل ما يركبوا فوق بعض - بنحسب ارتفاعه الفعلي كل مرة (ممكن يختفي/يظهر ديناميكياً)
+        const freeDeliveryBanner = document.getElementById('freeDeliveryBannerInner');
+        const topOffset = (freeDeliveryBanner && freeDeliveryBanner.classList.contains('free-delivery-fixed'))
+            ? freeDeliveryBanner.offsetHeight
+            : 0;
+
         if (shouldBeFixed && !isFixed) {
             spacer.style.height = container.offsetHeight + 'px';
             spacer.style.display = 'block';
@@ -2611,6 +2631,10 @@
         } else if (!shouldBeFixed && isFixed) {
             container.classList.remove('sub-cats-fixed');
             spacer.style.display = 'none';
+        }
+
+        if (container.classList.contains('sub-cats-fixed')) {
+            container.style.top = topOffset + 'px';
         }
 
         const sections = document.querySelectorAll('[data-subcat-section]');
@@ -2770,7 +2794,7 @@
             document.getElementById('loadMoreIndicator').style.display = 'none';
             let allBundleProducts = products.filter(p => bundles.some(b => b.selectedItems && b.selectedItems.length > 0 && b.selectedItems.includes(p.name)));
             container.innerHTML = allBundleProducts.length > 0
-                ? `<div class="products-grid" style="margin-top: 10px;">${allBundleProducts.map(p => createProductCardHtml(p)).join('')}</div>`
+                ? createProductsGridWithBundleDividers(allBundleProducts)
                 : `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد حزم حالياً</p>`;
             return;
         }
@@ -2782,7 +2806,7 @@
             if (query === "" && currentCategory !== "الكل" && currentSubCategory !== "الكل") {
                 let subProducts = products.filter(p => productBelongsToCategory(p, currentSubCategory));
                 container.innerHTML = subProducts.length > 0
-                    ? `<div class="products-grid" style="margin-top: 10px;">${subProducts.map(p => createProductCardHtml(p)).join('')}</div>`
+                    ? createProductsGridWithBundleDividers(subProducts)
                     : `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد منتجات مطابقة</p>`;
                 return;
             }
@@ -2802,7 +2826,7 @@
                         sectionsHtml += `
                             <div class="subcategory-section" data-subcat-section="الكل" style="margin-top: 6px;">
                                 <div class="subcategory-title">${parentIcon} ${currentCategory}</div>
-                                <div class="products-grid">${directProducts.map(p => createProductCardHtml(p)).join('')}</div>
+                                ${createProductsGridWithBundleDividers(directProducts)}
                             </div>
                         `;
                     }
@@ -2813,7 +2837,7 @@
                         sectionsHtml += `
                             <div class="subcategory-section" data-subcat-section="${child.name}" style="${(idx > 0 || directProducts.length > 0) ? 'border-top: 1px solid var(--border-color); margin-top: 18px; padding-top: 16px;' : 'margin-top: 6px;'}">
                                 <div class="subcategory-title">${child.icon || '📦'} ${child.name}</div>
-                                <div class="products-grid">${childProducts.map(p => createProductCardHtml(p)).join('')}</div>
+                                ${createProductsGridWithBundleDividers(childProducts)}
                             </div>
                         `;
                     });
@@ -2830,12 +2854,11 @@
                 return currentCategory === "الكل" || productBelongsToCategory(p, currentCategory);
             });
 
-            let gridHtml = `<div class="products-grid" style="margin-top: 10px;">`;
+            let gridHtml;
             if(filtered.length === 0) {
                 gridHtml = `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد منتجات مطابقة</p>`;
             } else {
-                filtered.forEach(p => { gridHtml += createProductCardHtml(p); });
-                gridHtml += `</div>`;
+                gridHtml = createProductsGridWithBundleDividers(filtered);
             }
             container.innerHTML = gridHtml;
             return;
@@ -3551,6 +3574,43 @@
             return products.filter(p => b.selectedItems.includes(p.name));
         }
         return products;
+    }
+
+    // نفس findBundleForProduct بس بتتجاهل حزم "كل المنتجات" (يلي selectedItems فاضية عندها) - هاي بس
+    // للحزم المحددة بالاسم، عشان الفاصل البصري ما يظهر بشكل غلط فوق كل منتج بالمتجر
+    function findSpecificBundleForProduct(p) {
+        if (!bundles || bundles.length === 0) return null;
+        return bundles.find(b => b.selectedItems && b.selectedItems.length > 0 && b.selectedItems.includes(p.name)) || null;
+    }
+
+    // بيبني شبكة منتجات فيها فاصل بعنوان "🎁 عرض: ..." كل ما بلشت مجموعة منتجات حزمة جديدة - حتى
+    // الزبون يفهم فوراً إنه هالمنتجات سوا هني عرض واحد، مش مبعثرين بالصدفة جنب بعض
+    function createProductsGridWithBundleDividers(productList) {
+        if (!productList || productList.length === 0) return '';
+        let html = '';
+        let currentBundleId; // undefined لسا ما بلشنا أي مجموعة
+        let gridOpen = false;
+
+        productList.forEach(p => {
+            let bundle = findSpecificBundleForProduct(p);
+            let bundleId = bundle ? bundle.id : null;
+
+            if (bundleId !== currentBundleId) {
+                if (gridOpen) html += `</div>`;
+                if (bundle) {
+                    let price = parseBundlePrice(bundle);
+                    let qty = Number(bundle.qty) || 0;
+                    html += `<div class="bundle-group-divider">🎁 عرض: ${bundle.name || 'حزمة'} - ${qty} بـ ${price}₪</div>`;
+                }
+                html += `<div class="products-grid" style="margin-top: 10px;">`;
+                gridOpen = true;
+                currentBundleId = bundleId;
+            }
+            html += createProductCardHtml(p);
+        });
+
+        if (gridOpen) html += `</div>`;
+        return html;
     }
 
     function findBundleForProduct(p) {
