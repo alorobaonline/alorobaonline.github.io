@@ -3042,7 +3042,13 @@
                     </div>
                     <div class="form-group">
                         <label>صورة البانر</label>
-                        <input type="text" id="bannerImg_${index}" class="form-control" value="${slide.img || ''}">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                            <img id="bannerImgPreview_${index}" src="${slide.img || ''}" style="width:44px; height:44px; border-radius:8px; object-fit:cover; border:1.5px solid #e5e7eb; flex-shrink:0; ${slide.img ? '' : 'display:none;'}" onerror="this.style.display='none';">
+                            <button type="button" class="btn-main" style="width:auto; padding:8px 12px; font-size:0.7rem; margin:0;" onclick="document.getElementById('bannerImgFile_${index}').click();">📤 رفع صورة من الجهاز</button>
+                            <span id="bannerImgUploadStatus_${index}" style="font-size:0.65rem; color:#6b7280;"></span>
+                        </div>
+                        <input type="file" id="bannerImgFile_${index}" accept="image/*" style="display:none;" onchange="handleBannerImageUpload(event, ${index})">
+                        <input type="text" id="bannerImg_${index}" class="form-control" value="${slide.img || ''}" placeholder="أو الصق رابط صورة جاهز هون" oninput="document.getElementById('bannerImgPreview_${index}').src=this.value; document.getElementById('bannerImgPreview_${index}').style.display='block';">
                     </div>
                 </div>
             `;
@@ -3071,6 +3077,35 @@
             if(!tagInput) break;
             bannerSlides.push({ tag: tagInput.value.trim(), title: titleInput.value.trim(), img: imgInput.value.trim() });
             index++;
+        }
+    }
+
+    // رفع صورة البانر من جهاز الموظف مباشرة (موبايل أو كمبيوتر) - بنحوّلها لرابط عبر نفس خدمة رفع
+    // صور المنتجات (Cloudinary) بدل ما يحتاج يدور له رابط جاهز من مكان تاني
+    async function handleBannerImageUpload(event, index) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const statusEl = document.getElementById(`bannerImgUploadStatus_${index}`);
+        const previewEl = document.getElementById(`bannerImgPreview_${index}`);
+        const urlInput = document.getElementById(`bannerImg_${index}`);
+
+        statusEl.innerText = '⏳ جاري الرفع...';
+        try {
+            const reader = new FileReader();
+            const dataUrl = await new Promise((resolve, reject) => {
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+            const uploadedUrl = await uploadImageToStorage(dataUrl);
+            urlInput.value = uploadedUrl;
+            previewEl.src = uploadedUrl;
+            previewEl.style.display = 'block';
+            statusEl.innerText = '✅ تم الرفع';
+        } catch(e) {
+            console.error(e);
+            statusEl.innerText = '❌ فشل الرفع';
+            alert('تعذر رفع الصورة: ' + (e.message || e));
         }
     }
 
