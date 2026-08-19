@@ -1757,14 +1757,21 @@
     async function loadDataFromCloud() {
         try {
             // نفّذ كل الطلبات المستقلة عن بعض بالتوازي بدل ما ننتظر وحدة وحدة (كانت هذي السبب الرئيسي لبطء التحميل)
-            const [catSnap, prodSnap, settingSnap, deliverySettingSnap, zoneSnap, offerGroupsSnap] = await Promise.all([
+            const [catSnap, prodSnap, settingSnap, deliverySettingSnap, zoneSnap, offerGroupsSnap, bannerSnap] = await Promise.all([
                 window.getDocs(window.collection(window.db, "categories")),
                 window.getDocs(window.collection(window.db, "products")),
                 window.getDoc(window.doc(window.db, "settings", "storeSettings")).catch(() => null),
                 window.getDoc(window.doc(window.db, "settings", "deliverySettings")).catch(() => null),
                 window.getDocs(window.collection(window.db, "deliveryZones")).catch(() => null),
-                window.getDocs(window.collection(window.db, "offerGroups")).catch(() => null)
+                window.getDocs(window.collection(window.db, "offerGroups")).catch(() => null),
+                window.getDoc(window.doc(window.db, "settings", "banner")).catch(() => null)
             ]);
+
+            // نحمّل شرائح البانر المحفوظة فعلياً - قبل هيك كانت الشاشة تفتح بشرائح فاضية دايماً حتى لو
+            // محفوظ عندك شرائح فعلية بقاعدة البيانات (بيانات الحفظ كانت شغالة صح، بس القراءة كانت ناقصة)
+            if (bannerSnap && bannerSnap.exists() && Array.isArray(bannerSnap.data().slides)) {
+                bannerSlides = bannerSnap.data().slides;
+            }
 
             if(catSnap && !catSnap.empty) {
                 categories = [{ name: "الكل", icon: "🛍️", sortOrder: -1 }];
