@@ -1290,6 +1290,7 @@
     let storeWazeLink = '';
     let bundleBannerEnabled = true;
     let businessHoursSchedule = null;
+    let pickupHoursSchedule = null;
     const BUSINESS_DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const BUSINESS_DAY_LABELS = { sunday: 'الأحد', monday: 'الاثنين', tuesday: 'الثلاثاء', wednesday: 'الأربعاء', thursday: 'الخميس', friday: 'الجمعة', saturday: 'السبت' };
 
@@ -1300,13 +1301,32 @@
         const dayKey = BUSINESS_DAY_KEYS[now.getDay()];
         const dayData = businessHoursSchedule[dayKey];
         if (!dayData || dayData.open === false) {
-            return { open: false, reason: `😔 المتجر مسكّر اليوم (${BUSINESS_DAY_LABELS[dayKey]})` };
+            return { open: false, reason: `😔 التوصيل متوقف اليوم (${BUSINESS_DAY_LABELS[dayKey]}) - بس الاستلام الذاتي من المحل متاح` };
         }
         const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
         const from = dayData.from || '00:00';
         const to = dayData.to || '23:59';
         if (timeStr < from || timeStr > to) {
-            return { open: false, reason: `😔 المتجر مسكّر حالياً. ساعات العمل اليوم: من ${from} إلى ${to}` };
+            return { open: false, reason: `😔 التوصيل متوقف حالياً (ساعات عمل التوصيل اليوم: من ${from} إلى ${to}) - بس الاستلام الذاتي من المحل متاح`, from, to };
+        }
+        return { open: true, from, to };
+    }
+
+    // نفس منطق getStoreOpenStatus بالضبط بس لجدول الاستلام الذاتي المستقل - عنده أيامه وساعاته
+    // الخاصة، منفصلة تماماً عن ساعات التوصيل فوق
+    function getPickupOpenStatus() {
+        if (!pickupHoursSchedule) return { open: true, unconfigured: true };
+        const now = new Date();
+        const dayKey = BUSINESS_DAY_KEYS[now.getDay()];
+        const dayData = pickupHoursSchedule[dayKey];
+        if (!dayData || dayData.open === false) {
+            return { open: false, reason: `😔 الاستلام الذاتي متوقف اليوم (${BUSINESS_DAY_LABELS[dayKey]})` };
+        }
+        const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        const from = dayData.from || '00:00';
+        const to = dayData.to || '23:59';
+        if (timeStr < from || timeStr > to) {
+            return { open: false, reason: `😔 الاستلام الذاتي متوقف حالياً (ساعاته اليوم: من ${from} إلى ${to})`, from, to };
         }
         return { open: true, from, to };
     }
@@ -1319,7 +1339,7 @@
             if (status.unconfigured) {
                 banner.style.display = 'none'; // ساعات الدوام ما اتحددت بعد بلوحة التحكم - ما نعرض شي
             } else {
-                banner.innerText = `🟢 المتجر مفتوح الآن، حتى الساعة ${status.to}`;
+                banner.innerText = `🟢 التوصيل متاح الآن، حتى الساعة ${status.to}`;
                 banner.style.background = '#f0fdf4';
                 banner.style.borderBottom = '2px solid #86efac';
                 banner.style.color = '#166534';
@@ -1327,9 +1347,9 @@
             }
         } else {
             banner.innerText = status.reason;
-            banner.style.background = '#fef2f2';
-            banner.style.borderBottom = '2px solid #fecaca';
-            banner.style.color = '#991b1b';
+            banner.style.background = '#fff7ed';
+            banner.style.borderBottom = '2px solid #fdba74';
+            banner.style.color = '#9a3412';
             banner.style.display = 'block';
         }
     }
@@ -1787,7 +1807,7 @@
 
     async function loadStaticSettingsFromCloud() {
         try {
-            const [layoutDoc, bannerDoc, deliveryDoc, zonesSnap, storeSettingsDoc, tiersDoc, paymentDoc, hoursDoc] = await Promise.all([
+            const [layoutDoc, bannerDoc, deliveryDoc, zonesSnap, storeSettingsDoc, tiersDoc, paymentDoc, hoursDoc, pickupHoursDoc] = await Promise.all([
                 window.getDoc(window.doc(window.db, "settings", "layout")),
                 window.getDoc(window.doc(window.db, "settings", "banner")),
                 window.getDoc(window.doc(window.db, "settings", "deliverySettings")),
@@ -1795,7 +1815,8 @@
                 window.getDoc(window.doc(window.db, "settings", "storeSettings")),
                 window.getDoc(window.doc(window.db, "settings", "deliveryTiers")),
                 window.getDoc(window.doc(window.db, "settings", "paymentSettings")),
-                window.getDoc(window.doc(window.db, "settings", "businessHours"))
+                window.getDoc(window.doc(window.db, "settings", "businessHours")),
+                window.getDoc(window.doc(window.db, "settings", "pickupHours"))
             ]);
 
             if(layoutDoc.exists()) layoutData = layoutDoc.data();
@@ -1834,6 +1855,7 @@
                 headerWazeLink.style.display = 'inline-flex';
             }
             businessHoursSchedule = (hoursDoc.exists() && hoursDoc.data().schedule) ? hoursDoc.data().schedule : null;
+            pickupHoursSchedule = (pickupHoursDoc.exists() && pickupHoursDoc.data().schedule) ? pickupHoursDoc.data().schedule : null;
             applyStoreOpenStatus();
             setInterval(applyStoreOpenStatus, 60000); // نحدّث كل دقيقة حتى تنتقل الحالة أوتوماتيكياً وقت الفتح/الإغلاق
         } catch(e) {}
@@ -4618,13 +4640,20 @@
     }
 
     function goToStep3() {
+        let type = document.querySelector('input[name="fulfillmentType"]:checked').value;
+
+        // خارج ساعات الدوام: كل نوع طلب إله جدوله المستقل (توصيل عنده ساعاته، والاستلام الذاتي عنده ساعاته)
         const storeStatus = getStoreOpenStatus();
-        if (!storeStatus.open) {
+        if (!storeStatus.open && type === 'توصيل') {
             alert(storeStatus.reason);
             return;
         }
+        const pickupStatus = getPickupOpenStatus();
+        if (!pickupStatus.open && type === 'استلام ذاتي') {
+            alert(pickupStatus.reason);
+            return;
+        }
 
-        let type = document.querySelector('input[name="fulfillmentType"]:checked').value;
         const name = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('customerPhone').value.trim();
         const neighborhood = document.getElementById('customerCity').value.trim();
@@ -5083,9 +5112,17 @@
     }
 
     async function submitOrder() {
+        let type = document.querySelector('input[name="fulfillmentType"]:checked').value;
+
+        // خارج ساعات الدوام: كل نوع طلب إله جدوله المستقل
         const storeStatus = getStoreOpenStatus();
-        if (!storeStatus.open) {
+        if (!storeStatus.open && type === 'توصيل') {
             alert(storeStatus.reason);
+            return;
+        }
+        const pickupStatus = getPickupOpenStatus();
+        if (!pickupStatus.open && type === 'استلام ذاتي') {
+            alert(pickupStatus.reason);
             return;
         }
 
@@ -5111,7 +5148,6 @@
             return;
         }
 
-        let type = document.querySelector('input[name="fulfillmentType"]:checked').value;
         const name = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('customerPhone').value.trim();
         const neighborhood = document.getElementById('customerCity').value.trim();

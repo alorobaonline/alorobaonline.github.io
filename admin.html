@@ -926,15 +926,29 @@
 
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('businessHoursSectionContent', this)">
-            <span>🕐 ساعات العمل والأيام</span>
+            <span>🚚 ساعات عمل التوصيل</span>
             <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="businessHoursSectionContent">
             <div style="font-size: 0.65rem; color: #6b7280; margin-bottom: 10px; line-height: 1.5;">
-                فك تفعيل أي يوم يخليه "مسكّر" بالكامل. بالأيام المفتوحة، الزبون ما يقدر يكمل أي طلب (توصيل أو استلام) إلا ضمن الساعات المحددة.
+                فك تفعيل أي يوم يوقف التوصيل فيه بالكامل. بالأيام المفتوحة، الزبون ما يقدر يطلب توصيل إلا ضمن الساعات المحددة - الاستلام الذاتي إله ساعاته المستقلة بالقسم تحت.
             </div>
             <div id="businessHoursDaysContainer"></div>
-            <button class="btn-main" style="margin-top: 10px;" onclick="saveBusinessHours()">حفظ ساعات العمل 💾</button>
+            <button class="btn-main" style="margin-top: 10px;" onclick="saveBusinessHours()">حفظ ساعات التوصيل 💾</button>
+        </div>
+    </div>
+
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('pickupHoursSectionContent', this)">
+            <span>🏪 ساعات الاستلام الذاتي</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="pickupHoursSectionContent">
+            <div style="font-size: 0.65rem; color: #6b7280; margin-bottom: 10px; line-height: 1.5;">
+                مستقلة تماماً عن ساعات التوصيل فوق - مثلاً تقدر تخلي الاستلام الذاتي متاح لوقت أطول (أو كل الأيام)، حتى لو التوصيل متوقف.
+            </div>
+            <div id="pickupHoursDaysContainer"></div>
+            <button class="btn-main" style="margin-top: 10px;" onclick="savePickupHours()">حفظ ساعات الاستلام 💾</button>
         </div>
     </div>
 
@@ -1370,6 +1384,7 @@
         initProductCostsListener();
         loadPaymentMethodSettings();
         initBusinessHoursSection();
+        initPickupHoursSection();
         initDailySalesListener();
     });
 
@@ -1459,7 +1474,58 @@
         });
         try {
             await window.setDoc(window.doc(window.db, "settings", "businessHours"), { schedule }, { merge: true });
-            alert("تم حفظ ساعات العمل بنجاح! 🕐");
+            alert("تم حفظ ساعات التوصيل بنجاح! 🚚");
+        } catch(e) {
+            console.error(e);
+            alert("خطأ في حفظ الإعدادات.");
+        }
+    }
+
+    // ===================== ساعات الاستلام الذاتي (مستقلة عن ساعات التوصيل) =====================
+    function renderPickupHoursForm(savedSchedule) {
+        savedSchedule = savedSchedule || {};
+        const container = document.getElementById('pickupHoursDaysContainer');
+        if (!container) return;
+
+        container.innerHTML = BUSINESS_DAYS.map(d => {
+            const dayData = savedSchedule[d.key] || { open: true, from: '09:00', to: '21:00' };
+            return `
+                <div style="display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #f1f5f9;">
+                    <label style="display:flex; align-items:center; gap:6px; font-size:0.75rem; font-weight:800; width:80px; flex-shrink:0; cursor:pointer;">
+                        <input type="checkbox" id="phOpen_${d.key}" ${dayData.open !== false ? 'checked' : ''} style="width:16px; height:16px;"> ${d.label}
+                    </label>
+                    <input type="time" id="phFrom_${d.key}" class="form-control" value="${dayData.from || '09:00'}" style="margin-bottom:0;">
+                    <span style="font-size:0.7rem; color:#94a3b8;">إلى</span>
+                    <input type="time" id="phTo_${d.key}" class="form-control" value="${dayData.to || '21:00'}" style="margin-bottom:0;">
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function initPickupHoursSection() {
+        renderPickupHoursForm();
+        try {
+            const snap = await window.getDoc(window.doc(window.db, "settings", "pickupHours"));
+            if (snap.exists() && snap.data().schedule) {
+                renderPickupHoursForm(snap.data().schedule);
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    async function savePickupHours() {
+        const schedule = {};
+        BUSINESS_DAYS.forEach(d => {
+            schedule[d.key] = {
+                open: document.getElementById(`phOpen_${d.key}`).checked,
+                from: document.getElementById(`phFrom_${d.key}`).value || '09:00',
+                to: document.getElementById(`phTo_${d.key}`).value || '21:00'
+            };
+        });
+        try {
+            await window.setDoc(window.doc(window.db, "settings", "pickupHours"), { schedule }, { merge: true });
+            alert("تم حفظ ساعات الاستلام الذاتي بنجاح! 🏪");
         } catch(e) {
             console.error(e);
             alert("خطأ في حفظ الإعدادات.");
