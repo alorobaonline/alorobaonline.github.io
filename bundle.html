@@ -121,6 +121,27 @@
             </div>
         </div>
 
+        <!-- سويتش رئيسي: يخفي بانر عروض الحزمة كامل من الصفحة الرئيسية للمتجر، بغض النظر عن حالة أي
+             حزمة لحالها (منفصل عن زر العين 👁️ لكل حزمة). منتجات الحزم بتضل تظهر بفئاتها عادي بأي حال -->
+        <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between gap-3">
+            <div class="flex items-start gap-3">
+                <div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 flex-shrink-0 mt-0.5">
+                    <i class="fa-solid fa-eye text-sm"></i>
+                </div>
+                <div>
+                    <h2 class="font-bold text-gray-900 text-sm mb-1">بانر عروض الحزمة بالصفحة الرئيسية</h2>
+                    <p class="text-gray-500 text-xs leading-relaxed">
+                        فك التفعيل بيخفي البانر كامل عن الزبائن، حتى لو في حزم مفعّلة - بدون ما يأثر على شارات
+                        الأسعار عالمنتجات نفسها بفئاتها.
+                    </p>
+                </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                <input type="checkbox" id="bundleBannerMasterToggle" checked onchange="toggleBundleBannerMaster(this.checked)" class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-400 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary-green)] relative"></div>
+            </label>
+        </div>
+
         <!-- Bundle List Container -->
         <div id="bundles-list" class="space-y-2.5">
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm py-10 flex flex-col items-center gap-3">
@@ -212,7 +233,7 @@
     <!-- Firebase Scripts -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         // إعدادات الـ Firebase الخاصة بمتجرك
@@ -275,6 +296,7 @@
                 if (!appBooted) {
                     appBooted = true;
                     fetchStoreProducts().then(loadBundles);
+                    loadBundleBannerMasterSetting();
                 }
             } else {
                 appBooted = false;
@@ -497,6 +519,29 @@
             } catch (error) {
                 console.error("خطأ في التحديث:", error);
                 showToast('حدث خطأ أثناء تحديث الحالة', 'error');
+            }
+        };
+
+        // ===================== سويتش رئيسي يخفي بانر عروض الحزمة كامل من الصفحة الرئيسية =====================
+        window.loadBundleBannerMasterSetting = async function() {
+            try {
+                const snap = await getDoc(doc(db, "settings", "storeSettings"));
+                const enabled = snap.exists() ? (snap.data().bundleBannerEnabled !== false) : true;
+                const toggle = document.getElementById('bundleBannerMasterToggle');
+                if (toggle) toggle.checked = enabled;
+            } catch (error) {
+                console.error("خطأ في جلب إعداد البانر:", error);
+            }
+        };
+
+        window.toggleBundleBannerMaster = async function(enabled) {
+            try {
+                await setDoc(doc(db, "settings", "storeSettings"), { bundleBannerEnabled: enabled }, { merge: true });
+                showToast(enabled ? 'تم تفعيل بانر عروض الحزمة بالصفحة الرئيسية' : 'تم إخفاء بانر عروض الحزمة كامل عن الزبائن');
+            } catch (error) {
+                console.error("خطأ في حفظ إعداد البانر:", error);
+                showToast('حدث خطأ أثناء الحفظ', 'error');
+                loadBundleBannerMasterSetting(); // نرجّع السويتش لحالته الصحيحة لو فشل الحفظ
             }
         };
 

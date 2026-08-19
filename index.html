@@ -1240,6 +1240,7 @@
 
     let storeWhatsappNumber = '';
     let storeWazeLink = '';
+    let bundleBannerEnabled = true;
     let businessHoursSchedule = null;
     const BUSINESS_DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const BUSINESS_DAY_LABELS = { sunday: 'الأحد', monday: 'الاثنين', tuesday: 'الثلاثاء', wednesday: 'الأربعاء', thursday: 'الخميس', friday: 'الجمعة', saturday: 'السبت' };
@@ -1735,6 +1736,8 @@
             if(storeSettingsDoc.exists()) {
                 storeWhatsappNumber = storeSettingsDoc.data().whatsappNumber || '';
                 storeWazeLink = storeSettingsDoc.data().wazeLink || '';
+                bundleBannerEnabled = storeSettingsDoc.data().bundleBannerEnabled !== false; // افتراضياً ظاهر لو ما انحدد شي
+                renderBundlesSection(); // نعيد التطبيق لو كانت الحزم أصلاً اترسمت قبل ما يوصل هالإعداد
             }
             const headerWaLink = document.getElementById('storeWhatsappHeaderLink');
             if (headerWaLink && storeWhatsappNumber) {
@@ -3260,6 +3263,13 @@
         if (bundleBannerInterval) {
             clearInterval(bundleBannerInterval);
             bundleBannerInterval = null;
+        }
+
+        // سويتش رئيسي بيخفي البانر كامل من الصفحة الرئيسية بغض النظر عن الحزم الفردية (منفصل عن
+        // زر العين 👁️ لكل حزمة لحالها) - منتجات الحزم بتضل تظهر بفئاتها عادي مع شارة العرض
+        if (!bundleBannerEnabled) {
+            container.innerHTML = '';
+            return;
         }
 
         let visibleBundles = (bundles || []).filter(b => b.hiddenFromCarousel !== true);
