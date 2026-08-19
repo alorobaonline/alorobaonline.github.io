@@ -67,14 +67,12 @@
         .store-header { background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: 22px; border-bottom-right-radius: 22px; box-shadow: 0 4px 16px rgba(78, 128, 16, 0.25); }
 
         /* بانر عرض التوصيل المجاني المؤقت مع عداد تنازلي */
-        .free-delivery-banner { margin: 10px 15px; padding: 14px 16px; border-radius: 18px; background: #ffffff; border: 1.5px solid #fecaca; box-shadow: 0 6px 18px rgba(220, 38, 38, 0.12); position: relative; overflow: hidden; }
-        .free-delivery-banner::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 90% 10%, rgba(220,38,38,0.06) 0%, transparent 55%); pointer-events: none; }
-        .free-delivery-top { display: flex; align-items: center; gap: 8px; color: #dc2626; font-weight: 800; font-size: 14px; margin-bottom: 3px; }
-        .free-delivery-sub { color: #b91c1c; font-size: 11.5px; font-weight: 600; margin-bottom: 10px; }
-        .free-delivery-timer { display: flex; gap: 6px; direction: ltr; justify-content: flex-end; }
-        .free-delivery-timer .fd-unit { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 6px 4px; min-width: 46px; text-align: center; }
-        .free-delivery-timer .fd-num { color: #dc2626; font-weight: 800; font-size: 16px; line-height: 1; font-variant-numeric: tabular-nums; }
-        .free-delivery-timer .fd-label { color: #b91c1c; font-size: 8.5px; font-weight: 700; margin-top: 2px; }
+        .free-delivery-banner { margin: 0; padding: 8px 15px; background: #fef2f2; border-bottom: 1.5px solid #fecaca; display: flex; align-items: center; justify-content: space-between; gap: 8px; overflow: hidden; }
+        .fd-title-inline { color: #dc2626; font-weight: 800; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .free-delivery-timer { display: flex; gap: 4px; direction: ltr; flex-shrink: 0; }
+        .free-delivery-timer .fd-unit { background: #ffffff; border: 1px solid #fecaca; border-radius: 6px; padding: 2px 5px; min-width: 26px; text-align: center; display: flex; align-items: baseline; gap: 2px; justify-content: center; }
+        .free-delivery-timer .fd-num { color: #dc2626; font-weight: 800; font-size: 12px; line-height: 1; font-variant-numeric: tabular-nums; }
+        .free-delivery-timer .fd-label { color: #b91c1c; font-size: 8px; font-weight: 700; }
 
         /* شريط عروض "اشتري بقيمة معينة، خذ منتج بسعر مخفض" */
         /* تنسيق بانر عروض "اشتري واحصل على خصم" الكبير المتحرك - نفس آلية بانر الحزمة بالضبط (سحب/دوران تلقائي) */
@@ -819,7 +817,10 @@
 <div class="store-container">
     <!-- الهيدر -->
     <div class="store-header">
-        <div class="store-title">🛒 العروبة أونلاين</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <div class="store-title">🛒 العروبة أونلاين</div>
+            <button class="admin-link header-icon-btn" onclick="toggleSearchBar()" title="بحث">🔍</button>
+        </div>
         <div class="header-actions">
             <button class="admin-link header-icon-btn" style="position:relative;" onclick="openProfileModal('current')" title="طلبيتي الحالية">
                 📦
@@ -847,16 +848,16 @@
 
     <div id="storeClosedBanner" style="display:none; background:#fef2f2; border-bottom:2px solid #fecaca; color:#991b1b; text-align:center; padding:10px 15px; font-size:13px; font-weight:800;"></div>
 
-    <!-- شريط البحث -->
-    <div class="search-bar-container">
+    <!-- بانر عرض التوصيل المجاني المؤقت (بعد إلى تاريخ ووقت محدد) - أول شي تحت الهيدر مباشرة -->
+    <div id="freeDeliveryPromoBanner" style="display:none;"></div>
+
+    <!-- شريط البحث (يظهر بس لما تضغط أيقونة 🔍 بالهيدر) -->
+    <div class="search-bar-container" id="searchBarContainer" style="display:none;">
         <input type="text" id="searchInput" class="search-input" placeholder="ابحث عن أي منتج تريده..." oninput="filterProducts()">
     </div>
 
     <!-- بانر صور فقط (شرائح متحركة، من قسم "تخصيص شرائح البانر" بلوحة التحكم) -->
     <div id="photoBannerSection"></div>
-
-    <!-- بانر عرض التوصيل المجاني المؤقت (بعد إلى تاريخ ووقت محدد) -->
-    <div id="freeDeliveryPromoBanner" style="display:none;"></div>
 
     <!-- بانر عروض "اشتري بقيمة معينة، خذ منتج بسعر مخفض" -->
     <div id="spendOffersBanner" style="display:none;"></div>
@@ -1965,6 +1966,20 @@
     }
 
     // قائمة "المزيد ☰" بالراس (حسابي/واتساب/ويز) - نقفلها لو ضغط بره منها بأي مكان بالصفحة
+    // نطلع/نطوي شريط البحث بالضغط على أيقونة 🔍 بالهيدر - مطوي افتراضياً حتى نوفر مساحة عمودية
+    function toggleSearchBar() {
+        const container = document.getElementById('searchBarContainer');
+        if (!container) return;
+        const willShow = container.style.display === 'none';
+        container.style.display = willShow ? 'block' : 'none';
+        if (willShow) {
+            setTimeout(() => document.getElementById('searchInput').focus(), 50);
+        } else {
+            document.getElementById('searchInput').value = '';
+            filterProducts();
+        }
+    }
+
     function toggleHeaderMenu() {
         const menu = document.getElementById('headerDropdownMenu');
         if (!menu) return;
@@ -2936,14 +2951,13 @@
         container.style.display = 'block';
         container.innerHTML = `
             <div class="free-delivery-banner">
-                <div class="free-delivery-top"><span>${title}</span></div>
-                <div class="free-delivery-sub">${subtitle}</div>
-                <div class="free-delivery-timer" id="freeDeliveryTimerNums">
-                    <div class="fd-unit"><div class="fd-num" id="fdDays">00</div><div class="fd-label">يوم</div></div>
-                    <div class="fd-unit"><div class="fd-num" id="fdHours">00</div><div class="fd-label">ساعة</div></div>
-                    <div class="fd-unit"><div class="fd-num" id="fdMinutes">00</div><div class="fd-label">دقيقة</div></div>
-                    <div class="fd-unit"><div class="fd-num" id="fdSeconds">00</div><div class="fd-label">ثانية</div></div>
-                </div>
+                <span class="fd-title-inline">${title}</span>
+                <span class="free-delivery-timer" id="freeDeliveryTimerNums">
+                    <span class="fd-unit"><span class="fd-num" id="fdDays">00</span><span class="fd-label">يوم</span></span>
+                    <span class="fd-unit"><span class="fd-num" id="fdHours">00</span><span class="fd-label">س</span></span>
+                    <span class="fd-unit"><span class="fd-num" id="fdMinutes">00</span><span class="fd-label">د</span></span>
+                    <span class="fd-unit"><span class="fd-num" id="fdSeconds">00</span><span class="fd-label">ث</span></span>
+                </span>
             </div>
         `;
 
