@@ -3031,6 +3031,7 @@
     function initBannerForm() {
         const container = document.getElementById('bannerSlidesContainer');
         if(!container) return;
+        populateSpendOfferProductsDatalist();
         container.innerHTML = '';
         bannerSlides.forEach((slide, index) => {
             container.innerHTML += `
@@ -3057,6 +3058,19 @@
                         <input type="file" id="bannerImgFile_${index}" accept="image/*" style="display:none;" onchange="handleBannerImageUpload(event, ${index})">
                         <input type="text" id="bannerImg_${index}" class="form-control" value="${slide.img || ''}" placeholder="أو الصق رابط صورة جاهز هون" oninput="document.getElementById('bannerImgPreview_${index}').src=this.value; document.getElementById('bannerImgPreview_${index}').style.display='block';">
                     </div>
+                    <div class="form-group">
+                        <label>رابط عند الضغط (اختياري - واتساب، رقم هاتف، أو أي موقع خارجي)</label>
+                        <input type="text" id="bannerLink_${index}" class="form-control" value="${slide.link || ''}" placeholder="مثلاً: https://wa.me/9725xxxxxxxx">
+                    </div>
+                    <div class="form-group">
+                        <label>أو وديه لمنتج من متجرك (اختياري - لو حطيت رابط خارجي فوق، هو يلي بياخد الأولوية)</label>
+                        <input type="text" id="bannerProductSearch_${index}" list="spendOfferProductsDatalist" class="form-control" value="${(products.find(p => p.id === slide.productId) || {}).name || ''}" placeholder="اكتب اسم المنتج للبحث..." oninput="onBannerProductSearchInput(${index})">
+                        <input type="hidden" id="bannerProductId_${index}" value="${slide.productId || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>تاريخ انتهاء الإعلان (اختياري - بيختفي تلقائياً بعده)</label>
+                        <input type="date" id="bannerExpiry_${index}" class="form-control" value="${slide.expiryDate || ''}">
+                    </div>
                 </div>
             `;
         });
@@ -3064,7 +3078,7 @@
 
     function addNewBannerSlide() {
         collectCurrentBannerData();
-        bannerSlides.push({ tag: "عروض جديدة", title: "تسوق أفضل المنتجات", img: "https://i.ibb.co/3m1K2wP/basket.png" });
+        bannerSlides.push({ tag: "عروض جديدة", title: "تسوق أفضل المنتجات", img: "https://i.ibb.co/3m1K2wP/basket.png", link: "", productId: "", expiryDate: "" });
         initBannerForm();
     }
 
@@ -3074,6 +3088,19 @@
         initBannerForm();
     }
 
+    // بالبحث بالكتابة (datalist) بنلاقي منتج المتجر يلي الشريحة رح توديله - أول تطابق تام بالاسم،
+    // وإلا أول منتج اسمه يحتوي النص المكتوب (نفس منطق اختيار منتج عروض الشراء بالضبط)
+    function onBannerProductSearchInput(index) {
+        collectCurrentBannerData();
+        let input = document.getElementById(`bannerProductSearch_${index}`);
+        let typed = input.value.trim();
+        let matched = products.find(p => p.name === typed) || products.find(p => p.name.includes(typed) && typed.length >= 2);
+        let hiddenIdInput = document.getElementById(`bannerProductId_${index}`);
+        if (!matched) return; // لسا ما لقينا تطابق واضح - منسيب القيمة متل ما هي لحد ما يكمل الكتابة أو يختار
+        if (hiddenIdInput) hiddenIdInput.value = matched.id;
+        bannerSlides[index].productId = matched.id;
+    }
+
     function collectCurrentBannerData() {
         bannerSlides = [];
         let index = 0;
@@ -3081,8 +3108,18 @@
             let tagInput = document.getElementById(`bannerTag_${index}`);
             let titleInput = document.getElementById(`bannerTitle_${index}`);
             let imgInput = document.getElementById(`bannerImg_${index}`);
+            let linkInput = document.getElementById(`bannerLink_${index}`);
+            let productIdInput = document.getElementById(`bannerProductId_${index}`);
+            let expiryInput = document.getElementById(`bannerExpiry_${index}`);
             if(!tagInput) break;
-            bannerSlides.push({ tag: tagInput.value.trim(), title: titleInput.value.trim(), img: imgInput.value.trim() });
+            bannerSlides.push({
+                tag: tagInput.value.trim(),
+                title: titleInput.value.trim(),
+                img: imgInput.value.trim(),
+                link: linkInput ? linkInput.value.trim() : '',
+                productId: productIdInput ? productIdInput.value.trim() : '',
+                expiryDate: expiryInput ? expiryInput.value : ''
+            });
             index++;
         }
     }

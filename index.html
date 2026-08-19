@@ -3170,17 +3170,31 @@
             photoBannerInterval = null;
         }
 
-        let slides = (bannerSlides || []).filter(s => s && s.img);
+        // نستثني الشرائح يلي خلصت مدتها (تاريخ انتهاء اختياري - مفيد للإعلانات المؤقتة لمحلات/مطاعم تانية)
+        let todayStr = new Date().toISOString().slice(0, 10);
+        let slides = (bannerSlides || []).filter(s => s && s.img && (!s.expiryDate || s.expiryDate >= todayStr));
         if (slides.length === 0) {
             container.innerHTML = '';
             return;
         }
 
-        let slidesHtml = slides.map(s => `
-            <div class="photo-slide-item">
-                <img src="${optimizeImg(s.img, 700) || s.img}" alt="${s.title || ''}" onerror="this.onerror=null; this.src='${s.img}';">
-            </div>
-        `).join('');
+        let slidesHtml = slides.map(s => {
+            let imgTag = `<img src="${optimizeImg(s.img, 700) || s.img}" alt="${s.title || ''}" onerror="this.onerror=null; this.src='${s.img}';">`;
+            // أولوية النقر: رابط خارجي (إعلان لمحل/مطعم تاني) → منتج من متجرك (يوديك لمكانه بفئته مع الهايلايت) → صورة عادية بدون نقر
+            let clickWrapper;
+            if (s.link) {
+                clickWrapper = `<a href="${s.link}" target="_blank" rel="noopener" style="display:block;">${imgTag}</a>`;
+            } else if (s.productId) {
+                clickWrapper = `<div style="cursor:pointer;" onclick='goToProductFromSpendOffer("${s.productId}")'>${imgTag}</div>`;
+            } else {
+                clickWrapper = imgTag;
+            }
+            return `
+                <div class="photo-slide-item">
+                    ${clickWrapper}
+                </div>
+            `;
+        }).join('');
 
         let dotsHtml = slides.length > 1
             ? `<div class="photo-banner-dots" id="photoBannerDots">${slides.map((s, i) => `<div class="photo-dot ${i === 0 ? 'active' : ''}" onclick="goToPhotoBannerSlide(${i})"></div>`).join('')}</div>`
