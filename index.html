@@ -1301,13 +1301,13 @@
         const dayKey = BUSINESS_DAY_KEYS[now.getDay()];
         const dayData = businessHoursSchedule[dayKey];
         if (!dayData || dayData.open === false) {
-            return { open: false, reason: `😔 التوصيل متوقف اليوم (${BUSINESS_DAY_LABELS[dayKey]}) - بس الاستلام الذاتي من المحل متاح` };
+            return { open: false, reason: `😔 التوصيل متوقف حالياً - ساعات التوصيل حسب لوحة التحكم (${BUSINESS_DAY_LABELS[dayKey]}: متوقف اليوم) - متوفر فقط استلام ذاتي` };
         }
         const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
         const from = dayData.from || '00:00';
         const to = dayData.to || '23:59';
         if (timeStr < from || timeStr > to) {
-            return { open: false, reason: `😔 التوصيل متوقف حالياً (ساعات عمل التوصيل اليوم: من ${from} إلى ${to}) - بس الاستلام الذاتي من المحل متاح`, from, to };
+            return { open: false, reason: `😔 التوصيل متوقف حالياً - ساعات التوصيل حسب لوحة التحكم (من ${from} إلى ${to}) - متوفر فقط استلام ذاتي`, from, to };
         }
         return { open: true, from, to };
     }
@@ -1320,13 +1320,13 @@
         const dayKey = BUSINESS_DAY_KEYS[now.getDay()];
         const dayData = pickupHoursSchedule[dayKey];
         if (!dayData || dayData.open === false) {
-            return { open: false, reason: `😔 الاستلام الذاتي متوقف اليوم (${BUSINESS_DAY_LABELS[dayKey]})` };
+            return { open: false, reason: `😔 الاستلام الذاتي متوقف حالياً - ساعات الاستلام الذاتي حسب لوحة التحكم (${BUSINESS_DAY_LABELS[dayKey]}: متوقف اليوم)` };
         }
         const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
         const from = dayData.from || '00:00';
         const to = dayData.to || '23:59';
         if (timeStr < from || timeStr > to) {
-            return { open: false, reason: `😔 الاستلام الذاتي متوقف حالياً (ساعاته اليوم: من ${from} إلى ${to})`, from, to };
+            return { open: false, reason: `😔 الاستلام الذاتي متوقف حالياً - ساعات الاستلام الذاتي حسب لوحة التحكم (من ${from} إلى ${to})`, from, to };
         }
         return { open: true, from, to };
     }
