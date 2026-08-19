@@ -78,6 +78,15 @@
 
         /* شريط عروض "اشتري بقيمة معينة، خذ منتج بسعر مخفض" */
         /* تنسيق بانر عروض "اشتري واحصل على خصم" الكبير المتحرك - نفس آلية بانر الحزمة بالضبط (سحب/دوران تلقائي) */
+        /* بانر صور فقط - سلايدر بسيط بدون أي نص أو أسعار، بس صور بتتبدّل */
+        .photo-banner-wrapper { position: relative; border-radius: 18px; overflow: hidden; margin: 10px 15px; box-shadow: 0 4px 14px rgba(0,0,0,0.12); }
+        .photo-slides-container { display: flex; transition: transform 0.4s ease-in-out; width: 100%; direction: ltr; }
+        .photo-slide-item { min-width: 100%; flex: 0 0 100%; flex-shrink: 0; box-sizing: border-box; }
+        .photo-slide-item img { width: 100%; height: auto; display: block; max-height: 220px; object-fit: cover; }
+        .photo-banner-dots { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; z-index: 2; }
+        .photo-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.6); transition: all 0.25s ease; cursor: pointer; box-shadow: 0 0 3px rgba(0,0,0,0.4); }
+        .photo-dot.active { width: 18px; border-radius: 4px; background: #fff; }
+
         .spend-banner-wrapper {
             position: relative;
             background: linear-gradient(150deg, #fffbeb 0%, #fef3c7 55%, #fff 100%);
@@ -833,6 +842,9 @@
         <input type="text" id="searchInput" class="search-input" placeholder="ابحث عن أي منتج تريده..." oninput="filterProducts()">
     </div>
 
+    <!-- بانر صور فقط (شرائح متحركة، من قسم "تخصيص شرائح البانر" بلوحة التحكم) -->
+    <div id="photoBannerSection"></div>
+
     <!-- بانر عرض التوصيل المجاني المؤقت (بعد إلى تاريخ ووقت محدد) -->
     <div id="freeDeliveryPromoBanner" style="display:none;"></div>
 
@@ -1148,6 +1160,8 @@
     let products = [];
     let categories = [{ name: "الكل", icon: "🛍️" }];
     let bannerSlides = [];
+    let photoBannerInterval = null;
+    let currentPhotoBannerIndex = 0;
     let layoutData = { firstSection: "", secondSection: "", thirdSection: "" };
     let cart = [];
     // حالة التحقق من رقم الهاتف - معرّفة هنا بالأول عشان loadUserProfileData() تقدر تستخدمها بأمان من أول ما الصفحة تفتح
@@ -1703,6 +1717,7 @@
             if(bannerDoc.exists() && bannerDoc.data().slides) {
                 bannerSlides = bannerDoc.data().slides;
             }
+            renderPhotoBanner();
             if(deliveryDoc.exists()) {
                 deliverySettings = { ...deliverySettings, ...deliveryDoc.data() };
             }
@@ -3140,6 +3155,102 @@
     function goToProductFromCartNudge(productId) {
         closeCartModal();
         setTimeout(() => goToProductFromSpendOffer(productId), 50);
+    }
+
+    // ===================== بانر صور فقط (سلايدر بسيط، بدون نص/سعر) =====================
+    function renderPhotoBanner() {
+        const container = document.getElementById('photoBannerSection');
+        if (!container) return;
+
+        if (photoBannerInterval) {
+            clearInterval(photoBannerInterval);
+            photoBannerInterval = null;
+        }
+
+        let slides = (bannerSlides || []).filter(s => s && s.img);
+        if (slides.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        let slidesHtml = slides.map(s => `
+            <div class="photo-slide-item">
+                <img src="${optimizeImg(s.img, 700) || s.img}" alt="${s.title || ''}" onerror="this.onerror=null; this.src='${s.img}';">
+            </div>
+        `).join('');
+
+        let dotsHtml = slides.length > 1
+            ? `<div class="photo-banner-dots" id="photoBannerDots">${slides.map((s, i) => `<div class="photo-dot ${i === 0 ? 'active' : ''}" onclick="goToPhotoBannerSlide(${i})"></div>`).join('')}</div>`
+            : '';
+
+        container.innerHTML = `
+            <div class="photo-banner-wrapper" id="photoBannerWrapper">
+                <div class="photo-slides-container" id="photoSlidesContainer">${slidesHtml}</div>
+                ${dotsHtml}
+            </div>
+        `;
+
+        if (currentPhotoBannerIndex >= slides.length) currentPhotoBannerIndex = 0;
+        updatePhotoBannerPosition();
+        initPhotoBannerTouchSwipe(slides.length);
+        startPhotoBannerTimer(slides.length);
+    }
+
+    function initPhotoBannerTouchSwipe(slidesCount) {
+        const wrapper = document.getElementById('photoBannerWrapper');
+        if (!wrapper) return;
+
+        wrapper.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+            if (photoBannerInterval) {
+                clearInterval(photoBannerInterval);
+                photoBannerInterval = null;
+            }
+        }, { passive: true });
+
+        wrapper.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            let threshold = 40;
+            if (touchEndX < touchStartX - threshold) {
+                currentPhotoBannerIndex = (currentPhotoBannerIndex + 1) % slidesCount;
+                updatePhotoBannerPosition();
+            } else if (touchEndX > touchStartX + threshold) {
+                currentPhotoBannerIndex = (currentPhotoBannerIndex - 1 + slidesCount) % slidesCount;
+                updatePhotoBannerPosition();
+            }
+            startPhotoBannerTimer(slidesCount);
+        }, { passive: true });
+    }
+
+    function startPhotoBannerTimer(slidesCount) {
+        if (slidesCount > 1) {
+            if (photoBannerInterval) clearInterval(photoBannerInterval);
+            photoBannerInterval = setInterval(() => {
+                currentPhotoBannerIndex = (currentPhotoBannerIndex + 1) % slidesCount;
+                updatePhotoBannerPosition();
+            }, 5000);
+        }
+    }
+
+    function goToPhotoBannerSlide(index) {
+        if (photoBannerInterval) {
+            clearInterval(photoBannerInterval);
+            photoBannerInterval = null;
+        }
+        currentPhotoBannerIndex = index;
+        updatePhotoBannerPosition();
+        const dots = document.querySelectorAll('.photo-dot');
+        startPhotoBannerTimer(dots.length);
+    }
+
+    function updatePhotoBannerPosition() {
+        const container = document.getElementById('photoSlidesContainer');
+        const dots = document.querySelectorAll('.photo-dot');
+        if (container) container.style.transform = `translateX(-${currentPhotoBannerIndex * 100}%)`;
+        dots.forEach((dot, idx) => {
+            if (idx === currentPhotoBannerIndex) dot.classList.add('active');
+            else dot.classList.remove('active');
+        });
     }
 
     function renderBundlesSection() {
