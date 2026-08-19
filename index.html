@@ -68,6 +68,17 @@
 
         /* بانر عرض التوصيل المجاني المؤقت مع عداد تنازلي */
         .free-delivery-banner { margin: 0; padding: 8px 15px; background: #fef2f2; border-bottom: 1.5px solid #fecaca; display: flex; align-items: center; justify-content: space-between; gap: 8px; overflow: hidden; }
+        .free-delivery-banner.free-delivery-fixed {
+            position: fixed !important;
+            top: 0;
+            left: 0;
+            right: 0;
+            max-width: 480px;
+            margin: 0 auto;
+            z-index: 70;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        }
+        .free-delivery-spacer { display: none; }
         .fd-title-inline { color: #dc2626; font-weight: 800; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .free-delivery-timer { display: flex; gap: 4px; direction: ltr; flex-shrink: 0; }
         .free-delivery-timer .fd-unit { background: #ffffff; border: 1px solid #fecaca; border-radius: 6px; padding: 2px 5px; min-width: 26px; text-align: center; display: flex; align-items: baseline; gap: 2px; justify-content: center; }
@@ -848,8 +859,9 @@
 
     <div id="storeClosedBanner" style="display:none; background:#fef2f2; border-bottom:2px solid #fecaca; color:#991b1b; text-align:center; padding:10px 15px; font-size:13px; font-weight:800;"></div>
 
-    <!-- بانر عرض التوصيل المجاني المؤقت (بعد إلى تاريخ ووقت محدد) - أول شي تحت الهيدر مباشرة -->
+    <!-- بانر عرض التوصيل المجاني المؤقت (بعد إلى تاريخ ووقت محدد) - أول شي تحت الهيدر مباشرة، وثابت وقت السكرول -->
     <div id="freeDeliveryPromoBanner" style="display:none;"></div>
+    <div class="free-delivery-spacer" id="freeDeliverySpacer"></div>
 
     <!-- شريط البحث (يظهر بس لما تضغط أيقونة 🔍 بالهيدر) -->
     <div class="search-bar-container" id="searchBarContainer" style="display:none;">
@@ -1192,6 +1204,7 @@
     // subCatsNaturalTop و scrollSpyTicking لازم يتعرّفوا هون بالأول (مش بنص الملف) عشان ما ترجع مشكلة
     // "Cannot access before initialization" - أي فنكشن بيستدعي renderSubCategoriesScroll مبكراً بيحتاجهم جاهزين
     let subCatsNaturalTop = null;
+    let freeDeliveryNaturalTop = null;
     let scrollSpyTicking = false;
 
     // يفعّل/يعطّل بطاقات طريقة الدفع حسب إعدادات صاحب المتجر - المعطّلة تضل ظاهرة
@@ -2623,11 +2636,41 @@
         }
     }
 
+    // ===================== تثبيت بانر التوصيل المجاني فوق (نفس أسلوب شريط الفئات الفرعية بالظبط) =====================
+    function recomputeFreeDeliveryNaturalTop() {
+        const banner = document.getElementById('freeDeliveryBannerInner');
+        if (!banner) { freeDeliveryNaturalTop = null; return; }
+        freeDeliveryNaturalTop = null;
+        requestAnimationFrame(() => {
+            banner.classList.remove('free-delivery-fixed');
+            freeDeliveryNaturalTop = banner.getBoundingClientRect().top + window.scrollY;
+        });
+    }
+
+    function updateStickyFreeDelivery() {
+        const banner = document.getElementById('freeDeliveryBannerInner');
+        const spacer = document.getElementById('freeDeliverySpacer');
+        if (!banner || !spacer || freeDeliveryNaturalTop === null) return;
+
+        const shouldBeFixed = window.scrollY >= freeDeliveryNaturalTop;
+        const isFixed = banner.classList.contains('free-delivery-fixed');
+
+        if (shouldBeFixed && !isFixed) {
+            spacer.style.height = banner.offsetHeight + 'px';
+            spacer.style.display = 'block';
+            banner.classList.add('free-delivery-fixed');
+        } else if (!shouldBeFixed && isFixed) {
+            banner.classList.remove('free-delivery-fixed');
+            spacer.style.display = 'none';
+        }
+    }
+
     window.addEventListener('scroll', () => {
         if (scrollSpyTicking) return;
         scrollSpyTicking = true;
         requestAnimationFrame(() => {
             updateStickySubcatsAndSpy();
+            updateStickyFreeDelivery();
             scrollSpyTicking = false;
         });
     });
@@ -2935,6 +2978,8 @@
         if (!freeDeliveryPromo || !freeDeliveryPromo.active || !freeDeliveryPromo.endDateTime) {
             container.innerHTML = '';
             container.style.display = 'none';
+            freeDeliveryNaturalTop = null;
+            document.getElementById('freeDeliverySpacer').style.display = 'none';
             return;
         }
 
@@ -2942,6 +2987,8 @@
         if (isNaN(endTime) || endTime <= Date.now()) {
             container.innerHTML = '';
             container.style.display = 'none';
+            freeDeliveryNaturalTop = null;
+            document.getElementById('freeDeliverySpacer').style.display = 'none';
             return;
         }
 
@@ -2950,7 +2997,7 @@
 
         container.style.display = 'block';
         container.innerHTML = `
-            <div class="free-delivery-banner">
+            <div class="free-delivery-banner" id="freeDeliveryBannerInner">
                 <span class="fd-title-inline">${title}</span>
                 <span class="free-delivery-timer" id="freeDeliveryTimerNums">
                     <span class="fd-unit"><span class="fd-num" id="fdDays">00</span><span class="fd-label">يوم</span></span>
@@ -2960,6 +3007,7 @@
                 </span>
             </div>
         `;
+        recomputeFreeDeliveryNaturalTop();
 
         function tick() {
             let diff = endTime - Date.now();
@@ -2968,6 +3016,8 @@
                 freeDeliveryTimerInterval = null;
                 container.innerHTML = '';
                 container.style.display = 'none';
+                freeDeliveryNaturalTop = null;
+                document.getElementById('freeDeliverySpacer').style.display = 'none';
                 return;
             }
             let d = Math.floor(diff / (1000 * 60 * 60 * 24));
