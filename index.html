@@ -1075,12 +1075,12 @@
             
             <label class="price-text" style="font-size: 13.5px; font-weight: 900; display: block; margin-bottom: 6px;">طريقة الاستلام:</label>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
-                <label class="fulfillment-card">
+                <label class="fulfillment-card" id="fulfillmentOptionDelivery">
                     <input type="radio" name="fulfillmentType" value="توصيل" checked onchange="toggleFulfillmentType()">
                     <span class="fulfillment-icon">🚚</span>
                     <span class="fulfillment-label">توصيل <span id="deliveryOptionFeeText" style="color: var(--accent-green); font-weight: 900;"></span></span>
                 </label>
-                <label class="fulfillment-card">
+                <label class="fulfillment-card" id="fulfillmentOptionPickup">
                     <input type="radio" name="fulfillmentType" value="استلام ذاتي" onchange="toggleFulfillmentType()">
                     <span class="fulfillment-icon">🏪</span>
                     <span class="fulfillment-label">استلام ذاتي <span id="pickupOptionFeeText" style="color: var(--accent-green); font-weight: 900;"></span></span>
@@ -1301,13 +1301,13 @@
         const dayKey = BUSINESS_DAY_KEYS[now.getDay()];
         const dayData = businessHoursSchedule[dayKey];
         if (!dayData || dayData.open === false) {
-            return { open: false, reason: `😔 التوصيل متوقف حالياً - ساعات التوصيل حسب لوحة التحكم (${BUSINESS_DAY_LABELS[dayKey]}: متوقف اليوم) - متوفر فقط استلام ذاتي` };
+            return { open: false, reason: `😔 التوصيل متوقف حالياً - ساعات التوصيل (${BUSINESS_DAY_LABELS[dayKey]}: متوقف اليوم) - متوفر فقط استلام ذاتي` };
         }
         const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
         const from = dayData.from || '00:00';
         const to = dayData.to || '23:59';
         if (timeStr < from || timeStr > to) {
-            return { open: false, reason: `😔 التوصيل متوقف حالياً - ساعات التوصيل حسب لوحة التحكم (من ${from} إلى ${to}) - متوفر فقط استلام ذاتي`, from, to };
+            return { open: false, reason: `😔 التوصيل متوقف حالياً - ساعات التوصيل (من ${from} إلى ${to}) - متوفر فقط استلام ذاتي`, from, to };
         }
         return { open: true, from, to };
     }
@@ -1320,37 +1320,87 @@
         const dayKey = BUSINESS_DAY_KEYS[now.getDay()];
         const dayData = pickupHoursSchedule[dayKey];
         if (!dayData || dayData.open === false) {
-            return { open: false, reason: `😔 الاستلام الذاتي متوقف حالياً - ساعات الاستلام الذاتي حسب لوحة التحكم (${BUSINESS_DAY_LABELS[dayKey]}: متوقف اليوم)` };
+            return { open: false, reason: `😔 الاستلام الذاتي متوقف حالياً - ساعات الاستلام الذاتي (${BUSINESS_DAY_LABELS[dayKey]}: متوقف اليوم)` };
         }
         const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
         const from = dayData.from || '00:00';
         const to = dayData.to || '23:59';
         if (timeStr < from || timeStr > to) {
-            return { open: false, reason: `😔 الاستلام الذاتي متوقف حالياً - ساعات الاستلام الذاتي حسب لوحة التحكم (من ${from} إلى ${to})`, from, to };
+            return { open: false, reason: `😔 الاستلام الذاتي متوقف حالياً - ساعات الاستلام الذاتي (من ${from} إلى ${to})`, from, to };
         }
         return { open: true, from, to };
     }
 
     function applyStoreOpenStatus() {
-        const status = getStoreOpenStatus();
+        const deliveryStatus = getStoreOpenStatus();
+        const pickupStatus = getPickupOpenStatus();
         const banner = document.getElementById('storeClosedBanner');
-        if (!banner) return;
-        if (status.open) {
-            if (status.unconfigured) {
-                banner.style.display = 'none'; // ساعات الدوام ما اتحددت بعد بلوحة التحكم - ما نعرض شي
+        if (banner) {
+            if (deliveryStatus.open && pickupStatus.open) {
+                if (deliveryStatus.unconfigured && pickupStatus.unconfigured) {
+                    banner.style.display = 'none'; // ساعات الدوام ما اتحددت بعد بلوحة التحكم - ما نعرض شي
+                } else {
+                    banner.innerText = `🟢 التوصيل والاستلام الذاتي متاحين الآن`;
+                    banner.style.background = '#f0fdf4';
+                    banner.style.borderBottom = '2px solid #86efac';
+                    banner.style.color = '#166534';
+                    banner.style.display = 'block';
+                }
+            } else if (!deliveryStatus.open && !pickupStatus.open) {
+                banner.innerText = `😔 التوصيل والاستلام الذاتي متوقفين حالياً - جرب لاحقاً`;
+                banner.style.background = '#fef2f2';
+                banner.style.borderBottom = '2px solid #fecaca';
+                banner.style.color = '#991b1b';
+                banner.style.display = 'block';
             } else {
-                banner.innerText = `🟢 التوصيل متاح الآن، حتى الساعة ${status.to}`;
-                banner.style.background = '#f0fdf4';
-                banner.style.borderBottom = '2px solid #86efac';
-                banner.style.color = '#166534';
+                // وحدة بس متاحة - نوضح بالتحديد أيهم
+                banner.innerText = !deliveryStatus.open ? deliveryStatus.reason : `😔 الاستلام الذاتي متوقف حالياً - بس التوصيل متاح`;
+                banner.style.background = '#fff7ed';
+                banner.style.borderBottom = '2px solid #fdba74';
+                banner.style.color = '#9a3412';
                 banner.style.display = 'block';
             }
-        } else {
-            banner.innerText = status.reason;
-            banner.style.background = '#fff7ed';
-            banner.style.borderBottom = '2px solid #fdba74';
-            banner.style.color = '#9a3412';
-            banner.style.display = 'block';
+        }
+
+        // نعلّم خيار التوصيل/الاستلام الذاتي بخطوة اختيار طريقة الاستلام مباشرة، حتى الزبون يعرف
+        // فوراً وهو عم يختار - مش بس لما يوصل لآخر خطوة ويحاول يكمل
+        applyFulfillmentOptionAvailability(deliveryStatus, pickupStatus);
+    }
+
+    function applyFulfillmentOptionAvailability(deliveryStatus, pickupStatus) {
+        const deliveryOption = document.getElementById('fulfillmentOptionDelivery');
+        const pickupOption = document.getElementById('fulfillmentOptionPickup');
+        if (deliveryOption) {
+            let note = deliveryOption.querySelector('.fulfillment-closed-note');
+            if (!deliveryStatus.open) {
+                deliveryOption.style.opacity = '0.55';
+                if (!note) {
+                    note = document.createElement('div');
+                    note.className = 'fulfillment-closed-note';
+                    note.style.cssText = 'font-size:9.5px; font-weight:800; color:#dc2626; margin-top:2px;';
+                    note.innerText = 'مغلق حالياً';
+                    deliveryOption.appendChild(note);
+                }
+            } else {
+                deliveryOption.style.opacity = '1';
+                if (note) note.remove();
+            }
+        }
+        if (pickupOption) {
+            let note = pickupOption.querySelector('.fulfillment-closed-note');
+            if (!pickupStatus.open) {
+                pickupOption.style.opacity = '0.55';
+                if (!note) {
+                    note = document.createElement('div');
+                    note.className = 'fulfillment-closed-note';
+                    note.style.cssText = 'font-size:9.5px; font-weight:800; color:#dc2626; margin-top:2px;';
+                    note.innerText = 'مغلق حالياً';
+                    pickupOption.appendChild(note);
+                }
+            } else {
+                pickupOption.style.opacity = '1';
+                if (note) note.remove();
+            }
         }
     }
     let appliedDiscount = 0;
