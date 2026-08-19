@@ -815,23 +815,24 @@
     <div class="store-header">
         <div class="store-title">🛒 العروبة أونلاين</div>
         <div class="header-actions">
-            <button class="admin-link" onclick="openProfileModal('current')" title="طلبيتي الحالية">📦</button>
-            <a id="storeWazeHeaderLink" href="#" target="_blank" rel="noopener" class="admin-link" style="display:none; padding: 6px 9px;" title="وصلنا بويز">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
-                    <circle cx="12" cy="12" r="11" fill="#33CCFF"/>
-                    <path d="M12 5.5C8.96 5.5 6.5 7.96 6.5 11c0 3.5 3.2 6.2 5 7.7.3.25.7.25 1 0 1.8-1.5 5-4.2 5-7.7 0-3.04-2.46-5.5-5.5-5.5z" fill="white"/>
-                    <circle cx="10" cy="10.5" r="1" fill="#1a1a2e"/>
-                    <circle cx="14" cy="10.5" r="1" fill="#1a1a2e"/>
-                </svg>
-            </a>
-            <a id="storeWhatsappHeaderLink" href="#" target="_blank" rel="noopener" class="admin-link" style="display:none; padding: 6px 9px;" title="واتساب المتجر">
-                <svg width="16" height="16" viewBox="0 0 24 24" style="display:block;">
-                    <circle cx="12" cy="12" r="11" fill="#25D366"/>
-                    <path d="M12 5.5c-3.6 0-6.5 2.9-6.5 6.5 0 1.15.3 2.23.82 3.17L5.5 18.5l3.46-.8A6.47 6.47 0 0 0 12 18.5c3.6 0 6.5-2.9 6.5-6.5S15.6 5.5 12 5.5z" fill="white"/>
-                    <path d="M9.5 9c-.15-.35-.3-.35-.45-.36h-.38c-.13 0-.35.05-.53.25-.18.2-.7.68-.7 1.65s.72 1.92.82 2.05c.1.13 1.4 2.2 3.45 3 1.7.68 2.05.54 2.42.5.37-.03 1.2-.49 1.36-.96.17-.48.17-.88.12-.96-.05-.09-.18-.14-.38-.25s-1.2-.6-1.38-.66c-.18-.07-.32-.1-.45.1-.13.2-.5.65-.62.78-.11.13-.23.15-.42.05-.2-.1-.83-.3-1.58-.97-.58-.52-.98-1.16-1.09-1.36-.11-.2-.01-.3.09-.4.09-.1.2-.24.3-.36.1-.13.13-.22.2-.36.06-.15.03-.28-.02-.4-.05-.1-.44-1.1-.63-1.5z" fill="#25D366"/>
-                </svg>
-            </a>
-            <button class="admin-link" onclick="openProfileModal()">👤 حسابي</button>
+            <button class="admin-link" style="position:relative;" onclick="openProfileModal('current')" title="طلبيتي الحالية">
+                📦
+                <span id="headerOrderBadge" style="display:none; position:absolute; top:-3px; left:-3px; width:9px; height:9px; background:#ef4444; border:1.5px solid var(--primary-green); border-radius:50%;"></span>
+            </button>
+            <div style="position:relative;">
+                <button class="admin-link" onclick="toggleHeaderMenu()" title="المزيد">☰</button>
+                <div id="headerDropdownMenu" style="display:none; position:absolute; top:calc(100% + 8px); left:0; background:white; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.18); overflow:hidden; min-width:170px; z-index:500;">
+                    <button onclick="closeHeaderMenu(); openProfileModal();" style="display:flex; align-items:center; gap:8px; width:100%; padding:11px 14px; background:white; border:none; border-bottom:1px solid #f1f5f9; color:#1f2937; font-size:13px; font-weight:700; cursor:pointer; text-align:right;">👤 حسابي</button>
+                    <a id="storeWhatsappHeaderLink" href="#" target="_blank" rel="noopener" onclick="closeHeaderMenu()" style="display:none; align-items:center; gap:8px; width:100%; padding:11px 14px; background:white; border:none; border-bottom:1px solid #f1f5f9; color:#1f2937; font-size:13px; font-weight:700; cursor:pointer; text-decoration:none; box-sizing:border-box;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="11" fill="#25D366"/><path d="M12 5.5c-3.6 0-6.5 2.9-6.5 6.5 0 1.15.3 2.23.82 3.17L5.5 18.5l3.46-.8A6.47 6.47 0 0 0 12 18.5c3.6 0 6.5-2.9 6.5-6.5S15.6 5.5 12 5.5z" fill="white"/><path d="M9.5 9c-.15-.35-.3-.35-.45-.36h-.38c-.13 0-.35.05-.53.25-.18.2-.7.68-.7 1.65s.72 1.92.82 2.05c.1.13 1.4 2.2 3.45 3 1.7.68 2.05.54 2.42.5.37-.03 1.2-.49 1.36-.96.17-.48.17-.88.12-.96-.05-.09-.18-.14-.38-.25s-1.2-.6-1.38-.66c-.18-.07-.32-.1-.45.1-.13.2-.5.65-.62.78-.11.13-.23.15-.42.05-.2-.1-.83-.3-1.58-.97-.58-.52-.98-1.16-1.09-1.36-.11-.2-.01-.3.09-.4.09-.1.2-.24.3-.36.1-.13.13-.22.2-.36.06-.15.03-.28-.02-.4-.05-.1-.44-1.1-.63-1.5z" fill="#25D366"/></svg>
+                        واتساب المتجر
+                    </a>
+                    <a id="storeWazeHeaderLink" href="#" target="_blank" rel="noopener" onclick="closeHeaderMenu()" style="display:none; align-items:center; gap:8px; width:100%; padding:11px 14px; background:white; border:none; color:#1f2937; font-size:13px; font-weight:700; cursor:pointer; text-decoration:none; box-sizing:border-box;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="11" fill="#33CCFF"/><path d="M12 5.5C8.96 5.5 6.5 7.96 6.5 11c0 3.5 3.2 6.2 5 7.7.3.25.7.25 1 0 1.8-1.5 5-4.2 5-7.7 0-3.04-2.46-5.5-5.5-5.5z" fill="white"/><circle cx="10" cy="10.5" r="1" fill="#1a1a2e"/><circle cx="14" cy="10.5" r="1" fill="#1a1a2e"/></svg>
+                        وصلنا بويز
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1466,7 +1467,31 @@
         markFunnelStepOnce('pageViews');
         trackSessionStartForEngagement();
         resetAbandonedCartTimer(); // لو الزبون راجع وعنده سلة محفوظة من قبل بالمتصفح
+        initHeaderOrderBadge(); // نقطة حمراء صغيرة فوق أيقونة "طلبيتي" بالراس لو عنده طلبية شغالة حالياً
     });
+
+    // نقطة تنبيه بالراس (📦) بدون ما نحتاج نفتح شباك "طلبيتي الحالية" - متابعة خفيفة مستقلة عنه
+    function initHeaderOrderBadge() {
+        const badge = document.getElementById('headerOrderBadge');
+        if (!badge) return;
+        const activeStatuses = ["جديد", "new", "قيد التحضير", "جاهز للتوصيل", "قيد التوصيل", "جاهز للاستلام"];
+        let storedOrderId = null;
+        try { storedOrderId = localStorage.getItem('aloroba_current_order_id'); } catch(e) {}
+
+        if (storedOrderId) {
+            window.onSnapshot(window.doc(window.db, "orders", storedOrderId), (snap) => {
+                badge.style.display = (snap.exists() && activeStatuses.includes(snap.data().status)) ? 'block' : 'none';
+            }, () => { badge.style.display = 'none'; });
+        } else {
+            let phone = null;
+            try { phone = localStorage.getItem('aloroba_user_phone'); } catch(e) {}
+            if (!phone) return;
+            fetchMyOrdersFromCloud(phone).then(orders => {
+                let hasActive = (orders || []).some(o => activeStatuses.includes(o.status));
+                badge.style.display = hasActive ? 'block' : 'none';
+            }).catch(() => {});
+        }
+    }
 
     function logStoreVisit() {
         try {
@@ -1929,6 +1954,26 @@
         alert("تم حفظ بياناتك بنجاح! 💾");
         closeProfileModal();
     }
+
+    // قائمة "المزيد ☰" بالراس (حسابي/واتساب/ويز) - نقفلها لو ضغط بره منها بأي مكان بالصفحة
+    function toggleHeaderMenu() {
+        const menu = document.getElementById('headerDropdownMenu');
+        if (!menu) return;
+        menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function closeHeaderMenu() {
+        const menu = document.getElementById('headerDropdownMenu');
+        if (menu) menu.style.display = 'none';
+    }
+
+    document.addEventListener('click', function(e) {
+        const menu = document.getElementById('headerDropdownMenu');
+        if (!menu || menu.style.display !== 'block') return;
+        if (!menu.contains(e.target) && !e.target.closest('button[onclick="toggleHeaderMenu()"]')) {
+            menu.style.display = 'none';
+        }
+    });
 
     function openProfileModal(tab) {
         lockBodyScroll(); 
