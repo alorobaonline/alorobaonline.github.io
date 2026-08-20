@@ -4341,8 +4341,8 @@
             oldPriceDisplay = "";
             priceClass = "price-text";
         }
-        let badgeHtml = hasSale ? `<span class="discount-badge">عرض خاص</span>` : "";
-        let cardClass = (hasSale || (matchedSpendOffer && spendOfferAchieved)) ? "product-card has-sale" : "product-card";
+        let badgeHtml = hasSale ? `<span class="discount-badge">عرض خاص</span>` : (matchedBundle ? `<span class="discount-badge">🎁 عرض حزمة</span>` : "");
+        let cardClass = (hasSale || matchedBundle || (matchedSpendOffer && spendOfferAchieved)) ? "product-card has-sale" : "product-card";
         if (sizeVariant === 'small') cardClass += " product-card-small";
 
         let bundleBadgeHtml = "";
