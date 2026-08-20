@@ -5417,7 +5417,7 @@
     let categoriesScreenActiveParent = null;
 
     function openCategoriesScreen() {
-        const parentList = categories.filter(c => c.name !== 'الكل');
+        const parentList = categories.filter(c => c.name !== 'الكل' && !c.parentCategory);
         categoriesScreenActiveParent = parentList.length > 0 ? parentList[0].name : null;
         renderCategoriesScreenPanels();
         document.getElementById('categoriesScreenOverlay').style.display = 'flex';
@@ -5430,7 +5430,7 @@
     // يتحدث فوراً بدون سكرول أو تنقل لصفحة تانية
     function renderCategoriesScreenPanels() {
         const body = document.getElementById('categoriesScreenBody');
-        const parentList = categories.filter(c => c.name !== 'الكل');
+        const parentList = categories.filter(c => c.name !== 'الكل' && !c.parentCategory);
 
         const sideHtml = parentList.map(cat => {
             const isActive = cat.name === categoriesScreenActiveParent;
