@@ -680,23 +680,13 @@
         /* شاشة "الأقسام" - قائمة كاملة بكل الأقسام والفئات الفرعية */
         .categories-screen-overlay { display: none; position: fixed; inset: 0; background: white; z-index: 1000; max-width: 480px; margin: 0 auto; flex-direction: column; }
         .categories-screen-header { display: flex; align-items: center; gap: 10px; padding: 16px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
-        .categories-screen-body { flex: 1; overflow: hidden; padding: 0; }
-        .cat-screen-panels { display: flex; height: 100%; }
-        .cat-screen-side { width: 84px; flex-shrink: 0; background: #f8faf7; overflow-y: auto; border-left: 1px solid var(--border-color); }
-        .cat-screen-side-item { padding: 12px 4px; text-align: center; cursor: pointer; border-right: 3px solid transparent; }
-        .cat-screen-side-item.active { background: white; border-right-color: var(--primary-green); }
-        .cat-screen-side-item .css-icon { font-size: 20px; display: block; }
+        .categories-screen-body { flex: 1; overflow-y: auto; padding: 14px; }
+        .cat-screen-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .cat-screen-grid-card { background: #f8faf7; border: 1px solid var(--border-color); border-radius: 14px; padding: 18px 10px; text-align: center; cursor: pointer; }
+        .cat-screen-grid-card .css-icon { font-size: 30px; display: block; }
         .cat-screen-img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto; border: 1.5px solid #e5e7eb; }
-        .cat-screen-side-item p { font-size: 10.5px; font-weight: 700; margin: 4px 0 0; color: #6b7280; line-height: 1.25; }
-        .cat-screen-side-item.active p { color: var(--primary-green); font-weight: 900; }
-        .cat-screen-main { flex: 1; overflow-y: auto; padding: 14px 12px 30px; }
-        .cat-screen-main-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 12px; }
-        .cat-screen-main-header span:first-child { font-weight: 900; font-size: 15px; color: #1f2937; }
-        .cat-screen-main-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-        .cat-screen-main-card { background: #f8faf7; border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; }
-        .cat-screen-main-card .css-icon { font-size: 22px; display: block; }
-        .cat-screen-img-lg { width: 44px; height: 44px; }
-        .cat-screen-main-card p { font-size: 11.5px; font-weight: 700; margin: 6px 0 0; color: #374151; }
+        .cat-screen-img-lg { width: 56px; height: 56px; margin: 0 auto; }
+        .cat-screen-grid-card p { font-size: 12.5px; font-weight: 800; margin: 8px 0 0; color: #1f2937; }
         .subscribe-fab .fab-close { background: rgba(255,255,255,0.25); border: none; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 9.5px; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-inline-start: 4px; }
         .subscribe-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 400; max-width: 480px; margin: 0 auto; padding: 20px; }
         .subscribe-modal-box { background: white; border-radius: 18px; padding: 22px 18px; width: 100%; max-width: 380px; }
@@ -901,6 +891,16 @@
         <input type="text" id="searchInput" class="search-input" placeholder="ابحث عن أي منتج تريده..." oninput="filterProducts()">
     </div>
 
+    <!-- الأقسام الرئيسية مخفية دايماً (استبدلناها بشاشة "🗂️ الأقسام" من شريط التنقل بالأسفل)، بس
+         مسيبينها بالـ DOM حتى منطق الفلترة يضل شغال بدون تعديل -->
+    <div style="display:none;">
+        <div class="categories-scroll" id="categoriesScrollContainer"></div>
+    </div>
+
+    <!-- شريط الفئات الفرعية - بيظهر تلقائياً وثابت فوق الصفحة لما تدخل قسم من شاشة "الأقسام" -->
+    <div class="categories-scroll" id="subCategoriesScrollContainer" style="display:none;"></div>
+    <div class="sub-cats-spacer" id="subCatsSpacer"></div>
+
     <!-- بانر صور فقط (شرائح متحركة، من قسم "تخصيص شرائح البانر" بلوحة التحكم) -->
     <div id="photoBannerSection"></div>
 
@@ -909,14 +909,6 @@
 
     <!-- بانر عروض الحزمة المتحرك -->
     <div id="bundlesSection"></div>
-
-    <!-- الأقسام والفئات الفرعية - مخفيين دايماً من الصفحة الرئيسية (استبدلناهم بشاشة "🗂️ الأقسام"
-         من شريط التنقل بالأسفل)، بس مسيبينهم بالـ DOM حتى منطق الفلترة الموجود يضل شغال بدون تعديل -->
-    <div style="display:none;">
-        <div class="categories-scroll" id="categoriesScrollContainer"></div>
-        <div class="categories-scroll" id="subCategoriesScrollContainer" style="display:none;"></div>
-        <div class="sub-cats-spacer" id="subCatsSpacer"></div>
-    </div>
 
     <!-- المحتوى الرئيسي -->
     <div id="storeMainContent"></div>
@@ -5419,64 +5411,29 @@
     let categoriesScreenActiveParent = null;
 
     function openCategoriesScreen() {
-        const parentList = categories.filter(c => c.name !== 'الكل' && !c.parentCategory);
-        categoriesScreenActiveParent = parentList.length > 0 ? parentList[0].name : null;
-        renderCategoriesScreenPanels();
+        renderCategoriesScreenGrid();
         document.getElementById('categoriesScreenOverlay').style.display = 'flex';
         setActiveBottomNav('bottomNavCategories');
         lockBodyScroll();
     }
 
-    // شاشة أقسام بعمودين (نفس تطبيقات التسوق الكبيرة): عمود رفيع فيه كل الأقسام الرئيسية، وعمود
-    // عريض جنبه بيعرض فئات القسم المختار كبطاقات - بالضغط على قسم من العمود الرفيع، العمود العريض
-    // يتحدث فوراً بدون سكرول أو تنقل لصفحة تانية
-    function renderCategoriesScreenPanels() {
+    // شبكة بسيطة: كل الأقسام الرئيسية بصفحة واحدة، قسمين جنب بعض مع صورهن - بالضغط على أي قسم
+    // بتنتقل مباشرة للصفحة الرئيسية وبيظهر شريط فئاته الفرعية فوق (نفس اللي بيصير بـ"عرض الكل")
+    function renderCategoriesScreenGrid() {
         const body = document.getElementById('categoriesScreenBody');
         const parentList = categories.filter(c => c.name !== 'الكل' && !c.parentCategory);
 
-        const sideHtml = parentList.map(cat => {
-            const isActive = cat.name === categoriesScreenActiveParent;
-            const iconHtml = cat.img ? `<img src="${cat.img}" class="cat-screen-img">` : `<span class="css-icon">${cat.icon || '🗂️'}</span>`;
+        const cardsHtml = parentList.map(cat => {
+            const iconHtml = cat.img ? `<img src="${cat.img}" class="cat-screen-img cat-screen-img-lg">` : `<span class="css-icon">${cat.icon || '🗂️'}</span>`;
             return `
-                <div class="cat-screen-side-item ${isActive ? 'active' : ''}" onclick="setCategoriesScreenActiveParent('${cat.name.replace(/'/g, "\\'")}')">
+                <div class="cat-screen-grid-card" onclick="selectCategoryFromScreen('${cat.name.replace(/'/g, "\\'")}', null)">
                     ${iconHtml}
                     <p>${cat.name}</p>
                 </div>
             `;
         }).join('');
 
-        const activeCat = parentList.find(c => c.name === categoriesScreenActiveParent);
-        const children = activeCat ? getCategoryChildren(activeCat.name) : [];
-        const escapedParent = categoriesScreenActiveParent ? categoriesScreenActiveParent.replace(/'/g, "\\'") : '';
-
-        const cardsHtml = children.length > 0
-            ? children.map(ch => `
-                <div class="cat-screen-main-card" onclick="selectCategoryFromScreen('${escapedParent}', '${ch.name.replace(/'/g, "\\'")}')">
-                    ${ch.img ? `<img src="${ch.img}" class="cat-screen-img cat-screen-img-lg">` : `<span class="css-icon">${ch.icon || '📦'}</span>`}
-                    <p>${ch.name}</p>
-                </div>
-            `).join('')
-            : `<div style="grid-column:1/-1; text-align:center; color:#9ca3af; font-size:12px; padding:24px 10px;">اضغط "عرض الكل" فوق لتشوف منتجات هالقسم</div>`;
-
-        const mainHtml = `
-            <div class="cat-screen-main-header" onclick="selectCategoryFromScreen('${escapedParent}', null)">
-                <span>${activeCat ? activeCat.name : ''}</span>
-                <span style="color:var(--primary-green); font-size:11px; font-weight:800;">عرض الكل ‹</span>
-            </div>
-            <div class="cat-screen-main-grid">${cardsHtml}</div>
-        `;
-
-        body.innerHTML = `
-            <div class="cat-screen-panels">
-                <div class="cat-screen-side">${sideHtml}</div>
-                <div class="cat-screen-main">${mainHtml}</div>
-            </div>
-        `;
-    }
-
-    function setCategoriesScreenActiveParent(catName) {
-        categoriesScreenActiveParent = catName;
-        renderCategoriesScreenPanels();
+        body.innerHTML = `<div class="cat-screen-grid">${cardsHtml}</div>`;
     }
 
     function closeCategoriesScreen() {
