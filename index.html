@@ -2973,7 +2973,7 @@
             });
             let allOffers = Array.from(combinedMap.values());
             container.innerHTML = allOffers.length > 0
-                ? `<div class="products-grid" style="margin-top: 10px;">${allOffers.map(p => createProductCardHtml(p, null, featuredBundleProductIds.has(p.id))).join('')}</div>`
+                ? `<div class="products-grid" style="margin-top: 10px;">${allOffers.map(p => createProductCardHtml(p)).join('')}</div>`
                 : `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد عروض حالياً</p>`;
             return;
         }
@@ -4311,7 +4311,7 @@
         return url.replace('/upload/', `/upload/w_${width},q_auto,f_auto/`);
     }
 
-    function createProductCardHtml(p, sizeVariant, forceBundlePriceDisplay) {
+    function createProductCardHtml(p, sizeVariant) {
         let matchedBundle = findBundleForProduct(p);
 
         // عرض "اشتري بقيمة كذا، خذ هالمنتج بسعر مخفض" - نتحقق منه بدري حتى نقدر نبدّل عرض السعر نفسه لو تحقق فعلياً
@@ -4327,15 +4327,7 @@
 
         let hasSale = (p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null);
         let priceDisplay, oldPriceDisplay, priceClass;
-        if (forceBundlePriceDisplay && matchedBundle) {
-            // منتج ممثّل لعرض حزمة بصفحة "🎁 العروض" - نعرض سعر الحزمة الفعلي (مثلاً "3 بـ 54 ₪")
-            // مباشرة كسعر رئيسي بدل سعره العادي، حتى يبين وكأنه عرض حقيقي من نظرة أولى
-            let bQty = Number(matchedBundle.qty) || 4;
-            let bPrice = parseBundlePrice(matchedBundle);
-            priceDisplay = `${bQty} بـ ${bPrice.toFixed(2)} ₪`;
-            oldPriceDisplay = `<span class="old-price">${p.price} ₪</span>`;
-            priceClass = "price-text sale-price";
-        } else if (matchedSpendOffer && spendOfferAchieved) {
+        if (matchedSpendOffer && spendOfferAchieved) {
             // العرض تحقق فعلياً - نعرض سعر العرض المخفض هون مباشرة، بنفس ستايل "old-price / sale-price" المستخدم بكل الموقع
             priceDisplay = `${matchedSpendOffer.discountedPrice} ₪`;
             oldPriceDisplay = `<span class="old-price">${matchedSpendOffer.originalPrice || p.price} ₪</span>`;
@@ -4349,12 +4341,12 @@
             oldPriceDisplay = "";
             priceClass = "price-text";
         }
-        let badgeHtml = (forceBundlePriceDisplay && matchedBundle) ? `<span class="discount-badge">🎁 عرض حزمة</span>` : (hasSale ? `<span class="discount-badge">عرض خاص</span>` : "");
-        let cardClass = (hasSale || (matchedSpendOffer && spendOfferAchieved) || (forceBundlePriceDisplay && matchedBundle)) ? "product-card has-sale" : "product-card";
+        let badgeHtml = hasSale ? `<span class="discount-badge">عرض خاص</span>` : "";
+        let cardClass = (hasSale || (matchedSpendOffer && spendOfferAchieved)) ? "product-card has-sale" : "product-card";
         if (sizeVariant === 'small') cardClass += " product-card-small";
 
         let bundleBadgeHtml = "";
-        if (matchedBundle && !forceBundlePriceDisplay) {
+        if (matchedBundle) {
             let bQty = Number(matchedBundle.qty) || 4;
             let bPrice = parseBundlePrice(matchedBundle);
             bundleBadgeHtml = `<span class="bundle-price-badge" onclick='openBundleModal("${matchedBundle.id}")'>${bQty} بـ ${bPrice.toFixed(2)} ₪</span>`;
