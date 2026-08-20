@@ -2968,6 +2968,17 @@
             return;
         }
 
+        // الصفحة الرئيسية ("الكل" بدون بحث نشط) بتعرض الحزم بس - نفس منتجات وضع "كل الحزم" بالضبط.
+        // منتجات كل فئة العادية تضل موجودة وتظهر عادي بس لما الزبون يدخل فئة محددة من شاشة "الأقسام"
+        if (currentCategory === "الكل" && query === "") {
+            document.getElementById('loadMoreIndicator').style.display = 'none';
+            let allBundleProducts = products.filter(p => bundles.some(b => b.selectedItems && b.selectedItems.length > 0 && b.selectedItems.includes(p.name)));
+            container.innerHTML = allBundleProducts.length > 0
+                ? createProductsGridWithBundleDividers(allBundleProducts)
+                : `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد حزم حالياً</p>`;
+            return;
+        }
+
         if(query !== "" || currentCategory !== "الكل") {
             document.getElementById('loadMoreIndicator').style.display = 'none';
 
