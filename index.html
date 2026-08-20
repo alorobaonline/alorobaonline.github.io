@@ -2876,13 +2876,21 @@
     }
 
     function selectCategory(catName) {
-        currentCategory = catName;
-        currentSubCategory = "الكل";
+        // لو catName فعلياً فئة فرعية (إلها قسم أم)، منروح لقسمها الأم ونحدد هاي الفئة بالذات - حتى
+        // شريط الفئات الفرعية يضل ظاهر وفيه باقي إخوتها، بدل ما نفقد السياق ونتعامل معها كقسم مستقل
+        let catObj = categories.find(c => c.name === catName);
+        if (catObj && catObj.parentCategory) {
+            currentCategory = catObj.parentCategory;
+            currentSubCategory = catName;
+        } else {
+            currentCategory = catName;
+            currentSubCategory = "الكل";
+        }
         visibleSectionsLimit = 2; 
-        if (catName === "الكل") {
+        if (currentCategory === "الكل") {
             history.pushState("", document.title, window.location.pathname + window.location.search);
         } else {
-            window.location.hash = encodeURIComponent(catName);
+            window.location.hash = encodeURIComponent(currentCategory);
         }
         renderCategoriesScroll();
         renderSubCategoriesScroll();
