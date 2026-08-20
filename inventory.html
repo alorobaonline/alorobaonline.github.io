@@ -202,8 +202,11 @@
         <option value="">🏭 كل الشركات/الموردين</option>
     </select>
     <datalist id="supplierDatalist"></datalist>
-    <label style="display:flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:700; color:#4b5563; margin-bottom:12px; cursor:pointer;">
+    <label style="display:flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:700; color:#4b5563; margin-bottom:6px; cursor:pointer;">
         <input type="checkbox" id="inventoryLowStockOnlyToggle" onchange="renderInventoryList()"> عرض المخزون المنخفض بس
+    </label>
+    <label style="display:flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:700; color:#4b5563; margin-bottom:12px; cursor:pointer;">
+        <input type="checkbox" id="inventoryNoCostOnlyToggle" onchange="renderInventoryList()"> عرض المنتجات بدون سعر تكلفة بس
     </label>
 
     <div id="inventoryListContainer">
@@ -781,6 +784,11 @@
         return Number(p.stockQty) <= threshold;
     }
 
+    function hasNoCostPrice(p) {
+        let raw = productCosts[p.id];
+        return (raw === undefined || raw === null || raw === '');
+    }
+
     function updateLowStockBadge() {
         let lowStockCount = products.filter(p => isLowStock(p)).length;
         let badge = document.getElementById('lowStockBadge');
@@ -879,6 +887,7 @@
 
         let searchVal = document.getElementById('inventorySearchInput').value.trim();
         let lowStockOnly = document.getElementById('inventoryLowStockOnlyToggle').checked;
+        let noCostOnly = document.getElementById('inventoryNoCostOnlyToggle').checked;
         let supplierFilter = document.getElementById('supplierFilterSelect').value;
 
         let list = products.slice();
@@ -896,6 +905,10 @@
 
         if (lowStockOnly) {
             list = list.filter(p => isLowStock(p));
+        }
+
+        if (noCostOnly) {
+            list = list.filter(p => hasNoCostPrice(p));
         }
 
         if (list.length === 0) {
