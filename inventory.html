@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>إدارة المخزون - العروبة أونلاين</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         :root {
             --primary-green: #1b4d2e;
@@ -192,6 +193,7 @@
 
     <button class="scan-btn" onclick="openScannerModal()">📷 مسح باركود منتج</button>
     <button class="scan-btn" style="background: linear-gradient(135deg, #92400e 0%, #b45309 100%); margin-top: -6px;" onclick="openSupplierAccountsModal()">🏭 حسابات الموردين</button>
+    <button class="scan-btn" style="background: linear-gradient(135deg, #065f46 0%, #059669 100%); margin-top: -6px;" onclick="exportProfitReport()">📊 تصدير تقرير الأرباح (Excel)</button>
 
     <div class="low-stock-badge" id="lowStockBadge"></div>
 
@@ -699,6 +701,66 @@
             });
             renderInventoryList();
         });
+    }
+
+    // ===================== تصدير تقرير الأرباح الكامل (Excel) =====================
+    // بيطلع ملف Excel فيه كل منتج مع سعر البيع وسعر التكلفة والربح (سعر البيع - سعر التكلفة)
+    // معادلة بسيطة، مش مربوطة بالكمية بالمخزون - وبالآخر صف إجمالي مجموع أرباح كل المنتجات.
+    function exportProfitReport() {
+        if (typeof XLSX === 'undefined') {
+            alert('⏳ مكتبة التصدير لسا عم تحمّل، جرب كمان ثانيتين');
+            return;
+        }
+        if (!products || products.length === 0) {
+            alert('لا يوجد منتجات لتصديرها');
+            return;
+        }
+
+        let rows = [];
+        rows.push(['اسم المنتج', 'الشركة/المورد', 'سعر البيع (₪)', 'سعر التكلفة (₪)', 'الربح (₪)', 'هامش الربح %']);
+
+        let totalProfit = 0;
+        let countMissingCost = 0;
+
+        let sortedProducts = products.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
+
+        sortedProducts.forEach(p => {
+            let sellPrice = Number(p.price) || 0;
+            let rawCost = productCosts[p.id];
+            let hasCost = (rawCost !== undefined && rawCost !== null && rawCost !== '');
+            let costPrice = hasCost ? Number(rawCost) : null;
+            let profit = hasCost ? (sellPrice - costPrice) : null;
+            let marginPct = (hasCost && sellPrice > 0) ? ((profit / sellPrice) * 100) : null;
+
+            if (!hasCost) {
+                countMissingCost++;
+            } else {
+                totalProfit += profit;
+            }
+
+            rows.push([
+                p.name || '',
+                p.supplier || '',
+                sellPrice,
+                hasCost ? costPrice : 'غير محدد',
+                hasCost ? Number(profit.toFixed(2)) : '-',
+                hasCost ? marginPct.toFixed(1) + '%' : '-'
+            ]);
+        });
+
+        rows.push([]);
+        rows.push(['💰 إجمالي مجموع أرباح كل المنتجات (سعر البيع - سعر التكلفة)', '', '', '', Number(totalProfit.toFixed(2))]);
+        rows.push(['🔢 عدد المنتجات الكلي', products.length]);
+        if (countMissingCost > 0) rows.push(['⚠️ منتجات بدون سعر تكلفة محدد (ما احتسبت بالإجمالي)', countMissingCost]);
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols'] = [{ wch: 30 }, { wch: 18 }, { wch: 13 }, { wch: 13 }, { wch: 12 }, { wch: 11 }];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'تقرير الأرباح');
+
+        const todayStr = new Date().toISOString().slice(0, 10);
+        XLSX.writeFile(wb, `تقرير_الأرباح_العروبة_${todayStr}.xlsx`);
     }
 
     // ===================== تنظيف بسيط لمنع XSS من بيانات مدخلة =====================
