@@ -197,6 +197,16 @@
 
     <div class="low-stock-badge" id="lowStockBadge"></div>
 
+    <div id="profitTotalsBox" style="display:none; background:linear-gradient(135deg,#f0fdf4 0%,#ecfdf5 100%); border:1px solid #bbf7d0; border-radius:12px; padding:10px 12px; margin-bottom:12px;">
+        <div style="font-size:0.72rem; font-weight:900; color:var(--primary-green); margin-bottom:6px;">💰 إجمالي الأسعار (يتحدّث لحاله دايماً)</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:0.68rem; font-weight:800; color:#374151;">
+            <div>إجمالي سعر البيع: <span id="totalSellPriceVal" style="color:var(--primary-green);"></span></div>
+            <div>إجمالي سعر التكلفة: <span id="totalCostPriceVal" style="color:#b45309;"></span></div>
+            <div>إجمالي هامش الربح: <span id="totalProfitVal" style="color:#059669;"></span></div>
+            <div id="totalMissingCostNote" style="color:#dc2626; font-weight:700;"></div>
+        </div>
+    </div>
+
     <input type="text" id="inventorySearchInput" class="form-control" placeholder="🔍 دور باسم منتج أو باركود..." oninput="renderInventoryList()">
     <select id="supplierFilterSelect" class="form-control" onchange="renderInventoryList()">
         <option value="">🏭 كل الشركات/الموردين</option>
@@ -693,6 +703,7 @@
             });
             renderInventoryList();
             renderSupplierAccountsList(); // قائمة الموردين بتضم أسماء من المنتجات كمان
+            updateProfitTotalsBox();
         });
     }
 
@@ -703,6 +714,7 @@
                 productCosts[docSnap.id] = docSnap.data().costPrice;
             });
             renderInventoryList();
+            updateProfitTotalsBox();
         });
     }
 
@@ -798,6 +810,39 @@
         } else {
             badge.style.display = 'none';
         }
+    }
+
+    // ===================== صندوق الإجماليات الحيّة (بيتحدّث لحاله مع أي تعديل/حذف/إضافة منتج) =====================
+    function updateProfitTotalsBox() {
+        const box = document.getElementById('profitTotalsBox');
+        if (!box || !products || products.length === 0) {
+            if (box) box.style.display = 'none';
+            return;
+        }
+
+        let totalSellPrice = 0;
+        let totalCostPrice = 0;
+        let missingCostCount = 0;
+
+        products.forEach(p => {
+            if (hasNoCostPrice(p)) {
+                missingCostCount++;
+                return; // ما بنحسبه بالإجمالي حتى تضل الأرقام الثلاثة متوافقة مع بعض
+            }
+            totalSellPrice += Number(p.price) || 0;
+            totalCostPrice += Number(productCosts[p.id]) || 0;
+        });
+
+        const totalProfit = totalSellPrice - totalCostPrice;
+
+        document.getElementById('totalSellPriceVal').innerText = totalSellPrice.toFixed(2) + ' ₪';
+        document.getElementById('totalCostPriceVal').innerText = totalCostPrice.toFixed(2) + ' ₪';
+        document.getElementById('totalProfitVal').innerText = totalProfit.toFixed(2) + ' ₪';
+        document.getElementById('totalMissingCostNote').innerText = missingCostCount > 0
+            ? `⚠️ ${missingCostCount} منتج بدون سعر تكلفة (مش محسوب بالإجمالي)`
+            : '';
+
+        box.style.display = 'block';
     }
 
     // يبني قائمة الشركات/الموردين تلقائياً من بيانات المنتجات الحالية (بدون جدول منفصل)
