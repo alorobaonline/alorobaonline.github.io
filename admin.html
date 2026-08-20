@@ -848,6 +848,15 @@
                 <input type="text" id="newCatIcon" class="form-control" placeholder="إيموجي 🏷️" style="text-align: center;">
                 <input type="number" id="newCatOrder" class="form-control" placeholder="الترتيب (1,2..)" style="text-align: center;">
             </div>
+            <label style="font-size: 0.7rem; font-weight: 700; color: #4b5563; display: block; margin-bottom: 4px;">صورة دائرية للقسم (اختياري - بتظهر بدل الإيموجي بشاشة "الأقسام")</label>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <img id="newCatImgPreview" src="" style="width:38px; height:38px; border-radius:50%; object-fit:cover; border:1.5px solid #e5e7eb; flex-shrink:0; display:none;" onerror="this.style.display='none';">
+                <button type="button" class="btn-main" style="width:auto; padding:8px 12px; font-size:0.7rem; margin:0;" onclick="document.getElementById('newCatImgFile').click();">📤 رفع صورة</button>
+                <span id="newCatImgUploadStatus" style="font-size:0.65rem; color:#6b7280;"></span>
+                <button type="button" onclick="clearNewCatImg()" style="background:#fee2e2; color:#991b1b; border:none; width:26px; height:26px; border-radius:8px; font-size:0.7rem; cursor:pointer; flex-shrink:0;">✕</button>
+            </div>
+            <input type="file" id="newCatImgFile" accept="image/*" style="display:none;" onchange="handleNewCatImgUpload(event)">
+            <input type="hidden" id="newCatImg" value="">
             <label style="font-size: 0.7rem; font-weight: 700; color: #4b5563; display: block; margin-bottom: 4px;">الفئة الأم (اختياري - اجعل هذا القسم فرعيًا داخل قسم أكبر):</label>
             <select id="newCatParent" class="form-control" style="margin-bottom: 8px;">
                 <option value="">بدون - قسم رئيسي مستقل</option>
@@ -2851,9 +2860,9 @@
         let topLevel = categories.filter(c => c.name !== "الكل" && !c.parentCategory);
         let renderCatRow = (cat, isChild) => `
             <div class="list-item" style="${isChild ? 'padding-right: 22px; border-right: 3px solid var(--border-color);' : ''}">
-                <div>${isChild ? '↳ ' : ''}<b>${cat.icon || '📦'}</b> ${cat.name} <span style="color: #6b7280; font-size: 0.6rem;">(ترتيب: ${cat.sortOrder || 0})</span></div>
+                <div style="display:flex; align-items:center; gap:6px;">${isChild ? '↳ ' : ''}${cat.img ? `<img src="${cat.img}" style="width:20px; height:20px; border-radius:50%; object-fit:cover; flex-shrink:0;">` : `<b>${cat.icon || '📦'}</b>`} ${cat.name} <span style="color: #6b7280; font-size: 0.6rem;">(ترتيب: ${cat.sortOrder || 0})</span></div>
                 <div style="display: flex; gap: 4px;">
-                    <button class="btn-edit" style="padding: 2px 6px; font-size: 0.6rem;" onclick="editCategory('${cat.name}', '${cat.icon || ''}', ${cat.sortOrder || 0}, '${cat.parentCategory || ''}')">تعديل ✏️</button>
+                    <button class="btn-edit" style="padding: 2px 6px; font-size: 0.6rem;" onclick="editCategory('${cat.name}', '${cat.icon || ''}', ${cat.sortOrder || 0}, '${cat.parentCategory || ''}', '${cat.img || ''}')">تعديل ✏️</button>
                     <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteCategory('${cat.name}')">حذف 🗑️</button>
                 </div>
             </div>
@@ -2998,6 +3007,7 @@
         const icon = document.getElementById('newCatIcon').value.trim() || "📦";
         const sortOrder = parseInt(document.getElementById('newCatOrder').value) || 0;
         const parentCategory = document.getElementById('newCatParent').value || "";
+        const img = document.getElementById('newCatImg').value.trim() || "";
 
         if(!name) {
             alert("الرجاء إدخال اسم القسم");
@@ -3009,7 +3019,7 @@
                 alert("هذا القسم موجود مسبقاً");
                 return;
             }
-            const newCat = { name, icon, sortOrder, parentCategory };
+            const newCat = { name, icon, sortOrder, parentCategory, img };
             try {
                 await window.setDoc(window.doc(window.db, "categories", name), newCat);
                 categories.push(newCat);
@@ -3032,7 +3042,7 @@
                     categories = categories.filter(c => c.name !== editingCategoryOriginalName);
                 }
 
-                const updatedCat = { name, icon, sortOrder, parentCategory };
+                const updatedCat = { name, icon, sortOrder, parentCategory, img };
                 await window.setDoc(window.doc(window.db, "categories", name), updatedCat);
                 
                 categories = categories.filter(c => c.name !== editingCategoryOriginalName && c.name !== name);
@@ -3051,13 +3061,56 @@
         }
     }
 
-    function editCategory(name, icon, sortOrder, parentCategory) {
+    // رفع صورة دائرية للقسم - نفس خدمة رفع صور المنتجات
+    async function handleNewCatImgUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const statusEl = document.getElementById('newCatImgUploadStatus');
+        const previewEl = document.getElementById('newCatImgPreview');
+        const urlInput = document.getElementById('newCatImg');
+        statusEl.innerText = '⏳ جاري الرفع...';
+        try {
+            const reader = new FileReader();
+            const dataUrl = await new Promise((resolve, reject) => {
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+            const uploadedUrl = await uploadImageToStorage(dataUrl);
+            urlInput.value = uploadedUrl;
+            previewEl.src = uploadedUrl;
+            previewEl.style.display = 'block';
+            statusEl.innerText = '✅ تم الرفع';
+        } catch(e) {
+            console.error(e);
+            statusEl.innerText = '❌ فشل الرفع';
+            alert('تعذر رفع الصورة: ' + (e.message || e));
+        }
+    }
+
+    function clearNewCatImg() {
+        document.getElementById('newCatImg').value = '';
+        document.getElementById('newCatImgPreview').style.display = 'none';
+        document.getElementById('newCatImgPreview').src = '';
+        document.getElementById('newCatImgUploadStatus').innerText = '';
+    }
+
+    function editCategory(name, icon, sortOrder, parentCategory, img) {
         editingCategoryOriginalName = name;
         document.getElementById('newCatName').value = name;
         document.getElementById('newCatIcon').value = icon || '';
         document.getElementById('newCatOrder').value = sortOrder !== undefined ? sortOrder : 0;
         populateCatParentOptions(name);
         document.getElementById('newCatParent').value = parentCategory || '';
+        document.getElementById('newCatImg').value = img || '';
+        const previewEl = document.getElementById('newCatImgPreview');
+        if (img) {
+            previewEl.src = img;
+            previewEl.style.display = 'block';
+        } else {
+            previewEl.style.display = 'none';
+        }
+        document.getElementById('newCatImgUploadStatus').innerText = '';
 
         const btn = document.getElementById('saveCategoryBtn');
         btn.innerText = 'حفظ التعديلات ✏️';
@@ -3073,6 +3126,7 @@
         document.getElementById('newCatOrder').value = '';
         populateCatParentOptions(null);
         document.getElementById('newCatParent').value = '';
+        clearNewCatImg();
 
         const btn = document.getElementById('saveCategoryBtn');
         btn.innerText = 'إضافة القسم ➕';

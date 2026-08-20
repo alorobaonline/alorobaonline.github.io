@@ -686,6 +686,7 @@
         .cat-screen-side-item { padding: 12px 4px; text-align: center; cursor: pointer; border-right: 3px solid transparent; }
         .cat-screen-side-item.active { background: white; border-right-color: var(--primary-green); }
         .cat-screen-side-item .css-icon { font-size: 20px; display: block; }
+        .cat-screen-img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto; border: 1.5px solid #e5e7eb; }
         .cat-screen-side-item p { font-size: 10.5px; font-weight: 700; margin: 4px 0 0; color: #6b7280; line-height: 1.25; }
         .cat-screen-side-item.active p { color: var(--primary-green); font-weight: 900; }
         .cat-screen-main { flex: 1; overflow-y: auto; padding: 14px 12px 30px; }
@@ -694,6 +695,7 @@
         .cat-screen-main-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
         .cat-screen-main-card { background: #f8faf7; border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; }
         .cat-screen-main-card .css-icon { font-size: 22px; display: block; }
+        .cat-screen-img-lg { width: 44px; height: 44px; }
         .cat-screen-main-card p { font-size: 11.5px; font-weight: 700; margin: 6px 0 0; color: #374151; }
         .subscribe-fab .fab-close { background: rgba(255,255,255,0.25); border: none; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 9.5px; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-inline-start: 4px; }
         .subscribe-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 400; max-width: 480px; margin: 0 auto; padding: 20px; }
@@ -5434,9 +5436,10 @@
 
         const sideHtml = parentList.map(cat => {
             const isActive = cat.name === categoriesScreenActiveParent;
+            const iconHtml = cat.img ? `<img src="${cat.img}" class="cat-screen-img">` : `<span class="css-icon">${cat.icon || '🗂️'}</span>`;
             return `
                 <div class="cat-screen-side-item ${isActive ? 'active' : ''}" onclick="setCategoriesScreenActiveParent('${cat.name.replace(/'/g, "\\'")}')">
-                    <span class="css-icon">${cat.icon || '🗂️'}</span>
+                    ${iconHtml}
                     <p>${cat.name}</p>
                 </div>
             `;
@@ -5449,7 +5452,7 @@
         const cardsHtml = children.length > 0
             ? children.map(ch => `
                 <div class="cat-screen-main-card" onclick="selectCategoryFromScreen('${escapedParent}', '${ch.name.replace(/'/g, "\\'")}')">
-                    <span class="css-icon">${ch.icon || '📦'}</span>
+                    ${ch.img ? `<img src="${ch.img}" class="cat-screen-img cat-screen-img-lg">` : `<span class="css-icon">${ch.icon || '📦'}</span>`}
                     <p>${ch.name}</p>
                 </div>
             `).join('')
