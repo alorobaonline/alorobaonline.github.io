@@ -680,11 +680,21 @@
         /* شاشة "الأقسام" - قائمة كاملة بكل الأقسام والفئات الفرعية */
         .categories-screen-overlay { display: none; position: fixed; inset: 0; background: white; z-index: 1000; max-width: 480px; margin: 0 auto; flex-direction: column; }
         .categories-screen-header { display: flex; align-items: center; gap: 10px; padding: 16px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
-        .categories-screen-body { flex: 1; overflow-y: auto; padding: 10px 15px 30px; }
-        .cat-screen-parent { display: flex; align-items: center; gap: 10px; padding: 12px 8px; font-weight: 800; font-size: 14px; color: #1f2937; cursor: pointer; border-radius: 10px; }
-        .cat-screen-parent:active { background: #f8faf7; }
-        .cat-screen-children { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 8px 14px 34px; }
-        .cat-screen-child { background: #f1f5f9; color: #475569; font-size: 11.5px; font-weight: 700; padding: 6px 12px; border-radius: 20px; cursor: pointer; }
+        .categories-screen-body { flex: 1; overflow: hidden; padding: 0; }
+        .cat-screen-panels { display: flex; height: 100%; }
+        .cat-screen-side { width: 84px; flex-shrink: 0; background: #f8faf7; overflow-y: auto; border-left: 1px solid var(--border-color); }
+        .cat-screen-side-item { padding: 12px 4px; text-align: center; cursor: pointer; border-right: 3px solid transparent; }
+        .cat-screen-side-item.active { background: white; border-right-color: var(--primary-green); }
+        .cat-screen-side-item .css-icon { font-size: 20px; display: block; }
+        .cat-screen-side-item p { font-size: 10.5px; font-weight: 700; margin: 4px 0 0; color: #6b7280; line-height: 1.25; }
+        .cat-screen-side-item.active p { color: var(--primary-green); font-weight: 900; }
+        .cat-screen-main { flex: 1; overflow-y: auto; padding: 14px 12px 30px; }
+        .cat-screen-main-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 12px; }
+        .cat-screen-main-header span:first-child { font-weight: 900; font-size: 15px; color: #1f2937; }
+        .cat-screen-main-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        .cat-screen-main-card { background: #f8faf7; border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; }
+        .cat-screen-main-card .css-icon { font-size: 22px; display: block; }
+        .cat-screen-main-card p { font-size: 11.5px; font-weight: 700; margin: 6px 0 0; color: #374151; }
         .subscribe-fab .fab-close { background: rgba(255,255,255,0.25); border: none; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 9.5px; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-inline-start: 4px; }
         .subscribe-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 400; max-width: 480px; margin: 0 auto; padding: 20px; }
         .subscribe-modal-box { background: white; border-radius: 18px; padding: 22px 18px; width: 100%; max-width: 380px; }
@@ -865,10 +875,14 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="11" fill="#25D366"/><path d="M12 5.5c-3.6 0-6.5 2.9-6.5 6.5 0 1.15.3 2.23.82 3.17L5.5 18.5l3.46-.8A6.47 6.47 0 0 0 12 18.5c3.6 0 6.5-2.9 6.5-6.5S15.6 5.5 12 5.5z" fill="white"/><path d="M9.5 9c-.15-.35-.3-.35-.45-.36h-.38c-.13 0-.35.05-.53.25-.18.2-.7.68-.7 1.65s.72 1.92.82 2.05c.1.13 1.4 2.2 3.45 3 1.7.68 2.05.54 2.42.5.37-.03 1.2-.49 1.36-.96.17-.48.17-.88.12-.96-.05-.09-.18-.14-.38-.25s-1.2-.6-1.38-.66c-.18-.07-.32-.1-.45.1-.13.2-.5.65-.62.78-.11.13-.23.15-.42.05-.2-.1-.83-.3-1.58-.97-.58-.52-.98-1.16-1.09-1.36-.11-.2-.01-.3.09-.4.09-.1.2-.24.3-.36.1-.13.13-.22.2-.36.06-.15.03-.28-.02-.4-.05-.1-.44-1.1-.63-1.5z" fill="#25D366"/></svg>
                         واتساب المتجر
                     </a>
-                    <a id="storeWazeHeaderLink" href="#" target="_blank" rel="noopener" onclick="closeHeaderMenu()" class="header-menu-item" style="display:none; border-bottom:none;">
+                    <a id="storeWazeHeaderLink" href="#" target="_blank" rel="noopener" onclick="closeHeaderMenu()" class="header-menu-item" style="display:none;">
                         <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="11" fill="#33CCFF"/><path d="M12 5.5C8.96 5.5 6.5 7.96 6.5 11c0 3.5 3.2 6.2 5 7.7.3.25.7.25 1 0 1.8-1.5 5-4.2 5-7.7 0-3.04-2.46-5.5-5.5-5.5z" fill="white"/><circle cx="10" cy="10.5" r="1" fill="#1a1a2e"/><circle cx="14" cy="10.5" r="1" fill="#1a1a2e"/></svg>
                         وصلنا بويز
                     </a>
+                    <button onclick="closeHeaderMenu(); openHoursInfoModal();" class="header-menu-item" style="border-bottom:none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="11" fill="#f59e0b"/><path d="M12 7v5l3.5 2" stroke="white" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>
+                        ساعات التوصيل والاستلام الذاتي
+                    </button>
                 </div>
             </div>
         </div>
@@ -1086,6 +1100,7 @@
                     <span class="fulfillment-label">استلام ذاتي <span id="pickupOptionFeeText" style="color: var(--accent-green); font-weight: 900;"></span></span>
                 </label>
             </div>
+            <div id="fulfillmentAutoSwitchNotice" style="display:none; background:#fff7ed; border:1.5px solid #fdba74; border-radius:10px; padding:9px 12px; margin-bottom:10px; font-size:11.5px; font-weight:800; color:#9a3412;"></div>
             <div id="deliveryFreeHintText" style="font-size: 11.5px; font-weight: 700; margin-bottom: 10px; display: none;"></div>
 
             <label class="price-text" style="font-size: 13.5px; font-weight: 900; display: block; margin-bottom: 6px;">البيانات الشخصية وموقع التوصيل:</label>
@@ -1294,14 +1309,14 @@
     const BUSINESS_DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const BUSINESS_DAY_LABELS = { sunday: 'الأحد', monday: 'الاثنين', tuesday: 'الثلاثاء', wednesday: 'الأربعاء', thursday: 'الخميس', friday: 'الجمعة', saturday: 'السبت' };
 
-    // بيرجع { open: true, from, to } أو { open: false, reason: '...' } حسب يوم وساعة جهاز الزبون الحالية
+    // بيرجع { open: true, from, to } أو { open: false, reason: '...', from } حسب يوم وساعة جهاز الزبون الحالية
     function getStoreOpenStatus() {
         if (!businessHoursSchedule) return { open: true, unconfigured: true }; // ما في إعداد بعد
         const now = new Date();
         const dayKey = BUSINESS_DAY_KEYS[now.getDay()];
         const dayData = businessHoursSchedule[dayKey];
         if (!dayData || dayData.open === false) {
-            return { open: false, reason: `😔 التوصيل متوقف حالياً - ساعات التوصيل (${BUSINESS_DAY_LABELS[dayKey]}: متوقف اليوم) - متوفر فقط استلام ذاتي` };
+            return { open: false, reason: `😔 التوصيل متوقف حالياً - ساعات التوصيل (${BUSINESS_DAY_LABELS[dayKey]}: متوقف اليوم) - متوفر فقط استلام ذاتي`, from: (dayData && dayData.from) || '09:00' };
         }
         const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
         const from = dayData.from || '00:00';
@@ -1320,7 +1335,7 @@
         const dayKey = BUSINESS_DAY_KEYS[now.getDay()];
         const dayData = pickupHoursSchedule[dayKey];
         if (!dayData || dayData.open === false) {
-            return { open: false, reason: `😔 الاستلام الذاتي متوقف حالياً - ساعات الاستلام الذاتي (${BUSINESS_DAY_LABELS[dayKey]}: متوقف اليوم)` };
+            return { open: false, reason: `😔 الاستلام الذاتي متوقف حالياً - ساعات الاستلام الذاتي (${BUSINESS_DAY_LABELS[dayKey]}: متوقف اليوم)`, from: (dayData && dayData.from) || '09:00' };
         }
         const timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
         const from = dayData.from || '00:00';
@@ -1367,38 +1382,103 @@
         applyFulfillmentOptionAvailability(deliveryStatus, pickupStatus);
     }
 
+    // ===================== نافذة عرض ساعات التوصيل والاستلام الذاتي (من قائمة "المزيد ☰") =====================
+    function openHoursInfoModal() {
+        const body = document.getElementById('hoursInfoBody');
+        const todayKey = BUSINESS_DAY_KEYS[new Date().getDay()];
+
+        function buildScheduleRows(schedule) {
+            if (!schedule) return '<p style="text-align:center; color:#9ca3af; font-size:0.75rem; padding:10px;">ساعات العمل غير محددة حالياً</p>';
+            return BUSINESS_DAY_KEYS.map(key => {
+                const day = schedule[key] || { open: true, from: '09:00', to: '21:00' };
+                const isToday = key === todayKey;
+                const label = day.open === false ? 'مسكّر' : `${day.from || '00:00'} - ${day.to || '23:59'}`;
+                return `
+                    <div style="display:flex; justify-content:space-between; padding:6px 4px; ${isToday ? 'background:#f0fdf4; border-radius:8px;' : ''}">
+                        <span style="font-size:0.75rem; font-weight:${isToday ? '900' : '700'}; color:${isToday ? 'var(--primary-green)' : '#374151'};">${BUSINESS_DAY_LABELS[key]}${isToday ? ' (اليوم)' : ''}</span>
+                        <span style="font-size:0.75rem; font-weight:800; color:${day.open === false ? '#dc2626' : '#374151'};" dir="ltr">${label}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        body.innerHTML = `
+            <div style="margin-bottom:16px;">
+                <div style="font-size:0.8rem; font-weight:900; color:#1f2937; margin-bottom:6px;">🚚 التوصيل</div>
+                ${buildScheduleRows(businessHoursSchedule)}
+            </div>
+            <div>
+                <div style="font-size:0.8rem; font-weight:900; color:#1f2937; margin-bottom:6px;">🏪 الاستلام الذاتي</div>
+                ${buildScheduleRows(pickupHoursSchedule)}
+            </div>
+        `;
+        document.getElementById('hoursInfoModal').style.display = 'flex';
+    }
+
+    function closeHoursInfoModal() {
+        document.getElementById('hoursInfoModal').style.display = 'none';
+    }
+
     function applyFulfillmentOptionAvailability(deliveryStatus, pickupStatus) {
         const deliveryOption = document.getElementById('fulfillmentOptionDelivery');
         const pickupOption = document.getElementById('fulfillmentOptionPickup');
         if (deliveryOption) {
             let note = deliveryOption.querySelector('.fulfillment-closed-note');
+            let input = deliveryOption.querySelector('input');
             if (!deliveryStatus.open) {
                 deliveryOption.style.opacity = '0.55';
+                if (input) input.disabled = true;
                 if (!note) {
                     note = document.createElement('div');
                     note.className = 'fulfillment-closed-note';
                     note.style.cssText = 'font-size:9.5px; font-weight:800; color:#dc2626; margin-top:2px;';
-                    note.innerText = 'مغلق حالياً';
                     deliveryOption.appendChild(note);
+                }
+                note.innerText = deliveryStatus.from ? `مغلق حالياً - يفتح الساعة ${deliveryStatus.from}` : 'مغلق حالياً';
+                // لو كان التوصيل مختار وصار مقفول، ننقل الاختيار تلقائياً للاستلام الذاتي (لو متاح) -
+                // وبنوريه تنبيه واضح إنه صار تحويل، حتى ما يكمل طلبية بطريقة استلام ما اختارها هو أصلاً
+                if (input && input.checked && pickupOption) {
+                    const pickupInput = pickupOption.querySelector('input');
+                    if (pickupInput && !pickupInput.disabled) {
+                        pickupInput.checked = true;
+                        fulfillmentAutoSwitching = true;
+                        toggleFulfillmentType();
+                        fulfillmentAutoSwitching = false;
+                        showFulfillmentAutoSwitchNotice('التوصيل غير متوفر');
+                    }
                 }
             } else {
                 deliveryOption.style.opacity = '1';
+                if (input) input.disabled = false;
                 if (note) note.remove();
             }
         }
         if (pickupOption) {
             let note = pickupOption.querySelector('.fulfillment-closed-note');
+            let input = pickupOption.querySelector('input');
             if (!pickupStatus.open) {
                 pickupOption.style.opacity = '0.55';
+                if (input) input.disabled = true;
                 if (!note) {
                     note = document.createElement('div');
                     note.className = 'fulfillment-closed-note';
                     note.style.cssText = 'font-size:9.5px; font-weight:800; color:#dc2626; margin-top:2px;';
-                    note.innerText = 'مغلق حالياً';
                     pickupOption.appendChild(note);
+                }
+                note.innerText = pickupStatus.from ? `مغلق حالياً - يفتح الساعة ${pickupStatus.from}` : 'مغلق حالياً';
+                if (input && input.checked && deliveryOption) {
+                    const deliveryInput = deliveryOption.querySelector('input');
+                    if (deliveryInput && !deliveryInput.disabled) {
+                        deliveryInput.checked = true;
+                        fulfillmentAutoSwitching = true;
+                        toggleFulfillmentType();
+                        fulfillmentAutoSwitching = false;
+                        showFulfillmentAutoSwitchNotice('الاستلام الذاتي غير متوفر');
+                    }
                 }
             } else {
                 pickupOption.style.opacity = '1';
+                if (input) input.disabled = false;
                 if (note) note.remove();
             }
         }
@@ -4692,17 +4772,12 @@
     function goToStep3() {
         let type = document.querySelector('input[name="fulfillmentType"]:checked').value;
 
-        // خارج ساعات الدوام: كل نوع طلب إله جدوله المستقل (توصيل عنده ساعاته، والاستلام الذاتي عنده ساعاته)
+        // خارج ساعات الدوام: كل نوع طلب إله جدوله المستقل - الخيار المقفول أصلاً معطّل وما ينختار من
+        // الواجهة (applyFulfillmentOptionAvailability)، هاد بس احتياط صامت بدون رسالة منبثقة
         const storeStatus = getStoreOpenStatus();
-        if (!storeStatus.open && type === 'توصيل') {
-            alert(storeStatus.reason);
-            return;
-        }
+        if (!storeStatus.open && type === 'توصيل') return;
         const pickupStatus = getPickupOpenStatus();
-        if (!pickupStatus.open && type === 'استلام ذاتي') {
-            alert(pickupStatus.reason);
-            return;
-        }
+        if (!pickupStatus.open && type === 'استلام ذاتي') return;
 
         const name = document.getElementById('customerName').value.trim();
         const phone = document.getElementById('customerPhone').value.trim();
@@ -4732,7 +4807,23 @@
         updateFinancialSummary();
     }
 
+    let fulfillmentAutoSwitching = false;
+
+    function showFulfillmentAutoSwitchNotice(msg) {
+        const el = document.getElementById('fulfillmentAutoSwitchNotice');
+        if (!el) return;
+        el.innerText = msg;
+        el.style.display = 'block';
+    }
+
     function toggleFulfillmentType() {
+        // لو الزبون نفسه غيّر الاختيار يدوياً (مش تحويل تلقائي بسبب إغلاق)، نخفي تنبيه التحويل التلقائي
+        // القديم لأنه صار قديم/غير متعلق باختياره الحالي
+        if (!fulfillmentAutoSwitching) {
+            const notice = document.getElementById('fulfillmentAutoSwitchNotice');
+            if (notice) notice.style.display = 'none';
+        }
+
         let type = document.querySelector('input[name="fulfillmentType"]:checked').value;
         let deliveryContainer = document.getElementById('deliveryDetailsContainer');
         let deliveryFeeRow = document.getElementById('deliveryFeeRow');
@@ -5164,17 +5255,11 @@
     async function submitOrder() {
         let type = document.querySelector('input[name="fulfillmentType"]:checked').value;
 
-        // خارج ساعات الدوام: كل نوع طلب إله جدوله المستقل
+        // خارج ساعات الدوام: كل نوع طلب إله جدوله المستقل - احتياط صامت بدون رسالة منبثقة
         const storeStatus = getStoreOpenStatus();
-        if (!storeStatus.open && type === 'توصيل') {
-            alert(storeStatus.reason);
-            return;
-        }
+        if (!storeStatus.open && type === 'توصيل') return;
         const pickupStatus = getPickupOpenStatus();
-        if (!pickupStatus.open && type === 'استلام ذاتي') {
-            alert(pickupStatus.reason);
-            return;
-        }
+        if (!pickupStatus.open && type === 'استلام ذاتي') return;
 
         // ننظّف السلة أول شي من أي منتج انحذف من الكتالوج (مثلاً كان بالسلة من زيارة سابقة والأدمن حذفه
         // بعدين) - حتى ما توصل رسالة خطأ تقنية غير مفهومة للزبون من السيرفر، ونعطيه سبب واضح بدل هيك
@@ -5329,25 +5414,66 @@
         if (el) el.classList.add('active');
     }
 
+    let categoriesScreenActiveParent = null;
+
     function openCategoriesScreen() {
-        const body = document.getElementById('categoriesScreenBody');
-        body.innerHTML = categories.filter(c => c.name !== 'الكل').map(cat => {
-            const children = getCategoryChildren(cat.name);
-            const childrenHtml = children.length > 0
-                ? `<div class="cat-screen-children">${children.map(ch => `<div class="cat-screen-child" onclick="selectCategoryFromScreen('${cat.name}', '${ch.name}')">${ch.icon || '📦'} ${ch.name}</div>`).join('')}</div>`
-                : '';
-            return `
-                <div class="cat-screen-parent" onclick="selectCategoryFromScreen('${cat.name}', null)">
-                    <span style="font-size:20px;">${cat.icon || '🗂️'}</span>
-                    <span style="flex:1;">${cat.name}</span>
-                    <span style="color:#cbd5e1;">‹</span>
-                </div>
-                ${childrenHtml}
-            `;
-        }).join('');
+        const parentList = categories.filter(c => c.name !== 'الكل');
+        categoriesScreenActiveParent = parentList.length > 0 ? parentList[0].name : null;
+        renderCategoriesScreenPanels();
         document.getElementById('categoriesScreenOverlay').style.display = 'flex';
         setActiveBottomNav('bottomNavCategories');
         lockBodyScroll();
+    }
+
+    // شاشة أقسام بعمودين (نفس تطبيقات التسوق الكبيرة): عمود رفيع فيه كل الأقسام الرئيسية، وعمود
+    // عريض جنبه بيعرض فئات القسم المختار كبطاقات - بالضغط على قسم من العمود الرفيع، العمود العريض
+    // يتحدث فوراً بدون سكرول أو تنقل لصفحة تانية
+    function renderCategoriesScreenPanels() {
+        const body = document.getElementById('categoriesScreenBody');
+        const parentList = categories.filter(c => c.name !== 'الكل');
+
+        const sideHtml = parentList.map(cat => {
+            const isActive = cat.name === categoriesScreenActiveParent;
+            return `
+                <div class="cat-screen-side-item ${isActive ? 'active' : ''}" onclick="setCategoriesScreenActiveParent('${cat.name.replace(/'/g, "\\'")}')">
+                    <span class="css-icon">${cat.icon || '🗂️'}</span>
+                    <p>${cat.name}</p>
+                </div>
+            `;
+        }).join('');
+
+        const activeCat = parentList.find(c => c.name === categoriesScreenActiveParent);
+        const children = activeCat ? getCategoryChildren(activeCat.name) : [];
+        const escapedParent = categoriesScreenActiveParent ? categoriesScreenActiveParent.replace(/'/g, "\\'") : '';
+
+        const cardsHtml = children.length > 0
+            ? children.map(ch => `
+                <div class="cat-screen-main-card" onclick="selectCategoryFromScreen('${escapedParent}', '${ch.name.replace(/'/g, "\\'")}')">
+                    <span class="css-icon">${ch.icon || '📦'}</span>
+                    <p>${ch.name}</p>
+                </div>
+            `).join('')
+            : `<div style="grid-column:1/-1; text-align:center; color:#9ca3af; font-size:12px; padding:24px 10px;">اضغط "عرض الكل" فوق لتشوف منتجات هالقسم</div>`;
+
+        const mainHtml = `
+            <div class="cat-screen-main-header" onclick="selectCategoryFromScreen('${escapedParent}', null)">
+                <span>${activeCat ? activeCat.name : ''}</span>
+                <span style="color:var(--primary-green); font-size:11px; font-weight:800;">عرض الكل ‹</span>
+            </div>
+            <div class="cat-screen-main-grid">${cardsHtml}</div>
+        `;
+
+        body.innerHTML = `
+            <div class="cat-screen-panels">
+                <div class="cat-screen-side">${sideHtml}</div>
+                <div class="cat-screen-main">${mainHtml}</div>
+            </div>
+        `;
+    }
+
+    function setCategoriesScreenActiveParent(catName) {
+        categoriesScreenActiveParent = catName;
+        renderCategoriesScreenPanels();
     }
 
     function closeCategoriesScreen() {
@@ -5416,6 +5542,17 @@
         <div style="font-weight:900; font-size:15px; color:var(--primary-green);">🗂️ الأقسام</div>
     </div>
     <div class="categories-screen-body" id="categoriesScreenBody"></div>
+</div>
+
+<!-- نافذة ساعات التوصيل والاستلام الذاتي -->
+<div id="hoursInfoModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center; padding:16px;">
+    <div style="background:white; border-radius:16px; padding:16px; max-width:400px; width:100%; max-height:85vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="font-size:0.95rem; font-weight:900; color:var(--primary-green);">🕐 ساعات التوصيل والاستلام الذاتي</h3>
+            <button onclick="closeHoursInfoModal()" style="background:#f1f5f9; border:none; width:26px; height:26px; border-radius:8px; font-weight:900; cursor:pointer;">✕</button>
+        </div>
+        <div id="hoursInfoBody"></div>
+    </div>
 </div>
 
 <!-- زر الاشتراك بعروض واتساب -->
