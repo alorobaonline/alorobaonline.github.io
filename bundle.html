@@ -195,6 +195,15 @@
                     <span id="badge-preview" class="text-xs bg-red-600 text-white font-bold px-2.5 py-1 rounded-lg shadow-sm">4 بـ 0.00 ₪</span>
                 </div>
 
+                <!-- منتج ممثّل يظهر بصفحة "🎁 العروض" بسعر الحزمة مباشرة - عشان الزبون يلاقي الحزمة
+                     بسهولة من صفحة العروض العامة، مش بس جوا فئتها -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">أظهر هالحزمة بصفحة "🎁 العروض" (اختياري - اختر منتج ممثّل من الحزمة)</label>
+                    <select id="bundle-featured-offer" onchange="updatePreview()" class="w-full border border-gray-200 bg-gray-50 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-green)]/40 focus:border-[var(--primary-green)] transition">
+                        <option value="">لا تُظهرها بصفحة العروض</option>
+                    </select>
+                </div>
+
                 <div>
                     <div class="flex items-center justify-between mb-1.5">
                         <label class="block text-xs font-bold text-gray-700">اختر المنتجات المشاركة من متجرك:</label>
@@ -395,7 +404,20 @@
             const count = document.querySelectorAll('.product-checkbox:checked').length;
             const el = document.getElementById('selected-counter');
             if (el) el.innerText = `${count} محدد`;
+            populateFeaturedOfferSelect();
         };
+
+        // بيعبّي قائمة "منتج ممثّل للعروض" بس بالمنتجات المختارة فعلياً بهاي الحزمة - محافظين على
+        // الاختيار الحالي لو لسا موجود ضمن القائمة الجديدة بعد أي تعديل بالمنتجات المختارة
+        function populateFeaturedOfferSelect() {
+            const select = document.getElementById('bundle-featured-offer');
+            if (!select) return;
+            const currentValue = select.value;
+            const checkedNames = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => cb.value);
+            select.innerHTML = '<option value="">لا تُظهرها بصفحة العروض</option>' +
+                checkedNames.map(name => `<option value="${name}">${name}</option>`).join('');
+            if (checkedNames.includes(currentValue)) select.value = currentValue;
+        }
 
         // ===================== معاينة حية للشارة =====================
         window.updatePreview = function() {
@@ -565,6 +587,7 @@
 
             const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
             const selectedItems = Array.from(selectedCheckboxes).map(cb => cb.value);
+            const featuredForOffers = document.getElementById('bundle-featured-offer').value || null;
 
             if (!name || !priceText) {
                 showToast('يرجى تعبئة اسم الحزمة والسعر على الأقل', 'error');
@@ -577,7 +600,8 @@
                         name: name,
                         priceText: priceText,
                         qty: qty || 4,
-                        selectedItems: selectedItems
+                        selectedItems: selectedItems,
+                        featuredForOffers: featuredForOffers
                     });
                     showToast('تم تحديث عرض الحزمة بنجاح ✏️');
                 } else {
@@ -586,6 +610,7 @@
                         priceText: priceText,
                         qty: qty || 4,
                         selectedItems: selectedItems,
+                        featuredForOffers: featuredForOffers,
                         active: true,
                         createdAt: Date.now()
                     });
@@ -611,6 +636,7 @@
             renderProductCheckboxes([]);
             filterStoreProducts();
             updatePreview();
+            populateFeaturedOfferSelect();
 
             document.getElementById('add-modal').classList.remove('hidden');
             document.getElementById('add-modal').classList.add('flex');
@@ -630,6 +656,8 @@
             renderProductCheckboxes(bundle.selectedItems || []);
             filterStoreProducts();
             updatePreview();
+            populateFeaturedOfferSelect();
+            document.getElementById('bundle-featured-offer').value = bundle.featuredForOffers || '';
 
             document.getElementById('add-modal').classList.remove('hidden');
             document.getElementById('add-modal').classList.add('flex');
