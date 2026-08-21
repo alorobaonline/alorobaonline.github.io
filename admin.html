@@ -581,6 +581,7 @@
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px;">
                 <select id="customerSortSelect" class="form-control" onchange="renderCustomersList()" style="margin-bottom:0;">
                     <option value="spent">↕️ الأكثر شراءً</option>
+                    <option value="orders">🛒 الأكثر طلباً</option>
                     <option value="recent">🕐 آخر طلب (الأحدث أول)</option>
                     <option value="inactive">😴 الأقدم طلباً (الأكثر غياباً)</option>
                 </select>
@@ -3617,6 +3618,8 @@
             filtered.sort((a, b) => (b.lastOrderTs || 0) - (a.lastOrderTs || 0));
         } else if (sortMode === 'inactive') {
             filtered.sort((a, b) => (a.lastOrderTs || 0) - (b.lastOrderTs || 0));
+        } else if (sortMode === 'orders') {
+            filtered.sort((a, b) => (b.orderCount || 0) - (a.orderCount || 0));
         } else {
             filtered.sort((a, b) => b.totalSpent - a.totalSpent);
         }
