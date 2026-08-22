@@ -855,7 +855,7 @@
             </div>
         </div>
         <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-            <a href="https://play.google.com/store/apps/details?id=market.alaoroba.app" target="_blank" rel="noopener" style="background:white; color:var(--primary-green); font-weight:900; font-size:0.72rem; padding:7px 12px; border-radius:20px; text-decoration:none; white-space:nowrap;">تحميل</a>
+            <a href="https://play.google.com/store/apps/details?id=market.alaoroba.app" target="_blank" rel="noopener" onclick="dismissPlayStoreBanner()" style="background:white; color:var(--primary-green); font-weight:900; font-size:0.72rem; padding:7px 12px; border-radius:20px; text-decoration:none; white-space:nowrap;">تحميل</a>
             <button onclick="dismissPlayStoreBanner()" style="background:rgba(255,255,255,0.15); border:none; color:white; width:24px; height:24px; border-radius:50%; font-size:0.85rem; cursor:pointer; flex-shrink:0;">✕</button>
         </div>
     </div>
@@ -2218,9 +2218,26 @@
     }
 
     // ===================== بانر متجر جوجل بلاي =====================
+    function isRunningInsideInstalledApp() {
+        // TWA/PWA المثبتة بتفتح بوضع "standalone" (بدون شريط عنوان متصفح) - عكس تبويب متصفح عادي
+        try {
+            if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+            if (window.navigator.standalone === true) return true; // احتياط لأنظمة تانية
+        } catch (e) {}
+
+        // تطبيقات الـ WebView العادية (زي تطبيقنا الحالي) بتحط كلمة "wv" ببصمة المتصفح (User Agent)
+        // - مش موجودة بمتصفح Chrome العادي، بس موجودة بأغلب التطبيقات اللي بتغلف موقع
+        try {
+            if (/;\s*wv\)/i.test(navigator.userAgent)) return true;
+        } catch (e) {}
+
+        return false;
+    }
+
     function initPlayStoreBanner() {
         const banner = document.getElementById('playStoreBanner');
         if (!banner) return;
+        if (isRunningInsideInstalledApp()) return; // أصلاً فاتح التطبيق - ما في داعي يطلب منه يحمّله
         if (localStorage.getItem('aloroba_play_banner_dismissed') === '1') return;
         banner.style.display = 'flex';
     }
