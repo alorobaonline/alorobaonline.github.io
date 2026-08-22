@@ -162,6 +162,19 @@
         <button class="btn-secondary" onclick="employeeLogout()">تسجيل الخروج من الحساب</button>
     </div>
 
+    <!-- ===================== شاشة تسجيل دخول الإدارة (بريد إلكتروني + كلمة سر - نفس حسابات admin.html) ===================== -->
+    <div class="view" id="adminLoginView">
+        <div class="center-icon">🔐</div>
+        <div class="page-title">دخول لوحة الإدارة</div>
+        <div class="page-sub">بنفس بريد وكلمة سر حسابك بلوحة التحكم الرئيسية</div>
+
+        <input type="email" id="adminLoginEmail" class="form-control" placeholder="البريد الإلكتروني" autocomplete="username">
+        <input type="password" id="adminLoginPassword" class="form-control" placeholder="كلمة السر" autocomplete="current-password">
+        <div class="status-error" id="adminLoginError"></div>
+        <button class="btn-main" id="adminLoginBtn" onclick="staffAdminLogin()">دخول</button>
+        <button class="btn-secondary" onclick="exitAdminView()">⬅ الرجوع لتسجيل الدخول</button>
+    </div>
+
     <!-- ===================== لوحة الإدارة ===================== -->
     <div class="view" id="adminView">
         <div class="page-title" style="margin-top: 4px;">👨‍💼 لوحة إدارة العمال</div>
@@ -178,7 +191,6 @@
         <div class="section-title">👥 قائمة العمال</div>
         <div id="employeesList"></div>
 
-        <button class="btn-secondary" onclick="changeAdminPin()">🔑 تغيير رمز دخول لوحة الإدارة</button>
         <button class="btn-secondary" onclick="exitAdminView()">⬅ الرجوع لتسجيل الدخول</button>
     </div>
 </div>
@@ -239,9 +251,11 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signInWithCustomToken, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
@@ -252,10 +266,16 @@
         appId: "1:880642361344:web:9dddec05f81125f0fc30e5"
     };
 
+    // بعد ما تنشري الـ Cloud Function الجديدة (employeeLogin)، بدّلي هاد الرابط برابطها الحقيقي
+    // (شكله المتوقع بناءً على باقي روابطك: https://employee-login-880642361344.europe-west1.run.app)
+    const EMPLOYEE_LOGIN_URL = "https://employee-login-880642361344.europe-west1.run.app";
+
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
     window.db = db;
+    window.auth = auth;
     window.collection = collection;
     window.getDocs = getDocs;
     window.addDoc = addDoc;
@@ -266,6 +286,18 @@
     window.deleteDoc = deleteDoc;
     window.query = query;
     window.where = where;
+    window.signInWithEmailAndPassword = (email, password) => signInWithEmailAndPassword(auth, email, password);
+    window.signInWithCustomToken = (token) => signInWithCustomToken(auth, token);
+    window.staffSignOut = () => signOut(auth);
+    window.EMPLOYEE_LOGIN_URL = EMPLOYEE_LOGIN_URL;
+
+    // الموظف بيدخل تلقائياً لو أصلاً مسجل دخول بهالجهاز (Firebase Auth بيحتفظ بالجلسة لحاله)
+    onAuthStateChanged(auth, async (user) => {
+        if (user && user.uid && localStorage.getItem('aloroba_emp_id') === user.uid && window.restoreEmployeeSession) {
+            await window.restoreEmployeeSession(user.uid, localStorage.getItem('aloroba_emp_name') || '');
+        }
+        if (window.handleStaffAuthChange) window.handleStaffAuthChange(user);
+    });
 
     window.dispatchEvent(new Event('firebase-ready'));
 </script>
@@ -365,17 +397,27 @@
             return;
         }
 
-        try {
-            const q = window.query(window.collection(window.db, "employees"), window.where("name", "==", name), window.where("password", "==", password));
-            const snap = await window.getDocs(q);
+        const btn = document.querySelector('#loginView .btn-main');
+        const originalLabel = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = '⏳ جاري الدخول...';
 
-            if (snap.empty) {
-                errEl.innerText = 'الاسم أو رمز المرور غير صحيح';
+        try {
+            const res = await fetch(window.EMPLOYEE_LOGIN_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, password })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                errEl.innerText = data.error || 'الاسم أو رمز المرور غير صحيح';
                 return;
             }
 
-            let empDoc = snap.docs[0];
-            currentEmployee = { id: empDoc.id, name: empDoc.data().name };
+            await window.signInWithCustomToken(data.customToken);
+
+            currentEmployee = { id: data.employeeId, name: data.employeeName };
             localStorage.setItem('aloroba_emp_id', currentEmployee.id);
             localStorage.setItem('aloroba_emp_name', currentEmployee.name);
 
@@ -383,7 +425,16 @@
         } catch (e) {
             console.error(e);
             errEl.innerText = 'حدث خطأ، حاول مرة أخرى';
+        } finally {
+            btn.disabled = false;
+            btn.innerText = originalLabel;
         }
+    }
+
+    // بيستدعيها الـ Firebase Auth أول ما يرجع الموظف لنفس جهازه وجلسته لسا شغالة
+    async function restoreEmployeeSession(uid, name) {
+        currentEmployee = { id: uid, name: name };
+        await enterEmployeeDashboard();
     }
 
     function employeeLogout() {
@@ -394,6 +445,7 @@
         localStorage.removeItem('aloroba_emp_name');
         document.getElementById('loginName').value = '';
         document.getElementById('loginPassword').value = '';
+        window.staffSignOut();
         switchView('loginView');
     }
 
@@ -617,47 +669,62 @@
         }).join('');
     }
 
-    // ===================== لوحة الإدارة =====================
+    // ===================== لوحة الإدارة (تسجيل دخول بحساب موظف حقيقي - نفس حسابات admin.html) =====================
     function openAdminGate() {
-        let pin = prompt('أدخل رمز دخول لوحة الإدارة:');
-        if (pin === null) return;
-        checkAdminPin(pin);
+        switchView('adminLoginView');
+        document.getElementById('adminLoginError').innerText = '';
     }
 
-    async function checkAdminPin(enteredPin) {
+    async function staffAdminLogin() {
+        const email = document.getElementById('adminLoginEmail').value.trim();
+        const password = document.getElementById('adminLoginPassword').value.trim();
+        const errEl = document.getElementById('adminLoginError');
+        const btn = document.getElementById('adminLoginBtn');
+        errEl.innerText = '';
+
+        if (!email || !password) {
+            errEl.innerText = 'الرجاء تعبئة البريد الإلكتروني وكلمة السر';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerText = '⏳ جاري الدخول...';
         try {
-            const settingsRef = window.doc(window.db, "settings", "attendanceAdmin");
-            const settingsSnap = await window.getDoc(settingsRef);
-
-            let storedPin = '1234'; // رمز افتراضي أول مرة بس
-            if (settingsSnap.exists()) {
-                storedPin = settingsSnap.data().pin || '1234';
-            } else {
-                await window.setDoc(settingsRef, { pin: storedPin });
-            }
-
-            if (enteredPin === storedPin) {
-                switchView('adminView');
-                await renderEmployeesList();
-                await renderWorkplaceLocationText();
-            } else {
-                alert('رمز الدخول غير صحيح');
-            }
+            await window.signInWithEmailAndPassword(email, password);
+            // التحقق من الصلاحية بيصير أوتوماتيك بدالة handleStaffAuthChange بعد نجاح تسجيل الدخول
         } catch (e) {
             console.error(e);
-            alert('حدث خطأ، حاول مرة أخرى');
+            if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found') {
+                errEl.innerText = '❌ البريد الإلكتروني أو كلمة السر غير صحيحة';
+            } else {
+                errEl.innerText = '❌ تعذر تسجيل الدخول: ' + (e.message || e);
+            }
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'دخول';
         }
     }
 
-    async function changeAdminPin() {
-        let newPin = prompt('اكتب رمز الدخول الجديد للوحة الإدارة:');
-        if (!newPin) return;
-        try {
-            await window.setDoc(window.doc(window.db, "settings", "attendanceAdmin"), { pin: newPin.trim() }, { merge: true });
-            alert('تم تغيير رمز الدخول بنجاح ✅');
-        } catch (e) {
-            console.error(e);
-            alert('حدث خطأ أثناء الحفظ');
+    // بتنادى تلقائياً كل ما تغيرت حالة تسجيل الدخول - بس لحسابات فيها بريد إلكتروني (يعني حسابات إدارة، مش الموظفين اللي بيسجلوا بتوكن)
+    async function handleStaffAuthChange(user) {
+        const errEl = document.getElementById('adminLoginError');
+        if (user && user.email) {
+            try {
+                const roleSnap = await window.getDoc(window.doc(window.db, "staffRoles", user.email));
+                const roles = (roleSnap.exists() && Array.isArray(roleSnap.data().roles)) ? roleSnap.data().roles : [];
+                if (!roles.includes('admin')) {
+                    if (errEl) errEl.innerText = '❌ ما عندك صلاحية توصل للوحة الإدارة';
+                    await window.staffSignOut();
+                    return;
+                }
+                switchView('adminView');
+                await renderEmployeesList();
+                await renderWorkplaceLocationText();
+            } catch (e) {
+                console.error(e);
+                if (errEl) errEl.innerText = '❌ تعذر التحقق من الصلاحية، حاول مرة أخرى';
+                await window.staffSignOut();
+            }
         }
     }
 
@@ -707,6 +774,7 @@
     }
 
     function exitAdminView() {
+        window.staffSignOut();
         switchView('loginView');
     }
 
@@ -727,10 +795,10 @@
             <div class="emp-item">
                 <div class="info" onclick="openEmpDetailModal('${emp.id}', '${emp.name.replace(/'/g, "\\'")}')">
                     <b>👤 ${emp.name}</b>
-                    <div>رمز المرور: ${emp.password} &nbsp;|&nbsp; 💰 ${(emp.hourlyRate || 0).toFixed(2)} ₪ /ساعة</div>
+                    <div>${emp.passwordHash ? '🔒 كلمة السر محمية' : '⚠️ لسا مش محمية - بتتحمى أول ما يسجل دخول'} &nbsp;|&nbsp; 💰 ${(emp.hourlyRate || 0).toFixed(2)} ₪ /ساعة</div>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 5px;">
-                    <button class="del-btn" style="background: #dbeafe; color: #1e40af;" onclick="openEditEmployeeModal('${emp.id}', '${emp.name.replace(/'/g, "\\'")}', '${(emp.password || '').replace(/'/g, "\\'")}', ${emp.hourlyRate || 0})">تعديل ✏️</button>
+                    <button class="del-btn" style="background: #dbeafe; color: #1e40af;" onclick="openEditEmployeeModal('${emp.id}', '${emp.name.replace(/'/g, "\\'")}', ${emp.hourlyRate || 0})">تعديل ✏️</button>
                     <button class="del-btn" onclick="deleteEmployee('${emp.id}', '${emp.name.replace(/'/g, "\\'")}')">حذف 🗑️</button>
                 </div>
             </div>
@@ -744,16 +812,18 @@
         document.getElementById('addEmpModalTitle').innerText = '➕ إضافة عامل جديد';
         document.getElementById('newEmpName').value = '';
         document.getElementById('newEmpPassword').value = '';
+        document.getElementById('newEmpPassword').placeholder = 'رمز المرور (أرقام أو حروف)';
         document.getElementById('newEmpRate').value = '';
         document.getElementById('addEmpError').innerText = '';
         document.getElementById('addEmployeeModal').classList.add('active');
     }
 
-    function openEditEmployeeModal(id, name, password, rate) {
+    function openEditEmployeeModal(id, name, rate) {
         editingEmployeeId = id;
         document.getElementById('addEmpModalTitle').innerText = '✏️ تعديل بيانات العامل';
         document.getElementById('newEmpName').value = name;
-        document.getElementById('newEmpPassword').value = password;
+        document.getElementById('newEmpPassword').value = '';
+        document.getElementById('newEmpPassword').placeholder = 'اتركه فاضي لو مش بدك تغيّر رمز المرور';
         document.getElementById('newEmpRate').value = rate || '';
         document.getElementById('addEmpError').innerText = '';
         document.getElementById('addEmployeeModal').classList.add('active');
@@ -769,16 +839,23 @@
         const hourlyRate = parseFloat(document.getElementById('newEmpRate').value) || 0;
         const errEl = document.getElementById('addEmpError');
 
-        if (!name || !password) {
+        if (!name || (!editingEmployeeId && !password)) {
             errEl.innerText = 'الرجاء تعبئة الاسم ورمز المرور';
             return;
         }
 
         try {
+            const payload = { name, hourlyRate };
+            // بنهاشّ رمز المرور بالمتصفح قبل ما نحفظه - ما بينكتب أي رمز مرور واضح بقاعدة البيانات إطلاقاً
+            if (password) {
+                payload.passwordHash = dcodeIO.bcrypt.hashSync(password, 10);
+            }
+
             if (editingEmployeeId) {
-                await window.updateDoc(window.doc(window.db, "employees", editingEmployeeId), { name, password, hourlyRate });
+                if (password) payload.password = null; // تنظيف أي رمز قديم غير مشفّر لو موجود
+                await window.updateDoc(window.doc(window.db, "employees", editingEmployeeId), payload);
             } else {
-                await window.addDoc(window.collection(window.db, "employees"), { name, password, hourlyRate, createdAt: new Date().toISOString() });
+                await window.addDoc(window.collection(window.db, "employees"), { ...payload, createdAt: new Date().toISOString() });
             }
             closeAddEmployeeModal();
             await renderEmployeesList();
@@ -896,22 +973,14 @@
         }
     }
 
-    // ===================== تسجيل دخول تلقائي لو الموظف مسجل بنفس الجهاز =====================
-    window.addEventListener('firebase-ready', async function() {
-        let savedId = localStorage.getItem('aloroba_emp_id');
-        let savedName = localStorage.getItem('aloroba_emp_name');
-        if (savedId && savedName) {
-            currentEmployee = { id: savedId, name: savedName };
-            await enterEmployeeDashboard();
-        }
-    });
-
     // تعريض الدوال المطلوبة بـ onclick على النافذة العامة
     window.employeeLogin = employeeLogin;
     window.employeeLogout = employeeLogout;
+    window.restoreEmployeeSession = restoreEmployeeSession;
+    window.handleStaffAuthChange = handleStaffAuthChange;
     window.toggleShift = toggleShift;
     window.openAdminGate = openAdminGate;
-    window.changeAdminPin = changeAdminPin;
+    window.staffAdminLogin = staffAdminLogin;
     window.setWorkplaceLocation = setWorkplaceLocation;
     window.saveAllowedRadius = saveAllowedRadius;
     window.exitAdminView = exitAdminView;
