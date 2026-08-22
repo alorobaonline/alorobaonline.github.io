@@ -845,6 +845,21 @@
 </div>
 
 <div class="store-container">
+    <!-- بانر التطبيق على متجر جوجل -->
+    <div id="playStoreBanner" style="display:none; background:linear-gradient(135deg, #1b4d2e 0%, #2d6b47 100%); color:white; padding:10px 12px; align-items:center; justify-content:space-between; gap:10px;">
+        <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+            <span style="font-size:1.4rem; flex-shrink:0;">📲</span>
+            <div style="min-width:0;">
+                <div style="font-size:0.78rem; font-weight:900;">صرنا على متجر جوجل بلاي!</div>
+                <div style="font-size:0.66rem; opacity:0.9;">حمّلي تطبيقنا لتجربة أسرع وأسهل</div>
+            </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+            <a href="https://play.google.com/store/apps/details?id=market.alaoroba.app" target="_blank" rel="noopener" style="background:white; color:var(--primary-green); font-weight:900; font-size:0.72rem; padding:7px 12px; border-radius:20px; text-decoration:none; white-space:nowrap;">تحميل</a>
+            <button onclick="dismissPlayStoreBanner()" style="background:rgba(255,255,255,0.15); border:none; color:white; width:24px; height:24px; border-radius:50%; font-size:0.85rem; cursor:pointer; flex-shrink:0;">✕</button>
+        </div>
+    </div>
+
     <!-- الهيدر -->
     <div class="store-header">
         <div style="display:flex; align-items:center; gap:8px;">
@@ -2201,6 +2216,22 @@
         alert("✅ تم إغلاق حسابك على هالجهاز. رجعت زبون جديد - أدخل رقم هاتفك بأي وقت وبيرجعلك كل شي.");
         closeProfileModal();
     }
+
+    // ===================== بانر متجر جوجل بلاي =====================
+    function initPlayStoreBanner() {
+        const banner = document.getElementById('playStoreBanner');
+        if (!banner) return;
+        if (localStorage.getItem('aloroba_play_banner_dismissed') === '1') return;
+        banner.style.display = 'flex';
+    }
+
+    function dismissPlayStoreBanner() {
+        localStorage.setItem('aloroba_play_banner_dismissed', '1');
+        const banner = document.getElementById('playStoreBanner');
+        if (banner) banner.style.display = 'none';
+    }
+    window.dismissPlayStoreBanner = dismissPlayStoreBanner;
+    initPlayStoreBanner();
 
     // قائمة "المزيد ☰" بالراس (حسابي/واتساب/ويز) - نقفلها لو ضغط بره منها بأي مكان بالصفحة
     // نطلع/نطوي شريط البحث بالضغط على أيقونة 🔍 بالهيدر - مطوي افتراضياً حتى نوفر مساحة عمودية
