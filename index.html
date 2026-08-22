@@ -1048,6 +1048,8 @@
             <input type="text" id="userProfileBuilding" class="form-control" placeholder="رقم البيت أو الشقة">
             
             <button class="btn-main" onclick="saveUserProfile()">حفظ البيانات 💾</button>
+
+            <button onclick="closeMyAccount()" style="width:100%; background:#fef2f2; color:#dc2626; border:1.5px solid #fecaca; padding:10px; border-radius:10px; font-size:13px; font-weight:800; margin-top:10px; cursor:pointer;">🔒 إغلاق الحساب</button>
         </div>
 
         <div id="profileCurrentOrderSection" style="display: none;">
@@ -2169,6 +2171,34 @@
 
         loadUserProfileData();
         alert("تم حفظ بياناتك بنجاح! 💾");
+        closeProfileModal();
+    }
+
+    // إغلاق الحساب: بيمسح بيانات الزبون من هالجهاز بس (الاسم/الهاتف/العنوان) بدون ما يحذف طلباته
+    // من السحابة. لو رجع دخل نفس رقم هاتفه من جديد، كل بياناته وطلباته السابقة بترجعله تلقائياً
+    // (لأنها أصلاً محفوظة عندنا مرتبطة برقم الهاتف مش بهالجهاز).
+    function closeMyAccount() {
+        const confirmed = confirm("متأكد إنك بدك تسكر حسابك؟\n\nبيانات هاتفك (الاسم والعنوان) بتنمسح من هالجهاز، وطلبيتك الحالية إذا في وحدة رح توقف متابعتها.\n\nإذا رجعت أدخلت نفس رقم هاتفك بأي وقت، كل بياناتك وطلباتك السابقة بترجعلك أوتوماتيك.");
+        if (!confirmed) return;
+
+        try { stopCurrentOrderTracking(); } catch(e) {}
+
+        localStorage.removeItem('aloroba_user_name');
+        localStorage.removeItem('aloroba_user_phone');
+        localStorage.removeItem('aloroba_user_city');
+        localStorage.removeItem('aloroba_user_address');
+        localStorage.removeItem('aloroba_user_building');
+        localStorage.removeItem('aloroba_verified_phone');
+        localStorage.removeItem('aloroba_current_order_id');
+
+        ['userProfileName','userProfilePhone','userProfileAddress','userProfileBuilding','customerName','customerPhone','customerStreet','customerBuilding'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        const cityEl = document.getElementById('userProfileCity'); if (cityEl) cityEl.value = '';
+        const custCityEl = document.getElementById('customerCity'); if (custCityEl) custCityEl.value = '';
+
+        alert("✅ تم إغلاق حسابك على هالجهاز. رجعت زبون جديد - أدخل رقم هاتفك بأي وقت وبيرجعلك كل شي.");
         closeProfileModal();
     }
 
