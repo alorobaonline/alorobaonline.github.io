@@ -5,7 +5,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>سوبر ماركت العروبة - اونلاين</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1b4d2e">
@@ -70,7 +70,7 @@
         .free-delivery-banner { margin: 0; padding: 8px 15px; background: #fef2f2; border-bottom: 1.5px solid #fecaca; display: flex; align-items: center; justify-content: space-between; gap: 8px; overflow: hidden; }
         .free-delivery-banner.free-delivery-fixed {
             position: fixed !important;
-            top: 0;
+            top: env(safe-area-inset-top, 0px);
             left: 0;
             right: 0;
             max-width: 480px;
@@ -247,7 +247,7 @@
         .categories-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 2px 15px 12px 15px; scrollbar-width: none; }
         #subCategoriesScrollContainer.sub-cats-fixed {
             position: fixed !important;
-            top: 0;
+            top: env(safe-area-inset-top, 0px);
             left: 0;
             right: 0;
             max-width: 480px;
@@ -2867,6 +2867,17 @@
         });
     }
 
+    // بنجيب ارتفاع "المنطقة الآمنة" فوق الشاشة (وراء الساعة/الواي فاي بالتطبيقات) بالبكسل - عن طريق
+    // عنصر خفي بنقرا منه القيمة المحسوبة فعلياً، لأنه env() مش متاح مباشرة كرقم بالـ JavaScript
+    function getSafeAreaInsetTop() {
+        const probe = document.createElement('div');
+        probe.style.cssText = 'position:fixed; top:0; height:0; padding-top:env(safe-area-inset-top, 0px); visibility:hidden; pointer-events:none;';
+        document.body.appendChild(probe);
+        const px = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+        document.body.removeChild(probe);
+        return px;
+    }
+
     // ===================== تثبيت شريط الفئات الفرعية فوق + تتبّع التمرير =====================
     function updateStickySubcatsAndSpy() {
         const container = document.getElementById('subCategoriesScrollContainer');
@@ -2878,10 +2889,12 @@
 
         // لو بانر التوصيل المجاني ثابت هو كمان بنفس اللحظة، منزل شريط الفئات الفرعية تحته
         // بدل ما يركبوا فوق بعض - بنحسب ارتفاعه الفعلي كل مرة (ممكن يختفي/يظهر ديناميكياً)
+        // + بنضيف ارتفاع المنطقة الآمنة فوق الشاشة حتى ما يروح وراء الساعة/الواي فاي بالتطبيق
         const freeDeliveryBanner = document.getElementById('freeDeliveryBannerInner');
-        const topOffset = (freeDeliveryBanner && freeDeliveryBanner.classList.contains('free-delivery-fixed'))
+        const safeTop = getSafeAreaInsetTop();
+        const topOffset = safeTop + ((freeDeliveryBanner && freeDeliveryBanner.classList.contains('free-delivery-fixed'))
             ? freeDeliveryBanner.offsetHeight
-            : 0;
+            : 0);
 
         if (shouldBeFixed && !isFixed) {
             spacer.style.height = container.offsetHeight + 'px';
