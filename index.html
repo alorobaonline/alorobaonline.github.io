@@ -904,7 +904,7 @@
     <div class="store-header">
         <div style="display:flex; align-items:center; gap:8px;">
             <div class="store-title">🛒 العروبة أونلاين</div>
-            <button class="admin-link header-icon-btn" onclick="toggleSearchBar()" title="بحث">🔍</button>
+            <button class="admin-link header-icon-btn" onclick="openSearchScreen()" title="بحث">🔍</button>
         </div>
         <div class="header-actions">
             <button class="admin-link header-icon-btn" style="position:relative;" onclick="openProfileModal('current')" title="طلبيتي الحالية">
@@ -2292,18 +2292,111 @@
     initPlayStoreBanner();
 
     // قائمة "المزيد ☰" بالراس (حسابي/واتساب/ويز) - نقفلها لو ضغط بره منها بأي مكان بالصفحة
-    // نطلع/نطوي شريط البحث بالضغط على أيقونة 🔍 بالهيدر - مطوي افتراضياً حتى نوفر مساحة عمودية
-    function toggleSearchBar() {
-        const container = document.getElementById('searchBarContainer');
-        if (!container) return;
-        const willShow = container.style.display === 'none';
-        container.style.display = willShow ? 'block' : 'none';
-        if (willShow) {
-            setTimeout(() => document.getElementById('searchInput').focus(), 50);
-        } else {
-            document.getElementById('searchInput').value = '';
-            filterProducts();
+
+    // ===================== شاشة البحث الكاملة =====================
+    let searchScreenDebounceTimer = null;
+
+    function openSearchScreen() {
+        const overlay = document.getElementById('searchScreenOverlay');
+        const input = document.getElementById('searchScreenInput');
+        input.value = '';
+        renderSearchScreenDefault();
+        overlay.style.display = 'flex';
+        lockBodyScroll();
+        setTimeout(() => input.focus(), 100);
+    }
+
+    function closeSearchScreen() {
+        document.getElementById('searchScreenOverlay').style.display = 'none';
+        unlockBodyScroll();
+    }
+
+    function getRecentSearches() {
+        try { return JSON.parse(localStorage.getItem('aloroba_recent_searches') || '[]'); } catch(e) { return []; }
+    }
+
+    function saveRecentSearch(term) {
+        term = term.trim();
+        if (!term) return;
+        let list = getRecentSearches().filter(t => t !== term);
+        list.unshift(term);
+        list = list.slice(0, 6);
+        try { localStorage.setItem('aloroba_recent_searches', JSON.stringify(list)); } catch(e) {}
+    }
+
+    function clearRecentSearches() {
+        try { localStorage.removeItem('aloroba_recent_searches'); } catch(e) {}
+        renderSearchScreenDefault();
+    }
+
+    function applyRecentSearch(term) {
+        document.getElementById('searchScreenInput').value = term;
+        handleSearchScreenInput();
+    }
+
+    // الحالة الافتراضية لما شاشة البحث تفتح أو تفضى خانة الكتابة - آخر عمليات بحث محفوظة بالمتصفح
+    function renderSearchScreenDefault() {
+        const body = document.getElementById('searchScreenBody');
+        let recents = getRecentSearches();
+        if (recents.length === 0) {
+            body.innerHTML = `<p style="text-align:center; color:#9ca3af; font-size:13px; padding:40px 20px;">ابدأ الكتابة وبنطلعلك المنتجات المطابقة فوراً 🔍</p>`;
+            return;
         }
+        body.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span style="font-weight:900; font-size:13px; color:#374151;">🕐 آخر بحث</span>
+                <button onclick="clearRecentSearches()" style="background:none; border:none; color:#9ca3af; font-size:11.5px; font-weight:700; cursor:pointer;">مسح الكل</button>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                ${recents.map(t => `<button onclick="applyRecentSearch('${t.replace(/'/g, "\\'")}')" style="background:#f1f5f9; border:none; padding:8px 14px; border-radius:20px; font-size:12.5px; font-weight:700; color:#374151; cursor:pointer;">🔍 ${t}</button>`).join('')}
+            </div>
+        `;
+    }
+
+    // بحث احترافي: بيدوّر بأي مكان باسم المنتج (أول الاسم، نصه، أو آخره) - مو بس بداية الكلمة
+    function handleSearchScreenInput() {
+        let query = document.getElementById('searchScreenInput').value.trim().toLowerCase();
+        const body = document.getElementById('searchScreenBody');
+
+        if (searchScreenDebounceTimer) clearTimeout(searchScreenDebounceTimer);
+
+        if (query.length < 2) {
+            renderSearchScreenDefault();
+            return;
+        }
+
+        let results = products.filter(p => p.name.toLowerCase().includes(query));
+
+        if (results.length === 0) {
+            // نقترح منتجات تانية من نفس فئة أقرب تطابق جزئي (لو موجود) بدل شاشة فاضية
+            let alternatives = [];
+            let partialMatch = products.find(p => query.split(' ').some(word => word.length >= 2 && p.name.toLowerCase().includes(word)));
+            if (partialMatch) {
+                alternatives = products.filter(p => productBelongsToCategory(p, getPrimaryCategoryName(partialMatch)) && p.id !== partialMatch.id).slice(0, 6);
+            }
+            body.innerHTML = `
+                <p style="text-align:center; color:#9ca3af; font-size:13px; padding:20px 20px 10px;">ما في نتيجة لـ"${query}" - جرّب كلمة تانية</p>
+                ${alternatives.length > 0 ? `
+                    <div style="font-weight:900; font-size:12.5px; color:#374151; padding:0 12px 8px;">ممكن يعجبك:</div>
+                    <div class="products-list">${alternatives.map(p => createProductListItemHtml(p)).join('')}</div>
+                ` : ''}
+            `;
+            return;
+        }
+
+        body.innerHTML = `<div class="products-list">${results.map(p => createProductListItemHtml(p)).join('')}</div>`;
+
+        // منحفظ عملية البحث بالسجل بس بعد ما يوقف عن الكتابة شوي (مش كل حرف بالحرف)، وبس لو في نتائج فعلية
+        searchScreenDebounceTimer = setTimeout(() => saveRecentSearch(query), 900);
+    }
+
+    // اسم أول فئة رئيسية المنتج منتمي لها - يُستخدم لاقتراح بدائل من نفس الفئة لما البحث ما يلاقي نتيجة
+    function getPrimaryCategoryName(p) {
+        if (!p.categories || p.categories.length === 0) return null;
+        let catName = p.categories[0];
+        let catObj = categories.find(c => c.name === catName);
+        if (catObj && catObj.parentCategory) return catObj.parentCategory;
+        return catName;
     }
 
     function toggleHeaderMenu() {
@@ -5829,6 +5922,15 @@
         <div style="font-weight:900; font-size:15px; color:var(--primary-green);">🗂️ الأقسام</div>
     </div>
     <div class="categories-screen-body" id="categoriesScreenBody"></div>
+</div>
+
+<!-- شاشة البحث الكاملة -->
+<div class="categories-screen-overlay" id="searchScreenOverlay">
+    <div class="categories-screen-header" style="gap:10px;">
+        <button onclick="closeSearchScreen()" style="background:#f1f5f9; border:none; width:32px; height:32px; border-radius:10px; font-size:16px; cursor:pointer; flex-shrink:0;">✕</button>
+        <input type="text" id="searchScreenInput" placeholder="ابحث عن أي منتج تريده..." oninput="handleSearchScreenInput()" style="flex:1; border:1.5px solid #e5e7eb; border-radius:12px; padding:10px 14px; font-size:14px; font-weight:600; outline:none;">
+    </div>
+    <div class="categories-screen-body" id="searchScreenBody"></div>
 </div>
 
 <!-- نافذة ساعات التوصيل والاستلام الذاتي -->
