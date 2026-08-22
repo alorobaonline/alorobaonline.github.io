@@ -62,7 +62,7 @@
             font-family: 'Poppins', 'Cairo', sans-serif;
         }
 
-        .store-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; position: relative; box-shadow: 0 0 24px rgba(0,0,0,0.04); container-type: inline-size; container-name: store; }
+        .store-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; position: relative; box-shadow: 0 0 24px rgba(0,0,0,0.04); }
 
         .store-header {
             background: var(--primary-green);
@@ -357,20 +357,22 @@
         }
         .products-horizontal-scroll::-webkit-scrollbar { display: none; }
 
-        /* تأثير اللمعة والنبض (Glow & Pulse Animation) لسعر العرض وشارة العرض والإطار المميز */
+        /* تأثير اللمعة والنبض (Glow & Pulse Animation) لسعر العرض وشارة العرض والإطار المميز -
+           بنستخدم transform و filter (خفيفين على المعالج، بيشتغلوا عالكرت الرسوميات) بدل ما نحرك
+           box-shadow أو border-color (تقيلين وبيسببوا تقطيع بالسكرول لما يكون في كذا بطاقة عرض مع بعض) */
         @keyframes priceGlow {
-            0%, 100% { transform: scale(1); text-shadow: 0 0 0px rgba(220, 38, 38, 0); }
-            50% { transform: scale(1.03); text-shadow: 0 0 8px rgba(220, 38, 38, 0.55); }
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
         }
 
         @keyframes badgeGlow {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 0px rgba(220, 38, 38, 0); }
-            50% { transform: scale(1.06); box-shadow: 0 0 10px rgba(220, 38, 38, 0.7); }
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(220, 38, 38, 0)); }
+            50% { transform: scale(1.06); filter: drop-shadow(0 0 4px rgba(220, 38, 38, 0.6)); }
         }
 
         @keyframes cardBorderGlow {
-            0%, 100% { border-color: var(--price-red); box-shadow: 0 0 4px rgba(220, 38, 38, 0.22); }
-            50% { border-color: #ff5722; box-shadow: 0 0 10px rgba(255, 87, 34, 0.5); }
+            0%, 100% { filter: drop-shadow(0 0 1px rgba(220, 38, 38, 0.25)); }
+            50% { filter: drop-shadow(0 0 3px rgba(255, 87, 34, 0.45)); }
         }
 
         /* بطاقة المنتج */
@@ -395,6 +397,7 @@
             border: 2px solid var(--price-red);
             animation: cardBorderGlow 2.2s infinite ease-in-out;
             background: linear-gradient(180deg, #fffaf9 0%, #ffffff 100%);
+            will-change: filter;
         }
 
         .discount-badge {
@@ -410,6 +413,7 @@
             z-index: 2;
             box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);
             animation: badgeGlow 1.8s infinite ease-in-out;
+            will-change: transform;
         }
 
         .out-of-stock-badge {
@@ -453,6 +457,7 @@
             animation: priceGlow 1.8s infinite ease-in-out;
             unicode-bidi: plaintext;
             white-space: nowrap;
+            will-change: transform;
         }
 
         /* السعر الأصلي المشطوب عند وجود عرض - أسود */
