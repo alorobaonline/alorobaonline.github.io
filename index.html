@@ -67,25 +67,17 @@
         .store-header {
             background: var(--primary-green);
             color: white;
-            padding: 16px;
+            padding: 8px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom-left-radius: 22px;
-            border-bottom-right-radius: 22px;
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
             box-shadow: 0 4px 16px rgba(78, 128, 16, 0.25);
             position: sticky;
             top: 0;
             z-index: 80;
-            transition: padding 0.22s ease;
         }
-        .store-header.header-shrunk {
-            padding: 8px 16px;
-            border-bottom-left-radius: 16px;
-            border-bottom-right-radius: 16px;
-        }
-        .store-header.header-shrunk .store-title { font-size: 15px; transition: font-size 0.22s ease; }
-        .store-header.header-shrunk .header-icon-btn { width: 28px; height: 28px; font-size: 12px; transition: width 0.22s ease, height 0.22s ease, font-size 0.22s ease; }
 
         /* بانر عرض التوصيل المجاني المؤقت مع عداد تنازلي */
         .free-delivery-banner {
@@ -242,11 +234,11 @@
             100% { background-color: transparent; box-shadow: none; }
         }
         .product-card-highlight { animation: spendOfferHighlightFade 2s ease forwards; }
-        .store-title { font-size: 19px; font-weight: 900; letter-spacing: -0.2px; transition: font-size 0.22s ease; }
+        .store-title { font-size: 15px; font-weight: 900; letter-spacing: -0.2px; }
         .header-actions { display: flex; gap: 8px; align-items: center; }
         .admin-link { background: rgba(255,255,255,0.16); color: white; padding: 6px 11px; border-radius: 10px; text-decoration: none; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.22); transition: background .2s ease, transform .12s ease; white-space: nowrap; }
         .admin-link:active { transform: scale(0.92); background: rgba(255,255,255,0.28); }
-        .header-icon-btn { width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; border-radius: 50%; transition: width 0.22s ease, height 0.22s ease, font-size 0.22s ease; }
+        .header-icon-btn { width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; border-radius: 50%; }
         .header-dropdown-menu { animation: headerMenuIn .16s ease; }
         @keyframes headerMenuIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
         .header-menu-item { display: flex; align-items: center; gap: 9px; width: 100%; padding: 12px 14px; background: white; border: none; border-bottom: 1px solid #f1f5f9; color: #1f2937; font-size: 13px; font-weight: 700; cursor: pointer; text-align: right; text-decoration: none; box-sizing: border-box; transition: background .15s ease; }
@@ -387,8 +379,8 @@
             max-width: 122px; 
             background: white; 
             border: 1px solid var(--border-color); 
-            border-radius: 16px; 
-            padding: 8px; 
+            border-radius: 14px; 
+            padding: 6px; 
             display: flex; 
             flex-direction: column; 
             justify-content: space-between; 
@@ -435,17 +427,17 @@
         .product-img-box.is-out-of-stock img { opacity: 0.4; filter: grayscale(1); }
         .out-of-stock-btn { background: #9ca3af !important; cursor: not-allowed !important; }
 
-        .product-img-box { width: 100%; height: 100px; position: relative; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, #fafbfa 0%, #ffffff 100%); border-radius: 12px; margin-bottom: 6px; cursor: pointer; }
+        .product-img-box { width: 100%; height: 100px; position: relative; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, #fafbfa 0%, #ffffff 100%); border-radius: 12px; margin-bottom: 4px; cursor: pointer; }
         .product-img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .product-name { font-size: 11.5px; font-weight: 700; color: #1e293b; margin-bottom: 4px; height: 28px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .product-weight { font-size: 10px; font-weight: 600; color: #94a3b8; margin-bottom: 6px; }
+        .product-name { font-size: 10.5px; font-weight: 700; color: #1e293b; margin-bottom: 3px; height: 24px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .product-weight { font-size: 9.5px; font-weight: 600; color: #94a3b8; margin-bottom: 4px; }
         
         .product-price-row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
-        .product-price-top { margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+        .product-price-top { margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
 
         /* السعر الأصلي (بدون عرض) - برتقالي جذاب */
         .price-text { 
-            font-size: 15.5px; 
+            font-size: 14px; 
             font-weight: 700; 
             color: var(--price-orange);
             letter-spacing: 0;
@@ -456,7 +448,7 @@
         /* سعر العرض/التخفيض - أحمر لافت */
         .price-text.sale-price {
             color: var(--price-red);
-            font-size: 17.5px; 
+            font-size: 16px; 
             font-weight: 900;
             animation: priceGlow 1.8s infinite ease-in-out;
             unicode-bidi: plaintext;
@@ -465,7 +457,7 @@
 
         /* السعر الأصلي المشطوب عند وجود عرض - أسود */
         .old-price { 
-            font-size: 11px; 
+            font-size: 10px; 
             font-weight: 700; 
             color: var(--price-black); 
             text-decoration: line-through;
@@ -474,7 +466,7 @@
             white-space: nowrap;
         }
         
-        .add-to-cart-btn { background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; border: none; width: 28px; height: 28px; min-width: 28px; min-height: 28px; flex-shrink: 0; border-radius: 50%; font-size: 16px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; padding-bottom: 2px; box-shadow: 0 2px 8px rgba(78, 128, 16, 0.35); transition: transform .15s ease; }
+        .add-to-cart-btn { background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; border: none; width: 24px; height: 24px; min-width: 24px; min-height: 24px; flex-shrink: 0; border-radius: 50%; font-size: 14px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; padding-bottom: 2px; box-shadow: 0 2px 8px rgba(78, 128, 16, 0.35); transition: transform .15s ease; }
         .add-to-cart-btn:active { transform: scale(0.88); }
         
         .quantity-control-full {
@@ -483,15 +475,15 @@
             justify-content: space-between;
             background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%);
             border-radius: 20px;
-            padding: 2px 10px;
+            padding: 2px 8px;
             color: white;
             width: 100%;
-            height: 28px;
+            height: 24px;
             margin-top: auto;
             box-shadow: 0 2px 8px rgba(78, 128, 16, 0.3);
         }
-        .quantity-control-full .qty-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; font-weight: 900; }
-        .quantity-control-full .qty-display { font-weight: 900; font-size: 14.5px; text-align: center; }
+        .quantity-control-full .qty-btn { background: none; border: none; color: white; font-size: 16px; cursor: pointer; font-weight: 900; }
+        .quantity-control-full .qty-display { font-weight: 900; font-size: 13px; text-align: center; }
 
         .products-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 0 12px; align-items: start; }
         .products-grid .product-card { min-width: 0; max-width: none; width: 100%; }
@@ -670,7 +662,7 @@
         .spend-offer-price-badge.spend-offer-badge-achieved { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3); text-align: center; }
 
         /* شريط السلة السفلي */
-        .cart-bar { position: fixed; bottom: 60px; left: 0; right: 0; background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; padding: 15px 20px; display: none; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 18px; border-top-right-radius: 18px; z-index: 100; cursor: pointer; box-shadow: 0 -4px 16px rgba(0,0,0,0.12); }
+        .cart-bar { position: fixed; bottom: 60px; left: 0; right: 0; background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; padding: 9px 16px; display: none; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 14px; border-top-right-radius: 14px; z-index: 100; cursor: pointer; box-shadow: 0 -4px 16px rgba(0,0,0,0.12); }
         
         .cart-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; max-width: 480px; margin: 0 auto; }
         .cart-modal-content { background: white; width: 100%; border-top-left-radius: 22px; border-top-right-radius: 22px; padding: 20px; max-height: 90vh; overflow-y: auto; }
@@ -955,8 +947,8 @@
 
 <!-- شريط السلة السفلي -->
 <div class="cart-bar" id="cartBar" onclick="openCartModal()">
-    <div style="font-size: 14.5px; font-weight: 900;">للذهاب للدفع 🛒</div>
-    <div style="font-size: 16px; font-weight: 900;" id="cartTotalText">0.00 ₪</div>
+    <div style="font-size: 12px; font-weight: 900;">للذهاب للدفع 🛒</div>
+    <div style="font-size: 13.5px; font-weight: 900;" id="cartTotalText">0.00 ₪</div>
 </div>
 
 <!-- نافذة اختيار منتجات عرض الحزمة -->
@@ -2908,25 +2900,10 @@
         }
     }
 
-    // ===================== الهيدر الأخضر بيصغر لما ننزل، ويضل ثابت فوق (sticky) =====================
-    function updateHeaderShrink() {
-        const header = document.querySelector('.store-header');
-        if (!header) return;
-        const wasShrunk = header.classList.contains('header-shrunk');
-        const shouldShrink = window.scrollY > 12;
-        if (wasShrunk !== shouldShrink) {
-            header.classList.toggle('header-shrunk', shouldShrink);
-            updateStickyOffsets();
-            // نعيد الحساب بعد ما ينتهي انتقال تصغير الهيدر (0.22s) عشان يطلع الرقم النهائي المضبوط بالظبط
-            setTimeout(updateStickyOffsets, 230);
-        }
-    }
-
     window.addEventListener('scroll', () => {
         if (scrollSpyTicking) return;
         scrollSpyTicking = true;
         requestAnimationFrame(() => {
-            updateHeaderShrink();
             updateStickySubcatsAndSpy();
             scrollSpyTicking = false;
         });
