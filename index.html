@@ -483,6 +483,29 @@
         }
         
         .add-to-cart-btn { background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; border: none; width: 24px; height: 24px; min-width: 24px; min-height: 24px; flex-shrink: 0; border-radius: 50%; font-size: 14px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; padding-bottom: 2px; box-shadow: 0 2px 8px rgba(78, 128, 16, 0.35); transition: transform .15s ease; }
+
+        /* وضع القائمة (☰): نفس بطاقة الشبكة بالضبط - نفس الألوان، الخطوط، الشارات، تأثيرات التوهج -
+           بس مقلوبة أفقياً بدل عمودية (صورة أصغر بالجنب، اسم وسعر بالوسط، زر أوضح وأكبر) */
+        .products-list { display: flex; flex-direction: column; gap: 8px; padding: 0 12px; margin-top: 10px; }
+        .product-card.product-card-list {
+            flex-direction: row;
+            align-items: center;
+            min-width: 100%;
+            max-width: none;
+            width: 100%;
+            padding: 8px;
+            gap: 10px;
+        }
+        .product-card.product-card-list .product-img-box { width: 72px; height: 72px; flex-shrink: 0; margin-bottom: 0; }
+        .product-card.product-card-list .list-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .product-card.product-card-list .product-name { height: auto; -webkit-line-clamp: 2; margin-bottom: 2px; }
+        .product-card.product-card-list .product-weight { margin-bottom: 3px; }
+        .product-card.product-card-list .product-price-top { margin-bottom: 0; }
+        .product-card.product-card-list .list-action { flex-shrink: 0; }
+        .product-card.product-card-list .add-to-cart-btn { width: 34px; height: 34px; font-size: 19px; }
+        .product-card.product-card-list .quantity-control-full { width: 92px; height: 30px; }
+        .product-card.product-card-list .discount-badge { top: 6px; right: 6px; }
+        .product-card.product-card-list .out-of-stock-badge { top: 6px; left: 6px; }
         .add-to-cart-btn:active { transform: scale(0.88); }
         
         .quantity-control-full {
@@ -3962,10 +3985,12 @@
         let matchedBundle = findBundleForProduct(p);
         let matchedSpendOffer = !matchedBundle ? (spendOffers || []).find(o => o.active && o.productId === p.id && o.threshold) : null;
         let spendOfferAchieved = false;
+        let spendOfferGap = 0;
         if (matchedSpendOffer) {
             let required = getSpendOfferCumulativeThreshold(matchedSpendOffer);
             let adjustedSubtotal = getSpendOffersAdjustedSubtotal();
             spendOfferAchieved = adjustedSubtotal >= required;
+            spendOfferGap = required - adjustedSubtotal;
         }
 
         let hasSale = (p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null);
@@ -3983,6 +4008,8 @@
             oldPriceDisplay = "";
             priceClass = "price-text";
         }
+        let badgeHtml = hasSale ? `<span class="discount-badge">عرض خاص</span>` : "";
+        let cardClass = (hasSale || matchedBundle || (matchedSpendOffer && spendOfferAchieved)) ? "product-card product-card-list has-sale" : "product-card product-card-list";
 
         let bundleBadgeHtml = "";
         if (matchedBundle) {
@@ -3991,36 +4018,49 @@
             bundleBadgeHtml = `<span class="bundle-price-badge" onclick='openBundleModal("${matchedBundle.id}")'>${bQty} بـ ${bPrice.toFixed(2)} ₪</span>`;
         }
 
+        let spendOfferBadgeHtml = "";
+        if (matchedSpendOffer) {
+            let badgeLine = spendOfferAchieved
+                ? `✅ مفعّل`
+                : `🎯 أضف كمان ${spendOfferGap.toFixed(2)}₪ وخذه بـ ${matchedSpendOffer.discountedPrice}₪`;
+            let badgeExtraClass = spendOfferAchieved ? " spend-offer-badge-achieved" : "";
+            spendOfferBadgeHtml = `<span class="spend-offer-price-badge${badgeExtraClass}" data-offer-product="${p.id}">${badgeLine}</span>`;
+        }
+
         let cartItem = cart.find(item => item.id == p.id);
         let qty = cartItem ? cartItem.quantity : 0;
         let hasQty = qty > 0;
 
         let isTracked = (p.stockQty !== undefined && p.stockQty !== null && p.stockQty !== '');
         let isOutOfStock = isTracked && Number(p.stockQty) <= 0 && !hasQty;
+        let outOfStockBadgeHtml = isOutOfStock ? `<span class="out-of-stock-badge">نفذت الكمية</span>` : '';
+        let addBtnHtml = isOutOfStock
+            ? `<button class="add-to-cart-btn out-of-stock-btn" disabled>✕</button>`
+            : `<button class="add-to-cart-btn" onclick='handleAddToCartClick("${p.id}")'>+</button>`;
 
-        let actionHtml = isOutOfStock
-            ? `<button style="background:#f1f5f9; color:#94a3b8; border:none; padding:8px 18px; border-radius:10px; font-weight:800; font-size:12.5px;" disabled>نفذت الكمية</button>`
-            : hasQty
-                ? `<div class="quantity-control-full" style="display:flex;">
+        return `
+            <div class="${cardClass}" data-product-id="${p.id}">
+                ${badgeHtml}
+                ${outOfStockBadgeHtml}
+                <div class="product-img-box${isOutOfStock ? ' is-out-of-stock' : ''}" onclick='openImageModal("${p.img}", "${p.name}", "${p.id}")'>
+                    <img src="${optimizeImg(p.img, 300) || 'logo.png'}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
+                </div>
+                <div class="list-info">
+                    <div class="product-name">${p.name}</div>
+                    <div class="product-weight">${p.weight || 'حبة'}</div>
+                    <div class="product-price-top" style="display: flex; flex-wrap: wrap;">
+                        <span class="${priceClass}">${priceDisplay}</span>
+                        ${oldPriceDisplay}
+                        <div style="width: 100%;">${bundleBadgeHtml}${spendOfferBadgeHtml}</div>
+                    </div>
+                </div>
+                <div class="list-action">
+                    <div class="quantity-control-full" style="${hasQty ? 'display: flex;' : 'display: none;'}">
                         <button class="qty-btn" onclick='decreaseCartQty("${p.id}")'>-</button>
                         <span class="qty-display">${qty}</span>
                         <button class="qty-btn" onclick='increaseCartQty("${p.id}")'>+</button>
-                   </div>`
-                : `<button onclick='handleAddToCartClick("${p.id}")' style="background:#fef2ec; color:#ea580c; border:none; padding:9px 20px; border-radius:12px; font-weight:900; font-size:13px; white-space:nowrap;">أضف +</button>`;
-
-        return `
-            <div style="display:flex; align-items:center; gap:12px; background:white; border:1px solid #f1f5f9; border-radius:16px; padding:12px; margin:0 12px 10px;">
-                ${actionHtml}
-                <div style="flex:1; min-width:0;">
-                    <div style="font-weight:800; font-size:13.5px; color:#1f2937; margin-bottom:4px;">${p.name}</div>
-                    <div style="display:flex; align-items:center; gap:6px;">
-                        <span class="${priceClass}" style="font-size:14px;">${priceDisplay}</span>
-                        ${oldPriceDisplay}
                     </div>
-                    ${bundleBadgeHtml ? `<div style="margin-top:4px;">${bundleBadgeHtml}</div>` : ''}
-                </div>
-                <div class="product-img-box${isOutOfStock ? ' is-out-of-stock' : ''}" style="width:64px; height:64px; flex-shrink:0;" onclick='openImageModal("${p.img}", "${p.name}", "${p.id}")'>
-                    <img src="${optimizeImg(p.img, 200) || 'logo.png'}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
+                    <div style="${hasQty ? 'display: none;' : 'display: block;'}">${addBtnHtml}</div>
                 </div>
             </div>
         `;
@@ -4029,7 +4069,7 @@
     // بديل createProductsGridWithBundleDividers بوضع القائمة - نفس منطق فواصل الحزم بالضبط، بس صفوف
     function createProductsListWithBundleDividers(productList) {
         if (!productList || productList.length === 0) return '';
-        let html = '';
+        let html = '<div class="products-list">';
         let currentBundleId;
         productList.forEach(p => {
             let bundle = findSpecificBundleForProduct(p);
@@ -4044,6 +4084,7 @@
             }
             html += createProductListItemHtml(p);
         });
+        html += '</div>';
         return html;
     }
 
@@ -4785,9 +4826,14 @@
         if(!p) return;
         let cards = document.querySelectorAll(`.product-card[data-product-id="${prodId}"]`);
         cards.forEach(card => {
-            let sizeVariant = card.classList.contains('product-card-small') ? 'small' : undefined;
             let tempDiv = document.createElement('div');
-            tempDiv.innerHTML = createProductCardHtml(p, sizeVariant);
+            if (card.classList.contains('product-card-list')) {
+                // نفس بطاقة الشبكة بالضبط، بس بتخطيط أفقي (وضع القائمة ☰)
+                tempDiv.innerHTML = createProductListItemHtml(p);
+            } else {
+                let sizeVariant = card.classList.contains('product-card-small') ? 'small' : undefined;
+                tempDiv.innerHTML = createProductCardHtml(p, sizeVariant);
+            }
             card.outerHTML = tempDiv.firstElementChild.outerHTML;
         });
     }
