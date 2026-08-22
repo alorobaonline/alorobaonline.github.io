@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
     <title>سوبر ماركت العروبة - اونلاين</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1b4d2e">
+    <meta name="theme-color" content="#6BA516">
     <link rel="apple-touch-icon" href="logo.png"> 
 
     <!-- بطاقة المعاينة اللي تظهر عند مشاركة الرابط بواتساب أو فيسبوك أو غيره -->
@@ -35,7 +35,7 @@
         .driver-emoji-marker { font-size: 26px; text-align: center; line-height: 28px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4)); }
         .leaflet-container { background: #e5e7eb !important; }
         :root {
-            --primary-green: #609b15;
+            --primary-green: #6BA516;
             --accent-green: #4e8010;
             --light-bg: #f4f6f5;
             --border-color: #eaeaea;
@@ -62,17 +62,31 @@
             font-family: 'Poppins', 'Cairo', sans-serif;
         }
 
-        .store-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; position: relative; box-shadow: 0 0 24px rgba(0,0,0,0.04); container-type: inline-size; container-name: store; }
-        
-        .store-header { background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: 22px; border-bottom-right-radius: 22px; box-shadow: 0 4px 16px rgba(78, 128, 16, 0.25); }
+        .store-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; position: relative; box-shadow: 0 0 24px rgba(0,0,0,0.04); }
+
+        .store-header {
+            background: var(--primary-green);
+            color: white;
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+            box-shadow: 0 4px 16px rgba(78, 128, 16, 0.25);
+            position: sticky;
+            top: 0;
+            z-index: 80;
+        }
 
         /* بانر عرض التوصيل المجاني المؤقت مع عداد تنازلي */
-        .free-delivery-banner { margin: 0; padding: 8px 15px; background: #fef2f2; border-bottom: 1.5px solid #fecaca; display: flex; align-items: center; justify-content: space-between; gap: 8px; overflow: hidden; }
+        .free-delivery-banner {
+            margin: 0; padding: 8px 15px; background: #fef2f2; border-bottom: 1.5px solid #fecaca;
+            display: flex; align-items: center; justify-content: space-between; gap: 8px; overflow: hidden;
+        }
         .free-delivery-banner.free-delivery-fixed {
             position: fixed !important;
-            top: 0;
-            left: 0;
-            right: 0;
+            left: 0; right: 0;
             max-width: 480px;
             margin: 0 auto;
             z-index: 70;
@@ -228,11 +242,11 @@
             100% { background-color: transparent; box-shadow: none; }
         }
         .product-card-highlight { animation: spendOfferHighlightFade 2s ease forwards; }
-        .store-title { font-size: 19px; font-weight: 900; letter-spacing: -0.2px; }
+        .store-title { font-size: 15px; font-weight: 900; letter-spacing: -0.2px; }
         .header-actions { display: flex; gap: 8px; align-items: center; }
         .admin-link { background: rgba(255,255,255,0.16); color: white; padding: 6px 11px; border-radius: 10px; text-decoration: none; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.22); transition: background .2s ease, transform .12s ease; white-space: nowrap; }
         .admin-link:active { transform: scale(0.92); background: rgba(255,255,255,0.28); }
-        .header-icon-btn { width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; border-radius: 50%; }
+        .header-icon-btn { width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; border-radius: 50%; }
         .header-dropdown-menu { animation: headerMenuIn .16s ease; }
         @keyframes headerMenuIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
         .header-menu-item { display: flex; align-items: center; gap: 9px; width: 100%; padding: 12px 14px; background: white; border: none; border-bottom: 1px solid #f1f5f9; color: #1f2937; font-size: 13px; font-weight: 700; cursor: pointer; text-align: right; text-decoration: none; box-sizing: border-box; transition: background .15s ease; }
@@ -247,9 +261,7 @@
         .categories-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 2px 15px 12px 15px; scrollbar-width: none; }
         #subCategoriesScrollContainer.sub-cats-fixed {
             position: fixed !important;
-            top: 0;
-            left: 0;
-            right: 0;
+            left: 0; right: 0;
             max-width: 480px;
             margin: 0 auto;
             z-index: 60;
@@ -356,20 +368,22 @@
         }
         .products-horizontal-scroll::-webkit-scrollbar { display: none; }
 
-        /* تأثير اللمعة والنبض (Glow & Pulse Animation) لسعر العرض وشارة العرض والإطار المميز */
+        /* تأثير اللمعة والنبض (Glow & Pulse Animation) لسعر العرض وشارة العرض والإطار المميز -
+           بنستخدم transform و filter (خفيفين على المعالج، بيشتغلوا عالكرت الرسوميات) بدل ما نحرك
+           box-shadow أو border-color (تقيلين وبيسببوا تقطيع بالسكرول لما يكون في كذا بطاقة عرض مع بعض) */
         @keyframes priceGlow {
-            0%, 100% { transform: scale(1); text-shadow: 0 0 0px rgba(220, 38, 38, 0); }
-            50% { transform: scale(1.03); text-shadow: 0 0 8px rgba(220, 38, 38, 0.55); }
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
         }
 
         @keyframes badgeGlow {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 0px rgba(220, 38, 38, 0); }
-            50% { transform: scale(1.06); box-shadow: 0 0 10px rgba(220, 38, 38, 0.7); }
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(220, 38, 38, 0)); }
+            50% { transform: scale(1.06); filter: drop-shadow(0 0 4px rgba(220, 38, 38, 0.6)); }
         }
 
         @keyframes cardBorderGlow {
-            0%, 100% { border-color: var(--price-red); box-shadow: 0 0 4px rgba(220, 38, 38, 0.22); }
-            50% { border-color: #ff5722; box-shadow: 0 0 10px rgba(255, 87, 34, 0.5); }
+            0%, 100% { filter: drop-shadow(0 0 1px rgba(220, 38, 38, 0.25)); }
+            50% { filter: drop-shadow(0 0 3px rgba(255, 87, 34, 0.45)); }
         }
 
         /* بطاقة المنتج */
@@ -378,8 +392,8 @@
             max-width: 122px; 
             background: white; 
             border: 1px solid var(--border-color); 
-            border-radius: 16px; 
-            padding: 8px; 
+            border-radius: 14px; 
+            padding: 6px; 
             display: flex; 
             flex-direction: column; 
             justify-content: space-between; 
@@ -394,6 +408,7 @@
             border: 2px solid var(--price-red);
             animation: cardBorderGlow 2.2s infinite ease-in-out;
             background: linear-gradient(180deg, #fffaf9 0%, #ffffff 100%);
+            will-change: filter;
         }
 
         .discount-badge {
@@ -409,6 +424,7 @@
             z-index: 2;
             box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);
             animation: badgeGlow 1.8s infinite ease-in-out;
+            will-change: transform;
         }
 
         .out-of-stock-badge {
@@ -426,17 +442,17 @@
         .product-img-box.is-out-of-stock img { opacity: 0.4; filter: grayscale(1); }
         .out-of-stock-btn { background: #9ca3af !important; cursor: not-allowed !important; }
 
-        .product-img-box { width: 100%; height: 100px; position: relative; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, #fafbfa 0%, #ffffff 100%); border-radius: 12px; margin-bottom: 6px; cursor: pointer; }
+        .product-img-box { width: 100%; height: 100px; position: relative; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, #fafbfa 0%, #ffffff 100%); border-radius: 12px; margin-bottom: 4px; cursor: pointer; }
         .product-img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .product-name { font-size: 11.5px; font-weight: 700; color: #1e293b; margin-bottom: 4px; height: 28px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-        .product-weight { font-size: 10px; font-weight: 600; color: #94a3b8; margin-bottom: 6px; }
+        .product-name { font-size: 10.5px; font-weight: 700; color: #1e293b; margin-bottom: 3px; height: 24px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .product-weight { font-size: 9.5px; font-weight: 600; color: #94a3b8; margin-bottom: 4px; }
         
         .product-price-row { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
-        .product-price-top { margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+        .product-price-top { margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
 
         /* السعر الأصلي (بدون عرض) - برتقالي جذاب */
         .price-text { 
-            font-size: 15.5px; 
+            font-size: 14px; 
             font-weight: 700; 
             color: var(--price-orange);
             letter-spacing: 0;
@@ -447,16 +463,17 @@
         /* سعر العرض/التخفيض - أحمر لافت */
         .price-text.sale-price {
             color: var(--price-red);
-            font-size: 17.5px; 
+            font-size: 16px; 
             font-weight: 900;
             animation: priceGlow 1.8s infinite ease-in-out;
             unicode-bidi: plaintext;
             white-space: nowrap;
+            will-change: transform;
         }
 
         /* السعر الأصلي المشطوب عند وجود عرض - أسود */
         .old-price { 
-            font-size: 11px; 
+            font-size: 10px; 
             font-weight: 700; 
             color: var(--price-black); 
             text-decoration: line-through;
@@ -465,7 +482,7 @@
             white-space: nowrap;
         }
         
-        .add-to-cart-btn { background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; border: none; width: 28px; height: 28px; min-width: 28px; min-height: 28px; flex-shrink: 0; border-radius: 50%; font-size: 16px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; padding-bottom: 2px; box-shadow: 0 2px 8px rgba(78, 128, 16, 0.35); transition: transform .15s ease; }
+        .add-to-cart-btn { background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; border: none; width: 24px; height: 24px; min-width: 24px; min-height: 24px; flex-shrink: 0; border-radius: 50%; font-size: 14px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; padding-bottom: 2px; box-shadow: 0 2px 8px rgba(78, 128, 16, 0.35); transition: transform .15s ease; }
         .add-to-cart-btn:active { transform: scale(0.88); }
         
         .quantity-control-full {
@@ -474,15 +491,15 @@
             justify-content: space-between;
             background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%);
             border-radius: 20px;
-            padding: 2px 10px;
+            padding: 2px 8px;
             color: white;
             width: 100%;
-            height: 28px;
+            height: 24px;
             margin-top: auto;
             box-shadow: 0 2px 8px rgba(78, 128, 16, 0.3);
         }
-        .quantity-control-full .qty-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; font-weight: 900; }
-        .quantity-control-full .qty-display { font-weight: 900; font-size: 14.5px; text-align: center; }
+        .quantity-control-full .qty-btn { background: none; border: none; color: white; font-size: 16px; cursor: pointer; font-weight: 900; }
+        .quantity-control-full .qty-display { font-weight: 900; font-size: 13px; text-align: center; }
 
         .products-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 0 12px; align-items: start; }
         .products-grid .product-card { min-width: 0; max-width: none; width: 100%; }
@@ -661,7 +678,7 @@
         .spend-offer-price-badge.spend-offer-badge-achieved { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3); text-align: center; }
 
         /* شريط السلة السفلي */
-        .cart-bar { position: fixed; bottom: 60px; left: 0; right: 0; background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; padding: 15px 20px; display: none; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 18px; border-top-right-radius: 18px; z-index: 100; cursor: pointer; box-shadow: 0 -4px 16px rgba(0,0,0,0.12); }
+        .cart-bar { position: fixed; bottom: 60px; left: 0; right: 0; background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; padding: 9px 16px; display: none; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 14px; border-top-right-radius: 14px; z-index: 100; cursor: pointer; box-shadow: 0 -4px 16px rgba(0,0,0,0.12); }
         
         .cart-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; max-width: 480px; margin: 0 auto; }
         .cart-modal-content { background: white; width: 100%; border-top-left-radius: 22px; border-top-right-radius: 22px; padding: 20px; max-height: 90vh; overflow-y: auto; }
@@ -671,7 +688,7 @@
         .subscribe-fab { position: fixed; bottom: 150px; left: 16px; z-index: 150; background: #25D366; color: white; border: none; border-radius: 30px; padding: 10px 16px; font-size: 11.5px; font-weight: 800; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.4); cursor: pointer; display: flex; align-items: center; gap: 6px; max-width: calc(480px - 32px); }
 
         /* شريط تنقّل ثابت بالأسفل - بديل عن شرايط الأقسام الثابتة فوق */
-        .bottom-nav-bar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto; background: white; border-top: 1px solid var(--border-color); display: flex; z-index: 90; box-shadow: 0 -2px 10px rgba(0,0,0,0.06); padding-bottom: env(safe-area-inset-bottom, 0); }
+        .bottom-nav-bar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto; background: white; border-top: 1px solid var(--border-color); display: flex; z-index: 90; box-shadow: 0 -2px 10px rgba(0,0,0,0.06); }
         .bottom-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 8px 4px 6px; background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 10px; font-weight: 700; position: relative; }
         .bottom-nav-item .bn-icon { font-size: 19px; line-height: 1; }
         .bottom-nav-item.active { color: var(--primary-green); }
@@ -845,6 +862,21 @@
 </div>
 
 <div class="store-container">
+    <!-- بانر التطبيق على متجر جوجل -->
+    <div id="playStoreBanner" style="display:none; background:linear-gradient(135deg, #1b4d2e 0%, #2d6b47 100%); color:white; padding:10px 12px; align-items:center; justify-content:space-between; gap:10px;">
+        <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+            <span style="font-size:1.4rem; flex-shrink:0;">📲</span>
+            <div style="min-width:0;">
+                <div style="font-size:0.78rem; font-weight:900;">صرنا على متجر جوجل بلاي!</div>
+                <div style="font-size:0.66rem; opacity:0.9;">حمّلي تطبيقنا لتجربة أسرع وأسهل</div>
+            </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+            <a href="https://play.google.com/store/apps/details?id=market.alaoroba.app" target="_blank" rel="noopener" onclick="dismissPlayStoreBanner()" style="background:white; color:var(--primary-green); font-weight:900; font-size:0.72rem; padding:7px 12px; border-radius:20px; text-decoration:none; white-space:nowrap;">تحميل</a>
+            <button onclick="dismissPlayStoreBanner()" style="background:rgba(255,255,255,0.15); border:none; color:white; width:24px; height:24px; border-radius:50%; font-size:0.85rem; cursor:pointer; flex-shrink:0;">✕</button>
+        </div>
+    </div>
+
     <!-- الهيدر -->
     <div class="store-header">
         <div style="display:flex; align-items:center; gap:8px;">
@@ -871,10 +903,22 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="11" fill="#33CCFF"/><path d="M12 5.5C8.96 5.5 6.5 7.96 6.5 11c0 3.5 3.2 6.2 5 7.7.3.25.7.25 1 0 1.8-1.5 5-4.2 5-7.7 0-3.04-2.46-5.5-5.5-5.5z" fill="white"/><circle cx="10" cy="10.5" r="1" fill="#1a1a2e"/><circle cx="14" cy="10.5" r="1" fill="#1a1a2e"/></svg>
                         وصلنا بويز
                     </a>
-                    <button onclick="closeHeaderMenu(); openHoursInfoModal();" class="header-menu-item" style="border-bottom:none;">
+                    <button onclick="closeHeaderMenu(); openHoursInfoModal();" class="header-menu-item">
                         <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="11" fill="#f59e0b"/><path d="M12 7v5l3.5 2" stroke="white" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>
                         ساعات التوصيل والاستلام الذاتي
                     </button>
+                    <a href="terms.html" target="_blank" rel="noopener" onclick="closeHeaderMenu()" class="header-menu-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="11" fill="#1b4d2e"/><path d="M8 7.5h8M8 11h8M8 14.5h5" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg>
+                        شروط الاستخدام
+                    </a>
+                    <a href="privacy.html" target="_blank" rel="noopener" onclick="closeHeaderMenu()" class="header-menu-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="11" fill="#374151"/><path d="M12 6l5 2v4c0 3.5-2.2 5.8-5 6.8-2.8-1-5-3.3-5-6.8V8l5-2z" fill="white"/></svg>
+                        سياسة الخصوصية
+                    </a>
+                    <a href="cancel-order.html" target="_blank" rel="noopener" onclick="closeHeaderMenu()" class="header-menu-item" style="border-bottom:none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="11" fill="#dc2626"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
+                        إلغاء صفقة
+                    </a>
                 </div>
             </div>
         </div>
@@ -921,8 +965,8 @@
 
 <!-- شريط السلة السفلي -->
 <div class="cart-bar" id="cartBar" onclick="openCartModal()">
-    <div style="font-size: 14.5px; font-weight: 900;">للذهاب للدفع 🛒</div>
-    <div style="font-size: 16px; font-weight: 900;" id="cartTotalText">0.00 ₪</div>
+    <div style="font-size: 12px; font-weight: 900;">للذهاب للدفع 🛒</div>
+    <div style="font-size: 13.5px; font-weight: 900;" id="cartTotalText">0.00 ₪</div>
 </div>
 
 <!-- نافذة اختيار منتجات عرض الحزمة -->
@@ -1036,6 +1080,8 @@
             <input type="text" id="userProfileBuilding" class="form-control" placeholder="رقم البيت أو الشقة">
             
             <button class="btn-main" onclick="saveUserProfile()">حفظ البيانات 💾</button>
+
+            <button onclick="closeMyAccount()" style="width:100%; background:#fef2f2; color:#dc2626; border:1.5px solid #fecaca; padding:10px; border-radius:10px; font-size:13px; font-weight:800; margin-top:10px; cursor:pointer;">🔒 إغلاق الحساب</button>
         </div>
 
         <div id="profileCurrentOrderSection" style="display: none;">
@@ -1228,11 +1274,12 @@
     let deliveryZones = [];
     let deliveryTiers = [];
     let paymentSettings = { visaEnabled: true, cashEnabled: true };
-    // subCatsNaturalTop و scrollSpyTicking لازم يتعرّفوا هون بالأول (مش بنص الملف) عشان ما ترجع مشكلة
-    // "Cannot access before initialization" - أي فنكشن بيستدعي renderSubCategoriesScroll مبكراً بيحتاجهم جاهزين
+    // scrollSpyTicking و subCatsNaturalTop و freeDeliveryNaturalTop لازم يتعرّفوا هون بالأول (مش بنص
+    // الملف) عشان ما ترجع مشكلة "Cannot access before initialization" - أي فنكشن بيستدعي
+    // renderSubCategoriesScroll مبكراً بيحتاجهم جاهزين
+    let scrollSpyTicking = false;
     let subCatsNaturalTop = null;
     let freeDeliveryNaturalTop = null;
-    let scrollSpyTicking = false;
 
     // يفعّل/يعطّل بطاقات طريقة الدفع حسب إعدادات صاحب المتجر - المعطّلة تضل ظاهرة
     // بس بمظهر باهت وشارة "قيد التجهيز"، مش تختفي تماماً
@@ -2160,6 +2207,67 @@
         closeProfileModal();
     }
 
+    // إغلاق الحساب: بيمسح بيانات الزبون من هالجهاز بس (الاسم/الهاتف/العنوان) بدون ما يحذف طلباته
+    // من السحابة. لو رجع دخل نفس رقم هاتفه من جديد، كل بياناته وطلباته السابقة بترجعله تلقائياً
+    // (لأنها أصلاً محفوظة عندنا مرتبطة برقم الهاتف مش بهالجهاز).
+    function closeMyAccount() {
+        const confirmed = confirm("متأكد إنك بدك تسكر حسابك؟\n\nبيانات هاتفك (الاسم والعنوان) بتنمسح من هالجهاز، وطلبيتك الحالية إذا في وحدة رح توقف متابعتها.\n\nإذا رجعت أدخلت نفس رقم هاتفك بأي وقت، كل بياناتك وطلباتك السابقة بترجعلك أوتوماتيك.");
+        if (!confirmed) return;
+
+        try { stopCurrentOrderTracking(); } catch(e) {}
+
+        localStorage.removeItem('aloroba_user_name');
+        localStorage.removeItem('aloroba_user_phone');
+        localStorage.removeItem('aloroba_user_city');
+        localStorage.removeItem('aloroba_user_address');
+        localStorage.removeItem('aloroba_user_building');
+        localStorage.removeItem('aloroba_verified_phone');
+        localStorage.removeItem('aloroba_current_order_id');
+
+        ['userProfileName','userProfilePhone','userProfileAddress','userProfileBuilding','customerName','customerPhone','customerStreet','customerBuilding'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        const cityEl = document.getElementById('userProfileCity'); if (cityEl) cityEl.value = '';
+        const custCityEl = document.getElementById('customerCity'); if (custCityEl) custCityEl.value = '';
+
+        alert("✅ تم إغلاق حسابك على هالجهاز. رجعت زبون جديد - أدخل رقم هاتفك بأي وقت وبيرجعلك كل شي.");
+        closeProfileModal();
+    }
+
+    // ===================== بانر متجر جوجل بلاي =====================
+    function isRunningInsideInstalledApp() {
+        // TWA/PWA المثبتة بتفتح بوضع "standalone" (بدون شريط عنوان متصفح) - عكس تبويب متصفح عادي
+        try {
+            if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+            if (window.navigator.standalone === true) return true; // احتياط لأنظمة تانية
+        } catch (e) {}
+
+        // تطبيقات الـ WebView العادية (زي تطبيقنا الحالي) بتحط كلمة "wv" ببصمة المتصفح (User Agent)
+        // - مش موجودة بمتصفح Chrome العادي، بس موجودة بأغلب التطبيقات اللي بتغلف موقع
+        try {
+            if (/;\s*wv\)/i.test(navigator.userAgent)) return true;
+        } catch (e) {}
+
+        return false;
+    }
+
+    function initPlayStoreBanner() {
+        const banner = document.getElementById('playStoreBanner');
+        if (!banner) return;
+        if (isRunningInsideInstalledApp()) return; // أصلاً فاتح التطبيق - ما في داعي يطلب منه يحمّله
+        if (localStorage.getItem('aloroba_play_banner_dismissed') === '1') return;
+        banner.style.display = 'flex';
+    }
+
+    function dismissPlayStoreBanner() {
+        localStorage.setItem('aloroba_play_banner_dismissed', '1');
+        const banner = document.getElementById('playStoreBanner');
+        if (banner) banner.style.display = 'none';
+    }
+    window.dismissPlayStoreBanner = dismissPlayStoreBanner;
+    initPlayStoreBanner();
+
     // قائمة "المزيد ☰" بالراس (حسابي/واتساب/ويز) - نقفلها لو ضغط بره منها بأي مكان بالصفحة
     // نطلع/نطوي شريط البحث بالضغط على أيقونة 🔍 بالهيدر - مطوي افتراضياً حتى نوفر مساحة عمودية
     function toggleSearchBar() {
@@ -2778,6 +2886,8 @@
     }
 
     // ===================== تثبيت شريط الفئات الفرعية فوق + تتبّع التمرير =====================
+    // بنحاكي "التثبيت" بالجافاسكريبت (مش position:sticky) لأنه بعض تطبيقات الـ WebView عندها
+    // دعم ناقص/عليل لـ sticky بيخليها ما تشتغل صح - الطريقة هاي أضمن وبتشتغل بكل مكان
     function updateStickySubcatsAndSpy() {
         const container = document.getElementById('subCategoriesScrollContainer');
         const spacer = document.getElementById('subCatsSpacer');
@@ -2789,9 +2899,11 @@
         // لو بانر التوصيل المجاني ثابت هو كمان بنفس اللحظة، منزل شريط الفئات الفرعية تحته
         // بدل ما يركبوا فوق بعض - بنحسب ارتفاعه الفعلي كل مرة (ممكن يختفي/يظهر ديناميكياً)
         const freeDeliveryBanner = document.getElementById('freeDeliveryBannerInner');
-        const topOffset = (freeDeliveryBanner && freeDeliveryBanner.classList.contains('free-delivery-fixed'))
+        const headerEl = document.querySelector('.store-header');
+        const headerHeight = headerEl ? headerEl.offsetHeight : 0;
+        const topOffset = headerHeight + ((freeDeliveryBanner && freeDeliveryBanner.classList.contains('free-delivery-fixed'))
             ? freeDeliveryBanner.offsetHeight
-            : 0;
+            : 0);
 
         if (shouldBeFixed && !isFixed) {
             spacer.style.height = container.offsetHeight + 'px';
@@ -2855,6 +2967,12 @@
         } else if (!shouldBeFixed && isFixed) {
             banner.classList.remove('free-delivery-fixed');
             spacer.style.display = 'none';
+        }
+
+        if (banner.classList.contains('free-delivery-fixed')) {
+            const header = document.querySelector('.store-header');
+            const headerHeight = header ? header.offsetHeight : 0;
+            banner.style.top = headerHeight + 'px';
         }
     }
 
@@ -3774,6 +3892,34 @@
 
     // بيبني شبكة منتجات فيها فاصل بعنوان "🎁 عرض: ..." كل ما بلشت مجموعة منتجات حزمة جديدة - حتى
     // الزبون يفهم فوراً إنه هالمنتجات سوا هني عرض واحد، مش مبعثرين بالصدفة جنب بعض
+    function createProductsGridWithBundleDividers(productList) {
+        if (!productList || productList.length === 0) return '';
+        let html = '';
+        let currentBundleId; // undefined لسا ما بلشنا أي مجموعة
+        let gridOpen = false;
+
+        productList.forEach(p => {
+            let bundle = findSpecificBundleForProduct(p);
+            let bundleId = bundle ? bundle.id : null;
+
+            if (bundleId !== currentBundleId) {
+                if (gridOpen) html += `</div>`;
+                if (bundle) {
+                    let price = parseBundlePrice(bundle);
+                    let qty = Number(bundle.qty) || 0;
+                    html += `<div class="bundle-group-divider">🎁 عرض: ${bundle.name || 'حزمة'} - ${qty} بـ ${price}₪</div>`;
+                }
+                html += `<div class="products-grid" style="margin-top: 10px;">`;
+                gridOpen = true;
+                currentBundleId = bundleId;
+            }
+            html += createProductCardHtml(p);
+        });
+
+        if (gridOpen) html += `</div>`;
+        return html;
+    }
+
     let productViewMode = (function(){ try { return localStorage.getItem('aloroba_view_mode') || 'grid'; } catch(e) { return 'grid'; } })();
 
     function setProductViewMode(mode) {
@@ -3782,10 +3928,8 @@
         renderMainStoreContent();
     }
 
-    // زر تبديل شبكة/قائمة - بيظهر بس بمكان مش الصفحة الرئيسية (فئة محددة، بحث، عروض، حزم)
+    // زر تبديل شبكة/قائمة + زر رجوع - بيظهروا بس لما مش بالصفحة الرئيسية (فئة محددة، بحث، عروض، حزم)
     function renderViewModeToggleHtml() {
-        // زر "رجوع" بيظهر بس لو مش بالصفحة الرئيسية (فئة أو فئة فرعية محددة) - بيرجع خطوة خطوة:
-        // من فئة فرعية لفئتها الأم، وبعدين من الفئة الأم للرئيسية
         let showBack = currentCategory !== "الكل" || currentSubCategory !== "الكل";
         let backBtnHtml = showBack
             ? `<button onclick="goBackCategory()" style="display:flex; align-items:center; gap:5px; background:#f1f5f9; border:none; padding:7px 13px; border-radius:10px; font-size:12.5px; font-weight:800; color:#374151; cursor:pointer;">⬅ رجوع</button>`
@@ -3801,7 +3945,7 @@
         `;
     }
 
-    // بيرجع خطوة وحدة للخلف: من فئة فرعية → لفئتها الأم (فئة فرعية "الكل")، وبعدين من فئة أم → للرئيسية
+    // بيرجع خطوة وحدة للخلف: من فئة فرعية → لفئتها الأم، وبعدين من فئة أم → للرئيسية
     function goBackCategory() {
         if (currentSubCategory !== "الكل") {
             currentSubCategory = "الكل";
@@ -3883,16 +4027,13 @@
     }
 
     // بديل createProductsGridWithBundleDividers بوضع القائمة - نفس منطق فواصل الحزم بالضبط، بس صفوف
-    // بدل شبكة
     function createProductsListWithBundleDividers(productList) {
         if (!productList || productList.length === 0) return '';
         let html = '';
         let currentBundleId;
-
         productList.forEach(p => {
             let bundle = findSpecificBundleForProduct(p);
             let bundleId = bundle ? bundle.id : null;
-
             if (bundleId !== currentBundleId) {
                 if (bundle) {
                     let price = parseBundlePrice(bundle);
@@ -3903,48 +4044,17 @@
             }
             html += createProductListItemHtml(p);
         });
-
         return html;
     }
 
-    function createProductsGridWithBundleDividers(productList) {
-        if (!productList || productList.length === 0) return '';
-        let html = '';
-        let currentBundleId; // undefined لسا ما بلشنا أي مجموعة
-        let gridOpen = false;
-
-        productList.forEach(p => {
-            let bundle = findSpecificBundleForProduct(p);
-            let bundleId = bundle ? bundle.id : null;
-
-            if (bundleId !== currentBundleId) {
-                if (gridOpen) html += `</div>`;
-                if (bundle) {
-                    let price = parseBundlePrice(bundle);
-                    let qty = Number(bundle.qty) || 0;
-                    html += `<div class="bundle-group-divider">🎁 عرض: ${bundle.name || 'حزمة'} - ${qty} بـ ${price}₪</div>`;
-                }
-                html += `<div class="products-grid" style="margin-top: 10px;">`;
-                gridOpen = true;
-                currentBundleId = bundleId;
-            }
-            html += createProductCardHtml(p);
-        });
-
-        if (gridOpen) html += `</div>`;
-        return html;
-    }
-
-    // دالة موحّدة: بترجع زر تبديل شبكة/قائمة + شبكة المنتجات (أو قائمتها) حسب productViewMode - تُستخدم
-    // بكل مكان غير الصفحة الرئيسية (فئة محددة، بحث، كل العروض، كل الحزم)
-    // نفس renderProductsSection بس بدون زر التبديل نفسه (لصفحات فيها كذا قسم متتالي، حتى ما يتكرر
-    // الزر لكل قسم - بيتحط مرة وحدة بس فوق كل الأقسام)
+    // نفس renderProductsSection بدون زر التبديل نفسه - لصفحات فيها كذا قسم متتالي، حتى ما يتكرر الزر
     function renderProductsOnly(productList) {
         return productViewMode === 'list'
             ? createProductsListWithBundleDividers(productList)
             : createProductsGridWithBundleDividers(productList);
     }
 
+    // دالة موحّدة: بترجع زر الرجوع/التبديل + شبكة المنتجات (أو قائمتها) حسب productViewMode
     function renderProductsSection(productList) {
         if (!productList || productList.length === 0) return '';
         let contentHtml = productViewMode === 'list'
