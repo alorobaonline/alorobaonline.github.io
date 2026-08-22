@@ -63,8 +63,41 @@
         }
 
         .store-container { max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; position: relative; box-shadow: 0 0 24px rgba(0,0,0,0.04); container-type: inline-size; container-name: store; }
-        
-        .store-header { background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: 22px; border-bottom-right-radius: 22px; box-shadow: 0 4px 16px rgba(78, 128, 16, 0.25); }
+
+        /* شريط أخضر ثابت وراء الساعة/الواي فاي/التغطية دايماً، فوق كل شي حتى لو التطبيق بيرسم المحتوى تحت شريط الحالة */
+        .status-bar-fill {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: env(safe-area-inset-top, 0px);
+            background: var(--primary-green);
+            z-index: 9998;
+            max-width: 480px;
+            margin: 0 auto;
+            pointer-events: none;
+        }
+
+        .store-header {
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%);
+            color: white;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom-left-radius: 22px;
+            border-bottom-right-radius: 22px;
+            box-shadow: 0 4px 16px rgba(78, 128, 16, 0.25);
+            position: sticky;
+            top: env(safe-area-inset-top, 0px);
+            z-index: 80;
+            transition: padding 0.22s ease;
+        }
+        .store-header.header-shrunk {
+            padding: 8px 16px;
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+        }
+        .store-header.header-shrunk .store-title { font-size: 15px; transition: font-size 0.22s ease; }
+        .store-header.header-shrunk .header-icon-btn { width: 28px; height: 28px; font-size: 12px; transition: width 0.22s ease, height 0.22s ease, font-size 0.22s ease; }
 
         /* بانر عرض التوصيل المجاني المؤقت مع عداد تنازلي */
         .free-delivery-banner { margin: 0; padding: 8px 15px; background: #fef2f2; border-bottom: 1.5px solid #fecaca; display: flex; align-items: center; justify-content: space-between; gap: 8px; overflow: hidden; }
@@ -228,11 +261,11 @@
             100% { background-color: transparent; box-shadow: none; }
         }
         .product-card-highlight { animation: spendOfferHighlightFade 2s ease forwards; }
-        .store-title { font-size: 19px; font-weight: 900; letter-spacing: -0.2px; }
+        .store-title { font-size: 19px; font-weight: 900; letter-spacing: -0.2px; transition: font-size 0.22s ease; }
         .header-actions { display: flex; gap: 8px; align-items: center; }
         .admin-link { background: rgba(255,255,255,0.16); color: white; padding: 6px 11px; border-radius: 10px; text-decoration: none; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.22); transition: background .2s ease, transform .12s ease; white-space: nowrap; }
         .admin-link:active { transform: scale(0.92); background: rgba(255,255,255,0.28); }
-        .header-icon-btn { width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; border-radius: 50%; }
+        .header-icon-btn { width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; border-radius: 50%; transition: width 0.22s ease, height 0.22s ease, font-size 0.22s ease; }
         .header-dropdown-menu { animation: headerMenuIn .16s ease; }
         @keyframes headerMenuIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
         .header-menu-item { display: flex; align-items: center; gap: 9px; width: 100%; padding: 12px 14px; background: white; border: none; border-bottom: 1px solid #f1f5f9; color: #1f2937; font-size: 13px; font-weight: 700; cursor: pointer; text-align: right; text-decoration: none; box-sizing: border-box; transition: background .15s ease; }
@@ -835,6 +868,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
+
+<div class="status-bar-fill"></div>
 
 <!-- شاشة الترحيب المتحركة -->
 <div id="splashScreen" style="position: fixed; inset: 0; background: #ffffff; display: flex; align-items: center; justify-content: center; z-index: 9999; max-width: 480px; margin: 0 auto; transition: opacity 0.5s ease;">
@@ -2889,10 +2924,13 @@
 
         // لو بانر التوصيل المجاني ثابت هو كمان بنفس اللحظة، منزل شريط الفئات الفرعية تحته
         // بدل ما يركبوا فوق بعض - بنحسب ارتفاعه الفعلي كل مرة (ممكن يختفي/يظهر ديناميكياً)
-        // + بنضيف ارتفاع المنطقة الآمنة فوق الشاشة حتى ما يروح وراء الساعة/الواي فاي بالتطبيق
+        // + بنضيف ارتفاع المنطقة الآمنة فوق الشاشة وارتفاع الهيدر الأخضر (يتغير لما يصغر) حتى ما
+        // يروح وراء الساعة/الواي فاي بالتطبيق أو وراء الهيدر
         const freeDeliveryBanner = document.getElementById('freeDeliveryBannerInner');
+        const headerEl = document.querySelector('.store-header');
         const safeTop = getSafeAreaInsetTop();
-        const topOffset = safeTop + ((freeDeliveryBanner && freeDeliveryBanner.classList.contains('free-delivery-fixed'))
+        const headerHeight = headerEl ? headerEl.offsetHeight : 0;
+        const topOffset = safeTop + headerHeight + ((freeDeliveryBanner && freeDeliveryBanner.classList.contains('free-delivery-fixed'))
             ? freeDeliveryBanner.offsetHeight
             : 0);
 
@@ -2959,12 +2997,27 @@
             banner.classList.remove('free-delivery-fixed');
             spacer.style.display = 'none';
         }
+
+        // الهيدر الأخضر صار "sticky" وبيصغر لما ننزل - لازم البانر ينزل تحته بالظبط، مش وراه
+        if (banner.classList.contains('free-delivery-fixed')) {
+            const header = document.querySelector('.store-header');
+            const headerHeight = header ? header.offsetHeight : 0;
+            banner.style.top = (getSafeAreaInsetTop() + headerHeight) + 'px';
+        }
+    }
+
+    // ===================== الهيدر الأخضر بيصغر لما ننزل، ويضل ثابت فوق (sticky) =====================
+    function updateHeaderShrink() {
+        const header = document.querySelector('.store-header');
+        if (!header) return;
+        header.classList.toggle('header-shrunk', window.scrollY > 12);
     }
 
     window.addEventListener('scroll', () => {
         if (scrollSpyTicking) return;
         scrollSpyTicking = true;
         requestAnimationFrame(() => {
+            updateHeaderShrink();
             updateStickySubcatsAndSpy();
             updateStickyFreeDelivery();
             scrollSpyTicking = false;
