@@ -203,7 +203,7 @@
             <div>إجمالي سعر البيع: <span id="totalSellPriceVal" style="color:var(--primary-green);"></span></div>
             <div>إجمالي سعر التكلفة: <span id="totalCostPriceVal" style="color:#b45309;"></span></div>
             <div>إجمالي هامش الربح: <span id="totalProfitVal" style="color:#059669;"></span></div>
-            <div id="totalMissingCostNote" style="color:#dc2626; font-weight:700;"></div>
+            <div id="totalMissingCostNote" style="color:#dc2626; font-weight:700; cursor:pointer; text-decoration:underline;" onclick="jumpToMissingCostProducts()"></div>
         </div>
     </div>
 
@@ -474,14 +474,25 @@
     }
 
     let overallSupplierSummaryOpen = false;
+    let expandedTxDays = new Set(); // أيام مفتوحة بسجل الحركات (الافتراضي: آخر يوم بس مفتوح)
+    let expandedTxDaysInitialized = false;
 
     function toggleOverallSupplierSummary() {
         overallSupplierSummaryOpen = !overallSupplierSummaryOpen;
         renderSupplierAccountsList();
     }
 
+    function toggleTxDay(dateKey) {
+        if (expandedTxDays.has(dateKey)) {
+            expandedTxDays.delete(dateKey);
+        } else {
+            expandedTxDays.add(dateKey);
+        }
+        renderSupplierAccountsList();
+    }
+
     // ملخص عام بالآخر: إجمالي كل البضاعة يلي اشتريناها وإجمالي كل الدفعات (من كل الموردين سوا)،
-    // مع سجل كامل لكل الحركات مرتب حسب التاريخ - قابل للطي/الفتح حتى ما ياخد مساحة لو مش محتاجه
+    // مع سجل كامل لكل الحركات مقسّم يوم يوم (كل يوم بتاريخه، قابل للطي/الفتح - آخر يوم مفتوح افتراضياً)
     function buildOverallSupplierSummaryHtml() {
         let totalPurchases = 0, totalPayments = 0;
         supplierTransactions.forEach(t => {
@@ -506,18 +517,64 @@
 
         let allTxSorted = supplierTransactions.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0));
 
-        let historyHtml = allTxSorted.length === 0
+        // نجمّع الحركات حسب اليوم (b.date بصيغة YYYY-MM-DD) مع الحفاظ على الترتيب الأحدث أول
+        let dayGroups = []; // [{ dateKey, txs: [...] }]
+        let dayIndex = {};
+        allTxSorted.forEach(t => {
+            let dateKey = t.date || 'بدون تاريخ';
+            if (!(dateKey in dayIndex)) {
+                dayIndex[dateKey] = dayGroups.length;
+                dayGroups.push({ dateKey, txs: [] });
+            }
+            dayGroups[dayIndex[dateKey]].txs.push(t);
+        });
+
+        // أول مرة فقط: افتح أحدث يوم تلقائياً وخلي الباقي مسكرين
+        if (!expandedTxDaysInitialized && dayGroups.length > 0) {
+            expandedTxDays.add(dayGroups[0].dateKey);
+            expandedTxDaysInitialized = true;
+        }
+
+        let historyHtml = dayGroups.length === 0
             ? '<p style="text-align:center; color:#94a3b8; font-size:0.68rem; padding:10px;">ما في حركات مسجّلة بعد</p>'
-            : allTxSorted.map(t => {
-                const isPurchase = t.type === 'purchase';
-                const txColor = isPurchase ? '#16a34a' : '#dc2626';
-                return `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 8px; border-bottom:1px solid #f1f5f9;">
-                        <div style="min-width:0;">
-                            <div style="font-size:0.66rem; font-weight:800; color:#374151;">🏭 ${escapeHtml(t.supplier || '')}</div>
-                            <div style="font-size:0.58rem; color:#9ca3af;">${t.date || ''}${t.note ? ' · ' + escapeHtml(t.note) : ''}</div>
+            : dayGroups.map(day => {
+                let dayPurchases = 0, dayPayments = 0;
+                day.txs.forEach(t => {
+                    if (t.type === 'purchase') dayPurchases += Number(t.amount) || 0;
+                    else if (t.type === 'payment') dayPayments += Number(t.amount) || 0;
+                });
+                const isOpen = expandedTxDays.has(day.dateKey);
+                const safeKey = day.dateKey.replace(/'/g, "\\'");
+
+                let txRowsHtml = day.txs.map(t => {
+                    const isPurchase = t.type === 'purchase';
+                    const txColor = isPurchase ? '#16a34a' : '#dc2626';
+                    return `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 8px; border-bottom:1px solid #f1f5f9;">
+                            <div style="min-width:0;">
+                                <div style="font-size:0.66rem; font-weight:800; color:#374151;">🏭 ${escapeHtml(t.supplier || '')}</div>
+                                ${t.note ? `<div style="font-size:0.58rem; color:#9ca3af;">${escapeHtml(t.note)}</div>` : ''}
+                            </div>
+                            <span style="font-size:0.7rem; font-weight:900; color:${txColor}; flex-shrink:0;" dir="ltr">${isPurchase ? '+' : '-'}${(Number(t.amount) || 0).toFixed(2)}₪</span>
                         </div>
-                        <span style="font-size:0.7rem; font-weight:900; color:${txColor}; flex-shrink:0;" dir="ltr">${isPurchase ? '+' : '-'}${(Number(t.amount) || 0).toFixed(2)}₪</span>
+                    `;
+                }).join('');
+
+                return `
+                    <div style="border:1px solid #e5e7eb; border-radius:8px; margin-bottom:6px; overflow:hidden;">
+                        <div onclick="toggleTxDay('${safeKey}')" style="display:flex; justify-content:space-between; align-items:center; padding:8px; background:#f8fafc; cursor:pointer;">
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-size:0.65rem;">${isOpen ? '▲' : '▼'}</span>
+                                <span style="font-size:0.68rem; font-weight:900; color:#374151;">📅 ${day.dateKey}</span>
+                            </div>
+                            <div style="font-size:0.62rem; font-weight:800; display:flex; gap:8px;" dir="ltr">
+                                ${dayPurchases > 0 ? `<span style="color:#16a34a;">+${dayPurchases.toFixed(2)}₪</span>` : ''}
+                                ${dayPayments > 0 ? `<span style="color:#dc2626;">-${dayPayments.toFixed(2)}₪</span>` : ''}
+                            </div>
+                        </div>
+                        <div style="display:${isOpen ? 'block' : 'none'};">
+                            ${txRowsHtml}
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -541,7 +598,7 @@
                         <span style="color:#1f2937;">⚖️ الفرق (المستحق الكلي)</span>
                         <span style="color:${diffColor};" dir="ltr">${diffLabel}</span>
                     </div>
-                    <div style="font-size:0.68rem; font-weight:900; color:#4b5563; margin-bottom:6px;">سجل كل الحركات (الأحدث أول)</div>
+                    <div style="font-size:0.68rem; font-weight:900; color:#4b5563; margin-bottom:6px;">سجل كل الحركات يوم يوم (الأحدث أول)</div>
                     ${historyHtml}
                 </div>
             </div>
@@ -839,10 +896,18 @@
         document.getElementById('totalCostPriceVal').innerText = totalCostPrice.toFixed(2) + ' ₪';
         document.getElementById('totalProfitVal').innerText = totalProfit.toFixed(2) + ' ₪';
         document.getElementById('totalMissingCostNote').innerText = missingCostCount > 0
-            ? `⚠️ ${missingCostCount} منتج بدون سعر تكلفة (مش محسوب بالإجمالي)`
+            ? `⚠️ ${missingCostCount} منتج بدون سعر تكلفة (مش محسوب بالإجمالي) - اضغط لتعبّيهم`
             : '';
 
         box.style.display = 'block';
+    }
+
+    // بيضغط المستخدم على تنبيه "منتج بدون سعر تكلفة" فبيفلتر القائمة عليهم مباشرة حتى يعبّي أسعار التكلفة بسرعة
+    function jumpToMissingCostProducts() {
+        document.getElementById('inventoryNoCostOnlyToggle').checked = true;
+        document.getElementById('inventoryLowStockOnlyToggle').checked = false;
+        renderInventoryList();
+        document.getElementById('inventoryListContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     // يبني قائمة الشركات/الموردين تلقائياً من بيانات المنتجات الحالية (بدون جدول منفصل)
