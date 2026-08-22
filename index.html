@@ -83,8 +83,16 @@
         .free-delivery-banner {
             margin: 0; padding: 8px 15px; background: #fef2f2; border-bottom: 1.5px solid #fecaca;
             display: flex; align-items: center; justify-content: space-between; gap: 8px; overflow: hidden;
-            position: sticky; z-index: 70; transition: top 0.22s ease;
         }
+        .free-delivery-banner.free-delivery-fixed {
+            position: fixed !important;
+            left: 0; right: 0;
+            max-width: 480px;
+            margin: 0 auto;
+            z-index: 70;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        }
+        .free-delivery-spacer { display: none; }
         .fd-title-inline { color: #dc2626; font-weight: 800; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .free-delivery-timer { display: flex; gap: 4px; direction: ltr; flex-shrink: 0; }
         .free-delivery-timer .fd-unit { background: #ffffff; border: 1px solid #fecaca; border-radius: 6px; padding: 2px 5px; min-width: 26px; text-align: center; display: flex; align-items: baseline; gap: 2px; justify-content: center; }
@@ -251,14 +259,17 @@
 
         /* الأقسام الدائرية السريعة */
         .categories-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 2px 15px 12px 15px; scrollbar-width: none; }
-        #subCategoriesScrollContainer {
-            position: sticky;
+        #subCategoriesScrollContainer.sub-cats-fixed {
+            position: fixed !important;
+            left: 0; right: 0;
+            max-width: 480px;
+            margin: 0 auto;
             z-index: 60;
             background: white;
             padding-top: 10px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.06);
-            transition: top 0.22s ease;
         }
+        .sub-cats-spacer { display: none; }
         .categories-scroll::-webkit-scrollbar { display: none; }
         .cat-chip { background: white; border: 1.5px solid var(--border-color); padding: 8px 15px; border-radius: 20px; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; color: #334155; display: flex; align-items: center; gap: 4px; transition: all .18s ease; }
         .cat-chip:active { transform: scale(0.95); }
@@ -917,6 +928,7 @@
 
     <!-- بانر عرض التوصيل المجاني المؤقت (بعد إلى تاريخ ووقت محدد) - أول شي تحت الهيدر مباشرة، وثابت وقت السكرول -->
     <div id="freeDeliveryPromoBanner" style="display:none;"></div>
+    <div class="free-delivery-spacer" id="freeDeliverySpacer"></div>
 
     <!-- شريط البحث (يظهر بس لما تضغط أيقونة 🔍 بالهيدر) -->
     <div class="search-bar-container" id="searchBarContainer" style="display:none;">
@@ -931,6 +943,7 @@
 
     <!-- شريط الفئات الفرعية - بيظهر تلقائياً وثابت فوق الصفحة لما تدخل قسم من شاشة "الأقسام" -->
     <div class="categories-scroll" id="subCategoriesScrollContainer" style="display:none;"></div>
+    <div class="sub-cats-spacer" id="subCatsSpacer"></div>
 
     <!-- بانر صور فقط (شرائح متحركة، من قسم "تخصيص شرائح البانر" بلوحة التحكم) -->
     <div id="photoBannerSection"></div>
@@ -1261,9 +1274,12 @@
     let deliveryZones = [];
     let deliveryTiers = [];
     let paymentSettings = { visaEnabled: true, cashEnabled: true };
-    // scrollSpyTicking لازم يتعرّف هون بالأول (مش بنص الملف) عشان ما ترجع مشكلة
-    // "Cannot access before initialization" - أي فنكشن بيستدعي renderSubCategoriesScroll مبكراً بيحتاجه جاهز
+    // scrollSpyTicking و subCatsNaturalTop و freeDeliveryNaturalTop لازم يتعرّفوا هون بالأول (مش بنص
+    // الملف) عشان ما ترجع مشكلة "Cannot access before initialization" - أي فنكشن بيستدعي
+    // renderSubCategoriesScroll مبكراً بيحتاجهم جاهزين
     let scrollSpyTicking = false;
+    let subCatsNaturalTop = null;
+    let freeDeliveryNaturalTop = null;
 
     // يفعّل/يعطّل بطاقات طريقة الدفع حسب إعدادات صاحب المتجر - المعطّلة تضل ظاهرة
     // بس بمظهر باهت وشارة "قيد التجهيز"، مش تختفي تماماً
@@ -2830,7 +2846,10 @@
         const children = currentCategory !== "الكل" ? getCategoryChildren(currentCategory) : [];
         if (children.length === 0) {
             container.style.display = 'none';
+            container.classList.remove('sub-cats-fixed');
+            document.getElementById('subCatsSpacer').style.display = 'none';
             container.innerHTML = '';
+            subCatsNaturalTop = null;
             return;
         }
 
@@ -2858,29 +2877,46 @@
             activeChip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         }
 
-        updateStickyOffsets();
+        // نحسب مكانها الطبيعي بالصفحة (قبل ما تصير fixed) عشان نعرف متى بالظبط نلصقها فوق
+        subCatsNaturalTop = null;
+        requestAnimationFrame(() => {
+            container.classList.remove('sub-cats-fixed');
+            subCatsNaturalTop = container.getBoundingClientRect().top + window.scrollY;
+        });
     }
 
-    // ===================== حساب موقع "اللزوق" (sticky) للبانر وشريط الفئات الفرعية =====================
-    // بنستخدم position: sticky الحقيقية بالمتصفح (مش محاكاة بالجافاسكريبت) عشان تضل سلسة 100%
-    // بدون أي قفزة أو تراكب وقت السكرول السريع - فقط بنحدّث "من وين تبلش تلزق" (top) لما يتغير
-    // ارتفاع الهيدر (لما يصغر) أو ارتفاع بانر التوصيل (لما يظهر/يختفي)
-    function updateStickyOffsets() {
-        const headerEl = document.querySelector('.store-header');
-        const banner = document.getElementById('freeDeliveryBannerInner');
-        const subCats = document.getElementById('subCategoriesScrollContainer');
-
-        const headerHeight = headerEl ? headerEl.offsetHeight : 0;
-        if (banner) banner.style.top = headerHeight + 'px';
-
-        const bannerHeight = (banner && banner.offsetParent !== null) ? banner.offsetHeight : 0;
-        if (subCats) subCats.style.top = (headerHeight + bannerHeight) + 'px';
-    }
-
-    // ===================== تتبّع التمرير لتفعيل الفئة الفرعية الصحيحة (شريط الفئات نفسه ثابت أصلاً بالـ CSS) =====================
+    // ===================== تثبيت شريط الفئات الفرعية فوق + تتبّع التمرير =====================
+    // بنحاكي "التثبيت" بالجافاسكريبت (مش position:sticky) لأنه بعض تطبيقات الـ WebView عندها
+    // دعم ناقص/عليل لـ sticky بيخليها ما تشتغل صح - الطريقة هاي أضمن وبتشتغل بكل مكان
     function updateStickySubcatsAndSpy() {
         const container = document.getElementById('subCategoriesScrollContainer');
-        if (!container) return;
+        const spacer = document.getElementById('subCatsSpacer');
+        if (!container || subCatsNaturalTop === null) return;
+
+        const shouldBeFixed = window.scrollY >= subCatsNaturalTop;
+        const isFixed = container.classList.contains('sub-cats-fixed');
+
+        // لو بانر التوصيل المجاني ثابت هو كمان بنفس اللحظة، منزل شريط الفئات الفرعية تحته
+        // بدل ما يركبوا فوق بعض - بنحسب ارتفاعه الفعلي كل مرة (ممكن يختفي/يظهر ديناميكياً)
+        const freeDeliveryBanner = document.getElementById('freeDeliveryBannerInner');
+        const headerEl = document.querySelector('.store-header');
+        const headerHeight = headerEl ? headerEl.offsetHeight : 0;
+        const topOffset = headerHeight + ((freeDeliveryBanner && freeDeliveryBanner.classList.contains('free-delivery-fixed'))
+            ? freeDeliveryBanner.offsetHeight
+            : 0);
+
+        if (shouldBeFixed && !isFixed) {
+            spacer.style.height = container.offsetHeight + 'px';
+            spacer.style.display = 'block';
+            container.classList.add('sub-cats-fixed');
+        } else if (!shouldBeFixed && isFixed) {
+            container.classList.remove('sub-cats-fixed');
+            spacer.style.display = 'none';
+        }
+
+        if (container.classList.contains('sub-cats-fixed')) {
+            container.style.top = topOffset + 'px';
+        }
 
         const sections = document.querySelectorAll('[data-subcat-section]');
         if (sections.length === 0) return; // مش بوضع "كل الفئات الفرعية مع بعض" حالياً
@@ -2905,11 +2941,47 @@
         }
     }
 
+    // ===================== تثبيت بانر التوصيل المجاني فوق (نفس أسلوب شريط الفئات الفرعية بالظبط) =====================
+    function recomputeFreeDeliveryNaturalTop() {
+        const banner = document.getElementById('freeDeliveryBannerInner');
+        if (!banner) { freeDeliveryNaturalTop = null; return; }
+        freeDeliveryNaturalTop = null;
+        requestAnimationFrame(() => {
+            banner.classList.remove('free-delivery-fixed');
+            freeDeliveryNaturalTop = banner.getBoundingClientRect().top + window.scrollY;
+        });
+    }
+
+    function updateStickyFreeDelivery() {
+        const banner = document.getElementById('freeDeliveryBannerInner');
+        const spacer = document.getElementById('freeDeliverySpacer');
+        if (!banner || !spacer || freeDeliveryNaturalTop === null) return;
+
+        const shouldBeFixed = window.scrollY >= freeDeliveryNaturalTop;
+        const isFixed = banner.classList.contains('free-delivery-fixed');
+
+        if (shouldBeFixed && !isFixed) {
+            spacer.style.height = banner.offsetHeight + 'px';
+            spacer.style.display = 'block';
+            banner.classList.add('free-delivery-fixed');
+        } else if (!shouldBeFixed && isFixed) {
+            banner.classList.remove('free-delivery-fixed');
+            spacer.style.display = 'none';
+        }
+
+        if (banner.classList.contains('free-delivery-fixed')) {
+            const header = document.querySelector('.store-header');
+            const headerHeight = header ? header.offsetHeight : 0;
+            banner.style.top = headerHeight + 'px';
+        }
+    }
+
     window.addEventListener('scroll', () => {
         if (scrollSpyTicking) return;
         scrollSpyTicking = true;
         requestAnimationFrame(() => {
             updateStickySubcatsAndSpy();
+            updateStickyFreeDelivery();
             scrollSpyTicking = false;
         });
     });
@@ -3236,6 +3308,8 @@
         if (!freeDeliveryPromo || !freeDeliveryPromo.active || !freeDeliveryPromo.endDateTime) {
             container.innerHTML = '';
             container.style.display = 'none';
+            freeDeliveryNaturalTop = null;
+            document.getElementById('freeDeliverySpacer').style.display = 'none';
             return;
         }
 
@@ -3243,6 +3317,8 @@
         if (isNaN(endTime) || endTime <= Date.now()) {
             container.innerHTML = '';
             container.style.display = 'none';
+            freeDeliveryNaturalTop = null;
+            document.getElementById('freeDeliverySpacer').style.display = 'none';
             return;
         }
 
@@ -3261,7 +3337,7 @@
                 </span>
             </div>
         `;
-        updateStickyOffsets();
+        recomputeFreeDeliveryNaturalTop();
 
         function tick() {
             let diff = endTime - Date.now();
@@ -3270,7 +3346,8 @@
                 freeDeliveryTimerInterval = null;
                 container.innerHTML = '';
                 container.style.display = 'none';
-                updateStickyOffsets();
+                freeDeliveryNaturalTop = null;
+                document.getElementById('freeDeliverySpacer').style.display = 'none';
                 return;
             }
             let d = Math.floor(diff / (1000 * 60 * 60 * 24));
