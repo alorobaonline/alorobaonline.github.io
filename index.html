@@ -483,29 +483,6 @@
         }
         
         .add-to-cart-btn { background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; border: none; width: 24px; height: 24px; min-width: 24px; min-height: 24px; flex-shrink: 0; border-radius: 50%; font-size: 14px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; padding-bottom: 2px; box-shadow: 0 2px 8px rgba(78, 128, 16, 0.35); transition: transform .15s ease; }
-
-        /* وضع القائمة (☰): نفس بطاقة الشبكة بالضبط - نفس الألوان، الخطوط، الشارات، تأثيرات التوهج -
-           بس مقلوبة أفقياً بدل عمودية (صورة أصغر بالجنب، اسم وسعر بالوسط، زر أوضح وأكبر) */
-        .products-list { display: flex; flex-direction: column; gap: 8px; padding: 0 12px; margin-top: 10px; }
-        .product-card.product-card-list {
-            flex-direction: row;
-            align-items: center;
-            min-width: 100%;
-            max-width: none;
-            width: 100%;
-            padding: 8px;
-            gap: 10px;
-        }
-        .product-card.product-card-list .product-img-box { width: 72px; height: 72px; flex-shrink: 0; margin-bottom: 0; }
-        .product-card.product-card-list .list-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-        .product-card.product-card-list .product-name { height: auto; -webkit-line-clamp: 2; margin-bottom: 2px; }
-        .product-card.product-card-list .product-weight { margin-bottom: 3px; }
-        .product-card.product-card-list .product-price-top { margin-bottom: 0; }
-        .product-card.product-card-list .list-action { flex-shrink: 0; }
-        .product-card.product-card-list .add-to-cart-btn { width: 34px; height: 34px; font-size: 19px; }
-        .product-card.product-card-list .quantity-control-full { width: 92px; height: 30px; }
-        .product-card.product-card-list .discount-badge { top: 6px; right: 6px; }
-        .product-card.product-card-list .out-of-stock-badge { top: 6px; left: 6px; }
         .add-to-cart-btn:active { transform: scale(0.88); }
         
         .quantity-control-full {
@@ -727,6 +704,21 @@
         .cat-screen-img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto; border: 1.5px solid #e5e7eb; }
         .cat-screen-img-lg { width: 56px; height: 56px; margin: 0 auto; }
         .cat-screen-grid-card p { font-size: 12.5px; font-weight: 800; margin: 8px 0 0; color: #1f2937; }
+
+        /* شاشة الأقسام - نسخة متداخلة (أكورديون): كل قسم رئيسي بيتوسع بمكانه ويوري فئاته الفرعية،
+           وبنستخدم نفس تصميم شريط الفئات الفرعية (.cat-chip) حتى يكون الشكل متناسق بكل مكان بالموقع */
+        .cat-accordion-item { border: 1px solid var(--border-color); border-radius: 14px; margin-bottom: 10px; overflow: hidden; background: white; }
+        .cat-accordion-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; cursor: pointer; background: #f8faf7; }
+        .cat-accordion-header-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .cat-accordion-header-left img { width: 38px; height: 38px; border-radius: 10px; object-fit: cover; border: 1.5px solid #e5e7eb; flex-shrink: 0; }
+        .cat-accordion-header-left .css-icon { font-size: 24px; flex-shrink: 0; }
+        .cat-accordion-name { font-weight: 800; font-size: 14px; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cat-accordion-chevron { font-size: 11px; color: #64748b; transition: transform 0.25s ease; flex-shrink: 0; margin-right: 4px; }
+        .cat-accordion-item.expanded .cat-accordion-chevron { transform: rotate(180deg); color: var(--primary-green); }
+        .cat-accordion-body { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+        .cat-accordion-item.expanded .cat-accordion-body { max-height: 600px; }
+        .cat-accordion-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 14px 14px; }
+        .cat-accordion-chips .cat-chip.view-all-chip { background: var(--primary-green); color: white; border-color: var(--primary-green); }
         .subscribe-fab .fab-close { background: rgba(255,255,255,0.25); border: none; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 9.5px; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-inline-start: 4px; }
         .subscribe-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 400; max-width: 480px; margin: 0 auto; padding: 20px; }
         .subscribe-modal-box { background: white; border-radius: 18px; padding: 22px 18px; width: 100%; max-width: 380px; }
@@ -904,7 +896,7 @@
     <div class="store-header">
         <div style="display:flex; align-items:center; gap:8px;">
             <div class="store-title">🛒 العروبة أونلاين</div>
-            <button class="admin-link header-icon-btn" onclick="openSearchScreen()" title="بحث">🔍</button>
+            <button class="admin-link header-icon-btn" onclick="toggleSearchBar()" title="بحث">🔍</button>
         </div>
         <div class="header-actions">
             <button class="admin-link header-icon-btn" style="position:relative;" onclick="openProfileModal('current')" title="طلبيتي الحالية">
@@ -2292,111 +2284,18 @@
     initPlayStoreBanner();
 
     // قائمة "المزيد ☰" بالراس (حسابي/واتساب/ويز) - نقفلها لو ضغط بره منها بأي مكان بالصفحة
-
-    // ===================== شاشة البحث الكاملة =====================
-    let searchScreenDebounceTimer = null;
-
-    function openSearchScreen() {
-        const overlay = document.getElementById('searchScreenOverlay');
-        const input = document.getElementById('searchScreenInput');
-        input.value = '';
-        renderSearchScreenDefault();
-        overlay.style.display = 'flex';
-        lockBodyScroll();
-        setTimeout(() => input.focus(), 100);
-    }
-
-    function closeSearchScreen() {
-        document.getElementById('searchScreenOverlay').style.display = 'none';
-        unlockBodyScroll();
-    }
-
-    function getRecentSearches() {
-        try { return JSON.parse(localStorage.getItem('aloroba_recent_searches') || '[]'); } catch(e) { return []; }
-    }
-
-    function saveRecentSearch(term) {
-        term = term.trim();
-        if (!term) return;
-        let list = getRecentSearches().filter(t => t !== term);
-        list.unshift(term);
-        list = list.slice(0, 6);
-        try { localStorage.setItem('aloroba_recent_searches', JSON.stringify(list)); } catch(e) {}
-    }
-
-    function clearRecentSearches() {
-        try { localStorage.removeItem('aloroba_recent_searches'); } catch(e) {}
-        renderSearchScreenDefault();
-    }
-
-    function applyRecentSearch(term) {
-        document.getElementById('searchScreenInput').value = term;
-        handleSearchScreenInput();
-    }
-
-    // الحالة الافتراضية لما شاشة البحث تفتح أو تفضى خانة الكتابة - آخر عمليات بحث محفوظة بالمتصفح
-    function renderSearchScreenDefault() {
-        const body = document.getElementById('searchScreenBody');
-        let recents = getRecentSearches();
-        if (recents.length === 0) {
-            body.innerHTML = `<p style="text-align:center; color:#9ca3af; font-size:13px; padding:40px 20px;">ابدأ الكتابة وبنطلعلك المنتجات المطابقة فوراً 🔍</p>`;
-            return;
+    // نطلع/نطوي شريط البحث بالضغط على أيقونة 🔍 بالهيدر - مطوي افتراضياً حتى نوفر مساحة عمودية
+    function toggleSearchBar() {
+        const container = document.getElementById('searchBarContainer');
+        if (!container) return;
+        const willShow = container.style.display === 'none';
+        container.style.display = willShow ? 'block' : 'none';
+        if (willShow) {
+            setTimeout(() => document.getElementById('searchInput').focus(), 50);
+        } else {
+            document.getElementById('searchInput').value = '';
+            filterProducts();
         }
-        body.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <span style="font-weight:900; font-size:13px; color:#374151;">🕐 آخر بحث</span>
-                <button onclick="clearRecentSearches()" style="background:none; border:none; color:#9ca3af; font-size:11.5px; font-weight:700; cursor:pointer;">مسح الكل</button>
-            </div>
-            <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                ${recents.map(t => `<button onclick="applyRecentSearch('${t.replace(/'/g, "\\'")}')" style="background:#f1f5f9; border:none; padding:8px 14px; border-radius:20px; font-size:12.5px; font-weight:700; color:#374151; cursor:pointer;">🔍 ${t}</button>`).join('')}
-            </div>
-        `;
-    }
-
-    // بحث احترافي: بيدوّر بأي مكان باسم المنتج (أول الاسم، نصه، أو آخره) - مو بس بداية الكلمة
-    function handleSearchScreenInput() {
-        let query = document.getElementById('searchScreenInput').value.trim().toLowerCase();
-        const body = document.getElementById('searchScreenBody');
-
-        if (searchScreenDebounceTimer) clearTimeout(searchScreenDebounceTimer);
-
-        if (query.length < 2) {
-            renderSearchScreenDefault();
-            return;
-        }
-
-        let results = products.filter(p => p.name.toLowerCase().includes(query));
-
-        if (results.length === 0) {
-            // نقترح منتجات تانية من نفس فئة أقرب تطابق جزئي (لو موجود) بدل شاشة فاضية
-            let alternatives = [];
-            let partialMatch = products.find(p => query.split(' ').some(word => word.length >= 2 && p.name.toLowerCase().includes(word)));
-            if (partialMatch) {
-                alternatives = products.filter(p => productBelongsToCategory(p, getPrimaryCategoryName(partialMatch)) && p.id !== partialMatch.id).slice(0, 6);
-            }
-            body.innerHTML = `
-                <p style="text-align:center; color:#9ca3af; font-size:13px; padding:20px 20px 10px;">ما في نتيجة لـ"${query}" - جرّب كلمة تانية</p>
-                ${alternatives.length > 0 ? `
-                    <div style="font-weight:900; font-size:12.5px; color:#374151; padding:0 12px 8px;">ممكن يعجبك:</div>
-                    <div class="products-list">${alternatives.map(p => createProductListItemHtml(p)).join('')}</div>
-                ` : ''}
-            `;
-            return;
-        }
-
-        body.innerHTML = `<div class="products-list">${results.map(p => createProductListItemHtml(p)).join('')}</div>`;
-
-        // منحفظ عملية البحث بالسجل بس بعد ما يوقف عن الكتابة شوي (مش كل حرف بالحرف)، وبس لو في نتائج فعلية
-        searchScreenDebounceTimer = setTimeout(() => saveRecentSearch(query), 900);
-    }
-
-    // اسم أول فئة رئيسية المنتج منتمي لها - يُستخدم لاقتراح بدائل من نفس الفئة لما البحث ما يلاقي نتيجة
-    function getPrimaryCategoryName(p) {
-        if (!p.categories || p.categories.length === 0) return null;
-        let catName = p.categories[0];
-        let catObj = categories.find(c => c.name === catName);
-        if (catObj && catObj.parentCategory) return catObj.parentCategory;
-        return catName;
     }
 
     function toggleHeaderMenu() {
@@ -3207,7 +3106,7 @@
             });
             let allOffers = Array.from(combinedMap.values());
             container.innerHTML = allOffers.length > 0
-                ? renderProductsSection(allOffers)
+                ? `<div class="products-grid" style="margin-top: 10px;">${allOffers.map(p => createProductCardHtml(p)).join('')}</div>`
                 : `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد عروض حالياً</p>`;
             return;
         }
@@ -3217,7 +3116,7 @@
             document.getElementById('loadMoreIndicator').style.display = 'none';
             let allBundleProducts = products.filter(p => bundles.some(b => b.selectedItems && b.selectedItems.length > 0 && b.selectedItems.includes(p.name)));
             container.innerHTML = allBundleProducts.length > 0
-                ? renderProductsSection(allBundleProducts)
+                ? createProductsGridWithBundleDividers(allBundleProducts)
                 : `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد حزم حالياً</p>`;
             return;
         }
@@ -3229,7 +3128,7 @@
             if (query === "" && currentCategory !== "الكل" && currentSubCategory !== "الكل") {
                 let subProducts = products.filter(p => productBelongsToCategory(p, currentSubCategory));
                 container.innerHTML = subProducts.length > 0
-                    ? renderProductsSection(subProducts)
+                    ? createProductsGridWithBundleDividers(subProducts)
                     : `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد منتجات مطابقة</p>`;
                 return;
             }
@@ -3239,7 +3138,7 @@
             if (query === "" && currentCategory !== "الكل") {
                 let children = getCategoryChildren(currentCategory);
                 if (children.length > 0) {
-                    let sectionsHtml = renderViewModeToggleHtml();
+                    let sectionsHtml = '';
 
                     // منتجات مربوطة بالفئة الأم نفسها مباشرة (بدون فئة فرعية محددة) بتطلع أول شي، قبل الفئات الفرعية
                     let directProducts = products.filter(p => productBelongsToCategory(p, currentCategory));
@@ -3249,7 +3148,7 @@
                         sectionsHtml += `
                             <div class="subcategory-section" data-subcat-section="الكل" style="margin-top: 6px;">
                                 <div class="subcategory-title">${parentIcon} ${currentCategory}</div>
-                                ${renderProductsOnly(directProducts)}
+                                ${createProductsGridWithBundleDividers(directProducts)}
                             </div>
                         `;
                     }
@@ -3260,7 +3159,7 @@
                         sectionsHtml += `
                             <div class="subcategory-section" data-subcat-section="${child.name}" style="${(idx > 0 || directProducts.length > 0) ? 'border-top: 1px solid var(--border-color); margin-top: 18px; padding-top: 16px;' : 'margin-top: 6px;'}">
                                 <div class="subcategory-title">${child.icon || '📦'} ${child.name}</div>
-                                ${renderProductsOnly(childProducts)}
+                                ${createProductsGridWithBundleDividers(childProducts)}
                             </div>
                         `;
                     });
@@ -3281,7 +3180,7 @@
             if(filtered.length === 0) {
                 gridHtml = `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد منتجات مطابقة</p>`;
             } else {
-                gridHtml = renderProductsSection(filtered);
+                gridHtml = createProductsGridWithBundleDividers(filtered);
             }
             container.innerHTML = gridHtml;
             return;
@@ -4036,167 +3935,6 @@
         return html;
     }
 
-    let productViewMode = (function(){ try { return localStorage.getItem('aloroba_view_mode') || 'grid'; } catch(e) { return 'grid'; } })();
-
-    function setProductViewMode(mode) {
-        productViewMode = mode;
-        try { localStorage.setItem('aloroba_view_mode', mode); } catch(e) {}
-        renderMainStoreContent();
-    }
-
-    // زر تبديل شبكة/قائمة + زر رجوع - بيظهروا بس لما مش بالصفحة الرئيسية (فئة محددة، بحث، عروض، حزم)
-    function renderViewModeToggleHtml() {
-        let showBack = currentCategory !== "الكل" || currentSubCategory !== "الكل";
-        let backBtnHtml = showBack
-            ? `<button onclick="goBackCategory()" style="display:flex; align-items:center; gap:5px; background:#f1f5f9; border:none; padding:7px 13px; border-radius:10px; font-size:12.5px; font-weight:800; color:#374151; cursor:pointer;">⬅ رجوع</button>`
-            : '<span></span>';
-        return `
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px 0;">
-                ${backBtnHtml}
-                <div style="display:flex; background:#f1f5f9; border-radius:10px; padding:3px; gap:2px;">
-                    <button onclick="setProductViewMode('list')" style="border:none; background:${productViewMode === 'list' ? 'white' : 'transparent'}; box-shadow:${productViewMode === 'list' ? '0 1px 4px rgba(0,0,0,0.12)' : 'none'}; padding:6px 12px; border-radius:8px; font-size:15px; cursor:pointer; color:${productViewMode === 'list' ? 'var(--primary-green)' : '#94a3b8'};">☰</button>
-                    <button onclick="setProductViewMode('grid')" style="border:none; background:${productViewMode === 'grid' ? 'white' : 'transparent'}; box-shadow:${productViewMode === 'grid' ? '0 1px 4px rgba(0,0,0,0.12)' : 'none'}; padding:6px 12px; border-radius:8px; font-size:15px; cursor:pointer; color:${productViewMode === 'grid' ? 'var(--primary-green)' : '#94a3b8'};">⊞</button>
-                </div>
-            </div>
-        `;
-    }
-
-    // بيرجع خطوة وحدة للخلف: من فئة فرعية → لفئتها الأم، وبعدين من فئة أم → للرئيسية
-    function goBackCategory() {
-        if (currentSubCategory !== "الكل") {
-            currentSubCategory = "الكل";
-            renderSubCategoriesScroll();
-            triggerCategoryLoadingAndRender();
-        } else if (currentCategory !== "الكل") {
-            goToHomeFromBottomNav();
-        }
-    }
-
-    // بديل عرض القائمة (صف واحد لكل منتج، صورة أكبر وزر "أضف" أوضح) - نفس منطق السعر/العروض/المخزون
-    // المستخدم بـ createProductCardHtml بالضبط، بس بتخطيط مختلف
-    function createProductListItemHtml(p) {
-        let matchedBundle = findBundleForProduct(p);
-        let matchedSpendOffer = !matchedBundle ? (spendOffers || []).find(o => o.active && o.productId === p.id && o.threshold) : null;
-        let spendOfferAchieved = false;
-        let spendOfferGap = 0;
-        if (matchedSpendOffer) {
-            let required = getSpendOfferCumulativeThreshold(matchedSpendOffer);
-            let adjustedSubtotal = getSpendOffersAdjustedSubtotal();
-            spendOfferAchieved = adjustedSubtotal >= required;
-            spendOfferGap = required - adjustedSubtotal;
-        }
-
-        let hasSale = (p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null);
-        let priceDisplay, oldPriceDisplay, priceClass;
-        if (matchedSpendOffer && spendOfferAchieved) {
-            priceDisplay = `${matchedSpendOffer.discountedPrice} ₪`;
-            oldPriceDisplay = `<span class="old-price">${matchedSpendOffer.originalPrice || p.price} ₪</span>`;
-            priceClass = "price-text sale-price";
-        } else if (hasSale) {
-            priceDisplay = `${p.salePrice} ₪`;
-            oldPriceDisplay = `<span class="old-price">${p.price} ₪</span>`;
-            priceClass = "price-text sale-price";
-        } else {
-            priceDisplay = `${p.price} ₪`;
-            oldPriceDisplay = "";
-            priceClass = "price-text";
-        }
-        let badgeHtml = hasSale ? `<span class="discount-badge">عرض خاص</span>` : "";
-        let cardClass = (hasSale || matchedBundle || (matchedSpendOffer && spendOfferAchieved)) ? "product-card product-card-list has-sale" : "product-card product-card-list";
-
-        let bundleBadgeHtml = "";
-        if (matchedBundle) {
-            let bQty = Number(matchedBundle.qty) || 4;
-            let bPrice = parseBundlePrice(matchedBundle);
-            bundleBadgeHtml = `<span class="bundle-price-badge" onclick='openBundleModal("${matchedBundle.id}")'>${bQty} بـ ${bPrice.toFixed(2)} ₪</span>`;
-        }
-
-        let spendOfferBadgeHtml = "";
-        if (matchedSpendOffer) {
-            let badgeLine = spendOfferAchieved
-                ? `✅ مفعّل`
-                : `🎯 أضف كمان ${spendOfferGap.toFixed(2)}₪ وخذه بـ ${matchedSpendOffer.discountedPrice}₪`;
-            let badgeExtraClass = spendOfferAchieved ? " spend-offer-badge-achieved" : "";
-            spendOfferBadgeHtml = `<span class="spend-offer-price-badge${badgeExtraClass}" data-offer-product="${p.id}">${badgeLine}</span>`;
-        }
-
-        let cartItem = cart.find(item => item.id == p.id);
-        let qty = cartItem ? cartItem.quantity : 0;
-        let hasQty = qty > 0;
-
-        let isTracked = (p.stockQty !== undefined && p.stockQty !== null && p.stockQty !== '');
-        let isOutOfStock = isTracked && Number(p.stockQty) <= 0 && !hasQty;
-        let outOfStockBadgeHtml = isOutOfStock ? `<span class="out-of-stock-badge">نفذت الكمية</span>` : '';
-        let addBtnHtml = isOutOfStock
-            ? `<button class="add-to-cart-btn out-of-stock-btn" disabled>✕</button>`
-            : `<button class="add-to-cart-btn" onclick='handleAddToCartClick("${p.id}")'>+</button>`;
-
-        return `
-            <div class="${cardClass}" data-product-id="${p.id}">
-                ${badgeHtml}
-                ${outOfStockBadgeHtml}
-                <div class="product-img-box${isOutOfStock ? ' is-out-of-stock' : ''}" onclick='openImageModal("${p.img}", "${p.name}", "${p.id}")'>
-                    <img src="${optimizeImg(p.img, 300) || 'logo.png'}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
-                </div>
-                <div class="list-info">
-                    <div class="product-name">${p.name}</div>
-                    <div class="product-weight">${p.weight || 'حبة'}</div>
-                    <div class="product-price-top" style="display: flex; flex-wrap: wrap;">
-                        <span class="${priceClass}">${priceDisplay}</span>
-                        ${oldPriceDisplay}
-                        <div style="width: 100%;">${bundleBadgeHtml}${spendOfferBadgeHtml}</div>
-                    </div>
-                </div>
-                <div class="list-action">
-                    <div class="quantity-control-full" style="${hasQty ? 'display: flex;' : 'display: none;'}">
-                        <button class="qty-btn" onclick='decreaseCartQty("${p.id}")'>-</button>
-                        <span class="qty-display">${qty}</span>
-                        <button class="qty-btn" onclick='increaseCartQty("${p.id}")'>+</button>
-                    </div>
-                    <div style="${hasQty ? 'display: none;' : 'display: block;'}">${addBtnHtml}</div>
-                </div>
-            </div>
-        `;
-    }
-
-    // بديل createProductsGridWithBundleDividers بوضع القائمة - نفس منطق فواصل الحزم بالضبط، بس صفوف
-    function createProductsListWithBundleDividers(productList) {
-        if (!productList || productList.length === 0) return '';
-        let html = '<div class="products-list">';
-        let currentBundleId;
-        productList.forEach(p => {
-            let bundle = findSpecificBundleForProduct(p);
-            let bundleId = bundle ? bundle.id : null;
-            if (bundleId !== currentBundleId) {
-                if (bundle) {
-                    let price = parseBundlePrice(bundle);
-                    let qty = Number(bundle.qty) || 0;
-                    html += `<div class="bundle-group-divider">🎁 عرض: ${bundle.name || 'حزمة'} - ${qty} بـ ${price}₪</div>`;
-                }
-                currentBundleId = bundleId;
-            }
-            html += createProductListItemHtml(p);
-        });
-        html += '</div>';
-        return html;
-    }
-
-    // نفس renderProductsSection بدون زر التبديل نفسه - لصفحات فيها كذا قسم متتالي، حتى ما يتكرر الزر
-    function renderProductsOnly(productList) {
-        return productViewMode === 'list'
-            ? createProductsListWithBundleDividers(productList)
-            : createProductsGridWithBundleDividers(productList);
-    }
-
-    // دالة موحّدة: بترجع زر الرجوع/التبديل + شبكة المنتجات (أو قائمتها) حسب productViewMode
-    function renderProductsSection(productList) {
-        if (!productList || productList.length === 0) return '';
-        let contentHtml = productViewMode === 'list'
-            ? createProductsListWithBundleDividers(productList)
-            : createProductsGridWithBundleDividers(productList);
-        return renderViewModeToggleHtml() + contentHtml;
-    }
-
     function findBundleForProduct(p) {
         if (!bundles || bundles.length === 0) return null;
         return bundles.find(b => {
@@ -4919,14 +4657,9 @@
         if(!p) return;
         let cards = document.querySelectorAll(`.product-card[data-product-id="${prodId}"]`);
         cards.forEach(card => {
+            let sizeVariant = card.classList.contains('product-card-small') ? 'small' : undefined;
             let tempDiv = document.createElement('div');
-            if (card.classList.contains('product-card-list')) {
-                // نفس بطاقة الشبكة بالضبط، بس بتخطيط أفقي (وضع القائمة ☰)
-                tempDiv.innerHTML = createProductListItemHtml(p);
-            } else {
-                let sizeVariant = card.classList.contains('product-card-small') ? 'small' : undefined;
-                tempDiv.innerHTML = createProductCardHtml(p, sizeVariant);
-            }
+            tempDiv.innerHTML = createProductCardHtml(p, sizeVariant);
             card.outerHTML = tempDiv.firstElementChild.outerHTML;
         });
     }
@@ -5837,23 +5570,62 @@
         lockBodyScroll();
     }
 
-    // شبكة بسيطة: كل الأقسام الرئيسية بصفحة واحدة، قسمين جنب بعض مع صورهن - بالضغط على أي قسم
-    // بتنتقل مباشرة للصفحة الرئيسية وبيظهر شريط فئاته الفرعية فوق (نفس اللي بيصير بـ"عرض الكل")
+    // نسخة متداخلة (أكورديون): كل قسم رئيسي بصف مستقل، بالضغط عليه بيتوسع بمكانه ويوري فئاته الفرعية
+    // (لو عنده) بنفس تصميم شريط الفئات الفرعية (.cat-chip) - قسم واحد بس مفتوح بنفس اللحظة.
+    // لو القسم ما عنده فئات فرعية، الضغط عليه بيوديك مباشرة لمنتجاته (زي ما كان قبل)
     function renderCategoriesScreenGrid() {
         const body = document.getElementById('categoriesScreenBody');
         const parentList = categories.filter(c => c.name !== 'الكل' && !c.parentCategory);
 
-        const cardsHtml = parentList.map(cat => {
-            const iconHtml = cat.img ? `<img src="${cat.img}" class="cat-screen-img cat-screen-img-lg">` : `<span class="css-icon">${cat.icon || '🗂️'}</span>`;
+        const itemsHtml = parentList.map(cat => {
+            const safeName = cat.name.replace(/'/g, "\\'");
+            const iconHtml = cat.img ? `<img src="${cat.img}">` : `<span class="css-icon">${cat.icon || '🗂️'}</span>`;
+            const children = getCategoryChildren(cat.name);
+            const hasChildren = children.length > 0;
+
+            const chipsHtml = hasChildren ? `
+                <div class="cat-accordion-body">
+                    <div class="cat-accordion-chips">
+                        <div class="cat-chip view-all-chip" onclick="event.stopPropagation(); selectCategoryFromScreen('${safeName}', null)">
+                            <span>${cat.icon || '🗂️'}</span> عرض الكل
+                        </div>
+                        ${children.map(child => `
+                            <div class="cat-chip" onclick="event.stopPropagation(); selectCategoryFromScreen('${safeName}', '${child.name.replace(/'/g, "\\'")}')">
+                                <span>${child.icon || '📦'}</span> ${child.name}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : '';
+
             return `
-                <div class="cat-screen-grid-card" onclick="selectCategoryFromScreen('${cat.name.replace(/'/g, "\\'")}', null)">
-                    ${iconHtml}
-                    <p>${cat.name}</p>
+                <div class="cat-accordion-item" id="catAcc_${safeName}">
+                    <div class="cat-accordion-header" onclick="${hasChildren ? `toggleCategoryAccordion('${safeName}')` : `selectCategoryFromScreen('${safeName}', null)`}">
+                        <div class="cat-accordion-header-left">
+                            ${iconHtml}
+                            <span class="cat-accordion-name">${cat.name}</span>
+                        </div>
+                        ${hasChildren ? '<span class="cat-accordion-chevron">▼</span>' : ''}
+                    </div>
+                    ${chipsHtml}
                 </div>
             `;
         }).join('');
 
-        body.innerHTML = `<div class="cat-screen-grid">${cardsHtml}</div>`;
+        body.innerHTML = itemsHtml;
+    }
+
+    // بيفتح/يسكر قسم بشاشة الأقسام - قسم واحد بس مفتوح بنفس اللحظة (زي أكورديون عادي)
+    function toggleCategoryAccordion(catName) {
+        const item = document.getElementById('catAcc_' + catName);
+        if (!item) return;
+        const isExpanded = item.classList.contains('expanded');
+
+        document.querySelectorAll('.cat-accordion-item.expanded').forEach(el => {
+            if (el !== item) el.classList.remove('expanded');
+        });
+
+        item.classList.toggle('expanded', !isExpanded);
     }
 
     function closeCategoriesScreen() {
@@ -5922,15 +5694,6 @@
         <div style="font-weight:900; font-size:15px; color:var(--primary-green);">🗂️ الأقسام</div>
     </div>
     <div class="categories-screen-body" id="categoriesScreenBody"></div>
-</div>
-
-<!-- شاشة البحث الكاملة -->
-<div class="categories-screen-overlay" id="searchScreenOverlay">
-    <div class="categories-screen-header" style="gap:10px;">
-        <button onclick="closeSearchScreen()" style="background:#f1f5f9; border:none; width:32px; height:32px; border-radius:10px; font-size:16px; cursor:pointer; flex-shrink:0;">✕</button>
-        <input type="text" id="searchScreenInput" placeholder="ابحث عن أي منتج تريده..." oninput="handleSearchScreenInput()" style="flex:1; border:1.5px solid #e5e7eb; border-radius:12px; padding:10px 14px; font-size:14px; font-weight:600; outline:none;">
-    </div>
-    <div class="categories-screen-body" id="searchScreenBody"></div>
 </div>
 
 <!-- نافذة ساعات التوصيل والاستلام الذاتي -->
