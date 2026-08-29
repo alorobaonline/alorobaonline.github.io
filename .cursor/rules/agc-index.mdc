@@ -1,0 +1,26 @@
+---
+description: Project instruction index — start from .agents/agc-index before changing this repo
+alwaysApply: true
+---
+
+# Agent context index
+
+`.agents/agc-index.md` is the **index of all project instructions**. Read it first in every session, then open only the `agc-*` files it points to.
+
+## Required flow
+
+1. Read `.agents/agc-index.md`.
+2. Open the listed file that matches the task:
+   - Overview / product: `.agents/agc-overview.md`
+   - Libraries, hosting, auth, deploy: `.agents/agc-tech-stack.md`
+   - Pages, Cloud Run, Firestore: `.agents/agc-main-services.md`
+3. Follow those files. Do not assume a bundler, npm app, or framework.
+
+## Guardrails
+
+```text
+❌ BAD: Start coding as if this were React/Next, or invent new order status enums.
+✅ GOOD: Read agc-index, then edit the existing HTML page and keep Arabic statuses / Firebase contracts.
+```
+
+When you add a lasting convention, update the matching `agc-*` file and add a row in `agc-index.md`.
