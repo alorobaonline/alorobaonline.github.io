@@ -36,6 +36,14 @@
     .product-img-box { width: 100%; height: 110px; display: flex; align-items: center; justify-content: center; background: #fafbfa; border-radius: 10px; margin-bottom: 6px; position: relative; }
     .product-img-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
     .discount-badge { position: absolute; top: 6px; right: 6px; background: var(--price-red); color: white; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; }
+    .bundle-price-badge {
+        display: inline-block; background: var(--price-red); color: white; font-size: 11px; font-weight: 900;
+        padding: 5px 10px; border-radius: 8px; margin-top: auto;
+    }
+    .bundle-group-divider {
+        margin: 14px 12px 8px; padding: 8px 12px; background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+        border: 1.5px solid #fdba74; border-radius: 12px; color: #9a3412; font-size: 12.5px; font-weight: 800; text-align: center;
+    }
     .product-name { font-size: 11.5px; font-weight: 700; color: #1e293b; margin-bottom: 4px; height: 28px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
     .price-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
     .sale-price { color: var(--price-red); font-size: 15px; font-weight: 900; }
@@ -43,7 +51,7 @@
     .plain-price { color: var(--price-black); font-size: 14px; font-weight: 800; }
     .order-btn {
         display: block; text-align: center; background: var(--primary-green); color: white;
-        text-decoration: none; font-size: 11.5px; font-weight: 800; padding: 7px; border-radius: 10px; margin-top: auto;
+        text-decoration: none; font-size: 11.5px; font-weight: 800; padding: 7px; border-radius: 10px; margin-top: 8px;
     }
 
     .empty-msg { text-align: center; color: #9ca3af; font-size: 13px; font-weight: 700; padding: 50px 20px; }
@@ -140,20 +148,40 @@
         `;
     }
 
+    // بترجع الحزمة (عرض كمية) المرتبطة بمنتج معين لو موجودة - نفس منطق المتجر الرئيسي بالظبط
+    function findSpecificBundleForProduct(p) {
+        if (!bundles || bundles.length === 0) return null;
+        return bundles.find(b => b.selectedItems && b.selectedItems.length > 0 && b.selectedItems.includes(p.name)) || null;
+    }
+
+    function parseBundlePrice(b) {
+        return Number(String(b.priceText || '0').replace(',', '.')) || 0;
+    }
+
     function renderProducts() {
         const container = document.getElementById('productsSection');
 
+        // "الحملات/العروض" هون معناها: منتج عليه سعر مخفّض (salePrice)، أو منتج ممثّل لحزمة من
+        // شاشة "العروض" بالأدمن، أو أي منتج داخل بأي عرض كمية (حزمة) فعلياً - نفس 3 المصادر يلي
+        // المتجر الرئيسي بيعتمد عليها
         let featuredBundleProductIds = new Set();
+        let bundleParticipantIds = new Set();
         (bundles || []).forEach(b => {
-            if (!b.featuredForOffers) return;
-            let prod = products.find(p => p.name === b.featuredForOffers);
-            if (prod) featuredBundleProductIds.add(prod.id);
+            if (b.featuredForOffers) {
+                let prod = products.find(p => p.name === b.featuredForOffers);
+                if (prod) featuredBundleProductIds.add(prod.id);
+            }
+            if (b.selectedItems && b.selectedItems.length > 0) {
+                products.forEach(p => {
+                    if (b.selectedItems.includes(p.name)) bundleParticipantIds.add(p.id);
+                });
+            }
         });
 
         let combinedMap = new Map();
         products.forEach(p => {
             let hasSale = p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
-            if (hasSale || featuredBundleProductIds.has(p.id)) combinedMap.set(p.id, p);
+            if (hasSale || featuredBundleProductIds.has(p.id) || bundleParticipantIds.has(p.id)) combinedMap.set(p.id, p);
         });
         let allOffers = Array.from(combinedMap.values());
 
@@ -162,36 +190,66 @@
             return;
         }
 
-        const cardsHtml = allOffers.map(p => {
-            const hasSale = p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
-            const sellPrice = Number(p.price) || 0;
-            const salePrice = hasSale ? Number(p.salePrice) : null;
-            const discountPct = (hasSale && sellPrice > 0) ? Math.round((1 - salePrice / sellPrice) * 100) : null;
+        // نبني الشبكة مع فاصل برتقالي "🎁 عرض: ..." كل ما بلشت مجموعة منتجات حزمة جديدة - نفس شكل
+        // المتجر الرئيسي بالظبط، حتى يبين واضح إنه هالمنتجات مع بعض جزء من نفس العرض
+        let bodyHtml = '';
+        let currentBundleId;
+        let gridOpen = false;
 
-            const mainCat = findMainCategoryForProduct(p);
-            const orderLink = mainCat ? `index.html#${encodeURIComponent(mainCat)}` : 'index.html';
+        allOffers.forEach(p => {
+            let bundle = findSpecificBundleForProduct(p);
+            let bundleId = bundle ? bundle.id : null;
 
-            return `
-                <div class="product-card ${hasSale ? 'has-sale' : ''}">
-                    <div class="product-img-box">
-                        ${discountPct ? `<span class="discount-badge">${discountPct}%-</span>` : ''}
-                        <img src="${p.img || ''}" alt="${escapeHtml(p.name)}" loading="lazy">
-                    </div>
-                    <div class="product-name">${escapeHtml(p.name)}</div>
-                    <div class="price-row">
-                        ${hasSale
-                            ? `<span class="sale-price">${salePrice.toFixed(2)}₪</span><span class="old-price">${sellPrice.toFixed(2)}₪</span>`
-                            : `<span class="plain-price">${sellPrice.toFixed(2)}₪</span>`
-                        }
-                    </div>
-                    <a class="order-btn" href="${orderLink}">🛒 اطلبيه الآن</a>
+            if (bundleId !== currentBundleId) {
+                if (gridOpen) bodyHtml += `</div>`;
+                if (bundle) {
+                    let price = parseBundlePrice(bundle);
+                    let qty = Number(bundle.qty) || 0;
+                    bodyHtml += `<div class="bundle-group-divider">🎁 عرض: ${escapeHtml(bundle.name || 'حزمة')} - ${qty} بـ ${price}₪</div>`;
+                }
+                bodyHtml += `<div class="products-grid">`;
+                gridOpen = true;
+                currentBundleId = bundleId;
+            }
+            bodyHtml += createProductCardHtml(p, bundle);
+        });
+        if (gridOpen) bodyHtml += `</div>`;
+
+        container.innerHTML = `<div class="section-title">🔥 كل العروض والحملات</div>` + bodyHtml;
+    }
+
+    function createProductCardHtml(p, matchedBundle) {
+        const hasSale = p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
+        const sellPrice = Number(p.price) || 0;
+        const salePrice = hasSale ? Number(p.salePrice) : null;
+        const discountPct = (hasSale && sellPrice > 0) ? Math.round((1 - salePrice / sellPrice) * 100) : null;
+
+        const mainCat = findMainCategoryForProduct(p);
+        const orderLink = mainCat ? `index.html#${encodeURIComponent(mainCat)}` : 'index.html';
+
+        let bundleBadgeHtml = '';
+        if (matchedBundle) {
+            let bQty = Number(matchedBundle.qty) || 0;
+            let bPrice = parseBundlePrice(matchedBundle);
+            bundleBadgeHtml = `<span class="bundle-price-badge">${bQty} بـ ${bPrice.toFixed(2)} ₪</span>`;
+        }
+
+        return `
+            <div class="product-card ${(hasSale || matchedBundle) ? 'has-sale' : ''}">
+                <div class="product-img-box">
+                    ${discountPct ? `<span class="discount-badge">${discountPct}%-</span>` : ''}
+                    <img src="${p.img || ''}" alt="${escapeHtml(p.name)}" loading="lazy">
                 </div>
-            `;
-        }).join('');
-
-        container.innerHTML = `
-            <div class="section-title">🔥 كل المنتجات المخفضة</div>
-            <div class="products-grid">${cardsHtml}</div>
+                <div class="product-name">${escapeHtml(p.name)}</div>
+                <div class="price-row">
+                    ${hasSale
+                        ? `<span class="sale-price">${salePrice.toFixed(2)}₪</span><span class="old-price">${sellPrice.toFixed(2)}₪</span>`
+                        : `<span class="plain-price">${sellPrice.toFixed(2)}₪</span>`
+                    }
+                </div>
+                ${bundleBadgeHtml}
+                <a class="order-btn" href="${orderLink}">🛒 اطلبيه الآن</a>
+            </div>
         `;
     }
 
