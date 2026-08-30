@@ -30,29 +30,25 @@
     .products-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 0 14px 14px; }
     .product-card {
         background: white; border: 1px solid #e5e7eb; border-radius: 14px; padding: 8px;
-        display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(15,23,42,0.05);
+        display: flex; flex-direction: column; align-items: center; gap: 6px;
+        box-shadow: 0 1px 3px rgba(15,23,42,0.05); text-decoration: none; color: inherit;
     }
     .product-card.has-sale { border: 1.5px solid var(--price-red); }
-    .product-img-box { width: 100%; height: 110px; display: flex; align-items: center; justify-content: center; background: #fafbfa; border-radius: 10px; margin-bottom: 6px; position: relative; }
+    .product-img-box { width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; background: #fafbfa; border-radius: 10px; position: relative; }
     .product-img-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
     .discount-badge { position: absolute; top: 6px; right: 6px; background: var(--price-red); color: white; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; }
     .bundle-price-badge {
         display: inline-block; background: var(--price-red); color: white; font-size: 11px; font-weight: 900;
-        padding: 5px 10px; border-radius: 8px; margin-top: auto;
+        padding: 5px 10px; border-radius: 8px;
     }
     .bundle-group-divider {
         margin: 14px 12px 8px; padding: 8px 12px; background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
         border: 1.5px solid #fdba74; border-radius: 12px; color: #9a3412; font-size: 12.5px; font-weight: 800; text-align: center;
     }
-    .product-name { font-size: 11.5px; font-weight: 700; color: #1e293b; margin-bottom: 4px; height: 28px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-    .price-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+    .price-row { display: flex; align-items: center; gap: 6px; }
     .sale-price { color: var(--price-red); font-size: 15px; font-weight: 900; }
     .old-price { color: #9ca3af; font-size: 10.5px; text-decoration: line-through; }
     .plain-price { color: var(--price-black); font-size: 14px; font-weight: 800; }
-    .order-btn {
-        display: block; text-align: center; background: var(--primary-green); color: white;
-        text-decoration: none; font-size: 11.5px; font-weight: 800; padding: 7px; border-radius: 10px; margin-top: 8px;
-    }
 
     .empty-msg { text-align: center; color: #9ca3af; font-size: 13px; font-weight: 700; padding: 50px 20px; }
     .loading-msg { text-align: center; color: #9ca3af; font-size: 13px; font-weight: 700; padding: 50px 20px; }
@@ -235,12 +231,11 @@
         }
 
         return `
-            <div class="product-card ${(hasSale || matchedBundle) ? 'has-sale' : ''}">
+            <a class="product-card ${(hasSale || matchedBundle) ? 'has-sale' : ''}" href="${orderLink}">
                 <div class="product-img-box">
                     ${discountPct ? `<span class="discount-badge">${discountPct}%-</span>` : ''}
                     <img src="${p.img || ''}" alt="${escapeHtml(p.name)}" loading="lazy">
                 </div>
-                <div class="product-name">${escapeHtml(p.name)}</div>
                 <div class="price-row">
                     ${hasSale
                         ? `<span class="sale-price">${salePrice.toFixed(2)}₪</span><span class="old-price">${sellPrice.toFixed(2)}₪</span>`
@@ -248,8 +243,7 @@
                     }
                 </div>
                 ${bundleBadgeHtml}
-                <a class="order-btn" href="${orderLink}">🛒 اطلبيه الآن</a>
-            </div>
+            </a>
         `;
     }
 
