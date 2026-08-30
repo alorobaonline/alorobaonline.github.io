@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+<title>عروض وحملات - العروبة أونلاين</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+    :root { --primary-green: #6BA516; --price-red: #dc2626; --price-black: #111827; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+    body { background: #f3f4f6; color: #1f2937; padding-bottom: 90px; }
+    .wrap { max-width: 480px; margin: 0 auto; background: #f3f4f6; min-height: 100vh; }
+
+    .top-header {
+        background: var(--primary-green); color: white; padding: 16px;
+        display: flex; align-items: center; justify-content: space-between;
+        border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 50;
+    }
+    .top-header .title { font-size: 17px; font-weight: 900; }
+    .top-header .sub { font-size: 11px; opacity: 0.9; margin-top: 2px; }
+
+    .banner-strip { display: flex; gap: 10px; overflow-x: auto; padding: 14px; scrollbar-width: none; }
+    .banner-strip::-webkit-scrollbar { display: none; }
+    .banner-strip img { height: 150px; border-radius: 14px; flex-shrink: 0; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .banner-strip a { display: block; flex-shrink: 0; }
+
+    .section-title { font-weight: 900; font-size: 15px; color: #1f2937; padding: 18px 14px 8px; }
+
+    .products-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 0 14px 14px; }
+    .product-card {
+        background: white; border: 1px solid #e5e7eb; border-radius: 14px; padding: 8px;
+        display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(15,23,42,0.05);
+    }
+    .product-card.has-sale { border: 1.5px solid var(--price-red); }
+    .product-img-box { width: 100%; height: 110px; display: flex; align-items: center; justify-content: center; background: #fafbfa; border-radius: 10px; margin-bottom: 6px; position: relative; }
+    .product-img-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .discount-badge { position: absolute; top: 6px; right: 6px; background: var(--price-red); color: white; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; }
+    .product-name { font-size: 11.5px; font-weight: 700; color: #1e293b; margin-bottom: 4px; height: 28px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .price-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+    .sale-price { color: var(--price-red); font-size: 15px; font-weight: 900; }
+    .old-price { color: #9ca3af; font-size: 10.5px; text-decoration: line-through; }
+    .plain-price { color: var(--price-black); font-size: 14px; font-weight: 800; }
+    .order-btn {
+        display: block; text-align: center; background: var(--primary-green); color: white;
+        text-decoration: none; font-size: 11.5px; font-weight: 800; padding: 7px; border-radius: 10px; margin-top: auto;
+    }
+
+    .empty-msg { text-align: center; color: #9ca3af; font-size: 13px; font-weight: 700; padding: 50px 20px; }
+    .loading-msg { text-align: center; color: #9ca3af; font-size: 13px; font-weight: 700; padding: 50px 20px; }
+
+    .shop-now-bar {
+        position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto;
+        background: white; border-top: 1px solid #e5e7eb; padding: 10px 14px;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.08); z-index: 60;
+    }
+    .shop-now-bar a {
+        display: block; text-align: center; background: var(--primary-green); color: white;
+        text-decoration: none; font-weight: 900; font-size: 14px; padding: 12px; border-radius: 12px;
+    }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <div class="top-header">
+        <div>
+            <div class="title">🎁 عروضنا وحملاتنا</div>
+            <div class="sub">العروبة أونلاين</div>
+        </div>
+        <span style="font-size:26px;">🛒</span>
+    </div>
+
+    <div id="bannersSection"></div>
+    <div id="productsSection"><div class="loading-msg">جاري تحميل العروض...</div></div>
+</div>
+
+<div class="shop-now-bar">
+    <a href="index.html">🛍️ تسوقي كل المنتجات بالمتجر</a>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
+        authDomain: "alorobaonline.firebaseapp.com",
+        projectId: "alorobaonline",
+        storageBucket: "alorobaonline.firebasestorage.app",
+        messagingSenderId: "880642361344",
+        appId: "1:880642361344:web:9dddec05f81125f0fc30e5"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let products = [];
+    let bundles = [];
+    let categories = [];
+    let bannerSlides = [];
+
+    function escapeHtml(str) {
+        return String(str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+
+    // بيرجع اسم القسم الرئيسي لمنتج معين (لو موجود) عشان نربط زر "اطلبيه" بنفس قسمه بالمتجر مباشرة
+    function findMainCategoryForProduct(p) {
+        if (!p.categories) return null;
+        let names = Array.isArray(p.categories) ? p.categories : [p.categories];
+        let subMatch = null, topMatch = null;
+        names.forEach(name => {
+            let catObj = categories.find(c => c.name === name);
+            if (!catObj) return;
+            if (catObj.parentCategory) subMatch = catObj;
+            else topMatch = catObj;
+        });
+        if (subMatch) return subMatch.parentCategory;
+        if (topMatch) return topMatch.name;
+        return null;
+    }
+
+    function renderBanners() {
+        const container = document.getElementById('bannersSection');
+        let todayStr = new Date().toISOString().slice(0, 10);
+        let slides = (bannerSlides || []).filter(s => s && s.img && (!s.expiryDate || s.expiryDate >= todayStr));
+
+        if (slides.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="banner-strip">
+                ${slides.map(s => {
+                    const imgTag = `<img src="${s.img}" alt="${escapeHtml(s.title)}">`;
+                    if (s.link) return `<a href="${s.link}" target="_blank" rel="noopener">${imgTag}</a>`;
+                    return imgTag;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    function renderProducts() {
+        const container = document.getElementById('productsSection');
+
+        let featuredBundleProductIds = new Set();
+        (bundles || []).forEach(b => {
+            if (!b.featuredForOffers) return;
+            let prod = products.find(p => p.name === b.featuredForOffers);
+            if (prod) featuredBundleProductIds.add(prod.id);
+        });
+
+        let combinedMap = new Map();
+        products.forEach(p => {
+            let hasSale = p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
+            if (hasSale || featuredBundleProductIds.has(p.id)) combinedMap.set(p.id, p);
+        });
+        let allOffers = Array.from(combinedMap.values());
+
+        if (allOffers.length === 0) {
+            container.innerHTML = '<div class="empty-msg">لا توجد عروض حالياً، رجعي تشيكي قريباً 🙂</div>';
+            return;
+        }
+
+        const cardsHtml = allOffers.map(p => {
+            const hasSale = p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
+            const sellPrice = Number(p.price) || 0;
+            const salePrice = hasSale ? Number(p.salePrice) : null;
+            const discountPct = (hasSale && sellPrice > 0) ? Math.round((1 - salePrice / sellPrice) * 100) : null;
+
+            const mainCat = findMainCategoryForProduct(p);
+            const orderLink = mainCat ? `index.html#${encodeURIComponent(mainCat)}` : 'index.html';
+
+            return `
+                <div class="product-card ${hasSale ? 'has-sale' : ''}">
+                    <div class="product-img-box">
+                        ${discountPct ? `<span class="discount-badge">${discountPct}%-</span>` : ''}
+                        <img src="${p.img || ''}" alt="${escapeHtml(p.name)}" loading="lazy">
+                    </div>
+                    <div class="product-name">${escapeHtml(p.name)}</div>
+                    <div class="price-row">
+                        ${hasSale
+                            ? `<span class="sale-price">${salePrice.toFixed(2)}₪</span><span class="old-price">${sellPrice.toFixed(2)}₪</span>`
+                            : `<span class="plain-price">${sellPrice.toFixed(2)}₪</span>`
+                        }
+                    </div>
+                    <a class="order-btn" href="${orderLink}">🛒 اطلبيه الآن</a>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = `
+            <div class="section-title">🔥 كل المنتجات المخفضة</div>
+            <div class="products-grid">${cardsHtml}</div>
+        `;
+    }
+
+    // بيانات حية (Live) - أي تغيير بالعروض من لوحة التحكم بينعكس هون تلقائياً بدون ما تحتاجي تنشري الملف من جديد
+    onSnapshot(collection(db, "products"), (snap) => {
+        products = [];
+        snap.forEach(d => products.push({ id: d.id, ...d.data() }));
+        renderProducts();
+    });
+
+    onSnapshot(collection(db, "bundles"), (snap) => {
+        bundles = [];
+        snap.forEach(d => bundles.push({ id: d.id, ...d.data() }));
+        renderProducts();
+    });
+
+    onSnapshot(collection(db, "categories"), (snap) => {
+        categories = [];
+        snap.forEach(d => categories.push({ id: d.id, ...d.data() }));
+        renderProducts();
+    });
+
+    getDoc(doc(db, "settings", "banner")).then(snap => {
+        if (snap.exists() && Array.isArray(snap.data().slides)) {
+            bannerSlides = snap.data().slides;
+            renderBanners();
+        }
+    }).catch(err => console.error(err));
+</script>
+</body>
+</html>
