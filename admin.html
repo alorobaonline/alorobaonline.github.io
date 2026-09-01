@@ -911,6 +911,10 @@
             <div style="font-size: 0.65rem; color: #6b7280; margin-bottom: 10px; line-height: 1.5;">
                 بيوصل لكل زبون فتح تطبيق الموبايل عندو مرة على الأقل (آيفون أو جالكسي) - إشعار فوري على شاشة قفل الجهاز حتى لو التطبيق مسكّر. استخدمها بحكمة (مو كل يوم) حتى ما يوقفوا الإشعارات.
             </div>
+            <div style="background:#f0fdf4; border:1.5px solid #bbf7d0; border-radius:10px; padding:10px 12px; margin-bottom:14px; text-align:center;">
+                <span style="font-size:0.68rem; font-weight:700; color:#166534;">📱 عدد الأجهزة المسجّلة حالياً (كل من فتح التطبيق وفعّل الإشعارات - هاي القائمة يوصلها الإرسال العام):</span>
+                <div id="registeredDevicesCount" style="font-size:1.3rem; font-weight:900; color:#166534; margin-top:4px;">...</div>
+            </div>
             <div class="form-group">
                 <label>عنوان الإشعار</label>
                 <input type="text" id="broadcastNotifTitle" class="form-control" placeholder="مثلاً: عرض اليوم بس 🎉" maxlength="100">
@@ -1423,7 +1427,17 @@
         initBusinessHoursSection();
         initPickupHoursSection();
         initDailySalesListener();
+        initRegisteredDevicesListener();
     });
+
+    // عدد الأجهزة الحقيقية المسجّلة فعلياً لتطبيق الموبايل (زبائن ربطوا رقمهم من داخل التطبيق) -
+    // مختلف تماماً عن "عدد التنزيلات" (يلي بيكون بس عند حسابات App Store Connect / Play Console)
+    function initRegisteredDevicesListener() {
+        window.onSnapshot(window.collection(window.db, "appNotificationTokens"), (snapshot) => {
+            const el = document.getElementById('registeredDevicesCount');
+            if (el) el.innerText = snapshot.size;
+        });
+    }
 
     // ===================== طرق الدفع الظاهرة للزبون =====================
     async function loadPaymentMethodSettings() {

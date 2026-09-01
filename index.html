@@ -1758,25 +1758,37 @@
         return /AorbaFlutterApp/.test(navigator.userAgent);
     }
 
-    let pendingFcmToken = null;
     let lastSavedFcmToken = null;
+    let lastFlushedPhoneToken = null;
 
-    // بنحفظ توكن الإشعار مربوط برقم هاتف الزبون (نفس مفهوم "تسجيل الدخول" بهالموقع - رقم هاتف
-    // بمتصفحه، مش حساب حقيقي). لو الرقم لسا مش معروف (زبون جديد أول ما فتح التطبيق وبس بيتصفح
-    // بدون ما يعبي بياناته)، منخزن التوكن بالمتصفح (localStorage) مش بالذاكرة بس - حتى لو سكّر
-    // التطبيق ورجع فتحه بعد أيام وعبّى رقمه وقتها، التوكن يضل موجود ومنقدر نحفظه صح وقتها
+    // منخزن التوكن بمكانين مختلفين لغرضين مختلفين:
+    // 1) appNotificationTokens/{token} - فوراً لأي حد فتح التطبيق، بدون شرط رقم هاتف - هاي القائمة
+    //    يلي الإشعار العام (broadcast) بيستخدمها، حتى توصل لكل زبون نزّل التطبيق مهما كان
+    // 2) customerPushTokens/{phone} - بس لما رقم الزبون يصير معروف - لإشعارات مستقبلية شخصية
+    //    (متل "طلبيتك جاهزة") مربوطة برقمه تحديداً
     async function saveFcmToken(token) {
-        if (!token || token === lastSavedFcmToken) return;
-        pendingFcmToken = token;
+        if (!token || token === lastSavedFcmToken || !window.db) return;
+        try {
+            // نستخدم نسخة مشفّرة من التوكن كمعرّف مستند (encodeURIComponent) احتياطاً - أي حرف
+            // زي "/" ممكن يكسر مسار المستند بفايرستور لو استخدمناه خام
+            await window.setDoc(window.doc(window.db, "appNotificationTokens", encodeURIComponent(token)), {
+                token: token,
+                platform: "flutter",
+                updatedAt: window.serverTimestamp()
+            }, { merge: true });
+            lastSavedFcmToken = token;
+            console.log('app_notifications: تم تسجيل توكن الجهاز بقائمة الإشعار العام ✅');
+        } catch(e) {
+            console.error('app_notifications: تعذر تسجيل توكن الجهاز', e);
+        }
         try { localStorage.setItem('aloroba_pending_fcm_token', token); } catch(e) {}
         await tryFlushPendingFcmToken();
     }
 
     async function tryFlushPendingFcmToken() {
-        if (!pendingFcmToken) {
-            try { pendingFcmToken = localStorage.getItem('aloroba_pending_fcm_token'); } catch(e) {}
-        }
-        if (!pendingFcmToken) return;
+        let pendingFcmToken = null;
+        try { pendingFcmToken = localStorage.getItem('aloroba_pending_fcm_token'); } catch(e) {}
+        if (!pendingFcmToken || pendingFcmToken === lastFlushedPhoneToken) return;
         let phone = null;
         try { phone = localStorage.getItem('aloroba_user_phone'); } catch(e) {}
         if (!phone || !window.db) return; // لسا الرقم مش معروف، أو فايربيس لسا ما جهز - منحاول لاحقاً
@@ -1786,12 +1798,10 @@
                 platform: "flutter",
                 updatedAt: window.serverTimestamp()
             }, { merge: true });
-            lastSavedFcmToken = pendingFcmToken;
-            console.log('app_notifications: تم حفظ توكن الإشعارات بنجاح لرقم', phone);
-            pendingFcmToken = null;
-            try { localStorage.removeItem('aloroba_pending_fcm_token'); } catch(e) {}
+            lastFlushedPhoneToken = pendingFcmToken;
+            console.log('app_notifications: تم ربط توكن الإشعارات برقم الزبون', phone);
         } catch(e) {
-            console.error('app_notifications: تعذر حفظ توكن الإشعارات', e);
+            console.error('app_notifications: تعذر ربط توكن الإشعارات بالرقم', e);
         }
     }
 
