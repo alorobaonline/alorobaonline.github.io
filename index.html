@@ -1741,7 +1741,100 @@
         trackSessionStartForEngagement();
         resetAbandonedCartTimer(); // لو الزبون راجع وعنده سلة محفوظة من قبل بالمتصفح
         initHeaderOrderBadge(); // نقطة حمراء صغيرة فوق أيقونة "طلبيتي" بالراس لو عنده طلبية شغالة حالياً
+        initAppNotificationsBridge(); // جسر إشعارات تطبيق فلاتر (بدون تأثير على المتصفح العادي)
     });
+
+    // ===================== جسر إشعارات تطبيق فلاتر (App Notifications Bridge) =====================
+    // حسب website-app-notifications-agent.md بالضبط - الأسماء والأحداث ثابتة، ما تتغيّر أبداً.
+    // ما بيشتغل إطلاقاً إلا جوا تطبيق فلاتر نفسه (فحص User-Agent) - بمتصفح عادي بيطلع فوراً بدون أي أثر.
+    const APP_NOTIFICATIONS = {
+        tokenReady: "app_notifications_fcm_token_ready",
+        opened: "app_notifications_opened",
+        getToken: "app_notifications_get_fcm_token",
+        getPending: "app_notifications_get_pending",
+    };
+
+    function isAorbaFlutterApp() {
+        return /AorbaFlutterApp/.test(navigator.userAgent);
+    }
+
+    let pendingFcmToken = null;
+    let lastSavedFcmToken = null;
+
+    // بنحفظ توكن الإشعار مربوط برقم هاتف الزبون (نفس مفهوم "تسجيل الدخول" بهالموقع - رقم هاتف
+    // بمتصفحه، مش حساب حقيقي). لو الرقم لسا مش معروف (زبون جديد أول ما فتح التطبيق)، منخزن التوكن
+    // بالذاكرة ونحاول نحفظه أول ما الرقم يصير معروف (بعد ما يعبي بياناته أو يكمل أول طلبية).
+    async function saveFcmToken(token) {
+        if (!token || token === lastSavedFcmToken) return;
+        pendingFcmToken = token;
+        await tryFlushPendingFcmToken();
+    }
+
+    async function tryFlushPendingFcmToken() {
+        if (!pendingFcmToken) return;
+        let phone = null;
+        try { phone = localStorage.getItem('aloroba_user_phone'); } catch(e) {}
+        if (!phone || !window.db) return; // لسا الرقم مش معروف، أو فايربيس لسا ما جهز - منحاول لاحقاً
+        try {
+            await window.setDoc(window.doc(window.db, "customerPushTokens", phone), {
+                token: pendingFcmToken,
+                platform: "flutter",
+                updatedAt: window.serverTimestamp()
+            }, { merge: true });
+            lastSavedFcmToken = pendingFcmToken;
+            pendingFcmToken = null;
+        } catch(e) {
+            console.error('app_notifications: تعذر حفظ توكن الإشعارات', e);
+        }
+    }
+
+    // خارطة تحويل الإشعار المفتوح لفعل حقيقي بالموقع - نضيف سطر هون بس لما الميزة تصير موجودة فعلياً
+    // بالباك اند (حسب توجيه الملف: "Inventing product routes that do not exist yet" ممنوع)
+    const APP_NOTIFICATION_ROUTES = {
+        orderUpdate: () => {
+            // نفس زر "📦 طلبيتي الحالية" الموجود بالهيدر بالضبط
+            if (typeof openProfileModal === 'function') openProfileModal('current');
+        },
+    };
+
+    function handleOpenedNotification(payload) {
+        const name = payload && payload.identification_name;
+        if (!name) return;
+        const action = APP_NOTIFICATION_ROUTES[name];
+        if (!action) {
+            console.warn("app_notifications: unknown identification_name", name);
+            return;
+        }
+        action(payload.data);
+    }
+
+    function consumeOpenedNotification(payload) {
+        if (!payload) return;
+        handleOpenedNotification(payload);
+    }
+
+    function initAppNotificationsBridge() {
+        if (!isAorbaFlutterApp()) return; // مش جوا تطبيق فلاتر - نوقف هون بالكامل، بدون أي مستمعين
+
+        window.addEventListener(APP_NOTIFICATIONS.tokenReady, (event) => {
+            saveFcmToken(event.detail && event.detail.fcm_token);
+        });
+        window.addEventListener(APP_NOTIFICATIONS.opened, (event) => {
+            consumeOpenedNotification(event.detail);
+        });
+
+        // القيم ممكن تكون توصلت قبل ما نسجل المستمعين فوق - منفحصها مباشرة كمان
+        if (window.app_notifications) {
+            saveFcmToken(window.app_notifications.fcm_token);
+            consumeOpenedNotification(window.app_notifications.pending_notification);
+        }
+
+        const bridge = window.flutter_inappwebview;
+        if (bridge && bridge.callHandler) {
+            bridge.callHandler(APP_NOTIFICATIONS.getToken).then(saveFcmToken);
+            bridge.callHandler(APP_NOTIFICATIONS.getPending).then(consumeOpenedNotification);
+        }
+    }
 
     // نقطة تنبيه بالراس (📦) بدون ما نحتاج نفتح شباك "طلبيتي الحالية" - متابعة خفيفة مستقلة عنه
     function initHeaderOrderBadge() {
@@ -2173,6 +2266,7 @@
         let savedCity = localStorage.getItem('aloroba_user_city') || '';
         let savedAddress = localStorage.getItem('aloroba_user_address') || '';
         let savedBuilding = localStorage.getItem('aloroba_user_building') || '';
+        if (typeof tryFlushPendingFcmToken === 'function') tryFlushPendingFcmToken(); // الرقم صار معروف - نحاول نحفظ توكن إشعارات فلاتر لو كان بالانتظار
 
         let profileNameEl = document.getElementById('userProfileName');
         let profilePhoneEl = document.getElementById('userProfilePhone');
@@ -5785,6 +5879,7 @@
             products.forEach(p => updateProductCardDOM(p.id));
             document.getElementById('customerNotes').value = '';
             closeCartModal();
+            if (typeof tryFlushPendingFcmToken === 'function') tryFlushPendingFcmToken(); // رقم الزبون تأكد بالطلبية - نحاول نحفظ توكن الإشعارات لو كان بالانتظار
             showOrderSuccessScreen(newOrder);
         } catch(e) {
             console.error(e);
