@@ -166,27 +166,51 @@
         };
 
         // ===================== إشعارات Push (توصل حتى لو المتصفح مسكّر) =====================
+        function showPushDebugStatus(msg, isError) {
+            let el = document.getElementById('pushDebugStatus');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'pushDebugStatus';
+                el.style.cssText = 'position:fixed; bottom:0; left:0; right:0; z-index:99999; padding:10px 14px; font-size:12px; font-weight:800; text-align:center; direction:rtl;';
+                document.body.appendChild(el);
+            }
+            el.style.background = isError ? '#fee2e2' : '#dcfce7';
+            el.style.color = isError ? '#991b1b' : '#166534';
+            el.innerText = msg;
+        }
+
         async function setupPushNotifications() {
             try {
-                if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+                if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+                    showPushDebugStatus('⚠️ المتصفح ما بيدعم إشعارات Push إطلاقاً', true);
+                    return;
+                }
                 if (VAPID_KEY === 'PASTE_YOUR_VAPID_KEY_HERE') {
-                    console.log('إشعارات Push: لسا ما تحط مفتاح VAPID.');
+                    showPushDebugStatus('⚠️ مفتاح VAPID لسا مش محطوط بالكود', true);
                     return;
                 }
 
                 const permission = await Notification.requestPermission();
-                if (permission !== 'granted') return;
+                if (permission !== 'granted') {
+                    showPushDebugStatus('⚠️ إذن الإشعارات مرفوض/معلّق (' + permission + ') - غيّره من إعدادات الموقع', true);
+                    return;
+                }
 
                 const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
                 const messaging = getMessaging(app);
                 const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
-                if (!token) return;
+                if (!token) {
+                    showPushDebugStatus('⚠️ ما قدرنا ناخد توكن الجهاز من Firebase', true);
+                    return;
+                }
 
                 const registerPushToken = httpsCallableFromURL(functionsInstance, REGISTER_PUSH_TOKEN_URL);
                 await registerPushToken({ token });
                 console.log('✅ تم تفعيل إشعارات Push لهاد الجهاز');
+                showPushDebugStatus('✅ تم تسجيل هالجهاز لاستقبال الإشعارات بنجاح');
             } catch (e) {
                 console.error('تعذر تفعيل إشعارات Push:', e);
+                showPushDebugStatus('❌ خطأ: ' + (e.message || e), true);
             }
         }
 
