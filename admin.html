@@ -192,6 +192,11 @@
         window.callManageStaff = function(payload) {
             return httpsCallableFromURL(functionsInstance, MANAGE_STAFF_URL)(payload);
         };
+        // ⚠️ لسا لازم تحطه بعد ما تنشر فنكشن sendBroadcastNotification - رابطها من صفحة الخدمة بـ Cloud Run
+        const SEND_BROADCAST_NOTIFICATION_URL = "https://send-broadcast-notification-880642361344.europe-west1.run.app";
+        window.callSendBroadcastNotification = function(payload) {
+            return httpsCallableFromURL(functionsInstance, SEND_BROADCAST_NOTIFICATION_URL)(payload);
+        };
 
         window.db = db;
         window.collection = collection;
@@ -581,7 +586,6 @@
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px;">
                 <select id="customerSortSelect" class="form-control" onchange="renderCustomersList()" style="margin-bottom:0;">
                     <option value="spent">↕️ الأكثر شراءً</option>
-                    <option value="orders">🛒 الأكثر طلباً</option>
                     <option value="recent">🕐 آخر طلب (الأحدث أول)</option>
                     <option value="inactive">😴 الأقدم طلباً (الأكثر غياباً)</option>
                 </select>
@@ -894,6 +898,29 @@
                 بعد حفظ الرقم هون، بيظهر للزبون بعد إتمام كل طلبية زر "إرسال نسخة عبر واتساب" يودّي الطلبية لهذا الرقم مباشرة مع تفاصيلها كاملة. الزبون هو اللي يضغط زر الإرسال بواتساب بنفسه (ما ينرسل تلقائي بدون علمه).
             </div>
             <button class="btn-main" onclick="saveWhatsappSettings()">حفظ رقم واتساب 💾</button>
+        </div>
+    </div>
+
+    <!-- إشعار عام لكل مستخدمي تطبيق الموبايل -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('broadcastNotifSectionContent', this)">
+            <span>📢 إشعار عام لكل مستخدمي التطبيق</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="broadcastNotifSectionContent">
+            <div style="font-size: 0.65rem; color: #6b7280; margin-bottom: 10px; line-height: 1.5;">
+                بيوصل لكل زبون فتح تطبيق الموبايل عندو مرة على الأقل (آيفون أو جالكسي) - إشعار فوري على شاشة قفل الجهاز حتى لو التطبيق مسكّر. استخدمها بحكمة (مو كل يوم) حتى ما يوقفوا الإشعارات.
+            </div>
+            <div class="form-group">
+                <label>عنوان الإشعار</label>
+                <input type="text" id="broadcastNotifTitle" class="form-control" placeholder="مثلاً: عرض اليوم بس 🎉" maxlength="100">
+            </div>
+            <div class="form-group">
+                <label>نص الإشعار</label>
+                <textarea id="broadcastNotifBody" class="form-control" rows="3" placeholder="اكتب الرسالة يلي بدك توصل للزبائن..." maxlength="500"></textarea>
+            </div>
+            <button class="btn-main" onclick="sendBroadcastNotification()" id="broadcastNotifBtn">📢 إرسال للكل الآن</button>
+            <div id="broadcastNotifStatus" style="font-size: 0.68rem; font-weight: 700; margin-top: 8px;"></div>
         </div>
     </div>
 
@@ -3618,8 +3645,6 @@
             filtered.sort((a, b) => (b.lastOrderTs || 0) - (a.lastOrderTs || 0));
         } else if (sortMode === 'inactive') {
             filtered.sort((a, b) => (a.lastOrderTs || 0) - (b.lastOrderTs || 0));
-        } else if (sortMode === 'orders') {
-            filtered.sort((a, b) => (b.orderCount || 0) - (a.orderCount || 0));
         } else {
             filtered.sort((a, b) => b.totalSpent - a.totalSpent);
         }
@@ -3651,9 +3676,7 @@
                     <div style="display:flex; gap:6px; margin-top:6px;">
                         <a href="tel:${cleanPhone}" style="flex:1; text-align:center; background:#2563eb; color:white; text-decoration:none; padding:6px; border-radius:8px; font-size:0.68rem; font-weight:800;">📞 اتصال</a>
                         <a href="https://wa.me/${waPhone}" target="_blank" rel="noopener" style="flex:1; text-align:center; background:#25D366; color:white; text-decoration:none; padding:6px; border-radius:8px; font-size:0.68rem; font-weight:800;">💬 واتساب</a>
-                        <button class="btn-edit" style="flex:1; padding:6px; font-size:0.68rem; position:relative;" onclick="showCustomerOrderHistory('${c.phone}')">📋 الطلبيات
-                            <span style="position:absolute; top:-7px; left:-7px; background:#dc2626; color:white; font-size:0.62rem; font-weight:900; min-width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center; padding:0 3px; border:1.5px solid white;">${c.orderCount}</span>
-                        </button>
+                        <button class="btn-edit" style="flex:1; padding:6px; font-size:0.68rem;" onclick="showCustomerOrderHistory('${c.phone}')">📋 الطلبيات</button>
                     </div>
                 </div>
             `;
@@ -3923,6 +3946,42 @@
         } catch(e) {
             console.error(e);
             alert("خطأ في حفظ الرقم.");
+        }
+    }
+
+    async function sendBroadcastNotification() {
+        const titleInput = document.getElementById('broadcastNotifTitle');
+        const bodyInput = document.getElementById('broadcastNotifBody');
+        const statusEl = document.getElementById('broadcastNotifStatus');
+        const btn = document.getElementById('broadcastNotifBtn');
+        const title = titleInput.value.trim();
+        const body = bodyInput.value.trim();
+
+        if (!title || !body) {
+            statusEl.style.color = '#dc2626';
+            statusEl.innerText = 'لازم تكتب العنوان والنص سوا قبل الإرسال';
+            return;
+        }
+        if (!confirm(`متأكد بدك تبعت هالإشعار لكل زبائن التطبيق؟\n\n"${title}"\n${body}`)) return;
+
+        btn.disabled = true;
+        btn.innerText = '⏳ جاري الإرسال...';
+        statusEl.style.color = '#6b7280';
+        statusEl.innerText = '';
+        try {
+            const result = await window.callSendBroadcastNotification({ title, body });
+            const data = result.data || {};
+            statusEl.style.color = '#16a34a';
+            statusEl.innerText = `✅ تم الإرسال بنجاح لـ${data.sentCount || 0} جهاز (من إجمالي ${data.totalTokens || 0})${data.failedCount ? ` - فشل ${data.failedCount}` : ''}`;
+            titleInput.value = '';
+            bodyInput.value = '';
+        } catch(e) {
+            console.error(e);
+            statusEl.style.color = '#dc2626';
+            statusEl.innerText = 'خطأ أثناء الإرسال: ' + (e.message || e);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = '📢 إرسال للكل الآن';
         }
     }
 
