@@ -890,12 +890,12 @@
         <div style="display:flex; align-items:center; gap:8px; min-width:0;">
             <span style="font-size:1.4rem; flex-shrink:0;">📲</span>
             <div style="min-width:0;">
-                <div style="font-size:0.78rem; font-weight:900;">صرنا على متجر جوجل بلاي!</div>
+                <div id="storeBannerTitle" style="font-size:0.78rem; font-weight:900;">صرنا على متجر جوجل بلاي!</div>
                 <div style="font-size:0.66rem; opacity:0.9;">حمّلي تطبيقنا لتجربة أسرع وأسهل</div>
             </div>
         </div>
         <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-            <a href="https://play.google.com/store/apps/details?id=market.alaoroba.app" target="_blank" rel="noopener" onclick="dismissPlayStoreBanner()" style="background:white; color:var(--primary-green); font-weight:900; font-size:0.72rem; padding:7px 12px; border-radius:20px; text-decoration:none; white-space:nowrap;">تحميل</a>
+            <a id="storeDownloadLink" href="https://play.google.com/store/apps/details?id=market.alaoroba.app" target="_blank" rel="noopener" onclick="dismissPlayStoreBanner()" style="background:white; color:var(--primary-green); font-weight:900; font-size:0.72rem; padding:7px 12px; border-radius:20px; text-decoration:none; white-space:nowrap;">تحميل</a>
             <button onclick="dismissPlayStoreBanner()" style="background:rgba(255,255,255,0.15); border:none; color:white; width:24px; height:24px; border-radius:50%; font-size:0.85rem; cursor:pointer; flex-shrink:0;">✕</button>
         </div>
     </div>
@@ -930,6 +930,10 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="11" fill="#f59e0b"/><path d="M12 7v5l3.5 2" stroke="white" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>
                         ساعات التوصيل والاستلام الذاتي
                     </button>
+                    <a id="downloadAppHeaderLink" href="#" target="_blank" rel="noopener" onclick="closeHeaderMenu()" class="header-menu-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="11" fill="#6366f1"/><path d="M12 6v9m0 0l-3-3m3 3l3-3M7 17h10" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                        حمّل تطبيق الموبايل
+                    </a>
                     <a href="terms.html" target="_blank" rel="noopener" onclick="closeHeaderMenu()" class="header-menu-item">
                         <svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="11" fill="#1b4d2e"/><path d="M8 7.5h8M8 11h8M8 14.5h5" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg>
                         شروط الاستخدام
@@ -2382,6 +2386,11 @@
 
     // ===================== بانر متجر جوجل بلاي =====================
     function isRunningInsideInstalledApp() {
+        // تطبيق فلاتر بيحط "AorbaFlutterApp" ببصمة المتصفح دايماً - أدق علامة ممكنة، منفحصها أول شي
+        try {
+            if (/AorbaFlutterApp/.test(navigator.userAgent)) return true;
+        } catch (e) {}
+
         // TWA/PWA المثبتة بتفتح بوضع "standalone" (بدون شريط عنوان متصفح) - عكس تبويب متصفح عادي
         try {
             if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
@@ -2397,11 +2406,35 @@
         return false;
     }
 
+    // ⚠️ لازم تحط رابط تطبيقك الحقيقي بـ App Store هون (شكله: https://apps.apple.com/app/idXXXXXXXXXX)
+    const APP_STORE_URL = "https://apps.apple.com/il/app/%D8%A7%D9%84%D8%B9%D8%B1%D9%88%D8%A8%D9%87-%D8%A7%D9%88%D9%86-%D9%84%D8%A7%D9%8A%D9%86/id6759161478";
+    const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=market.alaoroba.app";
+
     function initPlayStoreBanner() {
         const banner = document.getElementById('playStoreBanner');
+        const headerLink = document.getElementById('downloadAppHeaderLink');
         if (!banner) return;
-        if (isRunningInsideInstalledApp()) return; // أصلاً فاتح التطبيق - ما في داعي يطلب منه يحمّله
+
+        // نكتشف نوع جهازه ونعرضله رابط المتجر المناسب (آيفون يشوف App Store، أندرويد يشوف Google Play)
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const storeUrl = isIOS ? APP_STORE_URL : PLAY_STORE_URL;
+
+        if (isRunningInsideInstalledApp()) {
+            // أصلاً فاتح التطبيق - ما في داعي يطلب منه يحمّله، ولا نعرضله رابط تحميل بالقائمة أصلاً
+            if (headerLink) headerLink.style.display = 'none';
+            return;
+        }
+
+        // رابط "☰ المزيد" دايم موجود وما بيختفي حتى لو الزبون سكّر البانر فوق
+        if (headerLink) headerLink.href = storeUrl;
+
         if (localStorage.getItem('aloroba_play_banner_dismissed') === '1') return;
+
+        const link = document.getElementById('storeDownloadLink');
+        const titleEl = document.getElementById('storeBannerTitle');
+        if (link) link.href = storeUrl;
+        if (titleEl) titleEl.innerText = isIOS ? 'صرنا على App Store!' : 'صرنا على متجر جوجل بلاي!';
+
         banner.style.display = 'flex';
     }
 
