@@ -1762,15 +1762,20 @@
     let lastSavedFcmToken = null;
 
     // بنحفظ توكن الإشعار مربوط برقم هاتف الزبون (نفس مفهوم "تسجيل الدخول" بهالموقع - رقم هاتف
-    // بمتصفحه، مش حساب حقيقي). لو الرقم لسا مش معروف (زبون جديد أول ما فتح التطبيق)، منخزن التوكن
-    // بالذاكرة ونحاول نحفظه أول ما الرقم يصير معروف (بعد ما يعبي بياناته أو يكمل أول طلبية).
+    // بمتصفحه، مش حساب حقيقي). لو الرقم لسا مش معروف (زبون جديد أول ما فتح التطبيق وبس بيتصفح
+    // بدون ما يعبي بياناته)، منخزن التوكن بالمتصفح (localStorage) مش بالذاكرة بس - حتى لو سكّر
+    // التطبيق ورجع فتحه بعد أيام وعبّى رقمه وقتها، التوكن يضل موجود ومنقدر نحفظه صح وقتها
     async function saveFcmToken(token) {
         if (!token || token === lastSavedFcmToken) return;
         pendingFcmToken = token;
+        try { localStorage.setItem('aloroba_pending_fcm_token', token); } catch(e) {}
         await tryFlushPendingFcmToken();
     }
 
     async function tryFlushPendingFcmToken() {
+        if (!pendingFcmToken) {
+            try { pendingFcmToken = localStorage.getItem('aloroba_pending_fcm_token'); } catch(e) {}
+        }
         if (!pendingFcmToken) return;
         let phone = null;
         try { phone = localStorage.getItem('aloroba_user_phone'); } catch(e) {}
@@ -1782,7 +1787,9 @@
                 updatedAt: window.serverTimestamp()
             }, { merge: true });
             lastSavedFcmToken = pendingFcmToken;
+            console.log('app_notifications: تم حفظ توكن الإشعارات بنجاح لرقم', phone);
             pendingFcmToken = null;
+            try { localStorage.removeItem('aloroba_pending_fcm_token'); } catch(e) {}
         } catch(e) {
             console.error('app_notifications: تعذر حفظ توكن الإشعارات', e);
         }
@@ -1814,25 +1821,36 @@
     }
 
     function initAppNotificationsBridge() {
-        if (!isAorbaFlutterApp()) return; // مش جوا تطبيق فلاتر - نوقف هون بالكامل، بدون أي مستمعين
+        if (!isAorbaFlutterApp()) {
+            console.log('app_notifications: مش جوا تطبيق فلاتر (User-Agent الحالي:', navigator.userAgent, ') - الجسر ما رح يشتغل');
+            return;
+        }
+        console.log('app_notifications: تطبيق فلاتر تأكد ✅ - جاري تسجيل المستمعين');
 
         window.addEventListener(APP_NOTIFICATIONS.tokenReady, (event) => {
+            console.log('app_notifications: وصل حدث app_notifications_fcm_token_ready', event.detail);
             saveFcmToken(event.detail && event.detail.fcm_token);
         });
         window.addEventListener(APP_NOTIFICATIONS.opened, (event) => {
+            console.log('app_notifications: وصل حدث app_notifications_opened', event.detail);
             consumeOpenedNotification(event.detail);
         });
 
         // القيم ممكن تكون توصلت قبل ما نسجل المستمعين فوق - منفحصها مباشرة كمان
         if (window.app_notifications) {
+            console.log('app_notifications: window.app_notifications موجود عند التحميل', window.app_notifications);
             saveFcmToken(window.app_notifications.fcm_token);
             consumeOpenedNotification(window.app_notifications.pending_notification);
+        } else {
+            console.log('app_notifications: window.app_notifications مش موجود لسا عند التحميل - بننتظر الحدث أو الـ handler');
         }
 
         const bridge = window.flutter_inappwebview;
         if (bridge && bridge.callHandler) {
             bridge.callHandler(APP_NOTIFICATIONS.getToken).then(saveFcmToken);
             bridge.callHandler(APP_NOTIFICATIONS.getPending).then(consumeOpenedNotification);
+        } else {
+            console.log('app_notifications: flutter_inappwebview.callHandler مش متوفر - غريب لو إحنا فعلاً جوا التطبيق');
         }
     }
 
