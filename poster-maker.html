@@ -41,6 +41,9 @@
     .selected-item img { width: 100%; height: 44px; object-fit: contain; }
     .selected-item .name { font-size: 0.6rem; font-weight: 700; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .selected-item .remove-x { position: absolute; top: -6px; left: -6px; background: #dc2626; color: white; width: 20px; height: 20px; border-radius: 50%; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .selected-item .deal-inputs { display: flex; gap: 3px; margin-top: 5px; }
+    .selected-item .deal-inputs input { width: 100%; min-width: 0; padding: 3px 2px; font-size: 0.58rem; border: 1px solid #d1d5db; border-radius: 5px; text-align: center; font-family: 'Cairo', sans-serif; }
+    .selected-item .deal-hint { font-size: 0.52rem; color: #9ca3af; margin-top: 2px; }
 
     .generate-btn { width: 100%; background: var(--primary-green); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 900; font-size: 0.95rem; cursor: pointer; margin-top: 6px; }
     .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -183,6 +186,13 @@
         renderProductResults(document.getElementById('productSearchInput').value);
     };
 
+    // بتحفظ رقم الكمية أو السعر الكلي لعرض خاص ("5 بـ 35₪") لمنتج معين داخل الصورة
+    window.setDealField = function(productId, field, value) {
+        const p = selectedProducts.find(sp => sp.id === productId);
+        if (!p) return;
+        p[field] = value ? Number(value) : null;
+    };
+
     function renderSelectedGrid() {
         document.getElementById('selCount').innerText = selectedProducts.length;
         const countTextEl = document.getElementById('selCountText');
@@ -196,6 +206,11 @@
                 <div class="remove-x" onclick="window.removeSelected('${p.id}')">✕</div>
                 <img src="${p.img || ''}" onerror="this.style.visibility='hidden'">
                 <div class="name">${escapeHtml(p.name || '')}</div>
+                <div class="deal-inputs">
+                    <input type="number" placeholder="كمية" min="2" value="${p.dealQty || ''}" onchange="window.setDealField('${p.id}', 'dealQty', this.value)">
+                    <input type="number" placeholder="سعر الكل" min="0" step="0.01" value="${p.dealPrice || ''}" onchange="window.setDealField('${p.id}', 'dealPrice', this.value)">
+                </div>
+                <div class="deal-hint">عرض كمية (اختياري)</div>
             </div>
         `).join('');
 
@@ -307,7 +322,20 @@
                 const salePrice = hasSale ? Number(p.salePrice) : null;
                 const priceY = y + imgBoxH + 68;
 
-                if (hasSale) {
+                const hasDeal = p.dealQty && p.dealPrice;
+                if (hasDeal) {
+                    // شارة عرض كمية حمراء "X بـ Y₪" بدل السعر العادي - نفس شكل عروض الكمية بالمتجر
+                    const dealText = `${p.dealQty} بـ ${p.dealPrice}₪`;
+                    ctx.font = '900 30px Cairo, sans-serif';
+                    const dealW = ctx.measureText(dealText).width + 36;
+                    const badgeX = x + (cellW - dealW) / 2;
+                    const badgeY = priceY - 34;
+                    ctx.fillStyle = '#dc2626';
+                    drawRoundedRect(ctx, badgeX, badgeY, dealW, 44, 10);
+                    ctx.fill();
+                    ctx.fillStyle = 'white';
+                    ctx.fillText(dealText, x + cellW / 2, priceY);
+                } else if (hasSale) {
                     ctx.font = '900 30px Cairo, sans-serif';
                     ctx.fillStyle = '#dc2626';
                     ctx.fillText(salePrice.toFixed(2) + '₪', x + cellW / 2 - 8, priceY);
