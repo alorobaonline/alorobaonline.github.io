@@ -65,7 +65,7 @@
     </div>
 
     <div class="card">
-        <h2>2️⃣ اختاري 12 منتج (<span id="selCount">0</span>/12)</h2>
+        <h2>2️⃣ اختاري 15 منتج (<span id="selCount">0</span>/15)</h2>
         <div class="selected-count" id="selCountText">اختاري منتجاتك من القائمة تحت</div>
         <div class="selected-grid" id="selectedGrid"></div>
         <div style="height:12px;"></div>
@@ -76,7 +76,7 @@
     <button class="generate-btn" id="generateBtn" onclick="generatePoster()" disabled>🖼️ ولّدي الصورة</button>
     <div class="status-msg" id="statusMsg"></div>
 
-    <canvas id="posterCanvas" width="1080" height="1550"></canvas>
+    <canvas id="posterCanvas" width="1080" height="1830"></canvas>
     <a class="download-btn" id="downloadBtn">⬇️ تنزيل الصورة</a>
 </div>
 
@@ -169,8 +169,8 @@
         if (idx !== -1) {
             selectedProducts.splice(idx, 1);
         } else {
-            if (selectedProducts.length >= 12) {
-                alert('وصلتي الحد الأقصى (12 منتج) - شيلي منتج حتى تضيفي غيره');
+            if (selectedProducts.length >= 15) {
+                alert('وصلتي الحد الأقصى (15 منتج) - شيلي منتج حتى تضيفي غيره');
                 return;
             }
             const prod = allProducts.find(p => p.id === productId);
@@ -198,8 +198,8 @@
         const countTextEl = document.getElementById('selCountText');
         countTextEl.classList.toggle('full', selectedProducts.length === 12);
         countTextEl.innerText = selectedProducts.length === 12
-            ? '✅ اخترتي 12 منتج - جاهزة تولّدي الصورة'
-            : `اختاري ${12 - selectedProducts.length} منتج إضافي`;
+            ? '✅ اخترتي 15 منتج - جاهزة تولّدي الصورة'
+            : `اختاري ${15 - selectedProducts.length} منتج إضافي`;
 
         document.getElementById('selectedGrid').innerHTML = selectedProducts.map(p => `
             <div class="selected-item">
@@ -214,7 +214,7 @@
             </div>
         `).join('');
 
-        document.getElementById('generateBtn').disabled = selectedProducts.length !== 12;
+        document.getElementById('generateBtn').disabled = selectedProducts.length !== 15;
     }
 
     document.getElementById('productSearchInput').addEventListener('input', (e) => renderProductResults(e.target.value));
@@ -274,7 +274,7 @@
             ctx.fillText('العروبة أونلاين', W / 2, 150);
 
             // الشبكة: 3 أعمدة × 4 صفوف
-            const cols = 3, rows = 4;
+            const cols = 3, rows = 5;
             const padding = 22;
             const gridTop = headerH + padding;
             const cellW = (W - padding * (cols + 1)) / cols;
@@ -320,7 +320,7 @@
                 const hasSale = p.salePrice !== undefined && p.salePrice !== null && p.salePrice !== '';
                 const sellPrice = Number(p.price) || 0;
                 const salePrice = hasSale ? Number(p.salePrice) : null;
-                const priceY = y + imgBoxH + 80;
+                const priceY = y + imgBoxH + 92;
 
                 const hasDeal = p.dealQty && p.dealPrice;
                 if (hasDeal) {
@@ -372,7 +372,7 @@
             statusEl.innerText = '❌ صار خطأ أثناء توليد الصورة - جربي منتجات ثانية أو حاولي مرة تانية';
             statusEl.style.display = 'block';
         } finally {
-            btn.disabled = selectedProducts.length !== 12;
+            btn.disabled = selectedProducts.length !== 15;
             btn.innerText = '🖼️ ولّدي الصورة';
         }
     };
