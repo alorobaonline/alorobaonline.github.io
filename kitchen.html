@@ -1058,17 +1058,28 @@
 
     // بدل ما نحذف المنتج من الطلبية نهائياً، منعلّمه "نفذت الكمية" ومنخليه ظاهر (مشطوب) بالطلبية -
     // حتى الموظف والزبون يفهموا إنه المنتج هذا نفذ ومش هيوصل، بدل ما يختفي بدون تفسير. ما بيندخل بالمجموع.
+    // + منحدّث المنتج نفسه بقاعدة البيانات (stockQty = 0) حتى يبين "نفذ" أوتوماتيكياً بكل مكان
+    // بالنظام (المتجر، المخزون، لوحة التحكم) مش بس بهاي الطلبية
     async function markOrderItemUnavailable(orderId, itemIdx) {
         const ord = currentOrdersList.find(o => o.id === orderId);
         if (!ord || !ord.items || !ord.items[itemIdx]) return;
         const item = ord.items[itemIdx];
-        if (!confirm(`تعليم "${item.name || 'المنتج'}" كـ"نفذت الكمية"؟ رح يضل ظاهر بالطلبية (مشطوب) بس ما رح يتحسب بالمجموع.`)) return;
+        if (!confirm(`تعليم "${item.name || 'المنتج'}" كـ"نفذت الكمية"؟ رح يضل ظاهر بالطلبية (مشطوب) بس ما رح يتحسب بالمجموع، وراح ينعلّم "نفذ" بكل المتجر تلقائياً.`)) return;
         let newItems = ord.items.map((it, i) => i === itemIdx ? { ...it, unavailable: true } : it);
         // شيل هالمنتج ممكن يفكّ مجموعة عرض حزمة كانت كاملة، فباقي القطع لازم ترجع لسعرها العادي
         await ensureFreshBundlesAndSpendOffers();
         newItems = recomputeAllItemPricesWithPromos(newItems);
         const newRemovedLog = [...(ord.removedItemsLog || []), { name: item.name || 'منتج', price: Number(item.price) || 0, quantity: Number(item.quantity || item.qty) || 1 }];
         await saveOrderItemsUpdate(orderId, newItems, { removedItemsLog: newRemovedLog });
+
+        // تحديث المنتج نفسه بقاعدة البيانات "نفذت كميته" - نفس الحقل يلي المتجر والمخزون بيعتمدوا عليه
+        if (item.id) {
+            try {
+                await window.updateDoc(window.doc(window.db, "products", item.id), { stockQty: 0 });
+            } catch (e) {
+                console.error('تعذر تحديث حالة المخزون للمنتج بقاعدة البيانات:', e);
+            }
+        }
     }
 
     // تراجع عن "نفذت الكمية" - يرجّع المنتج يتحسب بالمجموع عادي (لو انعلّم غلط مثلاً)

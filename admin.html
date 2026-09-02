@@ -524,6 +524,7 @@
             <div style="display:flex; gap:6px; margin-bottom: 10px; flex-wrap:wrap;">
                 <button type="button" id="filterNoImageBtn" onclick="toggleProductQuickFilter('noImage')" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:6px 12px; border-radius:20px; font-size:0.68rem; font-weight:800; cursor:pointer;">📷 بدون صورة</button>
                 <button type="button" id="filterNoPriceBtn" onclick="toggleProductQuickFilter('noPrice')" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:6px 12px; border-radius:20px; font-size:0.68rem; font-weight:800; cursor:pointer;">💰 بدون سعر</button>
+                <button type="button" id="filterOutOfStockBtn" onclick="toggleProductQuickFilter('outOfStock')" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:6px 12px; border-radius:20px; font-size:0.68rem; font-weight:800; cursor:pointer;">🚫 غير متوفر</button>
             </div>
             <div id="adminGroupedProductsContainer" style="margin-top: 8px;"></div>
         </div>
@@ -2399,6 +2400,11 @@
         return effectivePrice === undefined || effectivePrice === null || effectivePrice === '' || Number(effectivePrice) <= 0;
     }
 
+    function productIsOutOfStock(p) {
+        let isTracked = (p.stockQty !== undefined && p.stockQty !== null && p.stockQty !== '');
+        return isTracked && Number(p.stockQty) <= 0;
+    }
+
     function openQuickEditFromFilter(productId) {
         const searchInput = document.getElementById('productManageSearchInput');
         const globalQuery = searchInput ? searchInput.value.trim().toLowerCase() : '';
@@ -2421,7 +2427,7 @@
             activeProductQuickFilters.add(filterName);
         }
 
-        const btnMap = { noImage: 'filterNoImageBtn', noPrice: 'filterNoPriceBtn' };
+        const btnMap = { noImage: 'filterNoImageBtn', noPrice: 'filterNoPriceBtn', outOfStock: 'filterOutOfStockBtn' };
         Object.keys(btnMap).forEach(key => {
             const btn = document.getElementById(btnMap[key]);
             if (!btn) return;
@@ -2451,6 +2457,9 @@
         if (activeProductQuickFilters.has('noPrice')) {
             list = list.filter(p => productHasNoPrice(p));
         }
+        if (activeProductQuickFilters.has('outOfStock')) {
+            list = list.filter(p => productIsOutOfStock(p));
+        }
         return list;
     }
 
@@ -2472,6 +2481,8 @@
                         ${productHasNoRealImage(p) ? '📷 بدون صورة حقيقية' : ''}
                         ${productHasNoRealImage(p) && productHasNoPrice(p) ? ' · ' : ''}
                         ${productHasNoPrice(p) ? '💰 بدون سعر' : ''}
+                        ${(productHasNoRealImage(p) || productHasNoPrice(p)) && productIsOutOfStock(p) ? ' · ' : ''}
+                        ${productIsOutOfStock(p) ? '🚫 نفذت الكمية' : ''}
                     </div>
                 </div>
                 <button class="btn-edit" onclick="openQuickEditFromFilter('${p.id}')">تعديل سريع ⚡</button>
