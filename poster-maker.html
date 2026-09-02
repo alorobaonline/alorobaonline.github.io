@@ -41,6 +41,10 @@
     .selected-item img { width: 100%; height: 44px; object-fit: contain; }
     .selected-item .name { font-size: 0.6rem; font-weight: 700; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .selected-item .remove-x { position: absolute; top: -6px; left: -6px; background: #dc2626; color: white; width: 20px; height: 20px; border-radius: 50%; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .selected-item .order-num { position: absolute; top: -6px; right: -6px; background: var(--primary-green); color: white; width: 20px; height: 20px; border-radius: 50%; font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+    .selected-item .move-buttons { display: flex; gap: 3px; margin-top: 4px; }
+    .selected-item .move-buttons button { flex: 1; border: 1px solid #d1d5db; background: white; border-radius: 5px; font-size: 0.65rem; padding: 2px 0; cursor: pointer; }
+    .selected-item .move-buttons button:disabled { opacity: 0.3; cursor: not-allowed; }
     .selected-item .deal-inputs { display: flex; gap: 3px; margin-top: 5px; }
     .selected-item .deal-inputs input { width: 100%; min-width: 0; padding: 3px 2px; font-size: 0.58rem; border: 1px solid #d1d5db; border-radius: 5px; text-align: center; font-family: 'Cairo', sans-serif; }
     .selected-item .deal-hint { font-size: 0.52rem; color: #9ca3af; margin-top: 2px; }
@@ -51,6 +55,13 @@
     #posterCanvas { width: 100%; border-radius: 12px; margin-top: 14px; display: none; box-shadow: 0 4px 14px rgba(0,0,0,0.1); }
     .download-btn { display: none; width: 100%; text-align: center; background: #111827; color: white; text-decoration: none; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 0.9rem; margin-top: 10px; }
     .status-msg { text-align: center; font-size: 0.8rem; font-weight: 700; color: #dc2626; margin-top: 10px; display: none; }
+
+    .draft-row { display: flex; align-items: center; gap: 8px; padding: 9px 10px; background: #f8faf7; border: 1px solid #e5e7eb; border-radius: 10px; margin-bottom: 6px; }
+    .draft-row .draft-name { flex: 1; font-size: 0.8rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .draft-row .draft-count { font-size: 0.65rem; color: #6b7280; font-weight: 600; margin-top: 2px; }
+    .draft-row button { border: none; padding: 6px 10px; border-radius: 8px; font-size: 0.68rem; font-weight: 800; cursor: pointer; }
+    .draft-row .load-btn { background: var(--primary-green); color: white; }
+    .draft-row .del-btn { background: #fef2f2; color: #dc2626; }
 </style>
 </head>
 <body>
@@ -61,6 +72,7 @@
     <div class="card">
         <h2>1️⃣ عنوان الصورة</h2>
         <input type="text" id="posterTitle" placeholder="مثال: عروض الأسبوع 🔥" value="عروض الأسبوع 🔥">
+        <input type="text" id="posterSubtitle" placeholder="مثال: العروبة أونلاين" value="العروبة أونلاين">
         <div class="color-swatches" id="colorSwatches"></div>
     </div>
 
@@ -71,6 +83,15 @@
         <div style="height:12px;"></div>
         <input type="search" id="productSearchInput" placeholder="🔍 دوري باسم المنتج...">
         <div class="product-search-results" id="productResults"></div>
+    </div>
+
+    <div class="card">
+        <h2>3️⃣ التصاميم المحفوظة</h2>
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+            <input type="text" id="draftNameInput" placeholder="اسم التصميم (مثال: عروض هالأسبوع)" style="flex:1; margin-bottom:0;">
+            <button onclick="saveDraft()" style="background:#111827; color:white; border:none; padding:0 16px; border-radius:10px; font-weight:800; font-size:0.82rem; cursor:pointer; white-space:nowrap;">💾 حفظ</button>
+        </div>
+        <div id="draftsList"></div>
     </div>
 
     <button class="generate-btn" id="generateBtn" onclick="generatePoster()" disabled>🖼️ ولّدي الصورة</button>
@@ -125,6 +146,101 @@
         };
         swatchesEl.appendChild(el);
     });
+
+    // ===================== حفظ/تحميل التصاميم (محفوظة على هالجهاز بالمتصفح) =====================
+    const DRAFTS_KEY = 'aloroba_poster_drafts';
+
+    function getDrafts() {
+        try { return JSON.parse(localStorage.getItem(DRAFTS_KEY)) || []; } catch (e) { return []; }
+    }
+
+    function saveDrafts(drafts) {
+        localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+    }
+
+    window.saveDraft = function() {
+        const nameInput = document.getElementById('draftNameInput');
+        const name = nameInput.value.trim();
+        if (!name) {
+            alert('اكتبي اسم للتصميم حتى تقدري تلاقيه بعدين');
+            return;
+        }
+        if (selectedProducts.length === 0) {
+            alert('ضيفي منتج واحد على الأقل قبل ما تحفظي');
+            return;
+        }
+
+        const draft = {
+            id: 'd_' + Date.now(),
+            name,
+            title: document.getElementById('posterTitle').value,
+            subtitle: document.getElementById('posterSubtitle').value,
+            color: selectedColor,
+            products: selectedProducts.map(p => ({
+                id: p.id, name: p.name, img: p.img, price: p.price, salePrice: p.salePrice,
+                dealQty: p.dealQty || null, dealPrice: p.dealPrice || null
+            }))
+        };
+
+        const drafts = getDrafts();
+        drafts.unshift(draft);
+        saveDrafts(drafts);
+        nameInput.value = '';
+        renderDraftsList();
+        alert('تم حفظ التصميم ✅ - رجعيله بأي وقت من القائمة تحت');
+    };
+
+    window.loadDraft = function(draftId) {
+        const draft = getDrafts().find(d => d.id === draftId);
+        if (!draft) return;
+
+        document.getElementById('posterTitle').value = draft.title || '';
+        document.getElementById('posterSubtitle').value = draft.subtitle || '';
+
+        selectedColor = draft.color || COLORS[0];
+        document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+        const idx = COLORS.indexOf(selectedColor);
+        if (idx !== -1) document.querySelectorAll('.swatch')[idx].classList.add('selected');
+
+        // منحدّث الصورة والاسم والسعر من قائمة المنتجات الحالية لو المنتج لسا موجود (ممكن يكون
+        // اتغيّر سعره من وقت الحفظ) - وإلا منستخدم النسخة المحفوظة كاحتياط
+        selectedProducts = draft.products.map(dp => {
+            const live = allProducts.find(p => p.id === dp.id);
+            const base = live || dp;
+            return { ...base, dealQty: dp.dealQty, dealPrice: dp.dealPrice };
+        });
+
+        renderSelectedGrid();
+        renderProductResults(document.getElementById('productSearchInput').value);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.deleteDraft = function(draftId, name) {
+        if (!confirm(`حذف تصميم "${name}"؟`)) return;
+        saveDrafts(getDrafts().filter(d => d.id !== draftId));
+        renderDraftsList();
+    };
+
+    function renderDraftsList() {
+        const container = document.getElementById('draftsList');
+        const drafts = getDrafts();
+        if (drafts.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#9ca3af; font-size:0.75rem; padding:8px;">ما في تصاميم محفوظة بعد</p>';
+            return;
+        }
+        container.innerHTML = drafts.map(d => `
+            <div class="draft-row">
+                <div>
+                    <div class="draft-name">${escapeHtml(d.name)}</div>
+                    <div class="draft-count">${(d.products || []).length} منتج</div>
+                </div>
+                <button class="load-btn" onclick="window.loadDraft('${d.id}')">فتح ✏️</button>
+                <button class="del-btn" onclick="window.deleteDraft('${d.id}', '${d.name.replace(/'/g, "\\'")}')">🗑️</button>
+            </div>
+        `).join('');
+    }
+
+    renderDraftsList();
 
     // ===================== البحث واختيار المنتجات =====================
     function renderProductResults(query) {
@@ -186,6 +302,16 @@
         renderProductResults(document.getElementById('productSearchInput').value);
     };
 
+    // بتبدّل مكان منتج مع اللي قبله (direction: -1) أو اللي بعده (direction: 1) - هيك بتتحكمي
+    // بترتيب المنتجات بالصورة النهائية (المربع الأول فوق يمين، وهكذا بالترتيب)
+    window.moveSelected = function(productId, direction) {
+        const idx = selectedProducts.findIndex(p => p.id === productId);
+        const newIdx = idx + direction;
+        if (idx === -1 || newIdx < 0 || newIdx >= selectedProducts.length) return;
+        [selectedProducts[idx], selectedProducts[newIdx]] = [selectedProducts[newIdx], selectedProducts[idx]];
+        renderSelectedGrid();
+    };
+
     // بتحفظ رقم الكمية أو السعر الكلي لعرض خاص ("5 بـ 35₪") لمنتج معين داخل الصورة
     window.setDealField = function(productId, field, value) {
         const p = selectedProducts.find(sp => sp.id === productId);
@@ -201,8 +327,9 @@
             ? '✅ اخترتي 15 منتج - جاهزة تولّدي الصورة'
             : `اختاري ${15 - selectedProducts.length} منتج إضافي`;
 
-        document.getElementById('selectedGrid').innerHTML = selectedProducts.map(p => `
+        document.getElementById('selectedGrid').innerHTML = selectedProducts.map((p, idx) => `
             <div class="selected-item">
+                <div class="order-num">${idx + 1}</div>
                 <div class="remove-x" onclick="window.removeSelected('${p.id}')">✕</div>
                 <img src="${p.img || ''}" onerror="this.style.visibility='hidden'">
                 <div class="name">${escapeHtml(p.name || '')}</div>
@@ -211,6 +338,10 @@
                     <input type="number" placeholder="سعر الكل" min="0" step="0.01" value="${p.dealPrice || ''}" onchange="window.setDealField('${p.id}', 'dealPrice', this.value)">
                 </div>
                 <div class="deal-hint">عرض كمية (اختياري)</div>
+                <div class="move-buttons">
+                    <button onclick="window.moveSelected('${p.id}', -1)" ${idx === 0 ? 'disabled' : ''}>◀ بكّري</button>
+                    <button onclick="window.moveSelected('${p.id}', 1)" ${idx === selectedProducts.length - 1 ? 'disabled' : ''}>أخّري ▶</button>
+                </div>
             </div>
         `).join('');
 
@@ -269,9 +400,12 @@
             ctx.font = '900 62px Cairo, sans-serif';
             ctx.direction = 'rtl';
             const title = document.getElementById('posterTitle').value.trim() || 'عروضنا';
+            const subtitle = document.getElementById('posterSubtitle').value.trim();
             ctx.fillText(title, W / 2, 100);
-            ctx.font = '700 30px Cairo, sans-serif';
-            ctx.fillText('العروبة أونلاين', W / 2, 150);
+            if (subtitle) {
+                ctx.font = '700 30px Cairo, sans-serif';
+                ctx.fillText(subtitle, W / 2, 150);
+            }
 
             // الشبكة: 3 أعمدة × 4 صفوف
             const cols = 3, rows = 5;
