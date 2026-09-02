@@ -320,7 +320,7 @@
                 const hasSale = p.salePrice !== undefined && p.salePrice !== null && p.salePrice !== '';
                 const sellPrice = Number(p.price) || 0;
                 const salePrice = hasSale ? Number(p.salePrice) : null;
-                const priceY = y + imgBoxH + 68;
+                const priceY = y + imgBoxH + 80;
 
                 const hasDeal = p.dealQty && p.dealPrice;
                 if (hasDeal) {
