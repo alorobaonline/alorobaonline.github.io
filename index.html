@@ -4175,11 +4175,6 @@
 
             if (bundleId !== currentBundleId) {
                 if (gridOpen) html += `</div>`;
-                if (bundle) {
-                    let price = parseBundlePrice(bundle);
-                    let qty = Number(bundle.qty) || 0;
-                    html += `<div class="bundle-group-divider">🎁 عرض: ${bundle.name || 'حزمة'} - ${qty} بـ ${price}₪</div>`;
-                }
                 html += `<div class="products-grid" style="margin-top: 10px;">`;
                 gridOpen = true;
                 currentBundleId = bundleId;
@@ -4323,11 +4318,6 @@
             let bundle = findSpecificBundleForProduct(p);
             let bundleId = bundle ? bundle.id : null;
             if (bundleId !== currentBundleId) {
-                if (bundle) {
-                    let price = parseBundlePrice(bundle);
-                    let qty = Number(bundle.qty) || 0;
-                    html += `<div class="bundle-group-divider">🎁 عرض: ${bundle.name || 'حزمة'} - ${qty} بـ ${price}₪</div>`;
-                }
                 currentBundleId = bundleId;
             }
             html += createProductListItemHtml(p);
