@@ -4161,29 +4161,11 @@
         return bundles.find(b => b.selectedItems && b.selectedItems.length > 0 && b.selectedItems.includes(p.name)) || null;
     }
 
-    // بيبني شبكة منتجات فيها فاصل بعنوان "🎁 عرض: ..." كل ما بلشت مجموعة منتجات حزمة جديدة - حتى
-    // الزبون يفهم فوراً إنه هالمنتجات سوا هني عرض واحد، مش مبعثرين بالصدفة جنب بعض
+    // بيبني شبكة منتجات عادية (3 بكل صف) - كل المنتجات مع بعض جنب بعض بشبكة واحدة متواصلة،
+    // بدون ما ننقسم لصفوف منفصلة حسب أي حزمة/عرض
     function createProductsGridWithBundleDividers(productList) {
         if (!productList || productList.length === 0) return '';
-        let html = '';
-        let currentBundleId; // undefined لسا ما بلشنا أي مجموعة
-        let gridOpen = false;
-
-        productList.forEach(p => {
-            let bundle = findSpecificBundleForProduct(p);
-            let bundleId = bundle ? bundle.id : null;
-
-            if (bundleId !== currentBundleId) {
-                if (gridOpen) html += `</div>`;
-                html += `<div class="products-grid" style="margin-top: 10px;">`;
-                gridOpen = true;
-                currentBundleId = bundleId;
-            }
-            html += createProductCardHtml(p);
-        });
-
-        if (gridOpen) html += `</div>`;
-        return html;
+        return `<div class="products-grid" style="margin-top: 10px;">${productList.map(p => createProductCardHtml(p)).join('')}</div>`;
     }
 
     let productViewMode = (function(){ try { return localStorage.getItem('aloroba_view_mode') || 'grid'; } catch(e) { return 'grid'; } })();
@@ -4313,13 +4295,7 @@
     function createProductsListWithBundleDividers(productList) {
         if (!productList || productList.length === 0) return '';
         let html = '<div class="products-list">';
-        let currentBundleId;
         productList.forEach(p => {
-            let bundle = findSpecificBundleForProduct(p);
-            let bundleId = bundle ? bundle.id : null;
-            if (bundleId !== currentBundleId) {
-                currentBundleId = bundleId;
-            }
             html += createProductListItemHtml(p);
         });
         html += '</div>';
