@@ -278,7 +278,12 @@
         list = list.slice(0, 60);
 
         if (allProducts.length === 0) {
-            container.innerHTML = '<p style="padding:14px; font-size:0.78rem; color:#dc2626; text-align:center;">لا يوجد أي منتجات محمّلة من قاعدة البيانات - تأكدي إنه عندك منتجات مضافة فعلاً بلوحة التحكم</p>';
+            container.innerHTML = `
+                <div style="padding:16px; text-align:center;">
+                    <p style="font-size:0.78rem; color:#dc2626; font-weight:700; margin-bottom:10px;">لا يوجد أي منتجات محمّلة من قاعدة البيانات - ممكن يكون انقطاع مؤقت بالإنترنت</p>
+                    <button onclick="window.retryLoadProducts()" style="background:#111827; color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:800; font-size:0.75rem; cursor:pointer;">🔄 إعادة المحاولة</button>
+                </div>
+            `;
             return;
         }
         if (list.length === 0) {
