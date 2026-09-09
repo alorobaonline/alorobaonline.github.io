@@ -122,16 +122,27 @@
 
     let allProducts = [];
     let selectedProducts = []; // بالترتيب يلي اخترتهم فيه
+    let productsLoadState = 'loading'; // loading | loaded | error
+    let productsLoadErrorMsg = '';
 
     // ===================== تحميل المنتجات =====================
-    getDocs(collection(db, "products")).then(snap => {
-        allProducts = [];
-        snap.forEach(d => allProducts.push({ id: d.id, ...d.data() }));
-        renderProductResults('');
-    }).catch(err => {
-        console.error(err);
-        document.getElementById('productResults').innerHTML = '<p style="padding:14px; font-size:0.8rem; color:#dc2626;">تعذر تحميل المنتجات، حاولي تحدّثي الصفحة</p>';
-    });
+    function loadProducts() {
+        productsLoadState = 'loading';
+        document.getElementById('productResults').innerHTML = '<p style="padding:14px; font-size:0.78rem; color:#9ca3af; text-align:center;">⏳ جاري تحميل المنتجات...</p>';
+
+        getDocs(collection(db, "products")).then(snap => {
+            allProducts = [];
+            snap.forEach(d => allProducts.push({ id: d.id, ...d.data() }));
+            productsLoadState = 'loaded';
+            renderProductResults(document.getElementById('productSearchInput').value || '');
+        }).catch(err => {
+            console.error(err);
+            productsLoadState = 'error';
+            productsLoadErrorMsg = (err && err.code) ? err.code : (err && err.message) || 'خطأ غير معروف';
+            renderProductResults('');
+        });
+    }
+    loadProducts();
 
     // ===================== ألوان الخلفية =====================
     const swatchesEl = document.getElementById('colorSwatches');
@@ -245,13 +256,33 @@
     // ===================== البحث واختيار المنتجات =====================
     function renderProductResults(query) {
         const container = document.getElementById('productResults');
+
+        if (productsLoadState === 'error') {
+            container.innerHTML = `
+                <div style="padding:16px; text-align:center;">
+                    <p style="font-size:0.8rem; color:#dc2626; font-weight:800; margin-bottom:4px;">❌ تعذر تحميل المنتجات</p>
+                    <p style="font-size:0.68rem; color:#9ca3af; margin-bottom:10px;">تفاصيل الخطأ: ${escapeHtml(productsLoadErrorMsg)}</p>
+                    <button onclick="window.retryLoadProducts()" style="background:#111827; color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:800; font-size:0.75rem; cursor:pointer;">🔄 إعادة المحاولة</button>
+                </div>
+            `;
+            return;
+        }
+        if (productsLoadState === 'loading') {
+            container.innerHTML = '<p style="padding:14px; font-size:0.78rem; color:#9ca3af; text-align:center;">⏳ جاري تحميل المنتجات...</p>';
+            return;
+        }
+
         const q = query.trim().toLowerCase();
         let list = allProducts;
         if (q) list = list.filter(p => (p.name || '').toLowerCase().includes(q));
         list = list.slice(0, 60);
 
+        if (allProducts.length === 0) {
+            container.innerHTML = '<p style="padding:14px; font-size:0.78rem; color:#dc2626; text-align:center;">لا يوجد أي منتجات محمّلة من قاعدة البيانات - تأكدي إنه عندك منتجات مضافة فعلاً بلوحة التحكم</p>';
+            return;
+        }
         if (list.length === 0) {
-            container.innerHTML = '<p style="padding:14px; font-size:0.78rem; color:#9ca3af; text-align:center;">ما في نتائج</p>';
+            container.innerHTML = '<p style="padding:14px; font-size:0.78rem; color:#9ca3af; text-align:center;">ما في نتائج مطابقة لبحثك</p>';
             return;
         }
 
@@ -270,6 +301,10 @@
             `;
         }).join('');
     }
+
+    window.retryLoadProducts = function() {
+        loadProducts();
+    };
 
     function effectivePrice(p) {
         let hasSale = p.salePrice !== undefined && p.salePrice !== null && p.salePrice !== '';
