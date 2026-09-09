@@ -169,6 +169,7 @@
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
         import { getFunctions, httpsCallableFromURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
+        import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
@@ -183,6 +184,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
+        const storage = getStorage(app);
         const functionsInstance = getFunctions(app, "europe-west1");
         const REGISTER_PUSH_TOKEN_URL = "https://register-push-token-880642361344.europe-west1.run.app";
         // ⚠️ لسا لازم تحطه: مفتاح Web Push (VAPID) من Firebase Console -> Project settings -> Cloud Messaging
@@ -214,6 +216,13 @@
         window.limit = limit;
         window.Timestamp = Timestamp;
         window.increment = increment;
+
+        // ===================== Firebase Storage - لرفع صور المنتجات (بدل Cloudinary) =====================
+        window.uploadImageToFirebaseStorage = async function(dataUrl, fileName) {
+            const storageRef = ref(storage, 'products/' + fileName);
+            await uploadString(storageRef, dataUrl, 'data_url');
+            return await getDownloadURL(storageRef);
+        };
 
         // ===================== بوابة تسجيل الدخول (Firebase Authentication) =====================
         let appBooted = false;
@@ -573,6 +582,33 @@
             <div id="offerGroupsList"></div>
         </div>
     </div>
+
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('bundlesSectionContent', this)">
+            <span>🎁 عروض الكمية (مثال: 2 منتج بسعر ثابت)</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="bundlesSectionContent">
+            <div style="font-size: 0.72rem; color: #6b7280; margin-bottom: 8px; line-height: 1.6;">
+                اختاري أي منتجات بدك (حتى لو من نوعين مختلفين تماماً)، وحددي "خذي X قطعة بسعر Y₪ الكل مع بعض" — بيبين للزبون شارة حمراء على كل منتج داخل بالعرض، وبيتحسب له السعر المخفّض تلقائياً وقت الطلب لو أخذ العدد المطلوب من نفس المجموعة.
+            </div>
+            <input type="text" id="newBundleName" class="form-control" placeholder="اسم العرض (يظهر للزبون، مثال: عرض المشروبات الغازية)">
+            <div style="display:flex; gap:8px;">
+                <input type="number" id="newBundleQty" class="form-control" placeholder="الكمية (مثال: 2)" min="2" style="flex:1;">
+                <input type="number" id="newBundlePrice" class="form-control" placeholder="السعر الكلي بالشيكل (مثال: 12)" step="0.01" min="0" style="flex:1;">
+            </div>
+            <label style="font-size: 0.7rem; font-weight: 700; color: #4b5563; display: block; margin: 8px 0 4px;">اختاري المنتجات الداخلة بهالعرض (أي منتج، مش شرط عليه سعر عرض أصلاً):</label>
+            <input type="text" id="bundleProductSearch" class="form-control" placeholder="🔍 دور عن منتج..." oninput="filterBundleProductCheckboxes()">
+            <div id="bundleProductCheckboxes" style="max-height: 220px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px; background: #fff; margin-bottom: 10px;"></div>
+            <label style="display:flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:700; color:#4b5563; margin-bottom:10px; cursor:pointer;">
+                <input type="checkbox" id="newBundleActive" checked> فعّال الآن (لو ألغيتي التفعيل، العرض بيختفي من المتجر بدون ما تمسحيه)
+            </label>
+            <button id="saveBundleBtn" class="btn-main" onclick="saveOrUpdateBundle()">حفظ العرض ➕</button>
+
+            <div style="font-size: 0.8rem; font-weight: 900; margin-top: 16px; margin-bottom: 8px;">عروض الكمية الحالية:</div>
+            <div id="bundlesList"></div>
+        </div>
+    </div>
     </div>
 
     <div class="admin-tab-panel" id="tabPanel_customers">
@@ -741,6 +777,22 @@
     </div>
 
     <div class="admin-tab-panel" id="tabPanel_settings">
+    <!-- أداة نقل الصور القديمة من Cloudinary لـ Firebase Storage (استخدمي مرة وحدة بس، وقت ما يكون
+         حساب Cloudinary شغال ووصول الصور متاح مؤقتاً) -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('migrateImagesSectionContent', this)">
+            <span>🔄 نقل الصور القديمة من Cloudinary إلى Firebase Storage</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="migrateImagesSectionContent">
+            <div style="font-size: 0.72rem; color: #6b7280; margin-bottom: 10px; line-height: 1.7;">
+                هاي أداة <b>مؤقتة</b> بتستخدميها <b>مرة وحدة بس</b>. بتدور على كل منتج صورته لسا على Cloudinary، وبتنزّلها وترفعها من جديد لـ Firebase Storage تلقائياً، وبتحدّث رابط الصورة بقاعدة البيانات. لازم يكون حساب Cloudinary شغال (مش موقوف) وقت ما تشغّلي الأداة، وإلا رح تفشل كل عملية نقل.
+            </div>
+            <button class="btn-main" onclick="migrateCloudinaryImages()" id="migrateImagesBtn">🔄 ابدأي نقل الصور</button>
+            <div id="migrateImagesProgress" style="margin-top: 12px; font-size: 0.72rem; font-weight: 700; color: #374151; white-space: pre-line;"></div>
+        </div>
+    </div>
+
     <!-- إعدادات التوصيل والمناطق الجغرافية -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('deliverySectionContent', this)">
@@ -1227,7 +1279,8 @@
     let offerGroups = [];
     let editingOfferGroupId = null;
 
-    // بيانات حساب Cloudinary المجاني (رفع بدون توقيع - آمن للاستخدام من المتصفح مباشرة)
+    // بيانات حساب Cloudinary القديم - ضلت هون بس لأجل أداة نقل الصور القديمة (migrateCloudinaryImages)،
+    // ما عاد يُستخدم لرفع صور جديدة إطلاقاً (الرفع الجديد صار عن طريق Firebase Storage مباشرة)
     const CLOUDINARY_CLOUD_NAME = 'lqrit0u7';
     const CLOUDINARY_UPLOAD_PRESET = 'v7mkckzz';
 
@@ -1354,25 +1407,101 @@
         return canvas.toDataURL(bgWasRemoved ? 'image/png' : 'image/jpeg', 0.92);
     }
 
+    // يرفع صورة (dataUrl base64) إلى Firebase Storage ويرجّع رابط تنزيل دائم بدل تخزين base64 كامل
+    // داخل Firestore - نفس نظام تخزين باقي بيانات المتجر، مش خدمة خارجية منفصلة
     async function uploadImageToStorage(dataUrl) {
         if (!dataUrl || !dataUrl.startsWith('data:')) return dataUrl; // مش صورة جديدة (رابط جاهز أصلاً) - رجّعها زي ما هي
 
-        const formData = new FormData();
-        formData.append('file', dataUrl);
-        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-        formData.append('folder', 'products');
+        const fileName = Date.now() + '_' + Math.random().toString(36).slice(2, 10) + '.jpg';
 
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) {
-            throw new Error('فشل رفع الصورة إلى Cloudinary');
+        try {
+            return await window.uploadImageToFirebaseStorage(dataUrl, fileName);
+        } catch (e) {
+            console.error(e);
+            throw new Error('فشل رفع الصورة إلى Firebase Storage');
         }
+    }
 
-        const data = await response.json();
-        return data.secure_url;
+    // ===================== أداة نقل الصور القديمة من Cloudinary لـ Firebase Storage (استخدام مرة واحدة) =====================
+    // بتحوّل صورة (عن طريق Canvas، عشان نتفادى مشاكل CORS المباشرة مع fetch) لـ dataUrl، وبعدين ترفعها
+    function loadImageAsDataUrl(url) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    resolve(canvas.toDataURL('image/jpeg', 0.92));
+                } catch (e) {
+                    reject(e);
+                }
+            };
+            img.onerror = () => reject(new Error('تعذر تحميل الصورة (الرابط مرفوض أو Cloudinary موقوف حالياً)'));
+            img.src = url;
+        });
+    }
+
+    async function migrateCloudinaryImages() {
+        const btn = document.getElementById('migrateImagesBtn');
+        const progressEl = document.getElementById('migrateImagesProgress');
+
+        if (!confirm('هاي العملية رح تنقل كل صور المنتجات يلي لسا على Cloudinary لـ Firebase Storage. لازم يكون حساب Cloudinary شغال حالياً. تبدأي؟')) return;
+
+        btn.disabled = true;
+        btn.innerText = '⏳ جاري النقل...';
+        progressEl.innerText = 'جاري جلب قائمة المنتجات...';
+
+        try {
+            const snap = await window.getDocs(window.collection(window.db, "products"));
+            const targets = [];
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                if (data.img && data.img.includes('cloudinary.com')) {
+                    targets.push({ id: docSnap.id, name: data.name || docSnap.id, img: data.img });
+                }
+            });
+
+            if (targets.length === 0) {
+                progressEl.innerText = '✅ ما في أي منتج لسا صورته على Cloudinary - كل شي منقول أصلاً!';
+                return;
+            }
+
+            let done = 0, failed = [];
+            for (const p of targets) {
+                progressEl.innerText = `جاري النقل: ${done + failed.length + 1} من ${targets.length}\n(${p.name})`;
+                try {
+                    const dataUrl = await loadImageAsDataUrl(p.img);
+                    const fileName = Date.now() + '_' + Math.random().toString(36).slice(2, 10) + '.jpg';
+                    const newUrl = await window.uploadImageToFirebaseStorage(dataUrl, fileName);
+                    await window.updateDoc(window.doc(window.db, "products", p.id), { img: newUrl });
+                    done++;
+                } catch (e) {
+                    console.error('فشل نقل صورة المنتج: ' + p.name, e);
+                    failed.push(p.name);
+                }
+            }
+
+            let resultMsg = `✅ تم نقل ${done} من ${targets.length} صورة بنجاح.`;
+            if (failed.length > 0) {
+                resultMsg += `\n\n❌ فشل نقل ${failed.length} صورة (لأسباب مثل رابط تالف أو حساب Cloudinary موقوف):\n- ${failed.join('\n- ')}`;
+                resultMsg += `\n\nجربي تشغّلي الأداة مرة ثانية بعدين لهالمنتجات، أو حدّثي صورهم يدوياً.`;
+            }
+            progressEl.innerText = resultMsg;
+
+            if (typeof loadDataFromCloud === 'function') { // نحدّث نسخة المنتجات المحمّلة بالذاكرة، حتى تنعكس الصور فوراً بلوحة التحكم
+                await loadDataFromCloud();
+            }
+        } catch (e) {
+            console.error(e);
+            progressEl.innerText = '❌ صار خطأ عام أثناء النقل: ' + (e.message || e);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = '🔄 ابدأي نقل الصور';
+        }
     }
 
     let openCategoryNames = new Set();
@@ -1875,14 +2004,15 @@
     async function loadDataFromCloud() {
         try {
             // نفّذ كل الطلبات المستقلة عن بعض بالتوازي بدل ما ننتظر وحدة وحدة (كانت هذي السبب الرئيسي لبطء التحميل)
-            const [catSnap, prodSnap, settingSnap, deliverySettingSnap, zoneSnap, offerGroupsSnap, bannerSnap] = await Promise.all([
+            const [catSnap, prodSnap, settingSnap, deliverySettingSnap, zoneSnap, offerGroupsSnap, bannerSnap, bundlesSnap] = await Promise.all([
                 window.getDocs(window.collection(window.db, "categories")),
                 window.getDocs(window.collection(window.db, "products")),
                 window.getDoc(window.doc(window.db, "settings", "storeSettings")).catch(() => null),
                 window.getDoc(window.doc(window.db, "settings", "deliverySettings")).catch(() => null),
                 window.getDocs(window.collection(window.db, "deliveryZones")).catch(() => null),
                 window.getDocs(window.collection(window.db, "offerGroups")).catch(() => null),
-                window.getDoc(window.doc(window.db, "settings", "banner")).catch(() => null)
+                window.getDoc(window.doc(window.db, "settings", "banner")).catch(() => null),
+                window.getDocs(window.collection(window.db, "bundles")).catch(() => null)
             ]);
 
             // نحمّل شرائح البانر المحفوظة فعلياً - قبل هيك كانت الشاشة تفتح بشرائح فاضية دايماً حتى لو
@@ -1969,6 +2099,15 @@
             renderOfferGroupProductCheckboxes();
             renderOfferGroupsList();
             renderOffersOnlyList();
+
+            bundles = [];
+            if (bundlesSnap) {
+                bundlesSnap.forEach(docSnap => {
+                    bundles.push({ id: docSnap.id, ...docSnap.data() });
+                });
+            }
+            renderBundleProductCheckboxes();
+            renderBundlesList();
         } catch (e) {
             console.error("خطأ في جلب البيانات من السحابة: ", e);
         }
@@ -3050,6 +3189,143 @@
                 <div style="display: flex; gap: 4px;">
                     <button class="btn-edit" style="padding: 2px 6px; font-size: 0.6rem;" onclick="editOfferGroup('${g.id}')">تعديل ✏️</button>
                     <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteOfferGroup('${g.id}', '${g.name.replace(/'/g, "\\'")}')">حذف 🗑️</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // ===================== عروض الكمية (bundles): "X قطع بسعر Y₪" على أي مجموعة منتجات =====================
+    let bundles = [];
+    let editingBundleId = null;
+
+    function renderBundleProductCheckboxes(selectedNames) {
+        selectedNames = selectedNames || [];
+        const container = document.getElementById('bundleProductCheckboxes');
+        if (!container) return;
+        if (products.length === 0) {
+            container.innerHTML = '<span style="font-size:0.7rem; color:#888;">ما فيه منتجات محمّلة بعد</span>';
+            return;
+        }
+        container.innerHTML = products.map(p => {
+            const isChecked = selectedNames.includes(p.name) ? 'checked' : '';
+            return `
+                <label class="checkbox-item" data-prodname="${p.name.toLowerCase()}">
+                    <input type="checkbox" name="bundleProdCheckbox" value="${p.name}" ${isChecked}>
+                    ${p.name} <span style="color:#6b7280; font-weight:700;">(${(p.price || 0)} ₪)</span>
+                </label>
+            `;
+        }).join('');
+    }
+
+    function filterBundleProductCheckboxes() {
+        const search = document.getElementById('bundleProductSearch').value.trim().toLowerCase();
+        const items = document.querySelectorAll('#bundleProductCheckboxes .checkbox-item');
+        items.forEach(item => {
+            let name = item.getAttribute('data-prodname') || '';
+            item.style.display = name.includes(search) ? '' : 'none';
+        });
+    }
+
+    async function saveOrUpdateBundle() {
+        const name = document.getElementById('newBundleName').value.trim();
+        const qty = parseInt(document.getElementById('newBundleQty').value) || 0;
+        const priceText = parseFloat(document.getElementById('newBundlePrice').value);
+        const active = document.getElementById('newBundleActive').checked;
+        const checkedBoxes = document.querySelectorAll('input[name="bundleProdCheckbox"]:checked');
+        const selectedItems = Array.from(checkedBoxes).map(cb => cb.value);
+
+        if (!name) {
+            alert("الرجاء إدخال اسم العرض");
+            return;
+        }
+        if (!qty || qty < 2) {
+            alert("الرجاء إدخال الكمية (لازم تكون 2 أو أكثر)");
+            return;
+        }
+        if (isNaN(priceText) || priceText < 0) {
+            alert("الرجاء إدخال السعر الكلي للعرض");
+            return;
+        }
+        if (selectedItems.length < 1) {
+            alert("الرجاء اختيار منتج واحد على الأقل يشارك بهالعرض");
+            return;
+        }
+
+        const bundleData = { name, qty, priceText, selectedItems, active };
+
+        try {
+            if (editingBundleId) {
+                await window.updateDoc(window.doc(window.db, "bundles", editingBundleId), bundleData);
+                bundles = bundles.map(b => b.id === editingBundleId ? { id: editingBundleId, ...bundleData } : b);
+            } else {
+                const docRef = await window.addDoc(window.collection(window.db, "bundles"), bundleData);
+                bundles.push({ id: docRef.id, ...bundleData });
+            }
+            resetBundleForm();
+            renderBundlesList();
+            alert("تم حفظ العرض بنجاح! 🎁");
+        } catch(e) {
+            console.error(e);
+            alert("خطأ أثناء حفظ العرض");
+        }
+    }
+
+    function resetBundleForm() {
+        editingBundleId = null;
+        document.getElementById('newBundleName').value = '';
+        document.getElementById('newBundleQty').value = '';
+        document.getElementById('newBundlePrice').value = '';
+        document.getElementById('newBundleActive').checked = true;
+        document.getElementById('bundleProductSearch').value = '';
+        renderBundleProductCheckboxes();
+        const btn = document.getElementById('saveBundleBtn');
+        btn.innerText = 'حفظ العرض ➕';
+        btn.style.backgroundColor = '';
+    }
+
+    function editBundle(id) {
+        const b = bundles.find(x => x.id === id);
+        if (!b) return;
+        editingBundleId = id;
+        document.getElementById('newBundleName').value = b.name || '';
+        document.getElementById('newBundleQty').value = b.qty || '';
+        document.getElementById('newBundlePrice').value = b.priceText !== undefined ? b.priceText : '';
+        document.getElementById('newBundleActive').checked = b.active !== false;
+        renderBundleProductCheckboxes(b.selectedItems || []);
+        const btn = document.getElementById('saveBundleBtn');
+        btn.innerText = 'حفظ التعديلات ✏️';
+        btn.style.backgroundColor = '#3b82f6';
+        document.getElementById('bundlesSectionContent').style.display = 'block';
+    }
+
+    async function deleteBundle(id, name) {
+        if (!confirm(`هل أنت متأكد من حذف عرض "${name}"؟`)) return;
+        try {
+            await window.deleteDoc(window.doc(window.db, "bundles", id));
+            bundles = bundles.filter(b => b.id !== id);
+            renderBundlesList();
+        } catch(e) {
+            console.error(e);
+            alert("خطأ أثناء الحذف");
+        }
+    }
+
+    function renderBundlesList() {
+        const container = document.getElementById('bundlesList');
+        if (!container) return;
+        if (bundles.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#888; font-size:0.75rem; padding:10px;">لا توجد عروض كمية مضافة</p>';
+            return;
+        }
+        container.innerHTML = bundles.map(b => `
+            <div class="list-item">
+                <div>
+                    <b>🎁 ${b.name}</b> ${b.active === false ? '<span style="color:#dc2626; font-size:0.6rem; font-weight:800;">(غير فعّال)</span>' : ''}
+                    <div style="color:#6b7280; font-size:0.62rem; margin-top:2px;">${b.qty} قطع بـ ${b.priceText}₪ · ${(b.selectedItems || []).length} منتج مشارك</div>
+                </div>
+                <div style="display: flex; gap: 4px;">
+                    <button class="btn-edit" style="padding: 2px 6px; font-size: 0.6rem;" onclick="editBundle('${b.id}')">تعديل ✏️</button>
+                    <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteBundle('${b.id}', '${b.name.replace(/'/g, "\\'")}')">حذف 🗑️</button>
                 </div>
             </div>
         `).join('');
