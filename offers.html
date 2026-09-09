@@ -42,7 +42,8 @@
         padding: 5px 10px; border-radius: 8px;
     }
     .bundle-group-divider {
-        margin: 14px 12px 8px; padding: 8px 12px; background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+        grid-column: 1 / -1;
+        margin: 8px 0 2px; padding: 8px 12px; background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
         border: 1.5px solid #fdba74; border-radius: 12px; color: #9a3412; font-size: 12.5px; font-weight: 800; text-align: center;
     }
     .price-row { display: flex; align-items: center; gap: 6px; }
@@ -186,30 +187,26 @@
             return;
         }
 
-        // نبني الشبكة مع فاصل برتقالي "🎁 عرض: ..." كل ما بلشت مجموعة منتجات حزمة جديدة - نفس شكل
-        // المتجر الرئيسي بالظبط، حتى يبين واضح إنه هالمنتجات مع بعض جزء من نفس العرض
-        let bodyHtml = '';
+        // شبكة واحدة متواصلة (منتجين بكل صف) - وبفاصل برتقالي "🎁 عرض: ..." يمتد بعرض الصف الكامل
+        // جوا نفس الشبكة (مش شبكة منفصلة) كل ما بلشت مجموعة منتجات حزمة جديدة، حتى الترتيب ما ينكسر
+        let bodyHtml = '<div class="products-grid">';
         let currentBundleId;
-        let gridOpen = false;
 
         allOffers.forEach(p => {
             let bundle = findSpecificBundleForProduct(p);
             let bundleId = bundle ? bundle.id : null;
 
             if (bundleId !== currentBundleId) {
-                if (gridOpen) bodyHtml += `</div>`;
                 if (bundle) {
                     let price = parseBundlePrice(bundle);
                     let qty = Number(bundle.qty) || 0;
                     bodyHtml += `<div class="bundle-group-divider">🎁 عرض: ${escapeHtml(bundle.name || 'حزمة')} - ${qty} بـ ${price}₪</div>`;
                 }
-                bodyHtml += `<div class="products-grid">`;
-                gridOpen = true;
                 currentBundleId = bundleId;
             }
             bodyHtml += createProductCardHtml(p, bundle);
         });
-        if (gridOpen) bodyHtml += `</div>`;
+        bodyHtml += '</div>';
 
         container.innerHTML = `<div class="section-title">🔥 كل العروض والحملات</div>` + bodyHtml;
     }
