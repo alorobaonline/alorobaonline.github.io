@@ -199,8 +199,8 @@
         const salePrice = hasSale ? Number(p.salePrice) : null;
         const discountPct = (hasSale && sellPrice > 0) ? Math.round((1 - salePrice / sellPrice) * 100) : null;
 
-        const mainCat = findMainCategoryForProduct(p);
-        const orderLink = mainCat ? `index.html#${encodeURIComponent(mainCat)}` : 'index.html';
+        // بيوديها لصفحة "كل العروض" بالمتجر الرئيسي مباشرة، مع تمييز/سكرول تلقائي لنفس المنتج يلي ضغطت عليه
+        const orderLink = `index.html?p=${encodeURIComponent(p.id)}#__ALL_OFFERS__`;
 
         let bundleBadgeHtml = '';
         if (matchedBundle) {

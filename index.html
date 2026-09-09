@@ -1563,6 +1563,9 @@
     let initialHash = decodeURIComponent(window.location.hash.replace('#', ''));
     let currentCategory = initialHash ? initialHash : "الكل";
     let currentSubCategory = "الكل";
+    // منتج محدد جاي من رابط خارجي (زي offers.html) نبرزه ونعمله سكرول تلقائي أول ما الصفحة تفتح
+    let initialHighlightProductId = new URLSearchParams(window.location.search).get('p');
+    let didInitialHighlight = false;
     const ALL_OFFERS_KEY = "__ALL_OFFERS__";
     const ALL_BUNDLES_KEY = "__ALL_BUNDLES__";
     let freeDeliveryPromo = null;
@@ -3335,6 +3338,12 @@
             if (container) {
                 container.innerHTML = `<p style="text-align: center; color: #dc2626; font-size: 13px; font-weight: 700; padding: 25px;">حدث خطأ أثناء عرض المنتجات ⚠️<br><span style="font-size: 11px; color: #94a3b8; font-weight: 600;">${(e && e.message) || ''}</span></p>`;
             }
+        }
+
+        // لو جاي رابط خارجي فيه منتج محدد (زي ?p=xxx من offers.html)، نبرزه بسكرول تلقائي - مرة واحدة بس
+        if (initialHighlightProductId && !didInitialHighlight && products.length > 0) {
+            didInitialHighlight = true;
+            setTimeout(() => scrollToAndHighlightProduct(initialHighlightProductId), 350);
         }
     }
 
