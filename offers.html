@@ -41,11 +41,6 @@
         display: inline-block; background: var(--price-red); color: white; font-size: 11px; font-weight: 900;
         padding: 5px 10px; border-radius: 8px;
     }
-    .bundle-group-divider {
-        grid-column: 1 / -1;
-        margin: 8px 0 2px; padding: 8px 12px; background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-        border: 1.5px solid #fdba74; border-radius: 12px; color: #9a3412; font-size: 12.5px; font-weight: 800; text-align: center;
-    }
     .price-row { display: flex; align-items: center; gap: 6px; }
     .sale-price { color: var(--price-red); font-size: 15px; font-weight: 900; }
     .old-price { color: #9ca3af; font-size: 10.5px; text-decoration: line-through; }
@@ -187,23 +182,10 @@
             return;
         }
 
-        // شبكة واحدة متواصلة (منتجين بكل صف) - وبفاصل برتقالي "🎁 عرض: ..." يمتد بعرض الصف الكامل
-        // جوا نفس الشبكة (مش شبكة منفصلة) كل ما بلشت مجموعة منتجات حزمة جديدة، حتى الترتيب ما ينكسر
+        // شبكة واحدة متواصلة (منتجين بكل صف) بدون أي تجميع أو فواصل - كل المنتجات مع بعض بالتساوي
         let bodyHtml = '<div class="products-grid">';
-        let currentBundleId;
-
         allOffers.forEach(p => {
             let bundle = findSpecificBundleForProduct(p);
-            let bundleId = bundle ? bundle.id : null;
-
-            if (bundleId !== currentBundleId) {
-                if (bundle) {
-                    let price = parseBundlePrice(bundle);
-                    let qty = Number(bundle.qty) || 0;
-                    bodyHtml += `<div class="bundle-group-divider">🎁 عرض: ${escapeHtml(bundle.name || 'حزمة')} - ${qty} بـ ${price}₪</div>`;
-                }
-                currentBundleId = bundleId;
-            }
             bodyHtml += createProductCardHtml(p, bundle);
         });
         bodyHtml += '</div>';
