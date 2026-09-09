@@ -1458,15 +1458,19 @@
         try {
             const snap = await window.getDocs(window.collection(window.db, "products"));
             const targets = [];
+            let totalScanned = 0;
+            let sampleImgs = [];
             snap.forEach(docSnap => {
+                totalScanned++;
                 const data = docSnap.data();
+                if (sampleImgs.length < 3 && data.img) sampleImgs.push(data.img);
                 if (data.img && data.img.includes('cloudinary.com')) {
                     targets.push({ id: docSnap.id, name: data.name || docSnap.id, img: data.img });
                 }
             });
 
             if (targets.length === 0) {
-                progressEl.innerText = '✅ ما في أي منتج لسا صورته على Cloudinary - كل شي منقول أصلاً!';
+                progressEl.innerText = `✅ فحصنا ${totalScanned} منتج، ما لقينا أي رابط فيه "cloudinary.com".\n\nأمثلة على روابط صور شافتها الأداة:\n- ${sampleImgs.join('\n- ') || '(ما في أي منتج فيه صورة أصلاً!)'}`;
                 return;
             }
 
