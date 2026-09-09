@@ -793,6 +793,21 @@
         </div>
     </div>
 
+    <!-- أداة تصغير الصور الحالية (تصحيح لصور نقلت كبيرة الحجم بالغلط، وسبب بطء عام بكل الصفحات) -->
+    <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('reoptimizeImagesSectionContent', this)">
+            <span>🗜️ ضغط وتصغير كل صور المنتجات الحالية (يحل بطء التحميل)</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="reoptimizeImagesSectionContent">
+            <div style="font-size: 0.72rem; color: #6b7280; margin-bottom: 10px; line-height: 1.7;">
+                استخدمي هاي الأداة لو صار المتجر أو لوحة التحكم بطيئين بشكل عام. بتدور على كل صورة منتج حالية (بغض النظر وين مخزّنة)، وبتصغّرها لحجم مناسب للعرض على الموبايل، وبترفعها من جديد لـ Firebase Storage. هاد بيقلّل حجم كل صورة بشكل كبير ويسرّع تحميل كل صفحات الموقع.
+            </div>
+            <button class="btn-main" onclick="reoptimizeAllProductImages()" id="reoptimizeImagesBtn">🗜️ ابدأي التصغير</button>
+            <div id="reoptimizeImagesProgress" style="margin-top: 12px; font-size: 0.72rem; font-weight: 700; color: #374151; white-space: pre-line;"></div>
+        </div>
+    </div>
+
     <!-- إعدادات التوصيل والمناطق الجغرافية -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('deliverySectionContent', this)">
@@ -1424,18 +1439,28 @@
 
     // ===================== أداة نقل الصور القديمة من Cloudinary لـ Firebase Storage (استخدام مرة واحدة) =====================
     // بتحوّل صورة (عن طريق Canvas، عشان نتفادى مشاكل CORS المباشرة مع fetch) لـ dataUrl، وبعدين ترفعها
-    function loadImageAsDataUrl(url) {
+    // بتحمّل صورة من أي رابط وترجعها dataUrl مصغّرة (أقصى بعد 900px، نسبة الطول والعرض ما بتتغير)
+    // حتى ملف الصورة النهائي يضل خفيف وسريع التحميل، بدل ما ينرفع بحجمه الأصلي الكامل (اللي ممكن
+    // يكون كبير جداً لو الصورة أصلاً من كاميرا موبايل مثلاً)
+    function loadImageAsDataUrl(url, maxDim) {
+        maxDim = maxDim || 900;
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => {
                 try {
+                    let w = img.naturalWidth, h = img.naturalHeight;
+                    if (w > maxDim || h > maxDim) {
+                        const scale = maxDim / Math.max(w, h);
+                        w = Math.round(w * scale);
+                        h = Math.round(h * scale);
+                    }
                     const canvas = document.createElement('canvas');
-                    canvas.width = img.naturalWidth;
-                    canvas.height = img.naturalHeight;
+                    canvas.width = w;
+                    canvas.height = h;
                     const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0);
-                    resolve(canvas.toDataURL('image/jpeg', 0.92));
+                    ctx.drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', 0.82));
                 } catch (e) {
                     reject(e);
                 }
@@ -1456,16 +1481,14 @@
         progressEl.innerText = 'جاري جلب قائمة المنتجات...';
 
         try {
-            const snap = await window.getDocs(window.collection(window.db, "products"));
             const targets = [];
             let totalScanned = 0;
             let sampleImgs = [];
-            snap.forEach(docSnap => {
+            products.forEach(p => {
                 totalScanned++;
-                const data = docSnap.data();
-                if (sampleImgs.length < 3 && data.img) sampleImgs.push(data.img);
-                if (data.img && data.img.includes('cloudinary.com')) {
-                    targets.push({ id: docSnap.id, name: data.name || docSnap.id, img: data.img });
+                if (sampleImgs.length < 3 && p.img) sampleImgs.push(p.img);
+                if (p.img && p.img.includes('cloudinary.com')) {
+                    targets.push({ id: p.id, name: p.name || p.id, img: p.img });
                 }
             });
 
@@ -1506,6 +1529,56 @@
             btn.disabled = false;
             btn.innerText = '🔄 ابدأي نقل الصور';
         }
+    }
+
+    // ===================== أداة تصغير/ضغط كل صور المنتجات الحالية (تصحيح لصور نقلت كبيرة الحجم) =====================
+    async function reoptimizeAllProductImages() {
+        const btn = document.getElementById('reoptimizeImagesBtn');
+        const progressEl = document.getElementById('reoptimizeImagesProgress');
+
+        if (!confirm('هاي العملية رح تعيد تحميل كل صورة منتج حالية، تصغّرها، وترفعها من جديد. ممكن تاخد وقت طويل لو عندك منتجات كتير. تبدأي؟')) return;
+
+        btn.disabled = true;
+        btn.innerText = '⏳ جاري التصغير...';
+        progressEl.innerText = 'جاري تحضير القائمة...';
+
+        const targets = products.filter(p => p.img && p.img.startsWith('http'));
+
+        if (targets.length === 0) {
+            progressEl.innerText = 'ما في أي منتج فيه صورة لتصغيرها.';
+            btn.disabled = false;
+            btn.innerText = '🗜️ ابدأي التصغير';
+            return;
+        }
+
+        let done = 0, failed = [];
+        for (const p of targets) {
+            progressEl.innerText = `جاري التصغير: ${done + failed.length + 1} من ${targets.length}\n(${p.name || p.id})`;
+            try {
+                const dataUrl = await loadImageAsDataUrl(p.img, 900);
+                const fileName = Date.now() + '_' + Math.random().toString(36).slice(2, 10) + '.jpg';
+                const newUrl = await window.uploadImageToFirebaseStorage(dataUrl, fileName);
+                await window.updateDoc(window.doc(window.db, "products", p.id), { img: newUrl });
+                done++;
+            } catch (e) {
+                console.error('فشل تصغير صورة المنتج: ' + (p.name || p.id), e);
+                failed.push(p.name || p.id);
+            }
+        }
+
+        let resultMsg = `✅ تم تصغير ${done} من ${targets.length} صورة بنجاح.`;
+        if (failed.length > 0) {
+            resultMsg += `\n\n❌ فشل تصغير ${failed.length} صورة:\n- ${failed.join('\n- ')}`;
+            resultMsg += `\n\nجربي تشغّلي الأداة مرة ثانية بعدين لهالمنتجات.`;
+        }
+        progressEl.innerText = resultMsg;
+
+        if (typeof loadDataFromCloud === 'function') {
+            await loadDataFromCloud();
+        }
+
+        btn.disabled = false;
+        btn.innerText = '🗜️ ابدأي التصغير';
     }
 
     let openCategoryNames = new Set();
