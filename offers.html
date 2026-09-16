@@ -103,22 +103,6 @@
         return String(str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     }
 
-    // بيرجع اسم القسم الرئيسي لمنتج معين (لو موجود) عشان نربط زر "اطلبيه" بنفس قسمه بالمتجر مباشرة
-    function findMainCategoryForProduct(p) {
-        if (!p.categories) return null;
-        let names = Array.isArray(p.categories) ? p.categories : [p.categories];
-        let subMatch = null, topMatch = null;
-        names.forEach(name => {
-            let catObj = categories.find(c => c.name === name);
-            if (!catObj) return;
-            if (catObj.parentCategory) subMatch = catObj;
-            else topMatch = catObj;
-        });
-        if (subMatch) return subMatch.parentCategory;
-        if (topMatch) return topMatch.name;
-        return null;
-    }
-
     function renderBanners() {
         const container = document.getElementById('bannersSection');
         let todayStr = new Date().toISOString().slice(0, 10);
@@ -150,19 +134,13 @@
         return Number(String(b.priceText || '0').replace(',', '.')) || 0;
     }
 
+    // منقسّم المنتجات لقسمين: "العروض" (منتج عليه سعر مخفّض) و"الرزم" (منتج داخل بعرض كمية/حزمة) -
+    // نفس المنتج ما بينكرر بالقسمين، الأولوية لقسم "العروض" لو كان مؤهل للاثنين مع بعض
     function renderProducts() {
         const container = document.getElementById('productsSection');
 
-        // "الحملات/العروض" هون معناها: منتج عليه سعر مخفّض (salePrice)، أو منتج ممثّل لحزمة من
-        // شاشة "العروض" بالأدمن، أو أي منتج داخل بأي عرض كمية (حزمة) فعلياً - نفس 3 المصادر يلي
-        // المتجر الرئيسي بيعتمد عليها
-        let featuredBundleProductIds = new Set();
         let bundleParticipantIds = new Set();
         (bundles || []).forEach(b => {
-            if (b.featuredForOffers) {
-                let prod = products.find(p => p.name === b.featuredForOffers);
-                if (prod) featuredBundleProductIds.add(prod.id);
-            }
             if (b.selectedItems && b.selectedItems.length > 0) {
                 products.forEach(p => {
                     if (b.selectedItems.includes(p.name)) bundleParticipantIds.add(p.id);
@@ -170,27 +148,50 @@
             }
         });
 
-        let combinedMap = new Map();
+        let featuredBundleProductIds = new Set();
+        (bundles || []).forEach(b => {
+            if (b.featuredForOffers) {
+                let prod = products.find(p => p.name === b.featuredForOffers);
+                if (prod) featuredBundleProductIds.add(prod.id);
+            }
+        });
+
+        let saleOffers = [], bundleOffers = [];
         products.forEach(p => {
             let hasSale = p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
-            if (hasSale || featuredBundleProductIds.has(p.id) || bundleParticipantIds.has(p.id)) combinedMap.set(p.id, p);
+            if (hasSale || featuredBundleProductIds.has(p.id)) {
+                saleOffers.push(p);
+            } else if (bundleParticipantIds.has(p.id)) {
+                bundleOffers.push(p);
+            }
         });
-        let allOffers = Array.from(combinedMap.values());
 
-        if (allOffers.length === 0) {
+        if (saleOffers.length === 0 && bundleOffers.length === 0) {
             container.innerHTML = '<div class="empty-msg">لا توجد عروض حالياً، رجعي تشيكي قريباً 🙂</div>';
             return;
         }
 
-        // شبكة واحدة متواصلة (منتجين بكل صف) بدون أي تجميع أو فواصل - كل المنتجات مع بعض بالتساوي
-        let bodyHtml = '<div class="products-grid">';
-        allOffers.forEach(p => {
-            let bundle = findSpecificBundleForProduct(p);
-            bodyHtml += createProductCardHtml(p, bundle);
-        });
-        bodyHtml += '</div>';
+        let html = '';
 
-        container.innerHTML = `<div class="section-title">🔥 كل العروض والحملات</div>` + bodyHtml;
+        if (saleOffers.length > 0) {
+            html += `<div class="section-title">🔥 العروض</div>`;
+            html += `<div class="products-grid">`;
+            saleOffers.forEach(p => {
+                html += createProductCardHtml(p, findSpecificBundleForProduct(p));
+            });
+            html += `</div>`;
+        }
+
+        if (bundleOffers.length > 0) {
+            html += `<div class="section-title">📦 الرزم</div>`;
+            html += `<div class="products-grid">`;
+            bundleOffers.forEach(p => {
+                html += createProductCardHtml(p, findSpecificBundleForProduct(p));
+            });
+            html += `</div>`;
+        }
+
+        container.innerHTML = html;
     }
 
     function createProductCardHtml(p, matchedBundle) {
