@@ -109,6 +109,77 @@
     .zoom-img-wrap img { max-width: 90%; max-height: 90%; object-fit: contain; }
     .zoom-info { padding: 14px 16px 18px; text-align: center; }
     .zoom-name { font-size: 15px; font-weight: 900; color: #1f2937; margin-bottom: 10px; }
+
+    /* ===== تصميم بطاقات العروض المطابق للنموذج ===== */
+    .products-grid {
+        display:grid; grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:8px; padding:0 12px 18px;
+    }
+    .product-card {
+        position:relative; background:#fff; border:1.8px solid #ef2b2d;
+        border-radius:18px; padding:8px 8px 10px; min-height:224px;
+        display:flex; flex-direction:column; box-shadow:none; overflow:hidden;
+    }
+    .product-card.has-sale { border:1.8px solid #ef2b2d; }
+    .product-img-box {
+        width:100%; height:105px; display:flex; align-items:center; justify-content:center;
+        background:#fff; border-radius:13px; margin-bottom:5px; position:relative; overflow:visible;
+    }
+    .product-img-box img { max-width:96%; max-height:100%; object-fit:contain; }
+    .product-name {
+        font-size:11px; line-height:1.55; font-weight:800; color:#182235;
+        text-align:center; margin:2px 0 2px; height:34px;
+        overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    }
+    .product-weight {
+        text-align:center; font-size:9.5px; font-weight:700; color:#a0a9b4;
+        margin:0 0 5px;
+    }
+    .bundle-price-badge {
+        display:block; width:100%; text-align:center; background:#ef2529; color:#fff;
+        font-size:11.5px; font-weight:900; padding:8px 4px; border-radius:11px;
+        margin-top:auto; line-height:1.15;
+    }
+    .price-row {
+        display:flex; justify-content:center; align-items:center; gap:5px; min-height:23px;
+        margin-top:auto; flex-wrap:nowrap;
+    }
+    .sale-price { color:#111827; font-size:11px; font-weight:900; }
+    .old-price { color:#858b93; font-size:9px; text-decoration:line-through; }
+    .plain-price { color:#111827; font-size:12px; font-weight:900; }
+
+    /* الشارة الحمراء الدائرية في زاوية البطاقة */
+    .marketing-badge {
+        position:absolute; top:7px; right:7px; left:auto; z-index:5;
+        width:47px; min-height:47px; border-radius:50%;
+        display:flex; align-items:center; justify-content:center; text-align:center;
+        padding:5px; background:#e91f25 !important; color:#fff;
+        font-size:8px; line-height:1.25; font-weight:900;
+        box-shadow:0 2px 5px rgba(0,0,0,.12); white-space:pre-line;
+    }
+    .marketing-badge.strong,.marketing-badge.popular,
+    .marketing-badge.featured,.marketing-badge.new { background:#e91f25 !important; }
+
+    /* وفّري - نفس الشريط الأصفر أسفل معلومات المنتج */
+    .saving-row {
+        display:flex; align-items:center; justify-content:center; gap:5px;
+        margin:1px 0 5px; min-height:23px;
+    }
+    .saving-old {
+        color:#8a8f96; font-size:8.5px; font-weight:700; text-decoration:line-through;
+    }
+    .saving-badge {
+        position:relative; display:inline-block; background:#ffd92f; color:#151515;
+        font-size:9px; font-weight:900; padding:4px 8px; border-radius:3px;
+        transform:rotate(-1deg);
+    }
+    .saving-badge:before,.saving-badge:after {
+        content:""; position:absolute; top:0; bottom:0; width:5px; background:#ffd92f;
+        clip-path:polygon(50% 0,100% 16%,55% 30%,100% 45%,55% 60%,100% 76%,50% 100%,0 82%,45% 65%,0 50%,45% 34%,0 18%);
+    }
+    .saving-badge:before { right:-4px; }
+    .saving-badge:after { left:-4px; transform:scaleX(-1); }
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -374,23 +445,23 @@
 
         const normalized = raw.replace(/\s+/g, ' ').toLowerCase();
         const map = {
-            'عرض قوي': { text: '🔥 عرض قوي', cls: 'strong' },
-            '🔥 عرض قوي': { text: '🔥 عرض قوي', cls: 'strong' },
-            'strong': { text: '🔥 عرض قوي', cls: 'strong' },
-            'hot': { text: '🔥 عرض قوي', cls: 'strong' },
+            'عرض قوي': { text: 'عرض\nقوي', cls: 'strong' },
+            '🔥 عرض قوي': { text: 'عرض\nقوي', cls: 'strong' },
+            'strong': { text: 'عرض\nقوي', cls: 'strong' },
+            'hot': { text: 'عرض\nقوي', cls: 'strong' },
 
-            'الأكثر طلبًا': { text: '👑 الأكثر طلبًا', cls: 'popular' },
-            'الأكثر طلبا': { text: '👑 الأكثر طلبًا', cls: 'popular' },
-            '👑 الأكثر طلبًا': { text: '👑 الأكثر طلبًا', cls: 'popular' },
-            'popular': { text: '👑 الأكثر طلبًا', cls: 'popular' },
+            'الأكثر طلبًا': { text: 'الأكثر\nطلبًا', cls: 'popular' },
+            'الأكثر طلبا': { text: 'الأكثر\nطلبًا', cls: 'popular' },
+            '👑 الأكثر طلبًا': { text: 'الأكثر\nطلبًا', cls: 'popular' },
+            'popular': { text: 'الأكثر\nطلبًا', cls: 'popular' },
 
-            'عرض مميز': { text: '⭐ عرض مميز', cls: 'featured' },
-            '⭐ عرض مميز': { text: '⭐ عرض مميز', cls: 'featured' },
-            'featured': { text: '⭐ عرض مميز', cls: 'featured' },
+            'عرض مميز': { text: 'عرض\nمميز', cls: 'featured' },
+            '⭐ عرض مميز': { text: 'عرض\nمميز', cls: 'featured' },
+            'featured': { text: 'عرض\nمميز', cls: 'featured' },
 
-            'جديد': { text: '✨ جديد', cls: 'new' },
-            '✨ جديد': { text: '✨ جديد', cls: 'new' },
-            'new': { text: '✨ جديد', cls: 'new' }
+            'جديد': { text: 'جديد', cls: 'new' },
+            '✨ جديد': { text: 'جديد', cls: 'new' },
+            'new': { text: 'جديد', cls: 'new' }
         };
         return map[normalized] || { text: raw, cls: 'featured' };
     }
@@ -398,6 +469,45 @@
     function marketingBadgeHtml(bundle) {
         const info = getMarketingBadgeInfo(bundle);
         return info ? `<span class="marketing-badge ${info.cls}">${escapeHtml(info.text)}</span>` : '';
+    }
+
+
+    function getBundleOriginalTotal(bundle) {
+        if (!bundle || !Array.isArray(bundle.selectedItems) || bundle.selectedItems.length === 0) return 0;
+        const qty = Number(bundle.qty) || 0;
+        const participating = bundle.selectedItems
+            .map(name => products.find(p => p.name === name))
+            .filter(Boolean);
+        if (!participating.length || !qty) return 0;
+
+        // عند اختلاف أسعار النكهات، نستخدم سعر المنتج الممثل إن وُجد؛ وإلا أول منتج مشارك.
+        let representative = bundle.featuredForOffers
+            ? participating.find(p => p.name === bundle.featuredForOffers)
+            : null;
+        representative = representative || participating[0];
+        return (Number(representative.price) || 0) * qty;
+    }
+
+    function bundleSavingHtml(bundle) {
+        const original = getBundleOriginalTotal(bundle);
+        const offer = parseBundlePrice(bundle);
+        const saving = original - offer;
+        if (!(original > 0 && saving > 0.005)) return '';
+        return `<div class="saving-row">
+            <span class="saving-old">${original.toFixed(2)} ₪</span>
+            <span class="saving-badge">وفّري ${saving.toFixed(2)} ₪</span>
+        </div>`;
+    }
+
+    function saleSavingHtml(product) {
+        const regular = Number(product && product.price) || 0;
+        const sale = Number(product && product.salePrice);
+        const saving = regular - sale;
+        if (!(regular > 0 && Number.isFinite(sale) && saving > 0.005)) return '';
+        return `<div class="saving-row">
+            <span class="saving-old">${regular.toFixed(2)} ₪</span>
+            <span class="saving-badge">وفّري ${saving.toFixed(2)} ₪</span>
+        </div>`;
     }
 
     // بطاقة عرض حزمة (بس للحزم يلي عندها صورة مخصصة) - بالضغط عليها بتوديك لقسم "العروض" بالمتجر
@@ -413,6 +523,7 @@
                 </div>
                 <div class="product-name">${escapeHtml(b.name || '')}</div>
                 <div class="product-weight">${qty} قطع</div>
+                ${bundleSavingHtml(b)}
                 <span class="bundle-price-badge">${qty} بـ ${price.toFixed(2)} ₪</span>
             </div>
         `;
@@ -445,13 +556,9 @@
                 </div>
                 <div class="product-name">${escapeHtml(p.name || '')}</div>
                 <div class="product-weight">${escapeHtml(p.weight || 'حبة')}</div>
-                ${(!matchedBundle || hasSale) ? `
-                <div class="price-row">
-                    ${hasSale
-                        ? `<span class="sale-price">${salePrice.toFixed(2)}₪</span><span class="old-price">${sellPrice.toFixed(2)}₪</span>`
-                        : `<span class="plain-price">${sellPrice.toFixed(2)}₪</span>`
-                    }
-                </div>` : ''}
+                ${matchedBundle ? bundleSavingHtml(matchedBundle) : (hasSale ? saleSavingHtml(p) : '')}
+                ${(!matchedBundle && hasSale) ? `
+                <div class="price-row"><span class="sale-price">${salePrice.toFixed(2)}₪</span></div>` : ''}
                 ${bundleBadgeHtml}
             </div>
         `;
