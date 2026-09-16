@@ -135,18 +135,11 @@
     }
 
     // منقسّم المنتجات لقسمين: "العروض" (منتج عليه سعر مخفّض) و"الرزم" (منتج داخل بعرض كمية/حزمة) -
-    // نفس المنتج ما بينكرر بالقسمين، الأولوية لقسم "العروض" لو كان مؤهل للاثنين مع بعض
+    // نفس المنتج ما بينكرر بالقسمين، الأولوية لقسم "العروض" لو كان مؤهل للاثنين مع بعض. ترتيب قسم
+    // "الرزم" بيتبع نفس ترتيب الحزم (bundles) المضبوط بالسحب والإفلات من bundle.html بالظبط، ومنتجات
+    // نفس الحزمة بيطلعوا متلاصقين مع بعض - تماماً متل ترتيبهم بقسم "العروض" بالمتجر الرئيسي
     function renderProducts() {
         const container = document.getElementById('productsSection');
-
-        let bundleParticipantIds = new Set();
-        (bundles || []).forEach(b => {
-            if (b.selectedItems && b.selectedItems.length > 0) {
-                products.forEach(p => {
-                    if (b.selectedItems.includes(p.name)) bundleParticipantIds.add(p.id);
-                });
-            }
-        });
 
         let featuredBundleProductIds = new Set();
         (bundles || []).forEach(b => {
@@ -157,12 +150,28 @@
         });
 
         let saleOffers = [], bundleOffers = [];
-        products.forEach(p => {
+        let addedBundleIds = new Set();
+
+        // "الرزم": نمشي حسب ترتيب الحزم نفسه (bundles أصلاً مرتّبة حسب sortOrder)، ومنتجات كل حزمة
+        // بيطلعوا مع بعض متتاليين بنفس ترتيبهم جوا الحزمة
+        (bundles || []).forEach(b => {
+            if (!b.selectedItems || b.selectedItems.length === 0) return;
+            b.selectedItems.forEach(itemName => {
+                let p = products.find(pr => pr.name === itemName);
+                if (!p) return;
+                let hasSale = p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
+                if (hasSale || featuredBundleProductIds.has(p.id)) return; // هاد بيروح لقسم "العروض" مش "الرزم"
+                if (addedBundleIds.has(p.id)) return; // ما نكرر نفس المنتج لو كان بأكثر من حزمة
+                addedBundleIds.add(p.id);
+                bundleOffers.push(p);
+            });
+        });
+
+        // "العروض": كل منتج عليه سعر مخفّض أو ممثّل حزمة، مرتبين أبجدياً
+        products.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar')).forEach(p => {
             let hasSale = p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
             if (hasSale || featuredBundleProductIds.has(p.id)) {
                 saleOffers.push(p);
-            } else if (bundleParticipantIds.has(p.id)) {
-                bundleOffers.push(p);
             }
         });
 
@@ -237,6 +246,9 @@
     onSnapshot(collection(db, "bundles"), (snap) => {
         bundles = [];
         snap.forEach(d => bundles.push({ id: d.id, ...d.data() }));
+        // نرتّب حسب sortOrder (نفس ترتيب السحب والإفلات المضبوط بـ bundle.html) حتى ترتيب المنتجات
+        // هون يطابق بالظبط ترتيب قسم "العروض" بالمتجر الرئيسي
+        bundles.sort((a, b) => (a.sortOrder !== undefined ? a.sortOrder : 999999) - (b.sortOrder !== undefined ? b.sortOrder : 999999));
         renderProducts();
     });
 
