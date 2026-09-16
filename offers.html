@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 <title>عروض وحملات - العروبة أونلاين</title>
+<link rel="apple-touch-icon" href="logo.png">
+
+<!-- بطاقة المعاينة اللي تظهر عند مشاركة الرابط بواتساب أو فيسبوك أو غيره -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://alorobaonline.github.io/offers.html">
+<meta property="og:title" content="🎁 عروض وحملات العروبة أونلاين">
+<meta property="og:description" content="شوفي أحدث العروض والحزم بضغطة وحدة - أسعار خاصة لفترة محدودة 🔥">
+<meta property="og:image" content="https://alorobaonline.github.io/logo.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="🎁 عروض وحملات العروبة أونلاين">
+<meta name="twitter:description" content="شوفي أحدث العروض والحزم بضغطة وحدة - أسعار خاصة لفترة محدودة 🔥">
+<meta name="twitter:image" content="https://alorobaonline.github.io/logo.png">
+
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
     :root { --primary-green: #6BA516; --price-red: #dc2626; --price-black: #111827; }
@@ -68,7 +81,7 @@
             <div class="title">🎁 عروضنا وحملاتنا</div>
             <div class="sub">العروبة أونلاين</div>
         </div>
-        <span style="font-size:26px;">🛒</span>
+        <button id="shareBtn" onclick="shareOffersPage()" style="background:rgba(255,255,255,0.18); border:none; color:white; width:38px; height:38px; border-radius:50%; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;">📤</button>
     </div>
 
     <div id="bannersSection"></div>
@@ -104,6 +117,27 @@
         return String(str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     }
 
+    // زر مشاركة الصفحة - بيفتح قائمة مشاركة الجهاز الطبيعية (واتساب، انستقرام...)، وإذا الجهاز
+    // ما بيدعمها (متصفح كمبيوتر مثلاً)، بننسخ الرابط للحافظة بدلاً منها
+    window.shareOffersPage = async function() {
+        const shareData = {
+            title: '🎁 عروض وحملات العروبة أونلاين',
+            text: 'شوفي أحدث العروض والحزم عندنا بضغطة وحدة 🔥',
+            url: window.location.href
+        };
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+            } else {
+                await navigator.clipboard.writeText(shareData.url);
+                alert('✅ تم نسخ رابط الصفحة، الصقيه بأي مكان بدك تشاركيه');
+            }
+        } catch (e) {
+            // المستخدم لغى المشاركة أو صار خطأ بسيط - ما في داعي نظهر رسالة خطأ مزعجة
+            console.log('مشاركة ملغاة أو غير مدعومة', e);
+        }
+    };
+
     function renderBanners() {
         const container = document.getElementById('bannersSection');
         let todayStr = new Date().toISOString().slice(0, 10);
@@ -135,63 +169,63 @@
         return Number(String(b.priceText || '0').replace(',', '.')) || 0;
     }
 
-    // منقسّم المنتجات لقسمين: "العروض" (منتج عليه سعر مخفّض) و"الرزم" (منتج داخل بعرض كمية/حزمة) -
-    // نفس المنتج ما بينكرر بالقسمين، الأولوية لقسم "العروض" لو كان مؤهل للاثنين مع بعض. ترتيب قسم
-    // "الرزم" بيتبع نفس ترتيب الحزم (bundles) المضبوط بالسحب والإفلات من bundle.html بالظبط، ومنتجات
-    // نفس الحزمة بيطلعوا متلاصقين مع بعض - تماماً متل ترتيبهم بقسم "العروض" بالمتجر الرئيسي
+    // بس الحزم يلي عندها صورة مخصصة أو منتج ممثّل هي يلي بتظهر بمكان "الرزم" (بطاقة وحدة بس لكل
+    // حزمة، مش كل منتجاتها فرادى) - نفس منطق المتجر الرئيسي بالظبط
     function renderProducts() {
         const container = document.getElementById('productsSection');
 
-        let featuredBundleProductIds = new Set();
+        let html = '<div class="products-grid">';
+        let addedProductIds = new Set();
+        let hasAnyCard = false;
+
         (bundles || []).forEach(b => {
-            if (b.featuredForOffers) {
-                let prod = products.find(p => p.name === b.featuredForOffers);
-                if (prod) featuredBundleProductIds.add(prod.id);
+            let featuredProduct = b.featuredForOffers ? products.find(p => p.name === b.featuredForOffers) : null;
+            if (b.customImage) {
+                html += createBundleOfferCardHtml(b);
+                hasAnyCard = true;
+                if (featuredProduct) addedProductIds.add(featuredProduct.id);
+            } else if (featuredProduct) {
+                html += createProductCardHtml(featuredProduct, findSpecificBundleForProduct(featuredProduct));
+                hasAnyCard = true;
+                addedProductIds.add(featuredProduct.id);
             }
         });
 
-        let saleOffers = [], bundleOffers = [];
-        let addedBundleIds = new Set();
-
-        // "الرزم": نمشي حسب ترتيب الحزم نفسه (bundles أصلاً مرتّبة حسب sortOrder)، ومنتجات كل حزمة
-        // بيطلعوا مع بعض متتاليين بنفس ترتيبهم جوا الحزمة
-        (bundles || []).forEach(b => {
-            if (!b.selectedItems || b.selectedItems.length === 0) return;
-            b.selectedItems.forEach(itemName => {
-                let p = products.find(pr => pr.name === itemName);
-                if (!p) return;
-                let hasSale = p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
-                if (hasSale || featuredBundleProductIds.has(p.id)) return; // هاد بيروح لقسم "العروض" مش "الرزم"
-                if (addedBundleIds.has(p.id)) return; // ما نكرر نفس المنتج لو كان بأكثر من حزمة
-                addedBundleIds.add(p.id);
-                bundleOffers.push(p);
-            });
-        });
-
-        // "العروض": كل منتج عليه سعر مخفّض أو ممثّل حزمة، مرتبين أبجدياً
         products.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar')).forEach(p => {
             let hasSale = p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
-            if (hasSale || featuredBundleProductIds.has(p.id)) {
-                saleOffers.push(p);
+            if (hasSale && !addedProductIds.has(p.id)) {
+                html += createProductCardHtml(p, findSpecificBundleForProduct(p));
+                hasAnyCard = true;
+                addedProductIds.add(p.id);
             }
         });
 
-        if (saleOffers.length === 0 && bundleOffers.length === 0) {
+        html += '</div>';
+
+        if (!hasAnyCard) {
             container.innerHTML = '<div class="empty-msg">لا توجد عروض حالياً، رجعي تشيكي قريباً 🙂</div>';
             return;
         }
 
-        // شبكة واحدة متواصلة بدون عناوين فواصل - العروض أول شي وبعدها الرزم، بنفس الترتيب
-        let html = '<div class="products-grid">';
-        saleOffers.forEach(p => {
-            html += createProductCardHtml(p, findSpecificBundleForProduct(p));
-        });
-        bundleOffers.forEach(p => {
-            html += createProductCardHtml(p, findSpecificBundleForProduct(p));
-        });
-        html += '</div>';
-
         container.innerHTML = html;
+    }
+
+    // بطاقة عرض حزمة (بس للحزم يلي عندها صورة مخصصة) - بالضغط عليها بتوديك لقسم "العروض" بالمتجر
+    function createBundleOfferCardHtml(b) {
+        let qty = Number(b.qty) || 4;
+        let price = parseBundlePrice(b);
+        return `
+            <a class="product-card has-sale" href="index.html#__ALL_OFFERS__">
+                <div class="product-img-box">
+                    <img src="${b.customImage}" alt="${escapeHtml(b.name)}" loading="lazy">
+                </div>
+                <div class="product-name">${escapeHtml(b.name || '')}</div>
+                <div class="product-weight">${qty} قطع</div>
+                <div class="price-row">
+                    <span class="bundle-price-badge">${qty} بـ ${price.toFixed(2)} ₪</span>
+                </div>
+            </a>
+        `;
     }
 
     function createProductCardHtml(p, matchedBundle) {
