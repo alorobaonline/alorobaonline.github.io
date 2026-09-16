@@ -181,25 +181,15 @@
             return;
         }
 
-        let html = '';
-
-        if (saleOffers.length > 0) {
-            html += `<div class="section-title">🔥 العروض</div>`;
-            html += `<div class="products-grid">`;
-            saleOffers.forEach(p => {
-                html += createProductCardHtml(p, findSpecificBundleForProduct(p));
-            });
-            html += `</div>`;
-        }
-
-        if (bundleOffers.length > 0) {
-            html += `<div class="section-title">📦 الرزم</div>`;
-            html += `<div class="products-grid">`;
-            bundleOffers.forEach(p => {
-                html += createProductCardHtml(p, findSpecificBundleForProduct(p));
-            });
-            html += `</div>`;
-        }
+        // شبكة واحدة متواصلة بدون عناوين فواصل - العروض أول شي وبعدها الرزم، بنفس الترتيب
+        let html = '<div class="products-grid">';
+        saleOffers.forEach(p => {
+            html += createProductCardHtml(p, findSpecificBundleForProduct(p));
+        });
+        bundleOffers.forEach(p => {
+            html += createProductCardHtml(p, findSpecificBundleForProduct(p));
+        });
+        html += '</div>';
 
         container.innerHTML = html;
     }
