@@ -98,6 +98,8 @@
     .zoom-info { padding: 14px 16px 18px; text-align: center; }
     .zoom-name { font-size: 15px; font-weight: 900; color: #1f2937; margin-bottom: 10px; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -118,7 +120,10 @@
             <div class="title">🎁 عروضنا وحملاتنا</div>
             <div class="sub">العروبة أونلاين</div>
         </div>
-        <button id="shareBtn" onclick="shareOffersPage()" style="background:rgba(255,255,255,0.18); border:none; color:white; width:38px; height:38px; border-radius:50%; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;">📤</button>
+        <div style="display:flex; gap:6px;">
+            <button id="pdfBtn" onclick="downloadOffersAsPdf()" style="background:rgba(255,255,255,0.18); border:none; color:white; width:38px; height:38px; border-radius:50%; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;">📄</button>
+            <button id="shareBtn" onclick="shareOffersPage()" style="background:rgba(255,255,255,0.18); border:none; color:white; width:38px; height:38px; border-radius:50%; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;">📤</button>
+        </div>
     </div>
 
     <div id="productsSection"><div class="loading-msg">جاري تحميل العروض...</div></div>
@@ -187,6 +192,50 @@
         } catch (e) {
             // المستخدم لغى المشاركة أو صار خطأ بسيط - ما في داعي نظهر رسالة خطأ مزعجة
             console.log('مشاركة ملغاة أو غير مدعومة', e);
+        }
+    };
+
+    // بتحوّل محتوى الصفحة الحالي (العروض والحزم الظاهرة هلأ) لملف PDF قابل للتحميل - مفيد
+    // للطباعة أو الإرسال كملف بدل رابط. بتاخد "صورة" من الصفحة وتقسمها لصفحات PDF تلقائياً
+    window.downloadOffersAsPdf = async function() {
+        const btn = document.getElementById('pdfBtn');
+        const original = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = '⏳';
+
+        try {
+            const target = document.querySelector('.wrap');
+            const canvas = await html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#f3f4f6' });
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+
+            const imgWidth = pageWidth;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+            let heightLeft = imgHeight;
+            let position = 0;
+            const imgData = canvas.toDataURL('image/jpeg', 0.92);
+
+            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            pdf.save('عروض-العروبة-اونلاين.pdf');
+        } catch (e) {
+            console.error(e);
+            alert('❌ تعذر إنشاء ملف PDF، حاولي مرة ثانية');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = original;
         }
     };
 
