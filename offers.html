@@ -81,9 +81,37 @@
         display: block; text-align: center; background: var(--primary-green); color: white;
         text-decoration: none; font-weight: 900; font-size: 14px; padding: 12px; border-radius: 12px;
     }
+
+    /* نافذة تكبير الصورة - بتفتح بالضغط على صورة المنتج بس، بدون ما توديك عالمتجر */
+    .zoom-overlay {
+        display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200;
+        align-items: center; justify-content: center; padding: 20px;
+    }
+    .zoom-overlay.active { display: flex; }
+    .zoom-box { background: white; border-radius: 18px; max-width: 380px; width: 100%; overflow: hidden; position: relative; }
+    .zoom-close-btn {
+        position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.55); color: white; border: none;
+        width: 30px; height: 30px; border-radius: 50%; font-size: 16px; cursor: pointer; z-index: 2;
+    }
+    .zoom-img-wrap { width: 100%; aspect-ratio: 1/1; background: #fafbfa; display: flex; align-items: center; justify-content: center; }
+    .zoom-img-wrap img { max-width: 90%; max-height: 90%; object-fit: contain; }
+    .zoom-info { padding: 14px 16px 18px; text-align: center; }
+    .zoom-name { font-size: 15px; font-weight: 900; color: #1f2937; margin-bottom: 10px; }
 </style>
 </head>
 <body>
+
+<div class="zoom-overlay" id="zoomOverlay" onclick="if(event.target===this) closeImageZoom()">
+    <div class="zoom-box">
+        <button class="zoom-close-btn" onclick="closeImageZoom()">✕</button>
+        <div class="zoom-img-wrap"><img id="zoomImg" src="" alt=""></div>
+        <div class="zoom-info">
+            <div class="zoom-name" id="zoomName"></div>
+            <div id="zoomBadgeWrap"></div>
+        </div>
+    </div>
+</div>
+
 <div class="wrap">
     <div class="top-header">
         <div>
@@ -97,7 +125,7 @@
 </div>
 
 <div class="shop-now-bar">
-    <a href="index.html">🛍️ تسوقي كل المنتجات بالمتجر</a>
+    <a href="index.html#__ALL_OFFERS__">🛍️ تسوقي كل المنتجات بالمتجر</a>
 </div>
 
 <script type="module">
@@ -124,6 +152,22 @@
     function escapeHtml(str) {
         return String(str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     }
+
+    // نافذة تكبير الصورة - بتفتح بالضغط على الصورة بس (مش على باقي البطاقة)، وبتوري الصورة
+    // والاسم والعرض بدون ما تودي الزبون عالمتجر
+    window.openImageZoom = function(event, img, name, badgeText) {
+        event.preventDefault();
+        event.stopPropagation();
+        document.getElementById('zoomImg').src = img || '';
+        document.getElementById('zoomImg').alt = name || '';
+        document.getElementById('zoomName').innerText = name || '';
+        document.getElementById('zoomBadgeWrap').innerHTML = badgeText ? `<span class="bundle-price-badge" style="display:inline-block;">${badgeText}</span>` : '';
+        document.getElementById('zoomOverlay').classList.add('active');
+    };
+
+    window.closeImageZoom = function() {
+        document.getElementById('zoomOverlay').classList.remove('active');
+    };
 
     // زر مشاركة الصفحة - بيفتح قائمة مشاركة الجهاز الطبيعية (واتساب، انستقرام...)، وإذا الجهاز
     // ما بيدعمها (متصفح كمبيوتر مثلاً)، بننسخ الرابط للحافظة بدلاً منها
@@ -265,15 +309,16 @@
     function createBundleOfferCardHtml(b) {
         let qty = Number(b.qty) || 4;
         let price = parseBundlePrice(b);
+        let badgeText = `${qty} بـ ${price.toFixed(2)} ₪`;
         return `
-            <a class="product-card has-sale" href="index.html#__ALL_OFFERS__">
-                <div class="product-img-box">
+            <div class="product-card has-sale">
+                <div class="product-img-box" onclick='openImageZoom(event, "${b.customImage}", "${escapeHtml(b.name)}", "${escapeHtml(badgeText)}")'>
                     <img src="${b.customImage}" alt="${escapeHtml(b.name)}" loading="lazy">
                 </div>
                 <div class="product-name">${escapeHtml(b.name || '')}</div>
                 <div class="product-weight">${qty} قطع</div>
                 <span class="bundle-price-badge">${qty} بـ ${price.toFixed(2)} ₪</span>
-            </a>
+            </div>
         `;
     }
 
@@ -283,19 +328,21 @@
         const salePrice = hasSale ? Number(p.salePrice) : null;
         const discountPct = (hasSale && sellPrice > 0) ? Math.round((1 - salePrice / sellPrice) * 100) : null;
 
-        // بيوديها لصفحة "كل العروض" بالمتجر الرئيسي مباشرة، مع تمييز/سكرول تلقائي لنفس المنتج يلي ضغطت عليه
-        const orderLink = `index.html?p=${encodeURIComponent(p.id)}#__ALL_OFFERS__`;
-
+        // ملاحظة: ما عادت البطاقة نفسها رابط - الزبون ما بينتقل للمتجر إلا من زر "تسوقي" بالأسفل
         let bundleBadgeHtml = '';
+        let zoomBadgeText = '';
         if (matchedBundle) {
             let bQty = Number(matchedBundle.qty) || 0;
             let bPrice = parseBundlePrice(matchedBundle);
-            bundleBadgeHtml = `<span class="bundle-price-badge">${bQty} بـ ${bPrice.toFixed(2)} ₪</span>`;
+            zoomBadgeText = `${bQty} بـ ${bPrice.toFixed(2)} ₪`;
+            bundleBadgeHtml = `<span class="bundle-price-badge">${zoomBadgeText}</span>`;
+        } else if (hasSale) {
+            zoomBadgeText = `${salePrice.toFixed(2)}₪`;
         }
 
         return `
-            <a class="product-card ${(hasSale || matchedBundle) ? 'has-sale' : ''}" href="${orderLink}">
-                <div class="product-img-box">
+            <div class="product-card ${(hasSale || matchedBundle) ? 'has-sale' : ''}">
+                <div class="product-img-box" onclick='openImageZoom(event, "${p.img || ''}", "${escapeHtml(p.name)}", "${escapeHtml(zoomBadgeText)}")'>
                     ${discountPct ? `<span class="discount-badge">${discountPct}%-</span>` : ''}
                     <img src="${p.img || ''}" alt="${escapeHtml(p.name)}" loading="lazy">
                 </div>
@@ -309,7 +356,7 @@
                     }
                 </div>` : ''}
                 ${bundleBadgeHtml}
-            </a>
+            </div>
         `;
     }
 
