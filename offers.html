@@ -38,6 +38,15 @@
     .banner-strip img { height: 150px; border-radius: 14px; flex-shrink: 0; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
     .banner-strip a { display: block; flex-shrink: 0; }
 
+    /* بانر بشكل سلايدر: صورة وحدة كبيرة بكل مرة، ونقاط تنقل تحتها - نفس شكل المتجر بالظبط */
+    .banner-carousel { padding: 14px; }
+    .banner-carousel-viewport { position: relative; width: 100%; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); aspect-ratio: 16/9; background: #eee; }
+    .banner-carousel-track { display: flex; height: 100%; transition: transform 0.4s ease; }
+    .banner-carousel-track a, .banner-carousel-track img { width: 100%; height: 100%; flex-shrink: 0; object-fit: cover; display: block; }
+    .banner-carousel-dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
+    .banner-carousel-dots span { width: 6px; height: 6px; border-radius: 50%; background: #d1d5db; transition: all 0.25s ease; }
+    .banner-carousel-dots span.active { background: var(--primary-green); width: 18px; border-radius: 4px; }
+
     .section-title { font-weight: 900; font-size: 15px; color: #1f2937; padding: 18px 14px 8px; }
 
     .products-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 0 12px 14px; }
@@ -138,25 +147,68 @@
         }
     };
 
+    let bannerCarouselIndex = 0;
+    let bannerCarouselTimer = null;
+    let bannerCarouselSlides = [];
+
     function renderBanners() {
         const container = document.getElementById('bannersSection');
         let todayStr = new Date().toISOString().slice(0, 10);
         let slides = (bannerSlides || []).filter(s => s && s.img && (!s.expiryDate || s.expiryDate >= todayStr));
+
+        if (bannerCarouselTimer) { clearInterval(bannerCarouselTimer); bannerCarouselTimer = null; }
 
         if (slides.length === 0) {
             container.innerHTML = '';
             return;
         }
 
+        bannerCarouselSlides = slides;
+        bannerCarouselIndex = 0;
+
         container.innerHTML = `
-            <div class="banner-strip">
-                ${slides.map(s => {
-                    const imgTag = `<img src="${s.img}" alt="${escapeHtml(s.title)}">`;
-                    if (s.link) return `<a href="${s.link}" target="_blank" rel="noopener">${imgTag}</a>`;
-                    return imgTag;
-                }).join('')}
+            <div class="banner-carousel">
+                <div class="banner-carousel-viewport" id="bannerViewport">
+                    <div class="banner-carousel-track" id="bannerTrack">
+                        ${slides.map(s => {
+                            const imgTag = `<img src="${s.img}" alt="${escapeHtml(s.title)}">`;
+                            return s.link ? `<a href="${s.link}" target="_blank" rel="noopener">${imgTag}</a>` : imgTag;
+                        }).join('')}
+                    </div>
+                </div>
+                ${slides.length > 1 ? `<div class="banner-carousel-dots" id="bannerDots">
+                    ${slides.map((s, i) => `<span class="${i === 0 ? 'active' : ''}"></span>`).join('')}
+                </div>` : ''}
             </div>
         `;
+
+        if (slides.length > 1) {
+            initBannerSwipe();
+            bannerCarouselTimer = setInterval(() => goToBannerSlide(bannerCarouselIndex + 1), 4000);
+        }
+    }
+
+    function goToBannerSlide(index) {
+        const track = document.getElementById('bannerTrack');
+        if (!track) return;
+        const count = bannerCarouselSlides.length;
+        bannerCarouselIndex = ((index % count) + count) % count;
+        track.style.transform = `translateX(-${bannerCarouselIndex * 100}%)`;
+        document.querySelectorAll('#bannerDots span').forEach((dot, i) => dot.classList.toggle('active', i === bannerCarouselIndex));
+    }
+
+    // سحب بالإصبع للتنقل بين البانرات يدوياً (بالإضافة للتدوير التلقائي)
+    function initBannerSwipe() {
+        const viewport = document.getElementById('bannerViewport');
+        let startX = 0;
+        viewport.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; }, { passive: true });
+        viewport.addEventListener('touchend', (e) => {
+            const diff = e.changedTouches[0].clientX - startX;
+            if (Math.abs(diff) < 40) return;
+            clearInterval(bannerCarouselTimer);
+            goToBannerSlide(bannerCarouselIndex + (diff > 0 ? 1 : -1)); // RTL: سحب لليمين = رجوع
+            bannerCarouselTimer = setInterval(() => goToBannerSlide(bannerCarouselIndex + 1), 4000);
+        }, { passive: true });
     }
 
     // بترجع الحزمة (عرض كمية) المرتبطة بمنتج معين لو موجودة - نفس منطق المتجر الرئيسي بالظبط
@@ -221,9 +273,7 @@
                 </div>
                 <div class="product-name">${escapeHtml(b.name || '')}</div>
                 <div class="product-weight">${qty} قطع</div>
-                <div class="price-row">
-                    <span class="bundle-price-badge">${qty} بـ ${price.toFixed(2)} ₪</span>
-                </div>
+                <span class="bundle-price-badge">${qty} بـ ${price.toFixed(2)} ₪</span>
             </a>
         `;
     }
@@ -252,12 +302,13 @@
                 </div>
                 <div class="product-name">${escapeHtml(p.name || '')}</div>
                 <div class="product-weight">${escapeHtml(p.weight || 'حبة')}</div>
+                ${(!matchedBundle || hasSale) ? `
                 <div class="price-row">
                     ${hasSale
                         ? `<span class="sale-price">${salePrice.toFixed(2)}₪</span><span class="old-price">${sellPrice.toFixed(2)}₪</span>`
                         : `<span class="plain-price">${sellPrice.toFixed(2)}₪</span>`
                     }
-                </div>
+                </div>` : ''}
                 ${bundleBadgeHtml}
             </a>
         `;
