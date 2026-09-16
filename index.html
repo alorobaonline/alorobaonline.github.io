@@ -2210,6 +2210,9 @@
                     bundles.push({ id: docSnap.id, ...b });
                 }
             });
+            // نرتّب حسب sortOrder (اللي بتضبطينه بالسحب والإفلات من bundle.html) حتى ترتيب
+            // منتجات كل عرض بصفحة "العروض" وبالمتجر بشكل عام يطابق الترتيب يلي اخترتيه بالظبط
+            bundles.sort((a, b) => (a.sortOrder !== undefined ? a.sortOrder : 999999) - (b.sortOrder !== undefined ? b.sortOrder : 999999));
             renderBundlesSection();
             if (products.length > 0) {
                 sortProducts();
