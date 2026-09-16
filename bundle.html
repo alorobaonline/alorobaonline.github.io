@@ -195,11 +195,25 @@
                     </div>
                 </div>
 
+                <!-- شارة تسويقية اختيارية للحزمة -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">شارة العرض (اختياري)</label>
+                    <select id="bundle-marketing-badge" onchange="updatePreview()" class="w-full border border-gray-200 bg-gray-50 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-green)]/40 focus:border-[var(--primary-green)] transition">
+                        <option value="">بدون شارة</option>
+                        <option value="strong">🔥 عرض قوي</option>
+                        <option value="popular">👑 الأكثر طلباً</option>
+                        <option value="featured">⭐ عرض مميز</option>
+                        <option value="new">✨ جديد</option>
+                    </select>
+                    <p class="text-[11px] text-gray-400 mt-1">تظهر الشارة مع الحزمة عند استخدام هذا الحقل في واجهة المتجر.</p>
+                </div>
+
                 <!-- معاينة حية للشارة -->
                 <div class="flex items-center gap-2.5 bg-[var(--accent-green-light)] border border-[var(--accent-green)]/20 rounded-xl p-3">
                     <i class="fa-solid fa-eye text-[var(--primary-green)] text-xs"></i>
                     <span class="text-xs text-[var(--primary-green)] font-bold">معاينة الشارة بالمتجر:</span>
                     <span id="badge-preview" class="text-xs bg-red-600 text-white font-bold px-2.5 py-1 rounded-lg shadow-sm">4 بـ 0.00 ₪</span>
+                    <span id="marketing-badge-preview" class="hidden text-xs bg-amber-100 text-amber-800 font-black px-2.5 py-1 rounded-lg"></span>
                 </div>
 
                 <!-- صورة مخصصة للحزمة (اختياري) - بتظهر كصورة الحزمة بدل ما ننتقي تلقائياً صورة أول
@@ -526,6 +540,24 @@
             const qty = document.getElementById('bundle-qty').value.trim() || '4';
             const price = document.getElementById('bundle-price').value.trim() || '0.00';
             document.getElementById('badge-preview').innerText = `${qty} بـ ${price} ₪`;
+
+            const marketingBadge = document.getElementById('bundle-marketing-badge')?.value || '';
+            const marketingLabels = {
+                strong: '🔥 عرض قوي',
+                popular: '👑 الأكثر طلباً',
+                featured: '⭐ عرض مميز',
+                new: '✨ جديد'
+            };
+            const marketingPreview = document.getElementById('marketing-badge-preview');
+            if (marketingPreview) {
+                if (marketingBadge && marketingLabels[marketingBadge]) {
+                    marketingPreview.innerText = marketingLabels[marketingBadge];
+                    marketingPreview.classList.remove('hidden');
+                } else {
+                    marketingPreview.innerText = '';
+                    marketingPreview.classList.add('hidden');
+                }
+            }
         };
 
         // ===================== عرض قائمة الحزم =====================
@@ -585,6 +617,11 @@
                     ? `<img src="${thumb}" class="w-12 h-12 rounded-xl object-cover border border-gray-100 flex-shrink-0" onerror="this.style.display='none'">`
                     : `<div class="w-12 h-12 rounded-xl bg-[var(--accent-green-light)] border border-gray-100 flex items-center justify-center flex-shrink-0 text-[var(--primary-green)]"><i class="fa-solid fa-gift"></i></div>`;
 
+                const marketingLabels = { strong: '🔥 عرض قوي', popular: '👑 الأكثر طلباً', featured: '⭐ عرض مميز', new: '✨ جديد' };
+                const marketingBadgeHtml = bundle.marketingBadge && marketingLabels[bundle.marketingBadge]
+                    ? `<span class="text-[10px] bg-amber-100 text-amber-800 font-black px-2 py-0.5 rounded-md whitespace-nowrap">${marketingLabels[bundle.marketingBadge]}</span>`
+                    : '';
+
                 const itemDiv = document.createElement('div');
                 itemDiv.className = `bundle-card ${bundle.active ? '' : 'is-inactive'} flex items-center justify-between p-3 bg-white border border-gray-100 rounded-2xl shadow-sm gap-3`;
                 itemDiv.setAttribute('data-bundle-id', docId);
@@ -597,6 +634,7 @@
                             <div class="flex items-center gap-2 mb-1 flex-wrap">
                                 <span class="font-bold text-gray-900 text-sm">${bundle.name}</span>
                                 <span class="text-[11px] bg-red-600 text-white font-bold px-2 py-0.5 rounded-md whitespace-nowrap">${bundle.qty || 4} بـ ${bundle.priceText} ₪</span>
+                                ${marketingBadgeHtml}
                             </div>
                             <p class="text-gray-400 text-[11px] truncate max-w-[210px]">${itemsText}</p>
                         </div>
@@ -783,6 +821,7 @@
             const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
             const selectedItems = Array.from(selectedCheckboxes).map(cb => cb.value);
             const featuredForOffers = document.getElementById('bundle-featured-offer').value || null;
+            const marketingBadge = document.getElementById('bundle-marketing-badge').value || null;
 
             if (!name || !priceText) {
                 showToast('يرجى تعبئة اسم الحزمة والسعر على الأقل', 'error');
@@ -797,6 +836,7 @@
                         qty: qty || 4,
                         selectedItems: selectedItems,
                         featuredForOffers: featuredForOffers,
+                        marketingBadge: marketingBadge,
                         customImage: currentBundleCustomImage
                     });
                     showToast('تم تحديث عرض الحزمة بنجاح ✏️');
@@ -807,6 +847,7 @@
                         qty: qty || 4,
                         selectedItems: selectedItems,
                         featuredForOffers: featuredForOffers,
+                        marketingBadge: marketingBadge,
                         customImage: currentBundleCustomImage,
                         active: true,
                         createdAt: Date.now()
@@ -829,6 +870,7 @@
             document.getElementById('bundle-name').value = '';
             document.getElementById('bundle-price').value = '';
             document.getElementById('bundle-qty').value = '';
+            document.getElementById('bundle-marketing-badge').value = '';
             document.getElementById('product-search').value = '';
             currentBundleCustomImage = null;
             document.getElementById('bundle-image-input').value = '';
@@ -853,6 +895,7 @@
             document.getElementById('bundle-name').value = bundle.name || '';
             document.getElementById('bundle-price').value = bundle.priceText || '';
             document.getElementById('bundle-qty').value = bundle.qty || 4;
+            document.getElementById('bundle-marketing-badge').value = bundle.marketingBadge || '';
             document.getElementById('product-search').value = '';
             currentBundleCustomImage = bundle.customImage || null;
             document.getElementById('bundle-image-input').value = '';
