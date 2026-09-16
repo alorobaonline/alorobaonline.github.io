@@ -3359,20 +3359,21 @@
         let query = document.getElementById('searchInput').value.trim().toLowerCase();
         let htmlParts = [];
 
-        // وضع "كل العروض" - كل منتج عليه سعر عرض مفعّل حالياً + المنتجات الممثّلة لعروض حزمة (لو
-        // الأدمن اختار منتج ممثّل لأي حزمة من bundle.html)، بدون حد أقصى
+        // وضع "كل العروض" - كل منتج عليه سعر عرض مفعّل حالياً + كل منتجات عروض الحزمة النشطة، بدون
+        // حاجة نحدد "منتج ممثّل" يدوياً لكل حزمة (نفس منطق صفحة offers.html بالظبط)
         if (currentCategory === ALL_OFFERS_KEY) {
             document.getElementById('loadMoreIndicator').style.display = 'none';
-            let featuredBundleProductIds = new Set();
+            let bundleParticipantIds = new Set();
             (bundles || []).forEach(b => {
-                if (!b.featuredForOffers) return;
-                let prod = products.find(p => p.name === b.featuredForOffers);
-                if (prod) featuredBundleProductIds.add(prod.id);
+                if (!b.selectedItems || b.selectedItems.length === 0) return;
+                products.forEach(p => {
+                    if (b.selectedItems.includes(p.name)) bundleParticipantIds.add(p.id);
+                });
             });
             let combinedMap = new Map();
             products.forEach(p => {
                 let hasSale = p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
-                if (hasSale || featuredBundleProductIds.has(p.id)) combinedMap.set(p.id, p);
+                if (hasSale || bundleParticipantIds.has(p.id)) combinedMap.set(p.id, p);
             });
             let allOffers = Array.from(combinedMap.values());
             container.innerHTML = allOffers.length > 0
