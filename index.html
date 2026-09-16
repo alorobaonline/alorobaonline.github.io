@@ -3359,26 +3359,21 @@
         let query = document.getElementById('searchInput').value.trim().toLowerCase();
         let htmlParts = [];
 
-        // وضع "كل العروض" - كل منتج عليه سعر عرض مفعّل حالياً + كل منتجات عروض الحزمة النشطة، بدون
-        // حاجة نحدد "منتج ممثّل" يدوياً لكل حزمة (نفس منطق صفحة offers.html بالظبط)
+        // وضع "كل العروض" - كل منتج عليه سعر عرض مفعّل حالياً + بطاقة واحدة بس لكل حزمة عندها صورة
+        // مخصصة (مش كل منتجاتها فرادى) - الصورة المخصصة يلي بتحطيها بـ bundle.html هي يلي بتمثّل
+        // الحزمة كاملة هون، وبالضغط عليها بيفتح نفس نافذة اختيار منتجات الحزمة العادية
         if (currentCategory === ALL_OFFERS_KEY) {
             document.getElementById('loadMoreIndicator').style.display = 'none';
-            let bundleParticipantIds = new Set();
-            (bundles || []).forEach(b => {
-                if (!b.selectedItems || b.selectedItems.length === 0) return;
-                products.forEach(p => {
-                    if (b.selectedItems.includes(p.name)) bundleParticipantIds.add(p.id);
-                });
-            });
-            let combinedMap = new Map();
-            products.forEach(p => {
-                let hasSale = p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
-                if (hasSale || bundleParticipantIds.has(p.id)) combinedMap.set(p.id, p);
-            });
-            let allOffers = Array.from(combinedMap.values());
-            container.innerHTML = allOffers.length > 0
-                ? renderProductsSection(allOffers)
-                : `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد عروض حالياً</p>`;
+            let saleProducts = products.filter(p => p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null);
+            let imagedBundles = (bundles || []).filter(b => b.customImage);
+
+            if (saleProducts.length === 0 && imagedBundles.length === 0) {
+                container.innerHTML = `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد عروض حالياً</p>`;
+                return;
+            }
+
+            let cardsHtml = saleProducts.map(p => createProductCardHtml(p)).join('') + imagedBundles.map(b => createBundleOfferCardHtml(b)).join('');
+            container.innerHTML = `<div class="products-grid">${cardsHtml}</div>`;
             return;
         }
 
@@ -4842,6 +4837,33 @@
         if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) return url;
         width = width || 300;
         return url.replace('/upload/', `/upload/w_${width},q_auto,f_auto/`);
+    }
+
+    // بطاقة عرض حزمة (بس للحزم يلي عندها صورة مخصصة) - بتبين بشكل قريب من بطاقة المنتج العادية،
+    // بس الصورة هي صورة الحزمة نفسها والسعر هو سعر الحزمة الكلي، وبالضغط عليها بتفتح نافذة اختيار
+    // منتجات الحزمة (نفس اللي بتفتح من بانر "حزم" بالصفحة الرئيسية بالظبط)
+    function createBundleOfferCardHtml(b) {
+        let qty = Number(b.qty) || 4;
+        let price = parseBundlePrice(b);
+        return `
+            <div class="product-card has-sale" onclick='openBundleModal("${b.id}")' style="cursor: pointer;">
+                <div>
+                    <span class="discount-badge">عرض حزمة</span>
+                    <div class="product-img-box">
+                        <img src="${optimizeImg(b.customImage, 300)}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
+                    </div>
+                    <div class="product-name">${b.name}</div>
+                    <div class="product-weight">${qty} قطع</div>
+                </div>
+                <div>
+                    <div class="product-price-row">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="bundle-price-badge">${qty} بـ ${price.toFixed(2)} ₪</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     function createProductCardHtml(p, sizeVariant) {
