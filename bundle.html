@@ -202,6 +202,26 @@
                     <span id="badge-preview" class="text-xs bg-red-600 text-white font-bold px-2.5 py-1 rounded-lg shadow-sm">4 بـ 0.00 ₪</span>
                 </div>
 
+                <!-- صورة مخصصة للحزمة (اختياري) - بتظهر كصورة الحزمة بدل ما ننتقي تلقائياً صورة أول
+                     منتج مشارك، مفيدة لما تكون المنتجات المشاركة متنوعة وما في صورة وحدة تمثلها كلها -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">صورة الحزمة المخصصة (اختياري)</label>
+                    <div class="flex items-center gap-3">
+                        <div id="bundle-image-preview-wrap" class="w-16 h-16 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <img id="bundle-image-preview" src="" class="w-full h-full object-cover hidden">
+                            <i id="bundle-image-preview-placeholder" class="fa-solid fa-image text-gray-300"></i>
+                        </div>
+                        <div class="flex-1 space-y-1.5">
+                            <label class="cta-btn block text-center bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold py-2 rounded-lg cursor-pointer">
+                                <i class="fa-solid fa-upload"></i> اختاري صورة
+                                <input type="file" id="bundle-image-input" accept="image/*" class="hidden" onchange="handleBundleImageSelected(event)">
+                            </label>
+                            <button type="button" onclick="removeBundleImage()" id="bundle-image-remove-btn" class="w-full text-center bg-red-50 text-red-600 text-xs font-bold py-1.5 rounded-lg cursor-pointer hidden">إزالة الصورة</button>
+                        </div>
+                    </div>
+                    <p id="bundle-image-upload-status" class="text-[11px] text-gray-400 mt-1"></p>
+                </div>
+
                 <!-- منتج ممثّل يظهر بصفحة "🎁 العروض" بسعر الحزمة مباشرة - عشان الزبون يلاقي الحزمة
                      بسهولة من صفحة العروض العامة، مش بس جوا فئتها -->
                 <div>
@@ -250,6 +270,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         // إعدادات الـ Firebase الخاصة بمتجرك
@@ -265,6 +286,7 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const storage = getStorage(app);
         const auth = getAuth(app);
 
         // ===================== بوابة تسجيل الدخول (Firebase Authentication) =====================
@@ -323,6 +345,79 @@
         let storeProducts = [];
         let allBundles = [];
         let editingBundleId = null;
+        let currentBundleCustomImage = null; // رابط الصورة المخصصة الحالية (لو موجودة) أثناء فتح نموذج الإضافة/التعديل
+
+        // ===================== رفع صورة مخصصة للحزمة (Firebase Storage) =====================
+        function resizeImageFileToDataUrl(file, maxDim) {
+            maxDim = maxDim || 800;
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let w = img.naturalWidth, h = img.naturalHeight;
+                        if (w > maxDim || h > maxDim) {
+                            const scale = maxDim / Math.max(w, h);
+                            w = Math.round(w * scale);
+                            h = Math.round(h * scale);
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w;
+                        canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        resolve(canvas.toDataURL('image/jpeg', 0.85));
+                    };
+                    img.onerror = () => reject(new Error('تعذر قراءة الصورة'));
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => reject(new Error('تعذر قراءة الملف'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        window.handleBundleImageSelected = async function(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const statusEl = document.getElementById('bundle-image-upload-status');
+            statusEl.innerText = '⏳ جاري الرفع...';
+            try {
+                const dataUrl = await resizeImageFileToDataUrl(file, 800);
+                const fileName = 'bundles/' + Date.now() + '_' + Math.random().toString(36).slice(2, 10) + '.jpg';
+                const storageRef = ref(storage, fileName);
+                await uploadString(storageRef, dataUrl, 'data_url');
+                const url = await getDownloadURL(storageRef);
+                currentBundleCustomImage = url;
+                updateBundleImagePreview();
+                statusEl.innerText = '✅ تم رفع الصورة';
+            } catch (error) {
+                console.error(error);
+                statusEl.innerText = '❌ تعذر رفع الصورة، حاولي مرة ثانية';
+            }
+        };
+
+        window.removeBundleImage = function() {
+            currentBundleCustomImage = null;
+            document.getElementById('bundle-image-input').value = '';
+            document.getElementById('bundle-image-upload-status').innerText = '';
+            updateBundleImagePreview();
+        };
+
+        function updateBundleImagePreview() {
+            const imgEl = document.getElementById('bundle-image-preview');
+            const placeholderEl = document.getElementById('bundle-image-preview-placeholder');
+            const removeBtn = document.getElementById('bundle-image-remove-btn');
+            if (currentBundleCustomImage) {
+                imgEl.src = currentBundleCustomImage;
+                imgEl.classList.remove('hidden');
+                placeholderEl.classList.add('hidden');
+                removeBtn.classList.remove('hidden');
+            } else {
+                imgEl.src = '';
+                imgEl.classList.add('hidden');
+                placeholderEl.classList.remove('hidden');
+                removeBtn.classList.add('hidden');
+            }
+        }
 
         // ===================== Toast =====================
         window.showToast = function(message, type) {
@@ -456,6 +551,7 @@
         };
 
         function findThumbnailForBundle(bundle) {
+            if (bundle.customImage) return bundle.customImage;
             if (bundle.selectedItems && bundle.selectedItems.length > 0) {
                 for (const itemName of bundle.selectedItems) {
                     const match = storeProducts.find(p => (p.name || '') === itemName);
@@ -700,7 +796,8 @@
                         priceText: priceText,
                         qty: qty || 4,
                         selectedItems: selectedItems,
-                        featuredForOffers: featuredForOffers
+                        featuredForOffers: featuredForOffers,
+                        customImage: currentBundleCustomImage
                     });
                     showToast('تم تحديث عرض الحزمة بنجاح ✏️');
                 } else {
@@ -710,6 +807,7 @@
                         qty: qty || 4,
                         selectedItems: selectedItems,
                         featuredForOffers: featuredForOffers,
+                        customImage: currentBundleCustomImage,
                         active: true,
                         createdAt: Date.now()
                     });
@@ -732,6 +830,10 @@
             document.getElementById('bundle-price').value = '';
             document.getElementById('bundle-qty').value = '';
             document.getElementById('product-search').value = '';
+            currentBundleCustomImage = null;
+            document.getElementById('bundle-image-input').value = '';
+            document.getElementById('bundle-image-upload-status').innerText = '';
+            updateBundleImagePreview();
             renderProductCheckboxes([]);
             filterStoreProducts();
             updatePreview();
@@ -752,6 +854,10 @@
             document.getElementById('bundle-price').value = bundle.priceText || '';
             document.getElementById('bundle-qty').value = bundle.qty || 4;
             document.getElementById('product-search').value = '';
+            currentBundleCustomImage = bundle.customImage || null;
+            document.getElementById('bundle-image-input').value = '';
+            document.getElementById('bundle-image-upload-status').innerText = '';
+            updateBundleImagePreview();
             renderProductCheckboxes(bundle.selectedItems || []);
             filterStoreProducts();
             updatePreview();

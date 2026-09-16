@@ -601,6 +601,8 @@
         .bundle-thumbs-row { display: flex; justify-content: center; margin-bottom: 8px; }
         .bundle-thumb-img { width: 34px; height: 34px; border-radius: 50%; object-fit: contain; background: white; border: 2px solid #fffaf5; box-shadow: 0 1px 5px rgba(0,0,0,0.14); margin-inline-start: -10px; }
         .bundle-thumb-img:first-child { margin-inline-start: 0; }
+        .bundle-custom-img-wrap { display: flex; justify-content: center; margin-bottom: 8px; }
+        .bundle-custom-img { width: 64px; height: 64px; border-radius: 14px; object-fit: cover; border: 2px solid #fffaf5; box-shadow: 0 1px 5px rgba(0,0,0,0.14); }
         .bundle-card-name { font-size: 17.5px; font-weight: 900; color: #1f2937; margin-bottom: 10px; letter-spacing: -0.2px; }
 
         .bundle-badges-row { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
@@ -4038,7 +4040,9 @@
             let savingsHtml = savings > 0 ? `<span class="bundle-savings-badge">💰 وفّر ${savings.toFixed(2)} ₪</span>` : '';
 
             let thumbsHtml = participating.slice(0, 4).filter(p => p.img).map(p => `<img src="${optimizeImg(p.img, 150)}" class="bundle-thumb-img" onerror="this.style.display='none'">`).join('');
-            let thumbsRowHtml = thumbsHtml ? `<div class="bundle-thumbs-row">${thumbsHtml}</div>` : '';
+            let thumbsRowHtml = b.customImage
+                ? `<div class="bundle-custom-img-wrap"><img src="${optimizeImg(b.customImage, 200)}" class="bundle-custom-img" onerror="this.style.display='none'"></div>`
+                : (thumbsHtml ? `<div class="bundle-thumbs-row">${thumbsHtml}</div>` : '');
 
             slidesHtml += `
                 <div class="bundle-slide-item">
