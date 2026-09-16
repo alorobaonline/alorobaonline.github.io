@@ -34,6 +34,13 @@
         }
         .bundle-card.is-inactive { opacity: 0.6; }
 
+        /* سحب وإفلات لترتيب عروض الحزم - شغالة باللمس (موبايل) والماوس مع بعض */
+        .drag-handle { cursor: grab; touch-action: none; color: #9ca3af; padding: 4px 6px; font-size: 1.1rem; line-height: 1; user-select: none; }
+        .drag-handle:active { cursor: grabbing; }
+        .bundle-card.is-dragging { opacity: 0.4; }
+        .bundle-card.drag-target-above { box-shadow: 0 -3px 0 0 var(--accent-green); }
+        .bundle-card.drag-target-below { box-shadow: 0 3px 0 0 var(--accent-green); }
+
         .icon-btn {
             transition: transform .15s ease, background-color .15s ease;
         }
@@ -462,10 +469,17 @@
             const listEl = document.getElementById('bundles-list');
             listEl.innerHTML = '';
 
+            // نرتّب حسب sortOrder (لو موجود) - العروض يلي ما رتّبناها لسا بتضل بآخر القائمة
+            const sortedBundles = allBundles.slice().sort((a, b) => {
+                const oa = a.sortOrder !== undefined ? a.sortOrder : 999999;
+                const ob = b.sortOrder !== undefined ? b.sortOrder : 999999;
+                return oa - ob;
+            });
+
             let activeCount = 0;
             let inactiveCount = 0;
 
-            allBundles.forEach((bundle) => {
+            sortedBundles.forEach((bundle) => {
                 const docId = bundle.id;
                 if (bundle.active) activeCount++; else inactiveCount++;
 
@@ -477,9 +491,11 @@
 
                 const itemDiv = document.createElement('div');
                 itemDiv.className = `bundle-card ${bundle.active ? '' : 'is-inactive'} flex items-center justify-between p-3 bg-white border border-gray-100 rounded-2xl shadow-sm gap-3`;
+                itemDiv.setAttribute('data-bundle-id', docId);
 
                 itemDiv.innerHTML = `
                     <div class="flex items-center gap-3 min-w-0">
+                        <span class="drag-handle" data-drag-handle="${docId}" title="اسحبي لترتيب العروض">⠿</span>
                         ${thumbHtml}
                         <div class="min-w-0">
                             <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -520,6 +536,89 @@
 
             document.getElementById('active-count').innerHTML = `<i class="fa-solid fa-circle text-[6px] text-[var(--accent-green)]"></i> ${activeCount} نشطة`;
             document.getElementById('inactive-count').innerHTML = `<i class="fa-solid fa-circle text-[6px] text-white/40"></i> ${inactiveCount} معطّلة`;
+
+            initDragReorder();
+        }
+
+        // ===================== سحب وإفلات لترتيب عروض الحزم (باللمس والماوس مع بعض) =====================
+        let dragState = null;
+
+        function initDragReorder() {
+            const listEl = document.getElementById('bundles-list');
+            listEl.querySelectorAll('.drag-handle').forEach(handle => {
+                handle.onpointerdown = (e) => startDrag(e, handle.closest('.bundle-card'));
+            });
+        }
+
+        function startDrag(e, cardEl) {
+            e.preventDefault();
+            const listEl = document.getElementById('bundles-list');
+            dragState = {
+                cardEl,
+                startY: e.clientY,
+                cards: Array.from(listEl.querySelectorAll('.bundle-card'))
+            };
+            cardEl.classList.add('is-dragging');
+
+            window.onpointermove = onDragMove;
+            window.onpointerup = endDrag;
+        }
+
+        function onDragMove(e) {
+            if (!dragState) return;
+            const listEl = document.getElementById('bundles-list');
+
+            // نمسح أي علامات هدف قديمة
+            dragState.cards.forEach(c => c.classList.remove('drag-target-above', 'drag-target-below'));
+
+            // نلاقي البطاقة يلي المؤشر فوقها حالياً (غير البطاقة المسحوبة نفسها)
+            const target = dragState.cards.find(c => {
+                if (c === dragState.cardEl) return false;
+                const rect = c.getBoundingClientRect();
+                return e.clientY >= rect.top && e.clientY <= rect.bottom;
+            });
+
+            if (target) {
+                const rect = target.getBoundingClientRect();
+                const isAbove = e.clientY < rect.top + rect.height / 2;
+                if (isAbove) {
+                    listEl.insertBefore(dragState.cardEl, target);
+                    target.classList.add('drag-target-above');
+                } else {
+                    listEl.insertBefore(dragState.cardEl, target.nextSibling);
+                    target.classList.add('drag-target-below');
+                }
+                // نحدّث قائمة البطاقات بعد إعادة الترتيب الحية
+                dragState.cards = Array.from(listEl.querySelectorAll('.bundle-card'));
+            }
+        }
+
+        async function endDrag() {
+            if (!dragState) return;
+            const listEl = document.getElementById('bundles-list');
+
+            dragState.cardEl.classList.remove('is-dragging');
+            listEl.querySelectorAll('.bundle-card').forEach(c => c.classList.remove('drag-target-above', 'drag-target-below'));
+
+            window.onpointermove = null;
+            window.onpointerup = null;
+
+            // نحفظ الترتيب الجديد بقاعدة البيانات حسب ترتيب البطاقات الحالي بالصفحة
+            const newOrder = Array.from(listEl.querySelectorAll('.bundle-card')).map(c => c.getAttribute('data-bundle-id'));
+            dragState = null;
+
+            try {
+                await Promise.all(newOrder.map((docId, idx) => {
+                    const bundle = allBundles.find(b => b.id === docId);
+                    if (bundle) bundle.sortOrder = idx; // نحدّث النسخة المحلية فوراً حتى ما ترجع تترتب غلط لو صار رندر تاني بينحصل
+                    return updateDoc(doc(db, "bundles", docId), { sortOrder: idx });
+                }));
+                showToast('تم حفظ الترتيب الجديد ✅');
+            } catch (error) {
+                console.error('خطأ في حفظ الترتيب:', error);
+                showToast('حدث خطأ أثناء حفظ الترتيب', 'error');
+                loadBundles(); // نرجع نجيب الترتيب الصحيح من قاعدة البيانات لو فشل الحفظ
+            }
         }
 
         window.toggleBundle = async function(docId, newState) {
