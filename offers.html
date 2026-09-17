@@ -21,7 +21,7 @@
 <style>
     :root { --primary-green: #6BA516; --price-red: #dc2626; --price-black: #111827; }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
-    body { background: #f3f4f6; color: #1f2937; padding-bottom: 90px; }
+    body { background: linear-gradient(180deg, #f8faf7 0%, #eef2ec 100%); color: #1f2937; padding-bottom: 90px; }
     .wrap { max-width: 480px; margin: 0 auto; background: #f3f4f6; min-height: 100vh; }
 
     .top-header {
@@ -57,7 +57,12 @@
     .product-card.has-sale { border: 1.5px solid var(--price-red); }
     .product-img-box { width: 100%; height: 78px; display: flex; align-items: center; justify-content: center; background: #fafbfa; border-radius: 10px; margin-bottom: 6px; position: relative; }
     .product-img-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
-    .discount-badge { position: absolute; top: 4px; right: 4px; background: var(--price-red); color: white; font-size: 8px; font-weight: 800; padding: 2px 5px; border-radius: 5px; }
+    .discount-badge {
+        position: absolute; top: 4px; left: 4px; z-index: 2;
+        background: var(--price-red); color: white; font-size: 9px; font-weight: 900;
+        width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        text-align: center; line-height: 1; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,.15);
+    }
     /* شارة تسويقية للحزمة - تُقرأ من marketingBadge المحفوظ بلوحة bundle */
     .marketing-badge {
         position: absolute; top: 5px; left: 5px; z-index: 3;
@@ -137,16 +142,16 @@
     }
     .bundle-price-badge {
         display:block; width:100%; text-align:center; background:#ef2529; color:#fff;
-        font-size:11.5px; font-weight:900; padding:8px 4px; border-radius:11px;
+        font-size:14px; font-weight:900; padding:8px 4px; border-radius:11px;
         margin-top:auto; line-height:1.15;
     }
     .price-row {
         display:flex; justify-content:center; align-items:center; gap:5px; min-height:23px;
         margin-top:auto; flex-wrap:nowrap;
     }
-    .sale-price { color:#111827; font-size:11px; font-weight:900; }
+    .sale-price { color:#111827; font-size:13px; font-weight:900; }
     .old-price { color:#858b93; font-size:9px; text-decoration:line-through; }
-    .plain-price { color:#111827; font-size:12px; font-weight:900; }
+    .plain-price { color:#111827; font-size:14px; font-weight:900; }
 
     /* الشارة الحمراء الدائرية في زاوية البطاقة */
     .marketing-badge {
