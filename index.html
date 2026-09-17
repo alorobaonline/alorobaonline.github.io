@@ -1576,6 +1576,22 @@
     let didInitialHighlight = false;
     const ALL_OFFERS_KEY = "__ALL_OFFERS__";
     const ALL_BUNDLES_KEY = "__ALL_BUNDLES__";
+    let weeklyTopProductIds = []; // معرّفات المنتجات الأكثر مبيعاً هالأسبوع، مرتبة من الأكثر للأقل
+
+    // مفتاح الأسبوع الحالي (تاريخ يوم الأحد اللي بدأ فيه الأسبوع) بتوقيت القدس - لازم يطابق
+    // بالظبط نفس الحساب يلي بالدالة السحابية create-order حتى نقرا نفس المستند
+    function getCurrentWeekKey() {
+        const todayStr = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit", day: "2-digit"
+        }).format(new Date());
+        const dayName = new Intl.DateTimeFormat("en-US", {
+            timeZone: "Asia/Jerusalem", weekday: "short"
+        }).format(new Date());
+        const dayIndex = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[dayName] || 0;
+        const d = new Date(todayStr + "T00:00:00Z");
+        d.setUTCDate(d.getUTCDate() - dayIndex);
+        return d.toISOString().slice(0, 10);
+    }
     let freeDeliveryPromo = null;
     let freeDeliveryTimerInterval = null;
     let spendOffers = [];
@@ -2226,6 +2242,17 @@
                 sortProducts();
                 renderMainStoreContent();
             }
+        });
+
+        // مبيعات هالأسبوع (بتنسجّل تلقائياً بكل طلبية من الدالة السحابية) - منرتب المنتجات من
+        // الأكثر مبيعاً للأقل، ومناخد أول 30 لقسم "الأكثر مبيعاً هالأسبوع" بالصفحة الرئيسية
+        window.onSnapshot(window.doc(window.db, "weeklyProductSales", getCurrentWeekKey()), (docSnap) => {
+            let counts = (docSnap.exists() && docSnap.data().counts) ? docSnap.data().counts : {};
+            weeklyTopProductIds = Object.entries(counts)
+                .sort((a, b) => Number(b[1]) - Number(a[1]))
+                .slice(0, 30)
+                .map(entry => entry[0]);
+            if (products.length > 0) renderMainStoreContent();
         });
 
         window.onSnapshot(window.doc(window.db, "settings", "freeDeliveryPromo"), (docSnap) => {
@@ -3599,6 +3626,28 @@
             }
             offersHtml += `</div></div>`;
             htmlParts.push(offersHtml);
+        }
+
+        // قسم "الأكثر مبيعاً هالأسبوع" - بيعتمد على عدد القطع المباعة فعلياً من كل منتج هالأسبوع
+        // (بتنسجّل تلقائياً بكل طلبية من الدالة السحابية) - بيظهر بس لو في بيانات مبيعات فعلية
+        if (weeklyTopProductIds.length > 0) {
+            let topProducts = weeklyTopProductIds
+                .map(id => products.find(p => p.id === id))
+                .filter(Boolean)
+                .slice(0, 30);
+
+            if (topProducts.length > 0) {
+                let topHtml = `
+                    <div class="horizontal-section">
+                        <div class="horizontal-section-title">
+                            <span class="section-category-title"><span>⭐</span> <span class="category-text-gradient">الأكثر مبيعاً هالأسبوع</span></span>
+                        </div>
+                        <div class="products-horizontal-scroll">
+                `;
+                topProducts.forEach(p => { topHtml += createProductCardHtml(p, 'small'); });
+                topHtml += `</div></div>`;
+                htmlParts.push(topHtml);
+            }
         }
 
         // بالصفحة الرئيسية منعرض بس الفئات اللي فيها منتجات عليها عرض (سعر مخفّض) أو داخلة بحزمة -
