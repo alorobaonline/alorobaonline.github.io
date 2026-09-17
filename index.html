@@ -3652,8 +3652,10 @@
 
         // بالصفحة الرئيسية منعرض بس الفئات اللي فيها منتجات عليها عرض (سعر مخفّض) أو داخلة بحزمة -
         // الفئات اللي ما فيها أي عرض ما بتظهر هون أبداً (بتضل موجودة عادي بشاشة "الأقسام" والبحث)
-        function categoryHasAnyOffer(secName) {
-            return products.some(p => {
+        // بنعدّ عروض كل فئة، ونرتب الأقسام من الأكثر عروضاً للأقل - حتى الأقسام الغنية بالعروض
+        // تطلع أول شي للزبون
+        function getCategoryOfferProducts(secName) {
+            return products.filter(p => {
                 if (!productBelongsToCategory(p, secName)) return false;
                 let hasSale = p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
                 let inBundle = bundles.some(b => b.selectedItems && b.selectedItems.length > 0 && b.selectedItems.includes(p.name));
@@ -3668,18 +3670,17 @@
             }
         });
 
-        let nonEmpSections = sectionsList.filter(secName => categoryHasAnyOffer(secName));
+        let nonEmpSections = sectionsList
+            .map(secName => ({ name: secName, count: getCategoryOfferProducts(secName).length }))
+            .filter(s => s.count > 0)
+            .sort((a, b) => b.count - a.count)
+            .map(s => s.name);
 
         let activeSections = nonEmpSections.slice(0, visibleSectionsLimit);
 
         activeSections.forEach(secName => {
             // بنعرض بس منتجات هالفئة اللي عليها عرض فعلياً (مش كل منتجاتها)
-            let allSecProds = products.filter(p => {
-                if (!productBelongsToCategory(p, secName)) return false;
-                let hasSale = p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
-                let inBundle = bundles.some(b => b.selectedItems && b.selectedItems.length > 0 && b.selectedItems.includes(p.name));
-                return hasSale || inBundle;
-            });
+            let allSecProds = getCategoryOfferProducts(secName);
             let secProds = allSecProds.slice(0, 9);
             if(secProds.length === 0) return;
 
@@ -3694,15 +3695,21 @@
                     </div>
                     <div class="products-horizontal-scroll">
             `;
+
+            // لو القسم فيه أقل من 3 عروض، بطاقة "عرض الكل" بتطلع بآخر الصف (جهة اليسار) حتى
+            // الفراغ ما يبين، وتشجع الزبون يدخل يشوف باقي منتجات الفئة
+            let fewOffers = allSecProds.length < 3;
+            let viewAllCardHtml = `
+                <div class="view-all-card" onclick="selectCategory('${secName}')">
+                    <div class="view-all-arrow">←</div>
+                    <div class="view-all-text">عرض الكل<br>(${allSecProds.length})</div>
+                </div>
+            `;
+
             secProds.forEach(p => { secHtml += createProductCardHtml(p); });
             // بطاقة "عرض الكل" بآخر الصف - أوضح بكثير للزبون من لينك صغير فوق، لأنه بيشوفها وهو عم يسحب يستعرض
-            if (allSecProds.length > secProds.length) {
-                secHtml += `
-                    <div class="view-all-card" onclick="selectCategory('${secName}')">
-                        <div class="view-all-arrow">←</div>
-                        <div class="view-all-text">عرض الكل<br>(${allSecProds.length})</div>
-                    </div>
-                `;
+            if (fewOffers || allSecProds.length > secProds.length) {
+                secHtml += viewAllCardHtml;
             }
             secHtml += `</div></div>`;
             htmlParts.push(secHtml);
