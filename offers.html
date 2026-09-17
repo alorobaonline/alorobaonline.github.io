@@ -329,6 +329,7 @@
         const original = btn.innerText;
         btn.disabled = true;
         btn.innerText = '⏳';
+        let originalSrcMap = new Map();
 
         try {
             const target = document.querySelector('.wrap');
@@ -344,6 +345,30 @@
                     img.onerror = () => resolve();
                     setTimeout(resolve, 4000); // احتياط حتى ما تعلّق الصفحة لو صورة تعطّلت
                 });
+            }));
+
+            // نحوّل كل صورة لنسخة "نظيفة" (dataUrl) خاصة بالتقاط الـ PDF بس، وقتياً، بدل ما نغيّر
+            // الصور الأصلية المعروضة بالصفحة - هيك منتفادى مشاكل الأذونات مع الصور المستضافة بمكان
+            // خارجي بدون ما نكسر عرضها العادي بالموقع
+            await Promise.all(imgs.map(async (img) => {
+                try {
+                    const cleanImg = new Image();
+                    cleanImg.crossOrigin = 'anonymous';
+                    await new Promise((resolve, reject) => {
+                        cleanImg.onload = resolve;
+                        cleanImg.onerror = reject;
+                        cleanImg.src = img.src;
+                    });
+                    const tmpCanvas = document.createElement('canvas');
+                    tmpCanvas.width = cleanImg.naturalWidth;
+                    tmpCanvas.height = cleanImg.naturalHeight;
+                    tmpCanvas.getContext('2d').drawImage(cleanImg, 0, 0);
+                    const dataUrl = tmpCanvas.toDataURL('image/jpeg', 0.9);
+                    originalSrcMap.set(img, img.src);
+                    img.src = dataUrl;
+                } catch (e) {
+                    // لو صورة معينة رفضت (نادر)، منسيبها زي ما هي - باقي الصور بتضل تشتغل منيح
+                }
             }));
 
             const canvas = await html2canvas(target, {
@@ -401,6 +426,7 @@
             console.error(e);
             alert('❌ تعذر إنشاء ملف PDF، حاولي مرة ثانية');
         } finally {
+            originalSrcMap.forEach((src, img) => { img.src = src; });
             btn.disabled = false;
             btn.innerText = original;
         }
@@ -430,7 +456,7 @@
                 <div class="banner-carousel-viewport" id="bannerViewport">
                     <div class="banner-carousel-track" id="bannerTrack">
                         ${slides.map(s => {
-                            const imgTag = `<img src="${s.img}" alt="${escapeHtml(s.title)}" crossorigin="anonymous">`;
+                            const imgTag = `<img src="${s.img}" alt="${escapeHtml(s.title)}">`;
                             return s.link ? `<a href="${s.link}" target="_blank" rel="noopener">${imgTag}</a>` : imgTag;
                         }).join('')}
                     </div>
@@ -603,7 +629,7 @@
             <div class="product-card has-sale">
                 <div class="product-img-box" onclick='openImageZoom(event, "${b.customImage}", "${escapeHtml(b.name)}", "${escapeHtml(badgeText)}")'>
                     ${marketingBadgeHtml(b)}
-                    <img src="${b.customImage}" alt="${escapeHtml(b.name)}" loading="lazy" crossorigin="anonymous">
+                    <img src="${b.customImage}" alt="${escapeHtml(b.name)}" loading="lazy">
                 </div>
                 <div class="product-name">${escapeHtml(b.name || '')}</div>
                 <div class="product-weight">${qty} قطع</div>
@@ -636,7 +662,7 @@
                 <div class="product-img-box" onclick='openImageZoom(event, "${p.img || ''}", "${escapeHtml(p.name)}", "${escapeHtml(zoomBadgeText)}")'>
                     ${matchedBundle ? marketingBadgeHtml(matchedBundle) : ''}
                     ${discountPct ? `<span class="discount-badge">${discountPct}%-</span>` : ''}
-                    <img src="${p.img || ''}" alt="${escapeHtml(p.name)}" loading="lazy" crossorigin="anonymous">
+                    <img src="${p.img || ''}" alt="${escapeHtml(p.name)}" loading="lazy">
                 </div>
                 <div class="product-name">${escapeHtml(p.name || '')}</div>
                 <div class="product-weight">${escapeHtml(p.weight || 'حبة')}</div>
