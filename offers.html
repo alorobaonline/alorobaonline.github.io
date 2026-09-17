@@ -350,14 +350,16 @@
             // نحوّل كل صورة لنسخة "نظيفة" (dataUrl) خاصة بالتقاط الـ PDF بس، وقتياً، بدل ما نغيّر
             // الصور الأصلية المعروضة بالصفحة - هيك منتفادى مشاكل الأذونات مع الصور المستضافة بمكان
             // خارجي بدون ما نكسر عرضها العادي بالموقع
+            let failedCount = 0;
             await Promise.all(imgs.map(async (img) => {
+                if (!img.src || img.src.startsWith('data:')) return;
                 try {
                     const cleanImg = new Image();
                     cleanImg.crossOrigin = 'anonymous';
                     await new Promise((resolve, reject) => {
                         cleanImg.onload = resolve;
                         cleanImg.onerror = reject;
-                        cleanImg.src = img.src;
+                        cleanImg.src = img.src + (img.src.includes('?') ? '&' : '?') + '_cb=' + Date.now();
                     });
                     const tmpCanvas = document.createElement('canvas');
                     tmpCanvas.width = cleanImg.naturalWidth;
@@ -366,10 +368,16 @@
                     const dataUrl = tmpCanvas.toDataURL('image/jpeg', 0.9);
                     originalSrcMap.set(img, img.src);
                     img.src = dataUrl;
+                    if (img.decode) { try { await img.decode(); } catch (e2) {} }
                 } catch (e) {
-                    // لو صورة معينة رفضت (نادر)، منسيبها زي ما هي - باقي الصور بتضل تشتغل منيح
+                    failedCount++;
+                    console.error('تعذر تحضير صورة للـ PDF:', img.src, e);
                 }
             }));
+
+            if (failedCount > 0) {
+                console.warn(`${failedCount} صورة من أصل ${imgs.length} تعذّر تحضيرها للـ PDF`);
+            }
 
             const canvas = await html2canvas(target, {
                 scale: 2, useCORS: true, backgroundColor: '#f3f4f6',
@@ -422,6 +430,10 @@
             }
 
             pdf.save('عروض-العروبة-اونلاين.pdf');
+
+            if (failedCount > 0) {
+                alert(`✅ تم تحميل الملف - بس تنبيه: ${failedCount} من ${imgs.length} صورة ما قدرنا نحمّلها فيه (ممكن يكون في مشكلة بمصدرها). باقي الصور والمعلومات موجودة صح.`);
+            }
         } catch (e) {
             console.error(e);
             alert('❌ تعذر إنشاء ملف PDF، حاولي مرة ثانية');
