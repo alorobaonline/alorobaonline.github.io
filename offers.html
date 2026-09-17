@@ -133,8 +133,8 @@
     .product-img-box img { max-width:96%; max-height:100%; object-fit:contain; }
     .qty-badge {
         position:absolute; bottom:4px; left:4px; z-index:2;
-        background:rgba(24,34,53,0.78); color:#fff; font-size:9px; font-weight:800;
-        padding:3px 7px; border-radius:20px; line-height:1;
+        background:rgba(15,20,30,0.92); color:#fff; font-size:10.5px; font-weight:900;
+        padding:4px 9px; border-radius:20px; line-height:1;
     }
     .product-name {
         font-size:11px; line-height:1.4; font-weight:800; color:#182235;
@@ -186,6 +186,13 @@
     }
     .saving-badge:before { right:-4px; }
     .saving-badge:after { left:-4px; transform:scaleX(-1); }
+
+    /* شارة صفراء فيها سعر المنتج بس (بدون سعر قديم مشطوب ولا كلمة "وفّري") */
+    .price-only-row { display: flex; justify-content: center; margin: 1px 0 5px; min-height: 27px; align-items: center; }
+    .price-only-badge {
+        position: relative; display: inline-block; background: #ffd92f; color: #151515;
+        font-size: 11px; font-weight: 900; padding: 5px 12px; border-radius: 4px;
+    }
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -623,23 +630,17 @@
 
     function bundleSavingHtml(bundle) {
         const original = getBundleOriginalTotal(bundle);
-        const offer = parseBundlePrice(bundle);
-        const saving = original - offer;
-        if (!(original > 0 && saving > 0.005)) return '';
-        return `<div class="saving-row">
-            <span class="saving-old">${original.toFixed(2)} ₪</span>
-            <span class="saving-badge">وفّري ${saving.toFixed(2)} ₪</span>
+        if (!(original > 0)) return '';
+        return `<div class="price-only-row">
+            <span class="price-only-badge">${original.toFixed(2)} ₪</span>
         </div>`;
     }
 
     function saleSavingHtml(product) {
         const regular = Number(product && product.price) || 0;
-        const sale = Number(product && product.salePrice);
-        const saving = regular - sale;
-        if (!(regular > 0 && Number.isFinite(sale) && saving > 0.005)) return '';
-        return `<div class="saving-row">
-            <span class="saving-old">${regular.toFixed(2)} ₪</span>
-            <span class="saving-badge">وفّري ${saving.toFixed(2)} ₪</span>
+        if (!(regular > 0)) return '';
+        return `<div class="price-only-row">
+            <span class="price-only-badge">${regular.toFixed(2)} ₪</span>
         </div>`;
     }
 
