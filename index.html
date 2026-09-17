@@ -4896,10 +4896,27 @@
         let qty = Number(b.qty) || 4;
         let price = parseBundlePrice(b);
         let sizeClass = sizeVariant === 'small' ? ' product-card-small' : '';
+
+        // نتحقق قديش من منتجات هالحزمة موجودين بالسلة فعلياً - حتى تتوضح للزبون إنه أصلاً مختار
+        // منها شي، بدل ما تضل البطاقة تعرض "+" عادي وكأنه ما اختار شي
+        let selectedQty = 0;
+        (b.selectedItems || []).forEach(itemName => {
+            let prod = products.find(p => p.name === itemName);
+            if (!prod) return;
+            let cartItem = cart.find(c => c.id == prod.id);
+            if (cartItem) selectedQty += cartItem.quantity;
+        });
+        let isSelected = selectedQty > 0;
+
+        let btnHtml = isSelected
+            ? `<button class="add-to-cart-btn" style="background: var(--primary-green); font-size: 13px; font-weight: 900;" onclick='event.stopPropagation(); openBundleModal("${b.id}")'>${selectedQty}</button>`
+            : `<button class="add-to-cart-btn" onclick='event.stopPropagation(); openBundleModal("${b.id}")'>+</button>`;
+
         return `
-            <div class="product-card${sizeClass} has-sale" onclick='openBundleModal("${b.id}")' style="cursor: pointer;">
+            <div class="product-card${sizeClass} has-sale" onclick='openBundleModal("${b.id}")' style="cursor: pointer; ${isSelected ? 'box-shadow: 0 0 0 2px var(--primary-green);' : ''}">
                 <div>
                     <div class="product-img-box">
+                        ${isSelected ? `<span class="discount-badge" style="background: var(--primary-green);">✓ مختار (${selectedQty})</span>` : ''}
                         <img src="${optimizeImg(b.customImage, 300)}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
                     </div>
                     <div class="product-name">${b.name}</div>
@@ -4909,7 +4926,7 @@
                     <div class="product-price-row" style="display: block;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0;"></div>
-                            <button class="add-to-cart-btn" onclick='event.stopPropagation(); openBundleModal("${b.id}")'>+</button>
+                            ${btnHtml}
                         </div>
                         <span class="bundle-price-badge">${qty} بـ ${price.toFixed(2)} ₪</span>
                     </div>
