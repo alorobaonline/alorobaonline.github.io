@@ -3547,15 +3547,19 @@
                 if (groupProducts.length === 0) return;
 
                 if (b.customImage) {
+                    // عندها صورة مخصصة - بطاقة الغلاف بس، بدون بطاقات النكهات الفردية
                     bundlesRowHtml += createBundleOfferCardHtml(b, 'small');
                     cardsBuilt++;
+                    groupProducts.forEach(p => addedProductIds.add(p.id));
+                } else {
+                    // ما عندها صورة مخصصة - نعرض بطاقات المنتجات الفردية زي العادة
+                    groupProducts.forEach(p => {
+                        if (cardsBuilt >= maxBundleCards) return;
+                        bundlesRowHtml += createProductCardHtml(p, 'small');
+                        addedProductIds.add(p.id);
+                        cardsBuilt++;
+                    });
                 }
-                groupProducts.forEach(p => {
-                    if (cardsBuilt >= maxBundleCards) return;
-                    bundlesRowHtml += createProductCardHtml(p, 'small');
-                    addedProductIds.add(p.id);
-                    cardsBuilt++;
-                });
             });
 
             if (bundleSectionProducts.length > addedProductIds.size) {
