@@ -413,6 +413,7 @@
                 const maxBottom = Math.min(currentTop + pageHeightCanvasPx, canvas.height);
                 const candidates = rowBottomsPx.filter(b => b > currentTop + 5 && b <= maxBottom);
                 const cut = candidates.length > 0 ? candidates[candidates.length - 1] : maxBottom;
+                const isLastSlice = cut >= canvas.height - 1;
 
                 const sliceHeightPx = cut - currentTop;
                 const pageCanvas = document.createElement('canvas');
@@ -420,7 +421,10 @@
                 pageCanvas.height = sliceHeightPx;
                 pageCanvas.getContext('2d').drawImage(canvas, 0, currentTop, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
                 const sliceImgData = pageCanvas.toDataURL('image/jpeg', 0.92);
-                const sliceHeightMm = (sliceHeightPx / canvas.width) * imgWidth;
+
+                // لو مش آخر صفحة، منمدد الصفحة تعبّي كل ارتفاع الـ PDF بالضبط (بدون فراغ تحت) -
+                // آخر صفحة منسيبها بحجمها الطبيعي حتى ما تنمطط المحتوى القليل يلي فيها بشكل غريب
+                const sliceHeightMm = isLastSlice ? (sliceHeightPx / canvas.width) * imgWidth : pageHeight;
 
                 if (pageIndex > 0) pdf.addPage();
                 pdf.addImage(sliceImgData, 'JPEG', 0, 0, imgWidth, sliceHeightMm);
