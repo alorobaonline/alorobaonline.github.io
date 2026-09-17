@@ -122,7 +122,7 @@
     }
     .product-card {
         position:relative; background:#fff; border:1.8px solid #ef2b2d;
-        border-radius:18px; padding:8px 8px 10px; min-height:224px;
+        border-radius:18px; padding:8px 8px 10px;
         display:flex; flex-direction:column; box-shadow:none; overflow:hidden;
     }
     .product-card.has-sale { border:1.8px solid #ef2b2d; }
@@ -145,11 +145,11 @@
     .bundle-price-badge {
         display:block; width:100%; text-align:center; background:#ef2529; color:#fff;
         font-size:14px; font-weight:900; padding:8px 4px; border-radius:11px;
-        margin-top:auto; line-height:1.15;
+        margin-top:4px; line-height:1.15;
     }
     .price-row {
-        display:flex; justify-content:center; align-items:center; gap:5px; min-height:23px;
-        margin-top:auto; flex-wrap:nowrap;
+        display:flex; justify-content:center; align-items:center; gap:5px;
+        margin-top:4px; flex-wrap:nowrap;
     }
     .sale-price { color:#111827; font-size:13px; font-weight:900; }
     .old-price { color:#858b93; font-size:9px; text-decoration:line-through; }
@@ -267,6 +267,7 @@
         </div>
     </div>
 
+    <div id="bannersSection"></div>
     <div id="productsSection"><div class="loading-msg">جاري تحميل العروض...</div></div>
 </div>
 
@@ -276,7 +277,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
@@ -462,68 +463,28 @@
         }
     };
 
-    let bannerCarouselIndex = 0;
-    let bannerCarouselTimer = null;
-    let bannerCarouselSlides = [];
-
+    // هون منعرض أول بانر بس (مش كل البانرات) - باقي البانرات بتضل تظهر عادي بالمتجر الرئيسي
     function renderBanners() {
         const container = document.getElementById('bannersSection');
         let todayStr = new Date().toISOString().slice(0, 10);
         let slides = (bannerSlides || []).filter(s => s && s.img && (!s.expiryDate || s.expiryDate >= todayStr));
-
-        if (bannerCarouselTimer) { clearInterval(bannerCarouselTimer); bannerCarouselTimer = null; }
 
         if (slides.length === 0) {
             container.innerHTML = '';
             return;
         }
 
-        bannerCarouselSlides = slides;
-        bannerCarouselIndex = 0;
-
+        const s = slides[0];
+        const imgTag = `<img src="${s.img}" alt="${escapeHtml(s.title)}">`;
         container.innerHTML = `
             <div class="banner-carousel">
-                <div class="banner-carousel-viewport" id="bannerViewport">
-                    <div class="banner-carousel-track" id="bannerTrack">
-                        ${slides.map(s => {
-                            const imgTag = `<img src="${s.img}" alt="${escapeHtml(s.title)}">`;
-                            return s.link ? `<a href="${s.link}" target="_blank" rel="noopener">${imgTag}</a>` : imgTag;
-                        }).join('')}
+                <div class="banner-carousel-viewport">
+                    <div class="banner-carousel-track">
+                        ${s.link ? `<a href="${s.link}" target="_blank" rel="noopener">${imgTag}</a>` : imgTag}
                     </div>
                 </div>
-                ${slides.length > 1 ? `<div class="banner-carousel-dots" id="bannerDots">
-                    ${slides.map((s, i) => `<span class="${i === 0 ? 'active' : ''}"></span>`).join('')}
-                </div>` : ''}
             </div>
         `;
-
-        if (slides.length > 1) {
-            initBannerSwipe();
-            bannerCarouselTimer = setInterval(() => goToBannerSlide(bannerCarouselIndex + 1), 4000);
-        }
-    }
-
-    function goToBannerSlide(index) {
-        const track = document.getElementById('bannerTrack');
-        if (!track) return;
-        const count = bannerCarouselSlides.length;
-        bannerCarouselIndex = ((index % count) + count) % count;
-        track.style.transform = `translateX(-${bannerCarouselIndex * 100}%)`;
-        document.querySelectorAll('#bannerDots span').forEach((dot, i) => dot.classList.toggle('active', i === bannerCarouselIndex));
-    }
-
-    // سحب بالإصبع للتنقل بين البانرات يدوياً (بالإضافة للتدوير التلقائي)
-    function initBannerSwipe() {
-        const viewport = document.getElementById('bannerViewport');
-        let startX = 0;
-        viewport.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; }, { passive: true });
-        viewport.addEventListener('touchend', (e) => {
-            const diff = e.changedTouches[0].clientX - startX;
-            if (Math.abs(diff) < 40) return;
-            clearInterval(bannerCarouselTimer);
-            goToBannerSlide(bannerCarouselIndex + (diff > 0 ? 1 : -1)); // RTL: سحب لليمين = رجوع
-            bannerCarouselTimer = setInterval(() => goToBannerSlide(bannerCarouselIndex + 1), 4000);
-        }, { passive: true });
     }
 
     // بترجع الحزمة (عرض كمية) المرتبطة بمنتج معين لو موجودة - نفس منطق المتجر الرئيسي بالظبط
@@ -712,6 +673,13 @@
         snap.forEach(d => categories.push({ id: d.id, ...d.data() }));
         renderProducts();
     });
+
+    getDoc(doc(db, "settings", "banner")).then(snap => {
+        if (snap.exists() && Array.isArray(snap.data().slides)) {
+            bannerSlides = snap.data().slides;
+            renderBanners();
+        }
+    }).catch(err => console.error(err));
 </script>
 </body>
 </html>
