@@ -355,22 +355,45 @@
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
-
             const imgWidth = pageWidth;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-            let heightLeft = imgHeight;
-            let position = 0;
-            const imgData = canvas.toDataURL('image/jpeg', 0.92);
+            // بنحسب حدود كل "كرت منتج/حزمة" عشان نقطع صفحات الـ PDF بين الصفوف بالظبط، مش بمنتصف
+            // أي كرت - هيك ما بيصير قطع نص كرت بين صفحة والتانية
+            const scaleFactor = canvas.width / target.offsetWidth;
+            const cardEls = Array.from(target.querySelectorAll('.product-card'));
+            let rowBottomsPx = [];
+            if (cardEls.length > 0) {
+                let rowMap = new Map();
+                cardEls.forEach(el => {
+                    const top = el.offsetTop;
+                    const bottom = top + el.offsetHeight;
+                    if (!rowMap.has(top) || rowMap.get(top) < bottom) rowMap.set(top, bottom);
+                });
+                rowBottomsPx = Array.from(rowMap.values()).sort((a, b) => a - b).map(b => b * scaleFactor);
+            }
 
-            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
+            const pageHeightCanvasPx = (pageHeight / imgWidth) * canvas.width;
 
-            while (heightLeft > 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
+            let currentTop = 0;
+            let pageIndex = 0;
+            while (currentTop < canvas.height - 1) {
+                const maxBottom = Math.min(currentTop + pageHeightCanvasPx, canvas.height);
+                const candidates = rowBottomsPx.filter(b => b > currentTop + 5 && b <= maxBottom);
+                const cut = candidates.length > 0 ? candidates[candidates.length - 1] : maxBottom;
+
+                const sliceHeightPx = cut - currentTop;
+                const pageCanvas = document.createElement('canvas');
+                pageCanvas.width = canvas.width;
+                pageCanvas.height = sliceHeightPx;
+                pageCanvas.getContext('2d').drawImage(canvas, 0, currentTop, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
+                const sliceImgData = pageCanvas.toDataURL('image/jpeg', 0.92);
+                const sliceHeightMm = (sliceHeightPx / canvas.width) * imgWidth;
+
+                if (pageIndex > 0) pdf.addPage();
+                pdf.addImage(sliceImgData, 'JPEG', 0, 0, imgWidth, sliceHeightMm);
+
+                currentTop = cut;
+                pageIndex++;
             }
 
             pdf.save('عروض-العروبة-اونلاين.pdf');
@@ -407,7 +430,7 @@
                 <div class="banner-carousel-viewport" id="bannerViewport">
                     <div class="banner-carousel-track" id="bannerTrack">
                         ${slides.map(s => {
-                            const imgTag = `<img src="${s.img}" alt="${escapeHtml(s.title)}">`;
+                            const imgTag = `<img src="${s.img}" alt="${escapeHtml(s.title)}" crossorigin="anonymous">`;
                             return s.link ? `<a href="${s.link}" target="_blank" rel="noopener">${imgTag}</a>` : imgTag;
                         }).join('')}
                     </div>
@@ -580,7 +603,7 @@
             <div class="product-card has-sale">
                 <div class="product-img-box" onclick='openImageZoom(event, "${b.customImage}", "${escapeHtml(b.name)}", "${escapeHtml(badgeText)}")'>
                     ${marketingBadgeHtml(b)}
-                    <img src="${b.customImage}" alt="${escapeHtml(b.name)}" loading="lazy">
+                    <img src="${b.customImage}" alt="${escapeHtml(b.name)}" loading="lazy" crossorigin="anonymous">
                 </div>
                 <div class="product-name">${escapeHtml(b.name || '')}</div>
                 <div class="product-weight">${qty} قطع</div>
@@ -613,7 +636,7 @@
                 <div class="product-img-box" onclick='openImageZoom(event, "${p.img || ''}", "${escapeHtml(p.name)}", "${escapeHtml(zoomBadgeText)}")'>
                     ${matchedBundle ? marketingBadgeHtml(matchedBundle) : ''}
                     ${discountPct ? `<span class="discount-badge">${discountPct}%-</span>` : ''}
-                    <img src="${p.img || ''}" alt="${escapeHtml(p.name)}" loading="lazy">
+                    <img src="${p.img || ''}" alt="${escapeHtml(p.name)}" loading="lazy" crossorigin="anonymous">
                 </div>
                 <div class="product-name">${escapeHtml(p.name || '')}</div>
                 <div class="product-weight">${escapeHtml(p.weight || 'حبة')}</div>
