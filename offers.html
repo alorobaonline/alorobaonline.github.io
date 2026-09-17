@@ -127,19 +127,21 @@
     }
     .product-card.has-sale { border:1.8px solid #ef2b2d; }
     .product-img-box {
-        width:100%; height:105px; display:flex; align-items:center; justify-content:center;
+        width:100%; height:122px; display:flex; align-items:center; justify-content:center;
         background:#fff; border-radius:13px; margin-bottom:5px; position:relative; overflow:visible;
     }
     .product-img-box img { max-width:96%; max-height:100%; object-fit:contain; }
+    .qty-badge {
+        position:absolute; bottom:4px; left:4px; z-index:2;
+        background:rgba(24,34,53,0.78); color:#fff; font-size:9px; font-weight:800;
+        padding:3px 7px; border-radius:20px; line-height:1;
+    }
     .product-name {
         font-size:11px; line-height:1.4; font-weight:800; color:#182235;
         text-align:center; margin:2px 0 2px; height:16px;
         overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
     }
-    .product-weight {
-        text-align:center; font-size:9.5px; font-weight:700; color:#a0a9b4;
-        margin:0 0 5px;
-    }
+    .product-weight { display:none; }
     .bundle-price-badge {
         display:block; width:100%; text-align:center; background:#ef2529; color:#fff;
         font-size:14px; font-weight:900; padding:8px 4px; border-radius:11px;
@@ -650,10 +652,10 @@
             <div class="product-card has-sale">
                 <div class="product-img-box" onclick='openImageZoom(event, "${b.customImage}", "${escapeHtml(b.name)}", "${escapeHtml(badgeText)}")'>
                     ${marketingBadgeHtml(b)}
+                    <span class="qty-badge">×${qty}</span>
                     <img src="${b.customImage}" alt="${escapeHtml(b.name)}" loading="lazy">
                 </div>
                 <div class="product-name">${escapeHtml(b.name || '')}</div>
-                <div class="product-weight">${qty} قطع</div>
                 ${bundleSavingHtml(b)}
                 <span class="bundle-price-badge">${qty} بـ ${price.toFixed(2)} ₪</span>
             </div>
@@ -683,10 +685,10 @@
                 <div class="product-img-box" onclick='openImageZoom(event, "${p.img || ''}", "${escapeHtml(p.name)}", "${escapeHtml(zoomBadgeText)}")'>
                     ${matchedBundle ? marketingBadgeHtml(matchedBundle) : ''}
                     ${discountPct ? `<span class="discount-badge">${discountPct}%-</span>` : ''}
+                    <span class="qty-badge">${escapeHtml(p.weight || 'حبة')}</span>
                     <img src="${p.img || ''}" alt="${escapeHtml(p.name)}" loading="lazy">
                 </div>
                 <div class="product-name">${escapeHtml(p.name || '')}</div>
-                <div class="product-weight">${escapeHtml(p.weight || 'حبة')}</div>
                 ${matchedBundle ? bundleSavingHtml(matchedBundle) : (hasSale ? saleSavingHtml(p) : '')}
                 ${(!matchedBundle && hasSale) ? `
                 <div class="price-row"><span class="sale-price">${salePrice.toFixed(2)}₪</span></div>` : ''}
