@@ -628,20 +628,13 @@
         return (Number(representative.price) || 0) * qty;
     }
 
+    // ما عاد يظهر أي سعر إضافي فوق الشريط الأحمر - بس الشريط الأحمر لحاله
     function bundleSavingHtml(bundle) {
-        const original = getBundleOriginalTotal(bundle);
-        if (!(original > 0)) return '';
-        return `<div class="price-only-row">
-            <span class="price-only-badge">${original.toFixed(2)} ₪</span>
-        </div>`;
+        return '';
     }
 
     function saleSavingHtml(product) {
-        const regular = Number(product && product.price) || 0;
-        if (!(regular > 0)) return '';
-        return `<div class="price-only-row">
-            <span class="price-only-badge">${regular.toFixed(2)} ₪</span>
-        </div>`;
+        return '';
     }
 
     // بطاقة عرض حزمة (بس للحزم يلي عندها صورة مخصصة) - بالضغط عليها بتوديك لقسم "العروض" بالمتجر
