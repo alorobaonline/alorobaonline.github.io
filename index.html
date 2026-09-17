@@ -4335,11 +4335,11 @@
                 ${badgeHtml}
                 ${outOfStockBadgeHtml}
                 <div class="product-img-box${isOutOfStock ? ' is-out-of-stock' : ''}" onclick='openImageModal("${p.img}", "${p.name}", "${p.id}")'>
+                    <span class="qty-badge">${p.weight || 'حبة'}</span>
                     <img src="${optimizeImg(p.img, 300) || 'logo.png'}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
                 </div>
                 <div class="list-info">
                     <div class="product-name">${p.name}</div>
-                    <div class="product-weight">${p.weight || 'حبة'}</div>
                     <div class="product-price-top" style="display: flex; flex-wrap: wrap;">
                         <span class="${priceClass}">${priceDisplay}</span>
                         ${oldPriceDisplay}
@@ -4428,10 +4428,10 @@
                 <span class="discount-badge">عرض خاص</span>
                 <div>
                     <div class="product-img-box">
+                        <span class="qty-badge">${members.length} أنواع</span>
                         <img src="${repImage || 'logo.png'}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
                     </div>
                     <div class="product-name">${group.name}</div>
-                    <div class="product-weight">${members.length} أنواع - اختر</div>
                 </div>
                 <div>
                     <div class="product-price-row" style="display: block;">
@@ -4922,10 +4922,10 @@
                 <div>
                     <div class="product-img-box">
                         ${isSelected ? `<span class="discount-badge" style="background: var(--primary-green);">✓ مختار (${selectedQty})</span>` : ''}
+                        <span class="qty-badge">${qty} قطع</span>
                         <img src="${optimizeImg(b.customImage, 300)}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
                     </div>
                     <div class="product-name">${b.name}</div>
-                    <div class="product-weight">${qty} قطع</div>
                 </div>
                 <div>
                     <div class="product-price-row" style="display: block;">
@@ -5021,14 +5021,15 @@
                 </div>
                 <div>
                     <div class="product-price-row" style="${hasQty ? 'display: none;' : 'display: block;'}">
-                        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0;">
-                            <span class="${priceClass}">${priceDisplay}</span>
-                            ${oldPriceDisplay}
-                        </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-top: 4px;">
-                            <div style="flex: 1; min-width: 0;">${bundleBadgeHtml}${spendOfferBadgeHtml}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0;">
+                                <span class="${priceClass}">${priceDisplay}</span>
+                                ${oldPriceDisplay}
+                            </div>
                             ${addBtnHtml}
                         </div>
+                        ${bundleBadgeHtml}
+                        ${spendOfferBadgeHtml}
                     </div>
                     <div class="quantity-control-full" style="${hasQty ? 'display: flex;' : 'display: none;'}">
                         <button class="qty-btn" onclick='decreaseCartQty("${p.id}")'>-</button>
