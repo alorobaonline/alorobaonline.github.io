@@ -4914,7 +4914,7 @@
         let isSelected = selectedQty > 0;
 
         return `
-            <div class="product-card${sizeClass} has-sale" onclick='openBundleModal("${b.id}")' style="cursor: pointer; ${isSelected ? 'box-shadow: 0 0 0 2px var(--primary-green);' : ''}">
+            <div class="product-card${sizeClass} has-sale" data-bundle-id="${b.id}" onclick='openBundleModal("${b.id}")' style="cursor: pointer; ${isSelected ? 'box-shadow: 0 0 0 2px var(--primary-green);' : ''}">
                 <div>
                     <div class="product-img-box">
                         <span class="qty-badge">${qty} قطع</span>
@@ -5164,6 +5164,21 @@
                 let sizeVariant = card.classList.contains('product-card-small') ? 'small' : undefined;
                 tempDiv.innerHTML = createProductCardHtml(p, sizeVariant);
             }
+            card.outerHTML = tempDiv.firstElementChild.outerHTML;
+        });
+
+        // بطاقات "غلاف الحزمة" ما إلها data-product-id لمنتج محدد (هي بتمثل الحزمة كاملة)، فلازم
+        // نحدّثها لحالها كمان - وإلا بتضل تبين "+" وكأنه ما اختار شي، حتى لو المنتج فعلياً بالسلة
+        updateBundleCoverCardsDOM();
+    }
+
+    function updateBundleCoverCardsDOM() {
+        document.querySelectorAll('.product-card[data-bundle-id]').forEach(card => {
+            const b = (bundles || []).find(x => x.id === card.getAttribute('data-bundle-id'));
+            if (!b) return;
+            let sizeVariant = card.classList.contains('product-card-small') ? 'small' : undefined;
+            let tempDiv = document.createElement('div');
+            tempDiv.innerHTML = createBundleOfferCardHtml(b, sizeVariant);
             card.outerHTML = tempDiv.firstElementChild.outerHTML;
         });
     }
