@@ -443,6 +443,11 @@
         .out-of-stock-btn { background: #9ca3af !important; cursor: not-allowed !important; }
 
         .product-img-box { width: 100%; height: 100px; position: relative; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, #fafbfa 0%, #ffffff 100%); border-radius: 12px; margin-bottom: 4px; cursor: pointer; }
+        .qty-badge {
+            position: absolute; bottom: 3px; left: 3px; z-index: 2;
+            background: rgba(15,20,30,0.92); color: #fff; font-size: 9px; font-weight: 900;
+            padding: 3px 7px; border-radius: 20px; line-height: 1; white-space: nowrap;
+        }
         .product-img { max-width: 100%; max-height: 100%; object-fit: contain; }
         .product-name { font-size: 10.5px; font-weight: 700; color: #1e293b; margin-bottom: 3px; height: 24px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         .product-weight { font-size: 9.5px; font-weight: 600; color: #94a3b8; margin-bottom: 4px; }
@@ -5004,10 +5009,10 @@
                 ${outOfStockBadgeHtml}
                 <div>
                     <div class="product-img-box${isOutOfStock ? ' is-out-of-stock' : ''}" onclick='openImageModal("${p.img}", "${p.name}", "${p.id}")'>
+                        <span class="qty-badge">${p.weight || 'حبة'}</span>
                         <img src="${optimizeImg(p.img, 300) || 'logo.png'}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
                     </div>
                     <div class="product-name">${p.name}</div>
-                    <div class="product-weight">${p.weight || 'حبة'}</div>
                     <div class="product-price-top" style="${hasQty ? 'display: flex; flex-wrap: wrap;' : 'display: none;'}">
                         <span class="${priceClass}">${priceDisplay}</span>
                         ${oldPriceDisplay}
@@ -5016,15 +5021,14 @@
                 </div>
                 <div>
                     <div class="product-price-row" style="${hasQty ? 'display: none;' : 'display: block;'}">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0;">
-                                <span class="${priceClass}">${priceDisplay}</span>
-                                ${oldPriceDisplay}
-                            </div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0;">
+                            <span class="${priceClass}">${priceDisplay}</span>
+                            ${oldPriceDisplay}
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-top: 4px;">
+                            <div style="flex: 1; min-width: 0;">${bundleBadgeHtml}${spendOfferBadgeHtml}</div>
                             ${addBtnHtml}
                         </div>
-                        ${bundleBadgeHtml}
-                        ${spendOfferBadgeHtml}
                     </div>
                     <div class="quantity-control-full" style="${hasQty ? 'display: flex;' : 'display: none;'}">
                         <button class="qty-btn" onclick='decreaseCartQty("${p.id}")'>-</button>
