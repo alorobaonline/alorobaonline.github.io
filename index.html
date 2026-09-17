@@ -3522,6 +3522,8 @@
         }
 
         // قسم "حزم" - يجمع تلقائيًا كل منتج مشارك بحزمة محددة بالاسم من لوحة التحكم، ويظهر مباشرة تحت قسم العروض
+        // لو الحزمة عندها صورة مخصصة، بتبين "بطاقة غلاف" أول شي قبل بطاقات النكهات/المنتجات المشاركة فيها،
+        // بالضغط عليها بتفتح نفس نافذة اختيار المنتجات - وبتضل بطاقات النكهات الفردية موجودة جنبها كمان
         let bundleSectionProducts = products.filter(p => bundles.some(b => b.selectedItems && b.selectedItems.length > 0 && b.selectedItems.includes(p.name)));
         if (bundleSectionProducts.length > 0) {
             let bundlesRowHtml = `
@@ -3531,9 +3533,32 @@
                     </div>
                     <div class="products-horizontal-scroll">
             `;
-            let shownBundleProds = bundleSectionProducts.slice(0, 12);
-            shownBundleProds.forEach(p => { bundlesRowHtml += createProductCardHtml(p, 'small'); });
-            if (bundleSectionProducts.length > shownBundleProds.length) {
+
+            let addedProductIds = new Set();
+            let cardsBuilt = 0;
+            const maxBundleCards = 12;
+
+            bundles.forEach(b => {
+                if (cardsBuilt >= maxBundleCards) return;
+                if (!b.selectedItems || b.selectedItems.length === 0) return;
+                let groupProducts = b.selectedItems
+                    .map(name => products.find(p => p.name === name))
+                    .filter(p => p && !addedProductIds.has(p.id));
+                if (groupProducts.length === 0) return;
+
+                if (b.customImage) {
+                    bundlesRowHtml += createBundleOfferCardHtml(b, 'small');
+                    cardsBuilt++;
+                }
+                groupProducts.forEach(p => {
+                    if (cardsBuilt >= maxBundleCards) return;
+                    bundlesRowHtml += createProductCardHtml(p, 'small');
+                    addedProductIds.add(p.id);
+                    cardsBuilt++;
+                });
+            });
+
+            if (bundleSectionProducts.length > addedProductIds.size) {
                 bundlesRowHtml += `
                     <div class="view-all-card" onclick="viewAllBundleProducts()">
                         <div class="view-all-arrow">←</div>
@@ -4863,11 +4888,12 @@
     // بطاقة عرض حزمة (بس للحزم يلي عندها صورة مخصصة) - بتبين بشكل قريب من بطاقة المنتج العادية،
     // بس الصورة هي صورة الحزمة نفسها والسعر هو سعر الحزمة الكلي، وبالضغط عليها بتفتح نافذة اختيار
     // منتجات الحزمة (نفس اللي بتفتح من بانر "حزم" بالصفحة الرئيسية بالظبط)
-    function createBundleOfferCardHtml(b) {
+    function createBundleOfferCardHtml(b, sizeVariant) {
         let qty = Number(b.qty) || 4;
         let price = parseBundlePrice(b);
+        let sizeClass = sizeVariant === 'small' ? ' product-card-small' : '';
         return `
-            <div class="product-card has-sale" onclick='openBundleModal("${b.id}")' style="cursor: pointer;">
+            <div class="product-card${sizeClass} has-sale" onclick='openBundleModal("${b.id}")' style="cursor: pointer;">
                 <div>
                     <div class="product-img-box">
                         <img src="${optimizeImg(b.customImage, 300)}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
