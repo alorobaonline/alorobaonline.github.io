@@ -659,10 +659,12 @@
 
             ctx.direction = 'rtl';
             const title = document.getElementById('posterTitle').value.trim() || 'عروضنا';
-            const subtitle = document.getElementById('posterSubtitle').value.trim();
+            // التواريخ والأرقام (مثل 12/09-19/09) منعزلها كنص من اليسار لليمين، وإلا بتنقلب وبتتلخبط جوا النص العربي
+            const isolateNumbers = (s) => s.replace(/[0-9\u0660-\u0669][0-9\u0660-\u0669\/\-\.\s:]*[0-9\u0660-\u0669]|[0-9\u0660-\u0669]/g, m => '\u2066' + m + '\u2069');
+            const subtitle = isolateNumbers(document.getElementById('posterSubtitle').value.trim());
 
             // العنوان: منصغّر الخط إذا طويل، عشان ما يوصل للشعار
-            const titleMaxW = W - 2 * (140 + 50);
+            const titleMaxW = W - 80;
             let titleSize = 62;
             ctx.font = `900 ${titleSize}px Cairo, sans-serif`;
             while (ctx.measureText(title).width > titleMaxW && titleSize > 36) {
@@ -676,7 +678,7 @@
             const wSpace = restWords ? ctx.measureText(' ').width : 0;
             const w2 = restWords ? ctx.measureText(restWords).width : 0;
             const titleRight = W / 2 + (w1 + wSpace + w2) / 2;
-            const titleY = subtitle ? 84 : 108;
+            const titleY = subtitle ? 74 : 104;
             ctx.textAlign = 'right';
             ctx.fillStyle = restWords ? BRAND_ORANGE : selectedColor;
             ctx.fillText(firstWord, titleRight, titleY);
@@ -689,25 +691,14 @@
             ctx.textAlign = 'center';
             if (subtitle) {
                 ctx.font = '700 30px Cairo, sans-serif';
-                const pillW = Math.min(W - 2 * (140 + 50), ctx.measureText(subtitle).width + 48);
-                const pillH = 48;
-                const pillY = 102;
+                const pillW = Math.min(W - 80, ctx.measureText(subtitle).width + 48);
+                const pillH = 46;
+                const pillY = 112; // فراغ ناعم بين اسم المتجر والشارة
                 ctx.fillStyle = selectedColor;
                 drawRoundedRect(ctx, W / 2 - pillW / 2, pillY, pillW, pillH, pillH / 2);
                 ctx.fill();
                 ctx.fillStyle = '#ffffff';
-                ctx.fillText(subtitle, W / 2, pillY + 35);
-            }
-
-            // الشعار على اليمين (على الخلفية البيضا مباشرة، بدون مربع)
-            const logo = await loadImage('logo.png');
-            if (logo) {
-                const boxSize = 140;
-                const boxX = W - boxSize - 30;
-                const boxY = (headerH - BORDER_H - boxSize) / 2;
-                const s = Math.min(boxSize / logo.width, boxSize / logo.height);
-                const lw = logo.width * s, lh = logo.height * s;
-                ctx.drawImage(logo, boxX + (boxSize - lw) / 2, boxY + (boxSize - lh) / 2, lw, lh);
+                ctx.fillText(subtitle, W / 2, pillY + 34);
             }
 
             const missingImages = [];
@@ -802,6 +793,11 @@
                     ctx.fillText(sellPrice.toFixed(2) + '₪', x + cellW / 2, priceY);
                 }
             }
+
+            // إطار بنفس لون وسماكة الخط يلي تحت العنوان، حوالين الصورة كلها
+            ctx.strokeStyle = selectedColor;
+            ctx.lineWidth = BORDER_H;
+            ctx.strokeRect(BORDER_H / 2, BORDER_H / 2, W - BORDER_H, H - BORDER_H);
 
             canvas.style.display = 'block';
             canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
