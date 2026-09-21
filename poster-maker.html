@@ -628,7 +628,7 @@
         try {
             const canvas = document.getElementById('posterCanvas');
             // طول الصورة حسب عدد المنتجات (15 منتج = 5 صفوف كاملة، أقل = صفوف أقل بدون فراغ)
-            const CELL_H = 330, GRID_PAD = 16, HEADER_H = 190;
+            const CELL_H = 330, GRID_PAD = 16, HEADER_H = 174; // 15 منتج = 1080×1920 بالظبط (مقاس ستوري انستقرام)
             const rowsNeeded = Math.max(1, Math.ceil(selectedProducts.length / 3));
             canvas.height = HEADER_H + GRID_PAD + rowsNeeded * (CELL_H + GRID_PAD);
             const ctx = canvas.getContext('2d');
@@ -648,7 +648,7 @@
             ctx.fillRect(0, 0, W, H);
 
             // شريط العنوان فوق
-            const headerH = 190;
+            const headerH = HEADER_H;
             const grad = ctx.createLinearGradient(0, 0, W, 0);
             grad.addColorStop(0, selectedColor);
             grad.addColorStop(1, shadeColor(selectedColor, -20));
@@ -661,10 +661,10 @@
             ctx.direction = 'rtl';
             const title = document.getElementById('posterTitle').value.trim() || 'عروضنا';
             const subtitle = document.getElementById('posterSubtitle').value.trim();
-            ctx.fillText(title, W / 2, 100);
+            ctx.fillText(title, W / 2, 92);
             if (subtitle) {
                 ctx.font = '700 30px Cairo, sans-serif';
-                ctx.fillText(subtitle, W / 2, 150);
+                ctx.fillText(subtitle, W / 2, 140);
             }
 
             // الشعار على اليمين، جوا مربع أبيض عشان يبين واضح على أي لون خلفية
