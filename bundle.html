@@ -197,7 +197,7 @@
                 <div class="grid grid-cols-2 gap-2.5">
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1.5">السعر الإجمالي (₪)</label>
-                        <input type="text" id="bundle-price" oninput="updatePreview()" class="w-full border border-gray-200 bg-gray-50 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-green)]/40 focus:border-[var(--primary-green)] transition" placeholder="14.90">
+                        <input type="text" inputmode="decimal" id="bundle-price" oninput="updatePreview()" class="w-full border border-gray-200 bg-gray-50 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-green)]/40 focus:border-[var(--primary-green)] transition" placeholder="14.90">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1.5">الكمية المطلوبة</label>
@@ -825,8 +825,19 @@
 
         window.saveBundle = async function() {
             const name = document.getElementById('bundle-name').value.trim();
-            const priceText = document.getElementById('bundle-price').value.trim();
+            // توحيد السعر قبل الحفظ: أرقام عربية/فارسية -> إنجليزية، فاصلة -> نقطة، وحذف أي رموز أو كلمات
+            const rawPrice = document.getElementById('bundle-price').value.trim()
+                .replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660))
+                .replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06F0))
+                .replace(/[\u066B,]/g, '.');
+            const priceNums = rawPrice.match(/\d+(?:\.\d+)?/g);
+            const priceText = priceNums ? priceNums[priceNums.length - 1] : '';
             const qty = document.getElementById('bundle-qty').value.trim();
+
+            if (rawPrice && !priceText) {
+                showToast('السعر لازم يكون رقم، مثلاً 20 أو 14.90', 'error');
+                return;
+            }
 
             const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
             const selectedItems = Array.from(selectedCheckboxes).map(cb => cb.value);

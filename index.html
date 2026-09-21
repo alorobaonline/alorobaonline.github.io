@@ -4303,8 +4303,15 @@
         });
     }
 
+    // بتحوّل سعر الحزمة لرقم مهما كانت طريقة كتابته: أرقام عربية (٢٠)، فارسية (۲۰)، فاصلة (14,90)،
+    // أو مع رموز/كلمات ("20₪"، "20 شيكل"، "2=20") - بتاخذ آخر رقم مكتوب لأنه هو السعر
     function parseBundlePrice(b) {
-        return Number(String(b.priceText || '0').replace(',', '.')) || 0;
+        let s = String(b.priceText ?? '0')
+            .replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660))
+            .replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06F0))
+            .replace(/[\u066B,]/g, '.');
+        let nums = s.match(/\d+(?:\.\d+)?/g);
+        return nums ? Number(nums[nums.length - 1]) : 0;
     }
 
     function getBundleParticipatingProducts(b) {
