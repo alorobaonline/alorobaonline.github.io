@@ -67,6 +67,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, onSnapshot, updateDoc, addDoc, deleteDoc, doc, getDoc, setDoc, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
@@ -81,6 +82,14 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
+        const storage = getStorage(app);
+
+        // نفس رفع لوحة التحكم بالظبط: Firebase Storage + كاش سنة (كل ملف اسمه جديد، ما في كتابة فوق ملف قديم)
+        window.uploadImageToFirebaseStorage = async function(dataUrl, fileName) {
+            const storageRef = ref(storage, 'products/' + fileName);
+            await uploadString(storageRef, dataUrl, 'data_url', { cacheControl: 'public, max-age=31536000, immutable' });
+            return await getDownloadURL(storageRef);
+        };
 
         window.db = db;
         window.collection = collection;
@@ -1238,8 +1247,8 @@
         return canvas.toDataURL(bgWasRemoved ? 'image/png' : 'image/jpeg', 0.92);
     }
 
-    async function uploadImageToStorage(dataUrl) {
-        if (!dataUrl || !dataUrl.startsWith('data:')) return dataUrl;
+    // الرفع صار لـ Firebase Storage (نفس لوحة التحكم) - Cloudinary بس احتياط إذا Firebase فشل لأي سبب
+    async function uploadImageToCloudinary(dataUrl) {
         const formData = new FormData();
         formData.append('file', dataUrl);
         formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
@@ -1248,9 +1257,53 @@
             method: 'POST',
             body: formData
         });
-        if (!response.ok) throw new Error('فشل رفع الصورة إلى Cloudinary');
+        if (!response.ok) throw new Error('فشل رفع الصورة');
         const data = await response.json();
         return data.secure_url;
+    }
+
+    async function uploadImageToStorage(dataUrl) {
+        if (!dataUrl || !dataUrl.startsWith('data:')) return dataUrl;
+        const fileName = Date.now() + '_' + Math.random().toString(36).slice(2, 10) + '.jpg';
+        try {
+            return await window.uploadImageToFirebaseStorage(dataUrl, fileName);
+        } catch (e) {
+            console.warn('فشل الرفع لـ Firebase Storage، جاري المحاولة عبر Cloudinary:', e);
+            return await uploadImageToCloudinary(dataUrl);
+        }
+    }
+
+    // نسخة مصغّرة 300px بخلفية بيضاء للبطاقات بالمتجر (نفس لوحة التحكم) - بترجع {thumb, thumbFor} أو {}
+    // إذا ما زبطت (المتجر بيرجع للصورة الكاملة تلقائياً، فما بتوقف حفظ المنتج)
+    async function buildThumbFields(imgUrl, sourceDataUrl) {
+        if (!imgUrl || !sourceDataUrl || !imgUrl.includes('firebasestorage')) return {};
+        try {
+            const img = await new Promise((resolve, reject) => {
+                const i = new Image();
+                i.onload = () => resolve(i);
+                i.onerror = reject;
+                i.src = sourceDataUrl;
+            });
+            const scale = Math.min(1, 300 / Math.max(img.width, img.height));
+            const w = Math.max(1, Math.round(img.width * scale));
+            const h = Math.max(1, Math.round(img.height * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, w, h);
+            let thumbDataUrl = canvas.toDataURL('image/webp', 0.8);
+            if (!thumbDataUrl.startsWith('data:image/webp')) thumbDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            const ext = thumbDataUrl.startsWith('data:image/webp') ? '.webp' : '.jpg';
+            const thumbUrl = await window.uploadImageToFirebaseStorage(thumbDataUrl, 'thumb_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10) + ext);
+            return { thumb: thumbUrl, thumbFor: imgUrl };
+        } catch (e) {
+            console.warn('تعذر عمل نسخة مصغّرة:', e);
+            return {};
+        }
     }
 
     // تغيير صورة منتج موجود مباشرة من بطاقته بقائمة المخزون
@@ -1263,7 +1316,13 @@
             const dataUrl = await processProductImageFile(file, (msg) => statusEl.innerText = msg, { removeBg: true, resize: true });
             statusEl.innerText = '☁️ جاري الرفع...';
             const finalUrl = await uploadImageToStorage(dataUrl);
-            await window.updateDoc(window.doc(window.db, "products", productId), { img: finalUrl });
+            const thumbFields = await buildThumbFields(finalUrl, dataUrl);
+            // الصورة تغيّرت: منحدّث النسخة الصغيرة كمان (أو منفضيها، عشان ما تضل القديمة تنعرض)
+            await window.updateDoc(window.doc(window.db, "products", productId), {
+                img: finalUrl,
+                thumb: thumbFields.thumb || null,
+                thumbFor: thumbFields.thumbFor || null
+            });
             statusEl.innerText = '✅ تم تحديث الصورة';
             setTimeout(() => statusEl.innerText = '', 1800);
         } catch(e) {
@@ -1409,7 +1468,7 @@
 
         container.innerHTML = list.map(p => `
             <div style="display:flex; align-items:center; gap:8px; padding:7px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:5px;">
-                <img src="${p.img || DEFAULT_PLACEHOLDER_IMG}" style="width:34px; height:34px; object-fit:contain; border-radius:6px; flex-shrink:0;">
+                <img src="${p.img || DEFAULT_PLACEHOLDER_IMG}" loading="lazy" decoding="async" style="width:34px; height:34px; object-fit:contain; border-radius:6px; flex-shrink:0;">
                 <span style="flex:1; font-size:0.72rem; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(p.name)}</span>
                 ${p.barcode ? `<span style="font-size:0.6rem; color:#dc2626; font-weight:700; flex-shrink:0;">له باركود أصلاً</span>` : ''}
                 <button onclick="confirmLinkBarcode('${p.id}')" style="background:#2563eb; color:white; border:none; padding:5px 10px; border-radius:6px; font-size:0.68rem; font-weight:800; cursor:pointer; flex-shrink:0;">🔗 ربط</button>
@@ -1492,8 +1551,10 @@
 
         try {
             let imgUrl = '';
+            let thumbFields = {};
             if (newProductImageDataUrl) {
                 imgUrl = await uploadImageToStorage(newProductImageDataUrl);
+                thumbFields = await buildThumbFields(imgUrl, newProductImageDataUrl);
             }
 
             const supplier = document.getElementById('newProdSupplier').value.trim();
@@ -1502,7 +1563,8 @@
                 price: price,
                 barcode: barcode,
                 supplier: supplier,
-                img: imgUrl
+                img: imgUrl,
+                ...thumbFields
             };
             if (stockRaw !== '') newProd.stockQty = parseInt(stockRaw) || 0;
 

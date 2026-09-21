@@ -2842,7 +2842,7 @@
             if (isUnavailable) {
                 return `
                     <div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #eee; opacity:0.6; background:#fef2f2;">
-                        <img src="${i.img || 'https://i.ibb.co/3m1K2wP/basket.png'}" style="width:38px; height:38px; border-radius:8px; object-fit:cover; border:1px solid #eee; flex-shrink:0; background:white; filter:grayscale(1);" onerror="this.src='https://i.ibb.co/3m1K2wP/basket.png'">
+                        <img src="${thumbByImg(i.img, 100) || 'https://i.ibb.co/3m1K2wP/basket.png'}" loading="lazy" decoding="async" style="width:38px; height:38px; border-radius:8px; object-fit:cover; border:1px solid #eee; flex-shrink:0; background:white; filter:grayscale(1);" onerror="this.src='https://i.ibb.co/3m1K2wP/basket.png'">
                         <div style="flex:1; min-width:0;">
                             <div style="font-weight:700; font-size:12.5px; text-decoration:line-through; color:#9ca3af; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${i.name}</div>
                             <div style="color:#dc2626; font-size:10.5px; font-weight:800;">🚫 نفذت الكمية - غير محسوبة بالمجموع</div>
@@ -2852,7 +2852,7 @@
             }
             return `
             <div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #eee;">
-                <img src="${i.img || 'https://i.ibb.co/3m1K2wP/basket.png'}" style="width:38px; height:38px; border-radius:8px; object-fit:cover; border:1px solid #eee; flex-shrink:0; background:white;" onerror="this.src='https://i.ibb.co/3m1K2wP/basket.png'">
+                <img src="${thumbByImg(i.img, 100) || 'https://i.ibb.co/3m1K2wP/basket.png'}" loading="lazy" decoding="async" style="width:38px; height:38px; border-radius:8px; object-fit:cover; border:1px solid #eee; flex-shrink:0; background:white;" onerror="this.src='https://i.ibb.co/3m1K2wP/basket.png'">
                 <div style="flex:1; min-width:0;">
                     <div style="font-weight:700; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${i.addedByStaff ? '<span style="background:#dcfce7; color:#166534; font-size:9px; font-weight:800; padding:1px 6px; border-radius:6px; margin-left:4px;">➕ أضيف لطلبك</span>' : ''}${i.name}</div>
                     <div style="color:#64748b; font-size:11px; font-weight:600;">الكمية: ${i.quantity}</div>
@@ -3839,7 +3839,7 @@
                             </div>
                             <span class="spend-arrow">⬅</span>
                             <div class="spend-product-circle">
-                                <img src="${optimizeImg(prod.img, 150) || 'logo.png'}" onerror="this.onerror=null; this.src='logo.png';">
+                                <img src="${productThumb(prod, 150) || 'logo.png'}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='logo.png';">
                             </div>
                         </div>
                         ${statusLine}
@@ -4183,9 +4183,9 @@
             let savings = normalCost - price;
             let savingsHtml = savings > 0 ? `<span class="bundle-savings-badge">💰 وفّر ${savings.toFixed(2)} ₪</span>` : '';
 
-            let thumbsHtml = participating.slice(0, 4).filter(p => p.img).map(p => `<img src="${optimizeImg(p.img, 150)}" class="bundle-thumb-img" onerror="this.style.display='none'">`).join('');
+            let thumbsHtml = participating.slice(0, 4).filter(p => p.img).map(p => `<img src="${productThumb(p, 150)}" class="bundle-thumb-img" loading="lazy" decoding="async" onerror="this.style.display='none'">`).join('');
             let thumbsRowHtml = b.customImage
-                ? `<div class="bundle-custom-img-wrap"><img src="${optimizeImg(b.customImage, 200)}" class="bundle-custom-img" onerror="this.style.display='none'"></div>`
+                ? `<div class="bundle-custom-img-wrap"><img src="${optimizeImg(b.customImage, 200)}" class="bundle-custom-img" loading="lazy" decoding="async" onerror="this.style.display='none'"></div>`
                 : (thumbsHtml ? `<div class="bundle-thumbs-row">${thumbsHtml}</div>` : '');
 
             slidesHtml += `
@@ -4436,7 +4436,7 @@
                 ${outOfStockBadgeHtml}
                 <div class="product-img-box${isOutOfStock ? ' is-out-of-stock' : ''}" onclick='openImageModal("${p.img}", "${p.name}", "${p.id}")'>
                     <span class="qty-badge">${p.weight || 'حبة'}</span>
-                    <img src="${optimizeImg(p.img, 300) || 'logo.png'}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
+                    <img src="${productThumb(p, 300) || 'logo.png'}" class="product-img" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='logo.png';">
                 </div>
                 <div class="list-info">
                     <div class="product-name">${p.name}</div>
@@ -4522,7 +4522,7 @@
         let members = getOfferGroupParticipatingProducts(group).filter(hasSalePrice);
         if (members.length === 0) return '';
         let minPrice = Math.min(...members.map(p => Number(p.salePrice)));
-        let repImage = members[0] ? members[0].img : '';
+        let repImage = members[0] ? productThumb(members[0], 300) : '';
         return `
             <div class="product-card product-card-small has-sale" data-offer-group-id="${group.id}" onclick="openOfferGroupModal('${group.id}')" style="cursor: pointer;">
                 <span class="discount-badge">عرض خاص</span>
@@ -4889,7 +4889,7 @@
             return `
                 <div class="bundle-item-row ${isSelected ? 'bundle-item-selected' : ''}" style="${isOutOfStock ? 'opacity:0.55;' : ''}">
                     <div style="display: flex; align-items: center; gap: 9px; overflow: hidden;">
-                        <img src="${optimizeImg(p.img, 100) || 'logo.png'}" class="bundle-item-thumb" style="${isOutOfStock ? 'filter: grayscale(1);' : ''}" onclick="openImageModal('${p.img || 'logo.png'}', '${p.name.replace(/'/g, "\\'")}')" onerror="this.onerror=null; this.src='logo.png';">
+                        <img src="${productThumb(p, 100) || 'logo.png'}" class="bundle-item-thumb" loading="lazy" decoding="async" style="${isOutOfStock ? 'filter: grayscale(1);' : ''}" onclick="openImageModal('${p.img || 'logo.png'}', '${p.name.replace(/'/g, "\\'")}')" onerror="this.onerror=null; this.src='logo.png';">
                         <div>
                             <div class="bundle-item-name">${p.name}</div>
                             <div class="bundle-item-unit-price">
@@ -4935,7 +4935,7 @@
                 return `
                     <div class="bundle-item-row ${isSelected ? 'bundle-item-selected' : ''}" style="${isOutOfStock ? 'opacity:0.55;' : ''}">
                         <div style="display: flex; align-items: center; gap: 9px; overflow: hidden;">
-                            <img src="${optimizeImg(p.img, 100) || 'logo.png'}" class="bundle-item-thumb" style="${isOutOfStock ? 'filter: grayscale(1);' : ''}" onclick="openImageModal('${p.img || 'logo.png'}', '${p.name.replace(/'/g, "\\'")}')" onerror="this.onerror=null; this.src='logo.png';">
+                            <img src="${productThumb(p, 100) || 'logo.png'}" class="bundle-item-thumb" loading="lazy" decoding="async" style="${isOutOfStock ? 'filter: grayscale(1);' : ''}" onclick="openImageModal('${p.img || 'logo.png'}', '${p.name.replace(/'/g, "\\'")}')" onerror="this.onerror=null; this.src='logo.png';">
                             <div>
                                 <div class="bundle-item-name">${p.name}</div>
                                 <div class="bundle-item-unit-price">${getEffectivePrice(p).toFixed(2)} ₪ · حبة</div>
@@ -4987,6 +4987,22 @@
 
     // يصغّر صور Cloudinary تلقائياً حسب مكان عرضها (بدون ما يحتاج رفع نسخة جديدة) -
     // بيقلل حجم التحميل بشكل كبير جداً بدل ما تنزل الصورة الأصلية (1000×1000) لبطاقة صغيرة
+    // الصورة المصغّرة الجاهزة للمنتج (300px WebP، بتنعمل تلقائياً من لوحة التحكم) - بتنستخدم بس إذا
+    // كانت معمولة من نفس الصورة الحالية (thumbFor === img)، عشان لو تغيّرت الصورة بأي طريقة ثانية
+    // ما تضل تطلع الصورة المصغّرة القديمة. إذا ما في وحدة، منرجع للطريقة القديمة (optimizeImg)
+    function productThumb(p, width) {
+        if (!p) return '';
+        if (p.thumb && p.thumbFor && p.thumbFor === p.img) return p.thumb;
+        return optimizeImg(p.img, width);
+    }
+
+    // لعناصر السلة/الطلبيات يلي بتحمل رابط الصورة بس (مش كل بيانات المنتج) - بندور على المنتج الأصلي
+    function thumbByImg(imgUrl, width) {
+        if (!imgUrl) return imgUrl;
+        const p = Array.isArray(products) ? products.find(x => x && x.img === imgUrl) : null;
+        return p ? productThumb(p, width) : optimizeImg(imgUrl, width);
+    }
+
     function optimizeImg(url, width) {
         if (!url || typeof url !== 'string') return url;
         if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) return url;
@@ -5018,7 +5034,7 @@
                 <div>
                     <div class="product-img-box">
                         <span class="qty-badge">${qty} قطع</span>
-                        <img src="${optimizeImg(b.customImage, 300)}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
+                        <img src="${optimizeImg(b.customImage, 300)}" class="product-img" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='logo.png';">
                     </div>
                     <div class="product-name">${b.name}</div>
                 </div>
@@ -5113,7 +5129,7 @@
                 <div>
                     <div class="product-img-box${isOutOfStock ? ' is-out-of-stock' : ''}" onclick='openImageModal("${p.img}", "${p.name}", "${p.id}")'>
                         <span class="qty-badge">${p.weight || 'حبة'}</span>
-                        <img src="${optimizeImg(p.img, 300) || 'logo.png'}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='logo.png';">
+                        <img src="${productThumb(p, 300) || 'logo.png'}" class="product-img" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='logo.png';">
                     </div>
                     <div class="product-name">${p.name}</div>
                     <div class="product-price-top" style="${hasQty ? 'display: flex; flex-wrap: wrap;' : 'display: none;'}">
@@ -5450,7 +5466,7 @@
             listContainer.innerHTML += `
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; margin-bottom: 6px; background: #f8fafc; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border-color);">
                     <div style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
-                        <img src="${item.img || 'logo.png'}" style="width: 40px; height: 40px; object-fit: contain; background: white; border-radius: 6px; border: 1px solid #eee;" onerror="this.onerror=null; this.src='logo.png';">
+                        <img src="${thumbByImg(item.img, 100) || 'logo.png'}" loading="lazy" decoding="async" style="width: 40px; height: 40px; object-fit: contain; background: white; border-radius: 6px; border: 1px solid #eee;" onerror="this.onerror=null; this.src='logo.png';">
                         <div>
                             <div style="font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">${item.name}</div>
                             <div style="color: #64748b; font-size: 11px; font-weight: 600;">الكمية: ${item.quantity} × ${unitPriceDisplay}</div>
@@ -6197,7 +6213,7 @@
         const parentList = categories.filter(c => c.name !== 'الكل' && !c.parentCategory);
 
         const cardsHtml = parentList.map(cat => {
-            const iconHtml = cat.img ? `<img src="${cat.img}" class="cat-screen-img cat-screen-img-lg">` : `<span class="css-icon">${cat.icon || '🗂️'}</span>`;
+            const iconHtml = cat.img ? `<img src="${optimizeImg(cat.img, 200)}" class="cat-screen-img cat-screen-img-lg" loading="lazy" decoding="async">` : `<span class="css-icon">${cat.icon || '🗂️'}</span>`;
             return `
                 <div class="cat-screen-grid-card" onclick="selectCategoryFromScreen('${cat.name.replace(/'/g, "\\'")}', null)">
                     ${iconHtml}

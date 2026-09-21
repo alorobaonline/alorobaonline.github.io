@@ -169,7 +169,7 @@
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
         import { getFunctions, httpsCallableFromURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
-        import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+        import { getStorage, ref, uploadString, getDownloadURL, updateMetadata } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAFk8EX7-EMt--ZU3958nrMogeEdvGtaCs",
@@ -218,10 +218,19 @@
         window.increment = increment;
 
         // ===================== Firebase Storage - لرفع صور المنتجات (بدل Cloudinary) =====================
+        // كل ملف بياخد اسم جديد عند الرفع (ما بنكتب فوق ملف قديم أبداً)، فآمن نخلي جهاز الزبون يحتفظ فيه
+        // سنة كاملة بدل ما ينزّله من جديد كل زيارة
+        const IMAGE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
         window.uploadImageToFirebaseStorage = async function(dataUrl, fileName) {
             const storageRef = ref(storage, 'products/' + fileName);
-            await uploadString(storageRef, dataUrl, 'data_url');
+            await uploadString(storageRef, dataUrl, 'data_url', { cacheControl: IMAGE_CACHE_CONTROL });
             return await getDownloadURL(storageRef);
+        };
+        // بتضيف إعداد الكاش لصورة موجودة أصلاً على Firebase Storage (للصور القديمة يلي انرفعت بدونه)
+        window.setFirebaseImageCache = async function(url) {
+            if (!url || !url.includes('firebasestorage')) return false;
+            await updateMetadata(ref(storage, url), { cacheControl: IMAGE_CACHE_CONTROL });
+            return true;
         };
 
         // ===================== بوابة تسجيل الدخول (Firebase Authentication) =====================
@@ -801,7 +810,7 @@
         </div>
         <div class="section-content" id="reoptimizeImagesSectionContent">
             <div style="font-size: 0.72rem; color: #6b7280; margin-bottom: 10px; line-height: 1.7;">
-                استخدمي هاي الأداة لو صار المتجر أو لوحة التحكم بطيئين بشكل عام. بتدور على كل صورة منتج حالية (بغض النظر وين مخزّنة)، وبتصغّرها لحجم مناسب للعرض على الموبايل، وبترفعها من جديد لـ Firebase Storage. هاد بيقلّل حجم كل صورة بشكل كبير ويسرّع تحميل كل صفحات الموقع.
+                بتعمل لكل منتج نسخة صغيرة (300px) لبطاقات المتجر، بدل ما ينزل الزبون الصورة الكاملة لكل بطاقة، وبتخلي جهاز الزبون يحتفظ بالصور بدل ما ينزّلها كل زيارة. الصورة الأصلية ما بتتغير (بتضل للتكبير). الصور الجديدة بتاخد نسخة صغيرة تلقائياً - هاي الأداة للصور الموجودة من قبل، وآمن تشغيلها أكثر من مرة.
             </div>
             <button class="btn-main" onclick="reoptimizeAllProductImages()" id="reoptimizeImagesBtn">🗜️ ابدأي التصغير</button>
             <div id="reoptimizeImagesProgress" style="margin-top: 12px; font-size: 0.72rem; font-weight: 700; color: #374151; white-space: pre-line;"></div>
@@ -1422,6 +1431,72 @@
         return canvas.toDataURL(bgWasRemoved ? 'image/png' : 'image/jpeg', 0.92);
     }
 
+    // ===================== الصور المصغّرة للبطاقات (thumb) =====================
+    // البطاقة بالمتجر بتعرض الصورة بحوالي 112px، فما في داعي تنزل الصورة الكاملة (1000×1000).
+    // لكل منتج منعمل نسخة صغيرة 300px (WebP إذا المتصفح بيدعمه، وإلا JPEG) بخلفية بيضاء - الخلفية البيضاء
+    // مهمة: بدونها الصور الشفافة (المشالة خلفيتها) بتصير خلفيتها سوداء عند التحويل.
+    // بنحفظ thumbFor = رابط الصورة الأصلية، والمتجر بيستخدم thumb بس إذا thumbFor مطابق للصورة الحالية.
+    const THUMB_SIZE = 300;
+
+    function loadImageForThumb(src) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            if (!src.startsWith('data:')) img.crossOrigin = 'anonymous';
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error('تعذر تحميل الصورة'));
+            img.src = src;
+        });
+    }
+
+    function drawThumbDataUrl(img, size) {
+        const scale = Math.min(1, size / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, w, h);
+        let out = canvas.toDataURL('image/webp', 0.8); // بيرمي خطأ إذا الصورة محجوبة بسبب CORS
+        if (!out.startsWith('data:image/webp')) out = canvas.toDataURL('image/jpeg', 0.8);
+        return out;
+    }
+
+    async function makeThumbDataUrl(src, size) {
+        size = size || THUMB_SIZE;
+        try {
+            return drawThumbDataUrl(await loadImageForThumb(src), size);
+        } catch (e) {
+            if (src.startsWith('data:')) throw e;
+            // احتياط للصور القديمة بس: إذا التخزين ما سمح للمتصفح يقرأ الصورة مباشرة (CORS)،
+            // منجيبها عبر wsrv.nl (خدمة صور مجانية بتسمح بالقراءة) - بس لعمل النسخة الصغيرة مرة وحدة
+            const proxied = 'https://wsrv.nl/?url=' + encodeURIComponent(src) + '&w=' + (size * 2) + '&output=png';
+            return drawThumbDataUrl(await loadImageForThumb(proxied), size);
+        }
+    }
+
+    function thumbFileName(dataUrl) {
+        const ext = dataUrl.startsWith('data:image/webp') ? '.webp' : '.jpg';
+        return 'thumb_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10) + ext;
+    }
+
+    // بتعمل نسخة مصغّرة لصورة منتج وترفعها - وبترجع الحقول الجاهزة للحفظ مع المنتج ({thumb, thumbFor})
+    // أو {} إذا ما زبطت (فشل النسخة الصغيرة ما لازم يوقف حفظ المنتج أبداً - المتجر بيرجع للصورة الكاملة)
+    async function buildThumbFields(imgUrl, sourceForThumb) {
+        if (!imgUrl || imgUrl === DEFAULT_PLACEHOLDER_IMG || !(imgUrl.startsWith('http'))) return {};
+        try {
+            const thumbDataUrl = await makeThumbDataUrl(sourceForThumb || imgUrl);
+            const thumbUrl = await window.uploadImageToFirebaseStorage(thumbDataUrl, thumbFileName(thumbDataUrl));
+            return { thumb: thumbUrl, thumbFor: imgUrl };
+        } catch (e) {
+            console.warn('تعذر عمل نسخة مصغّرة للصورة (رح تنعرض الصورة الكاملة):', e);
+            return {};
+        }
+    }
+
     // يرفع صورة (dataUrl base64) إلى Firebase Storage ويرجّع رابط تنزيل دائم بدل تخزين base64 كامل
     // داخل Firestore - نفس نظام تخزين باقي بيانات المتجر، مش خدمة خارجية منفصلة
     async function uploadImageToStorage(dataUrl) {
@@ -1532,50 +1607,56 @@
     }
 
     // ===================== أداة تصغير/ضغط كل صور المنتجات الحالية (تصحيح لصور نقلت كبيرة الحجم) =====================
+    // بتعمل نسخة مصغّرة (thumb) لكل منتج ما عنده وحدة مطابقة لصورته الحالية، وبتضيف إعداد الكاش للصورة الكاملة.
+    // الصورة الأصلية ما بتنلمس أبداً (بتضل للتكبير). آمن تشغيلها أكثر من مرة: بتتخطى المنتجات الجاهزة.
     async function reoptimizeAllProductImages() {
         const btn = document.getElementById('reoptimizeImagesBtn');
         const progressEl = document.getElementById('reoptimizeImagesProgress');
 
-        if (!confirm('هاي العملية رح تعيد تحميل كل صورة منتج حالية، تصغّرها، وترفعها من جديد. ممكن تاخد وقت طويل لو عندك منتجات كتير. تبدأي؟')) return;
+        const withImg = products.filter(p => p.img && p.img.startsWith('http') && p.img !== DEFAULT_PLACEHOLDER_IMG);
+        const targets = withImg.filter(p => !(p.thumb && p.thumbFor === p.img));
+        const alreadyDone = withImg.length - targets.length;
+
+        if (targets.length === 0) {
+            progressEl.innerText = `✅ كل الصور (${withImg.length}) عندها نسخة مصغّرة جاهزة. ما في إشي لازم ينعمل.`;
+            return;
+        }
+
+        if (!confirm(`رح نعمل نسخة مصغّرة لـ ${targets.length} صورة منتج (الصور الأصلية ما رح تتغيّر). ممكن تاخد كم دقيقة - خلي الصفحة مفتوحة لحد ما تخلص. نبدأ؟`)) return;
 
         btn.disabled = true;
         btn.innerText = '⏳ جاري التصغير...';
-        progressEl.innerText = 'جاري تحضير القائمة...';
-
-        const targets = products.filter(p => p.img && p.img.startsWith('http'));
-
-        if (targets.length === 0) {
-            progressEl.innerText = 'ما في أي منتج فيه صورة لتصغيرها.';
-            btn.disabled = false;
-            btn.innerText = '🗜️ ابدأي التصغير';
-            return;
-        }
 
         let done = 0, failed = [];
         for (const p of targets) {
             progressEl.innerText = `جاري التصغير: ${done + failed.length + 1} من ${targets.length}\n(${p.name || p.id})`;
+            const originalImg = p.img;
+            const fields = await buildThumbFields(originalImg);
+            if (!fields.thumb) {
+                failed.push(p.name || p.id);
+                continue;
+            }
             try {
-                const dataUrl = await loadImageAsDataUrl(p.img, 900);
-                const fileName = Date.now() + '_' + Math.random().toString(36).slice(2, 10) + '.jpg';
-                const newUrl = await window.uploadImageToFirebaseStorage(dataUrl, fileName);
-                await window.updateDoc(window.doc(window.db, "products", p.id), { img: newUrl });
+                await window.updateDoc(window.doc(window.db, "products", p.id), fields);
+                p.thumb = fields.thumb;
+                p.thumbFor = fields.thumbFor;
                 done++;
             } catch (e) {
-                console.error('فشل تصغير صورة المنتج: ' + (p.name || p.id), e);
+                console.error('فشل حفظ النسخة المصغّرة للمنتج: ' + (p.name || p.id), e);
                 failed.push(p.name || p.id);
+                continue;
             }
+            // إعداد الكاش للصورة الكاملة القديمة (يلي بتنفتح بالتكبير) - إذا ما زبط مش مشكلة
+            try { await window.setFirebaseImageCache(originalImg); } catch (e) { console.warn('cache metadata:', e); }
         }
 
-        let resultMsg = `✅ تم تصغير ${done} من ${targets.length} صورة بنجاح.`;
+        let resultMsg = `✅ تم عمل نسخة مصغّرة لـ ${done} من ${targets.length} صورة.`;
+        if (alreadyDone > 0) resultMsg += `\n(${alreadyDone} صورة كانت جاهزة من قبل وتم تخطيها)`;
         if (failed.length > 0) {
-            resultMsg += `\n\n❌ فشل تصغير ${failed.length} صورة:\n- ${failed.join('\n- ')}`;
-            resultMsg += `\n\nجربي تشغّلي الأداة مرة ثانية بعدين لهالمنتجات.`;
+            resultMsg += `\n\n❌ ما زبط لـ ${failed.length} صورة (رح تضل تنعرض بالصورة الكاملة):\n- ${failed.join('\n- ')}`;
+            resultMsg += `\n\nجربي تشغّلي الأداة مرة ثانية - رح تحاول بس بهدول.`;
         }
         progressEl.innerText = resultMsg;
-
-        if (typeof loadDataFromCloud === 'function') {
-            await loadDataFromCloud();
-        }
 
         btn.disabled = false;
         btn.innerText = '🗜️ ابدأي التصغير';
@@ -1855,7 +1936,7 @@
             return `
             <div style="padding:10px; background:#fef3c7; border:1px solid #fde68a; border-radius:10px; margin-bottom:8px;">
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-                    <img src="${imgSrc}" class="product-mini-thumb" onclick="openModal(this)" onerror="this.src='${DEFAULT_PLACEHOLDER_IMG}'">
+                    <img src="${imgSrc}" class="product-mini-thumb" loading="lazy" decoding="async" onclick="openModal(this)" onerror="this.src='${DEFAULT_PLACEHOLDER_IMG}'">
                     <div>
                         <div style="font-weight:800; font-size:0.8rem;">${p.name}</div>
                         <div style="font-size:0.62rem; color:#92400e;">اتباع ${p.qtySold} قطعة بآخر الطلبات</div>
@@ -2498,7 +2579,9 @@
         if (addBtn) { addBtn.disabled = true; addBtn.innerText = 'جاري رفع الصورة...'; }
 
         try {
+            const imgSource = img; // لو كانت صورة جديدة (dataUrl) منعمل منها النسخة الصغيرة مباشرة بدون تنزيل
             img = await uploadImageToStorage(img, name);
+            const thumbFields = await buildThumbFields(img, imgSource.startsWith('data:') ? imgSource : null);
 
             const newProd = {
                 name,
@@ -2507,6 +2590,7 @@
                 costPrice,
                 weight,
                 img,
+                ...thumbFields,
                 categories: selectedCats.length > 0 ? selectedCats : ["عام"],
                 sortOrder: 0
             };
@@ -2571,6 +2655,7 @@
 
                 progressDiv.innerText = `جاري رفع الصورة ${i + 1} من ${files.length} إلى التخزين السحابي...`;
                 const uploadedUrl = await uploadImageToStorage(dataUrl, baseName);
+                const thumbFields = await buildThumbFields(uploadedUrl, dataUrl);
 
                 const newProd = {
                     name: baseName,
@@ -2578,6 +2663,7 @@
                     salePrice: "",
                     weight: "حبة",
                     img: uploadedUrl,
+                    ...thumbFields,
                     categories: ["عام"],
                     sortOrder: 0
                 };
@@ -2690,7 +2776,7 @@
 
         container.innerHTML = `<div style="font-size:0.68rem; color:#6b7280; font-weight:700; margin-bottom:8px;">${list.length} منتج مطابق:</div>` + list.map(p => `
             <div class="product-mini-row" style="display:flex; align-items:center; gap:8px; padding:8px; background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; margin-bottom:6px;">
-                <img src="${p.img || DEFAULT_PLACEHOLDER_IMG}" class="product-mini-thumb" onclick="openModal(this)" onerror="this.src='${DEFAULT_PLACEHOLDER_IMG}'">
+                <img src="${p.img || DEFAULT_PLACEHOLDER_IMG}" class="product-mini-thumb" loading="lazy" decoding="async" onclick="openModal(this)" onerror="this.src='${DEFAULT_PLACEHOLDER_IMG}'">
                 <div style="flex:1; min-width:0;">
                     <div style="font-weight:800; font-size:0.75rem;">${p.name || '(بدون اسم)'}</div>
                     <div style="font-size:0.62rem; color:#c2410c; font-weight:700;">
@@ -2751,7 +2837,7 @@
             <div class="product-card-container" data-pname="${(p.name || '').toLowerCase()}">
                 <div class="product-mini-row">
                     <div class="product-mini-info">
-                        <img src="${p.img || DEFAULT_PLACEHOLDER_IMG}" class="product-mini-thumb" onclick="openModal(this)" onerror="this.src='${DEFAULT_PLACEHOLDER_IMG}'">
+                        <img src="${p.img || DEFAULT_PLACEHOLDER_IMG}" class="product-mini-thumb" loading="lazy" decoding="async" onclick="openModal(this)" onerror="this.src='${DEFAULT_PLACEHOLDER_IMG}'">
                         <div>
                             <div style="font-weight: 800;">${p.name || 'بدون اسم'}</div>
                             <div style="color: #6b7280; font-size: 0.65rem;">السعر: ${p.price || 0}₪ ← <span style="color:#dc2626; font-weight:800;">${p.salePrice}₪ (عرض)</span></div>
@@ -2845,7 +2931,7 @@
                     <div class="product-card-container" data-pname="${(p.name || '').toLowerCase()}">
                         <div class="product-mini-row">
                             <div class="product-mini-info">
-                                <img src="${p.img}" class="product-mini-thumb" onclick="openModal(this)" onerror="this.src='https://i.ibb.co/3m1K2wP/basket.png'">
+                                <img src="${p.img}" class="product-mini-thumb" loading="lazy" decoding="async" onclick="openModal(this)" onerror="this.src='https://i.ibb.co/3m1K2wP/basket.png'">
                                 <div>
                                     <div style="font-weight: 800;">${p.name || 'بدون اسم'}</div>
                                     <div style="color: #6b7280; font-size: 0.65rem;">السعر: ${activePrice} | ${p.weight || 'حبة'}</div>
@@ -3017,8 +3103,12 @@
         try {
             if (modalNewImageBase64) {
                 const uploadedUrl = await uploadImageToStorage(modalNewImageBase64, product.name || product.id);
+                const thumbFields = await buildThumbFields(uploadedUrl, modalNewImageBase64);
                 product.img = uploadedUrl;
                 updateData.img = uploadedUrl;
+                // الصورة تغيّرت: منحدّث النسخة الصغيرة كمان (أو منفضيها إذا ما زبطت، عشان ما تضل القديمة)
+                product.thumb = updateData.thumb = thumbFields.thumb || null;
+                product.thumbFor = updateData.thumbFor = thumbFields.thumbFor || null;
                 modalNewImageBase64 = null; // منع إعادة الرفع لو المستخدم كبس حفظ تاني بدون تغيير صورة
             }
 

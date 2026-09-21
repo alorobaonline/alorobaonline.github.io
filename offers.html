@@ -495,6 +495,13 @@
 
     // بتحوّل سعر الحزمة لرقم مهما كانت طريقة كتابته: أرقام عربية (٢٠)، فارسية (۲۰)، فاصلة (14,90)،
     // أو مع رموز/كلمات ("20₪"، "20 شيكل"، "2=20") - بتاخذ آخر رقم مكتوب لأنه هو السعر
+    // الصورة المصغّرة الجاهزة للمنتج (من لوحة التحكم) - بس إذا معمولة من نفس الصورة الحالية
+    function productThumb(p) {
+        if (!p) return '';
+        if (p.thumb && p.thumbFor && p.thumbFor === p.img) return p.thumb;
+        return p.img || '';
+    }
+
     function parseBundlePrice(b) {
         let s = String(b.priceText ?? '0')
             .replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660))
@@ -615,7 +622,7 @@
                 <div class="product-img-box" onclick='openImageZoom(event, "${b.customImage}", "${escapeHtml(b.name)}", "${escapeHtml(badgeText)}")'>
                     ${marketingBadgeHtml(b)}
                     <span class="qty-badge">×${qty}</span>
-                    <img src="${b.customImage}" alt="${escapeHtml(b.name)}" loading="lazy">
+                    <img src="${b.customImage}" alt="${escapeHtml(b.name)}" loading="lazy" decoding="async">
                 </div>
                 <div class="product-name">${escapeHtml(b.name || '')}</div>
                 ${bundleSavingHtml(b)}
@@ -648,7 +655,7 @@
                     ${matchedBundle ? marketingBadgeHtml(matchedBundle) : ''}
                     ${discountPct ? `<span class="discount-badge">${discountPct}%-</span>` : ''}
                     <span class="qty-badge">${escapeHtml(p.weight || 'حبة')}</span>
-                    <img src="${p.img || ''}" alt="${escapeHtml(p.name)}" loading="lazy">
+                    <img src="${productThumb(p)}" alt="${escapeHtml(p.name)}" loading="lazy" decoding="async">
                 </div>
                 <div class="product-name">${escapeHtml(p.name || '')}</div>
                 ${matchedBundle ? bundleSavingHtml(matchedBundle) : (hasSale ? saleSavingHtml(p) : '')}
