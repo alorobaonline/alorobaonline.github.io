@@ -200,6 +200,7 @@
         const bar = document.getElementById('offerPagesBar');
         if (offerPages.length <= 1) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
         bar.style.display = 'block';
+        bar.style.cssText += 'background:#fef2f2; border:2px dashed #dc2626; border-radius:12px; padding:10px;';
         bar.innerHTML = `<div style="font-size:0.72rem; font-weight:800; color:#374151; margin-bottom:6px;">في ${offerPages.reduce((s, pg) => s + pg.length, 0)} عرض - بيطلعوا بـ ${offerPages.length} صور. اختاري الصورة:</div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">` +
             offerPages.map((pg, i) => `<button onclick="window.showOfferPage(${i})" style="flex:1; min-width:70px; padding:8px; border-radius:10px; font-weight:800; font-size:0.78rem; cursor:pointer; border:2px solid ${i === currentOfferPage ? '#dc2626' : '#d1d5db'}; background:${i === currentOfferPage ? '#fef2f2' : 'white'}; color:#111827;">صورة ${i + 1} (${pg.length})</button>`).join('') +
@@ -476,6 +477,10 @@
             : selectedProducts.length === 15
                 ? '✅ 15 منتج - الصورة مليانة وجاهزة'
                 : `✅ ${selectedProducts.length} منتج - جاهزة تولّدي الصورة (بتوسع لحد 15)`;
+        if (currentOfferPage !== null && offerPages.length > 1) {
+            countTextEl.innerText += `\n📄 هاي صورة ${currentOfferPage + 1} من ${offerPages.length} - باقي العروض بأزرار "صورة 2، صورة 3..." فوق`;
+            countTextEl.style.whiteSpace = 'pre-line';
+        }
 
         document.getElementById('selectedGrid').innerHTML = selectedProducts.map((p, idx) => `
             <div class="selected-item">
