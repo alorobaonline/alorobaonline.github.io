@@ -73,8 +73,8 @@
 
     <div class="card">
         <h2>1️⃣ عنوان الصورة</h2>
-        <input type="text" id="posterTitle" placeholder="مثال: عروض الأسبوع 🔥" value="عروض الأسبوع 🔥">
-        <input type="text" id="posterSubtitle" placeholder="مثال: العروبة أونلاين" value="العروبة أونلاين">
+        <input type="text" id="posterTitle" placeholder="مثال: العروبة أونلاين" value="العروبة أونلاين">
+        <input type="text" id="posterSubtitle" placeholder="مثال: عروض الأسبوع 🔥 20/09 حتى 27/09" value="عروض الأسبوع 🔥">
         <div class="color-swatches" id="colorSwatches"></div>
     </div>
 
@@ -647,37 +647,65 @@
             ctx.fillStyle = '#f8faf7';
             ctx.fillRect(0, 0, W, H);
 
-            // شريط العنوان فوق
+            // شريط العنوان فوق - خلفية بيضا بألوان الشعار: أول كلمة من العنوان برتقالي والباقي باللون
+            // المختار (أخضر افتراضياً)، المدة/العنوان الفرعي بشارة ملوّنة، وخط ملوّن تحت الشريط
             const headerH = HEADER_H;
-            const grad = ctx.createLinearGradient(0, 0, W, 0);
-            grad.addColorStop(0, selectedColor);
-            grad.addColorStop(1, shadeColor(selectedColor, -20));
-            ctx.fillStyle = grad;
+            const BRAND_ORANGE = '#f97316';
+            const BORDER_H = 8;
+            ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, W, headerH);
+            ctx.fillStyle = selectedColor;
+            ctx.fillRect(0, headerH - BORDER_H, W, BORDER_H);
 
-            ctx.fillStyle = 'white';
-            ctx.textAlign = 'center';
-            ctx.font = '900 62px Cairo, sans-serif';
             ctx.direction = 'rtl';
             const title = document.getElementById('posterTitle').value.trim() || 'عروضنا';
             const subtitle = document.getElementById('posterSubtitle').value.trim();
-            ctx.fillText(title, W / 2, 92);
-            if (subtitle) {
-                ctx.font = '700 30px Cairo, sans-serif';
-                ctx.fillText(subtitle, W / 2, 140);
+
+            // العنوان: منصغّر الخط إذا طويل، عشان ما يوصل للشعار
+            const titleMaxW = W - 2 * (140 + 50);
+            let titleSize = 62;
+            ctx.font = `900 ${titleSize}px Cairo, sans-serif`;
+            while (ctx.measureText(title).width > titleMaxW && titleSize > 36) {
+                titleSize -= 2;
+                ctx.font = `900 ${titleSize}px Cairo, sans-serif`;
+            }
+            const spaceIdx = title.indexOf(' ');
+            const firstWord = spaceIdx === -1 ? title : title.slice(0, spaceIdx);
+            const restWords = spaceIdx === -1 ? '' : title.slice(spaceIdx + 1);
+            const w1 = ctx.measureText(firstWord).width;
+            const wSpace = restWords ? ctx.measureText(' ').width : 0;
+            const w2 = restWords ? ctx.measureText(restWords).width : 0;
+            const titleRight = W / 2 + (w1 + wSpace + w2) / 2;
+            const titleY = subtitle ? 84 : 108;
+            ctx.textAlign = 'right';
+            ctx.fillStyle = restWords ? BRAND_ORANGE : selectedColor;
+            ctx.fillText(firstWord, titleRight, titleY);
+            if (restWords) {
+                ctx.fillStyle = selectedColor;
+                ctx.fillText(restWords, titleRight - w1 - wSpace, titleY);
             }
 
-            // الشعار على اليمين، جوا مربع أبيض عشان يبين واضح على أي لون خلفية
+            // العنوان الفرعي (مدة العروض) بشارة ملوّنة بالنص
+            ctx.textAlign = 'center';
+            if (subtitle) {
+                ctx.font = '700 30px Cairo, sans-serif';
+                const pillW = Math.min(W - 2 * (140 + 50), ctx.measureText(subtitle).width + 48);
+                const pillH = 48;
+                const pillY = 102;
+                ctx.fillStyle = selectedColor;
+                drawRoundedRect(ctx, W / 2 - pillW / 2, pillY, pillW, pillH, pillH / 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(subtitle, W / 2, pillY + 35);
+            }
+
+            // الشعار على اليمين (على الخلفية البيضا مباشرة، بدون مربع)
             const logo = await loadImage('logo.png');
             if (logo) {
                 const boxSize = 140;
                 const boxX = W - boxSize - 30;
-                const boxY = (headerH - boxSize) / 2;
-                ctx.fillStyle = 'white';
-                drawRoundedRect(ctx, boxX, boxY, boxSize, boxSize, 24);
-                ctx.fill();
-                const pad = 12;
-                const s = Math.min((boxSize - pad * 2) / logo.width, (boxSize - pad * 2) / logo.height);
+                const boxY = (headerH - BORDER_H - boxSize) / 2;
+                const s = Math.min(boxSize / logo.width, boxSize / logo.height);
                 const lw = logo.width * s, lh = logo.height * s;
                 ctx.drawImage(logo, boxX + (boxSize - lw) / 2, boxY + (boxSize - lh) / 2, lw, lh);
             }
