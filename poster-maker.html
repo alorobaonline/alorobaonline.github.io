@@ -69,7 +69,7 @@
 <body>
 <div class="wrap">
     <h1>🖼️ صانع صورة العروض</h1>
-    <p class="sub">اختاري 15 منتج، وبضغطة زر بتطلع صورة واحدة جاهزة لواتساب/انستقرام</p>
+    <p class="sub">جيبي العروض من صفحة العروض بضغطة وحدة (أو اختاري لحد 15 منتج بإيدك)، وبضغطة زر بتطلع صورة جاهزة لواتساب/انستقرام</p>
 
     <div class="card">
         <h2>1️⃣ عنوان الصورة</h2>
@@ -79,7 +79,9 @@
     </div>
 
     <div class="card">
-        <h2>2️⃣ اختاري 15 منتج (<span id="selCount">0</span>/15)</h2>
+        <h2>2️⃣ المنتجات (<span id="selCount">0</span>/15)</h2>
+        <button id="importOffersBtn" onclick="window.importOffers()" disabled style="width:100%; background:#dc2626; color:white; border:none; padding:12px; border-radius:12px; font-weight:900; font-size:0.9rem; cursor:pointer; margin-bottom:8px;">🔥 جيبي كل العروض من صفحة العروض</button>
+        <div id="offerPagesBar" style="display:none; margin-bottom:10px;"></div>
         <div class="selected-count" id="selCountText">اختاري منتجاتك من القائمة تحت</div>
         <div class="selected-grid" id="selectedGrid"></div>
         <div style="height:12px;"></div>
@@ -137,6 +139,7 @@
             snap.forEach(d => allProducts.push({ id: d.id, ...d.data() }));
             productsLoadState = 'loaded';
             renderProductResults(document.getElementById('productSearchInput').value || '');
+            document.getElementById('importOffersBtn').disabled = false;
         }).catch(err => {
             console.error(err);
             productsLoadState = 'error';
@@ -145,6 +148,103 @@
         });
     }
     loadProducts();
+
+    // ===================== جلب العروض من صفحة العروض =====================
+    // نفس ترتيب ومنطق offers.html بالظبط: أول إشي الحزم (بترتيبها من bundle.html) - الحزمة يلي إلها صورة
+    // خاصة بتطلع كبطاقة وحدة بصورتها، والحزمة يلي إلها "منتج ممثّل" بتطلع بصورة هالمنتج - وبعدين كل
+    // المنتجات يلي عليها سعر مخفّض (بالترتيب الأبجدي). عروض الكمية ("2 بـ 20₪") بتتعبّى تلقائياً.
+    const PAGE_SIZE = 15;
+    let offerPages = [];
+    let currentOfferPage = null;
+
+    function parseBundlePrice(b) {
+        let s = String(b.priceText ?? '0')
+            .replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660))
+            .replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06F0))
+            .replace(/[\u066B,]/g, '.');
+        let nums = s.match(/\d+(?:\.\d+)?/g);
+        return nums ? Number(nums[nums.length - 1]) : 0;
+    }
+
+    function buildOfferItems(bundles) {
+        const items = [];
+        const added = new Set();
+        const bundleFor = (p) => bundles.find(b => Array.isArray(b.selectedItems) && b.selectedItems.length > 0 && b.selectedItems.includes(p.name)) || null;
+        const withDeal = (p, b) => ({ ...p, dealQty: b ? (Number(b.qty) || null) : null, dealPrice: b ? (parseBundlePrice(b) || null) : null, posterName: null });
+
+        bundles.forEach(b => {
+            const featured = b.featuredForOffers ? allProducts.find(p => p.name === b.featuredForOffers) : null;
+            if (b.customImage) {
+                items.push({
+                    id: 'bundle_' + b.id, name: b.name || 'عرض', img: b.customImage,
+                    price: 0, salePrice: '', dealQty: Number(b.qty) || 4, dealPrice: parseBundlePrice(b) || null, posterName: null
+                });
+                if (featured) added.add(featured.id);
+            } else if (featured) {
+                items.push(withDeal(featured, bundleFor(featured)));
+                added.add(featured.id);
+            }
+        });
+
+        allProducts.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar')).forEach(p => {
+            const hasSale = p.salePrice !== undefined && p.salePrice !== '' && p.salePrice !== null;
+            if (hasSale && !added.has(p.id)) {
+                items.push(withDeal(p, bundleFor(p)));
+                added.add(p.id);
+            }
+        });
+        return items;
+    }
+
+    function renderOfferPagesBar() {
+        const bar = document.getElementById('offerPagesBar');
+        if (offerPages.length <= 1) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+        bar.style.display = 'block';
+        bar.innerHTML = `<div style="font-size:0.72rem; font-weight:800; color:#374151; margin-bottom:6px;">في ${offerPages.reduce((s, pg) => s + pg.length, 0)} عرض - بيطلعوا بـ ${offerPages.length} صور. اختاري الصورة:</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">` +
+            offerPages.map((pg, i) => `<button onclick="window.showOfferPage(${i})" style="flex:1; min-width:70px; padding:8px; border-radius:10px; font-weight:800; font-size:0.78rem; cursor:pointer; border:2px solid ${i === currentOfferPage ? '#dc2626' : '#d1d5db'}; background:${i === currentOfferPage ? '#fef2f2' : 'white'}; color:#111827;">صورة ${i + 1} (${pg.length})</button>`).join('') +
+            `</div>`;
+    }
+
+    window.showOfferPage = function(i) {
+        if (!offerPages[i]) return;
+        currentOfferPage = i;
+        selectedProducts = offerPages[i].map(p => ({ ...p }));
+        renderSelectedGrid();
+        renderProductResults(document.getElementById('productSearchInput').value || '');
+        renderOfferPagesBar();
+        document.getElementById('posterCanvas').style.display = 'none';
+        document.getElementById('downloadBtn').style.display = 'none';
+    };
+
+    window.importOffers = async function() {
+        const btn = document.getElementById('importOffersBtn');
+        btn.disabled = true;
+        btn.innerText = '⏳ جاري جلب العروض...';
+        try {
+            const snap = await getDocs(collection(db, 'bundles'));
+            const bundles = [];
+            snap.forEach(d => bundles.push({ id: d.id, ...d.data() }));
+            bundles.sort((a, b) => (a.sortOrder !== undefined ? a.sortOrder : 999999) - (b.sortOrder !== undefined ? b.sortOrder : 999999));
+
+            const items = buildOfferItems(bundles);
+            if (items.length === 0) {
+                alert('ما في عروض حالياً بصفحة العروض');
+                return;
+            }
+            if (selectedProducts.length > 0 && !confirm(`رح تنستبدل المنتجات المختارة حالياً بـ ${items.length} عرض من صفحة العروض. نكمل؟`)) return;
+
+            offerPages = [];
+            for (let i = 0; i < items.length; i += PAGE_SIZE) offerPages.push(items.slice(i, i + PAGE_SIZE));
+            window.showOfferPage(0);
+        } catch (e) {
+            console.error(e);
+            alert('تعذر جلب العروض: ' + (e.message || e));
+        } finally {
+            btn.disabled = false;
+            btn.innerText = '🔥 جيبي كل العروض من صفحة العروض';
+        }
+    };
 
     // ===================== ألوان الخلفية =====================
     const swatchesEl = document.getElementById('colorSwatches');
@@ -371,9 +471,11 @@
         document.getElementById('selCount').innerText = selectedProducts.length;
         const countTextEl = document.getElementById('selCountText');
         countTextEl.classList.toggle('full', selectedProducts.length === 15);
-        countTextEl.innerText = selectedProducts.length === 15
-            ? '✅ اخترتي 15 منتج - جاهزة تولّدي الصورة'
-            : `اختاري ${15 - selectedProducts.length} منتج إضافي`;
+        countTextEl.innerText = selectedProducts.length === 0
+            ? 'جيبي العروض بالزر فوق، أو اختاري منتجات من القائمة تحت'
+            : selectedProducts.length === 15
+                ? '✅ 15 منتج - الصورة مليانة وجاهزة'
+                : `✅ ${selectedProducts.length} منتج - جاهزة تولّدي الصورة (بتوسع لحد 15)`;
 
         document.getElementById('selectedGrid').innerHTML = selectedProducts.map((p, idx) => `
             <div class="selected-item">
@@ -394,7 +496,7 @@
             </div>
         `).join('');
 
-        document.getElementById('generateBtn').disabled = selectedProducts.length !== 15;
+        document.getElementById('generateBtn').disabled = selectedProducts.length === 0;
     }
 
     document.getElementById('productSearchInput').addEventListener('input', (e) => renderProductResults(e.target.value));
@@ -476,6 +578,10 @@
 
         try {
             const canvas = document.getElementById('posterCanvas');
+            // طول الصورة حسب عدد المنتجات (15 منتج = 5 صفوف كاملة، أقل = صفوف أقل بدون فراغ)
+            const CELL_H = 320, GRID_PAD = 22, HEADER_H = 190;
+            const rowsNeeded = Math.max(1, Math.ceil(selectedProducts.length / 3));
+            canvas.height = HEADER_H + GRID_PAD + rowsNeeded * (CELL_H + GRID_PAD);
             const ctx = canvas.getContext('2d');
             const W = canvas.width, H = canvas.height;
 
@@ -530,11 +636,11 @@
             const missingImages = [];
 
             // الشبكة: 3 أعمدة × 4 صفوف
-            const cols = 3, rows = 5;
-            const padding = 22;
+            const cols = 3;
+            const padding = GRID_PAD;
             const gridTop = headerH + padding;
             const cellW = (W - padding * (cols + 1)) / cols;
-            const cellH = (H - gridTop - padding * rows) / rows;
+            const cellH = CELL_H;
 
             for (let i = 0; i < selectedProducts.length; i++) {
                 const p = selectedProducts[i];
@@ -583,7 +689,8 @@
                 const hasDeal = p.dealQty && p.dealPrice;
                 if (hasDeal) {
                     // شارة عرض كمية حمراء "X بـ Y₪" بدل السعر العادي - نفس شكل عروض الكمية بالمتجر
-                    const dealText = `${p.dealQty} بـ ${p.dealPrice}₪`;
+                    const dealNum = Number(p.dealPrice);
+                    const dealText = `${p.dealQty} بـ ${Number.isInteger(dealNum) ? dealNum : dealNum.toFixed(2)}₪`;
                     ctx.font = '900 30px Cairo, sans-serif';
                     const dealW = ctx.measureText(dealText).width + 36;
                     const badgeX = x + (cellW - dealW) / 2;
@@ -623,7 +730,7 @@
             const dataUrl = canvas.toDataURL('image/png');
             const dlBtn = document.getElementById('downloadBtn');
             dlBtn.href = dataUrl;
-            dlBtn.download = 'عروض-العروبة-اونلاين.png';
+            dlBtn.download = currentOfferPage !== null && offerPages.length > 1 ? `عروض-العروبة-اونلاين-${currentOfferPage + 1}.png` : 'عروض-العروبة-اونلاين.png';
             dlBtn.style.display = 'block';
 
             if (missingImages.length > 0) {
@@ -637,7 +744,7 @@
             statusEl.innerText = '❌ صار خطأ أثناء توليد الصورة - جربي منتجات ثانية أو حاولي مرة تانية';
             statusEl.style.display = 'block';
         } finally {
-            btn.disabled = selectedProducts.length !== 15;
+            btn.disabled = selectedProducts.length === 0;
             btn.innerText = '🖼️ ولّدي الصورة';
         }
     };
