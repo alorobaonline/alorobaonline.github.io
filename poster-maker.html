@@ -534,6 +534,50 @@
         return null;
     }
 
+    // بتلاقي وين المنتج الحقيقي جوا الصورة (بتتجاهل الهامش الأبيض/الشفاف حواليه)، عشان نكبّره ليعبّي
+    // مساحة الصورة بالبطاقة. القص بصير بالبوستر بس - الصورة الأصلية بالمتجر ما بتتغير.
+    // إذا المتصفح ما سمح بقراءة الصورة، منرجع للصورة كاملة زي قبل.
+    function findContentBox(img) {
+        const full = { sx: 0, sy: 0, sw: img.width, sh: img.height };
+        try {
+            const s = Math.min(1, 400 / Math.max(img.width, img.height));
+            const w = Math.max(1, Math.round(img.width * s));
+            const h = Math.max(1, Math.round(img.height * s));
+            const c = document.createElement('canvas');
+            c.width = w;
+            c.height = h;
+            const cx = c.getContext('2d', { willReadFrequently: true });
+            cx.drawImage(img, 0, 0, w, h);
+            const d = cx.getImageData(0, 0, w, h).data;
+            let minX = w, minY = h, maxX = -1, maxY = -1;
+            for (let yy = 0; yy < h; yy++) {
+                for (let xx = 0; xx < w; xx++) {
+                    const i = (yy * w + xx) * 4;
+                    if (d[i + 3] < 20) continue; // شفاف
+                    if (d[i] > 235 && d[i + 1] > 235 && d[i + 2] > 235) continue; // أبيض
+                    if (xx < minX) minX = xx;
+                    if (xx > maxX) maxX = xx;
+                    if (yy < minY) minY = yy;
+                    if (yy > maxY) maxY = yy;
+                }
+            }
+            if (maxX < 0) return full;
+            const margin = 2;
+            minX = Math.max(0, minX - margin);
+            minY = Math.max(0, minY - margin);
+            maxX = Math.min(w - 1, maxX + margin);
+            maxY = Math.min(h - 1, maxY + margin);
+            return {
+                sx: minX / s,
+                sy: minY / s,
+                sw: Math.min(img.width, (maxX - minX + 1) / s),
+                sh: Math.min(img.height, (maxY - minY + 1) / s)
+            };
+        } catch (e) {
+            return full;
+        }
+    }
+
     // بتقسم الاسم لسطرين كحد أقصى حسب العرض المتاح، وبتحط "…" بس إذا فعلاً ما وسع بسطرين
     function wrapName(ctx, text, maxWidth, maxLines) {
         const words = String(text || '').split(/\s+/).filter(Boolean);
@@ -584,7 +628,7 @@
         try {
             const canvas = document.getElementById('posterCanvas');
             // طول الصورة حسب عدد المنتجات (15 منتج = 5 صفوف كاملة، أقل = صفوف أقل بدون فراغ)
-            const CELL_H = 320, GRID_PAD = 22, HEADER_H = 190;
+            const CELL_H = 330, GRID_PAD = 16, HEADER_H = 190;
             const rowsNeeded = Math.max(1, Math.ceil(selectedProducts.length / 3));
             canvas.height = HEADER_H + GRID_PAD + rowsNeeded * (CELL_H + GRID_PAD);
             const ctx = canvas.getContext('2d');
@@ -662,16 +706,18 @@
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
-                // صورة المنتج (أكبر من قبل)
-                const imgBoxH = cellH * 0.58;
+                // صورة المنتج - بعد قص الهامش الأبيض، بتعبّي مساحتها بالكامل
+                const imgBoxH = cellH * 0.62;
                 const img = await loadProductImage(p);
                 if (img) {
-                    const maxImgW = cellW - 30, maxImgH = imgBoxH - 20;
-                    const scale = Math.min(maxImgW / img.width, maxImgH / img.height);
-                    const iw = img.width * scale, ih = img.height * scale;
+                    const box = findContentBox(img);
+                    const maxImgW = cellW - 24, maxImgH = imgBoxH - 18;
+                    const scale = Math.min(maxImgW / box.sw, maxImgH / box.sh);
+                    const iw = box.sw * scale, ih = box.sh * scale;
                     const ix = x + (cellW - iw) / 2;
-                    const iy = y + 14 + (maxImgH - ih) / 2;
-                    ctx.drawImage(img, ix, iy, iw, ih);
+                    const iy = y + 12 + (maxImgH - ih) / 2;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, box.sx, box.sy, box.sw, box.sh, ix, iy, iw, ih);
                 } else {
                     missingImages.push(p.posterName || p.name || p.id);
                 }
@@ -680,8 +726,8 @@
                 ctx.fillStyle = '#1f2937';
                 ctx.font = '800 26px Cairo, sans-serif';
                 const nameLines = wrapName(ctx, p.posterName || p.name || '', cellW - 28, 2);
-                const nameTop = y + imgBoxH + 30;
-                const lineH = 32;
+                const nameTop = y + imgBoxH + 24;
+                const lineH = 29;
                 const nameStartY = nameLines.length === 1 ? nameTop + lineH / 2 : nameTop;
                 nameLines.forEach((line, li) => ctx.fillText(line, x + cellW / 2, nameStartY + li * lineH));
 
@@ -689,31 +735,31 @@
                 const hasSale = p.salePrice !== undefined && p.salePrice !== null && p.salePrice !== '';
                 const sellPrice = Number(p.price) || 0;
                 const salePrice = hasSale ? Number(p.salePrice) : null;
-                const priceY = y + cellH - 24;
+                const priceY = y + cellH - 20;
 
                 const hasDeal = p.dealQty && p.dealPrice;
                 if (hasDeal) {
                     // شارة عرض كمية حمراء "X بـ Y₪" بدل السعر العادي - نفس شكل عروض الكمية بالمتجر
                     const dealNum = Number(p.dealPrice);
                     const dealText = `${p.dealQty} بـ ${Number.isInteger(dealNum) ? dealNum : dealNum.toFixed(2)}₪`;
-                    ctx.font = '900 30px Cairo, sans-serif';
-                    const dealW = ctx.measureText(dealText).width + 36;
+                    ctx.font = '900 36px Cairo, sans-serif';
+                    const dealW = Math.min(cellW - 20, ctx.measureText(dealText).width + 48);
                     const badgeX = x + (cellW - dealW) / 2;
-                    const badgeY = priceY - 34;
+                    const badgeY = priceY - 38;
                     ctx.fillStyle = '#dc2626';
-                    drawRoundedRect(ctx, badgeX, badgeY, dealW, 44, 10);
+                    drawRoundedRect(ctx, badgeX, badgeY, dealW, 52, 12);
                     ctx.fill();
                     ctx.fillStyle = 'white';
                     ctx.fillText(dealText, x + cellW / 2, priceY);
                 } else if (hasSale) {
-                    ctx.font = '900 36px Cairo, sans-serif';
+                    ctx.font = '900 40px Cairo, sans-serif';
                     ctx.fillStyle = '#dc2626';
-                    ctx.fillText(salePrice.toFixed(2) + '₪', x + cellW / 2 - 8, priceY);
+                    ctx.fillText(salePrice.toFixed(2) + '₪', x + cellW / 2 - 16, priceY);
 
                     ctx.font = '700 20px Cairo, sans-serif';
                     ctx.fillStyle = '#9ca3af';
                     const oldPriceText = sellPrice.toFixed(2) + '₪';
-                    const oldPriceX = x + cellW / 2 + 62;
+                    const oldPriceX = x + cellW / 2 + 78;
                     ctx.fillText(oldPriceText, oldPriceX, priceY);
                     const tw = ctx.measureText(oldPriceText).width;
                     ctx.strokeStyle = '#9ca3af';
@@ -723,7 +769,7 @@
                     ctx.lineTo(oldPriceX + tw / 2 + 2, priceY - 7);
                     ctx.stroke();
                 } else {
-                    ctx.font = '900 38px Cairo, sans-serif';
+                    ctx.font = '900 42px Cairo, sans-serif';
                     ctx.fillStyle = '#15803d';
                     ctx.fillText(sellPrice.toFixed(2) + '₪', x + cellW / 2, priceY);
                 }
