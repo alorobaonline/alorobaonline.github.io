@@ -26,3 +26,43 @@ messaging.onBackgroundMessage((payload) => {
     };
     self.registration.showNotification(title, options);
 });
+
+// ===================== دايماً آخر نسخة من صفحات الموقع =====================
+// نفس هاد الملف (مش ملف منفصل) لأنه المتصفح بيسمح بـ service worker واحد بس على نفس الموقع - لو عملنا
+// sw.js ثاني، كان رح يحل محل هاد وتوقف إشعارات المطبخ/الإدارة على الأجهزة يلي بتفتح المتجر كمان.
+// أي فتح لصفحة (index.html، offers.html...) بيتجاوز كاش المتصفح وبيجيب النسخة الجديدة من السيرفر دايماً.
+// إذا ما في إنترنت، بيعرض آخر نسخة انحفظت. باقي الطلبات (صور، بيانات، سكربتات) ما بنلمسها أبداً.
+const PAGES_CACHE = 'aloroba-pages-v1';
+
+self.addEventListener('install', () => self.skipWaiting());
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil((async () => {
+        const keys = await caches.keys();
+        await Promise.all(keys.filter(k => k.startsWith('aloroba-pages-') && k !== PAGES_CACHE).map(k => caches.delete(k)));
+        await self.clients.claim();
+    })());
+});
+
+self.addEventListener('fetch', (event) => {
+    const req = event.request;
+    if (req.mode !== 'navigate' || req.method !== 'GET') return;
+    if (new URL(req.url).origin !== self.location.origin) return;
+
+    event.respondWith((async () => {
+        try {
+            // cache: 'reload' = تجاهل الكاش وجيب من السيرفر (بنستخدم الرابط مش الطلب نفسه، لأنه طلبات
+            // التنقل ما بتقبل خيارات إضافية)
+            const fresh = await fetch(req.url, { cache: 'reload', credentials: 'same-origin' });
+            if (fresh.ok) {
+                const copy = fresh.clone();
+                caches.open(PAGES_CACHE).then(c => c.put(req.url, copy)).catch(() => {});
+            }
+            return fresh;
+        } catch (e) {
+            const cached = await caches.match(req.url);
+            if (cached) return cached;
+            throw e;
+        }
+    })());
+});

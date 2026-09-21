@@ -695,5 +695,13 @@
         }
     }).catch(err => console.error(err));
 </script>
+<script>
+    // تسجيل الـ service worker (نفس ملف الإشعارات) - بيضمن إنه الزبون يشوف آخر نسخة من الموقع بعد كل تحديث
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(() => {});
+        });
+    }
+</script>
 </body>
 </html>

@@ -47,6 +47,8 @@
     .selected-item .move-buttons button:disabled { opacity: 0.3; cursor: not-allowed; }
     .selected-item .deal-inputs { display: flex; gap: 3px; margin-top: 5px; }
     .selected-item .deal-inputs input { width: 100%; min-width: 0; padding: 3px 2px; font-size: 0.58rem; border: 1px solid #d1d5db; border-radius: 5px; text-align: center; font-family: 'Cairo', sans-serif; }
+    .selected-item .poster-name-input { width: 100%; margin-top: 5px; padding: 3px 4px; font-size: 0.58rem; border: 1px solid #d1d5db; border-radius: 5px; text-align: center; font-family: 'Cairo', sans-serif; }
+    .status-msg.warn { color: #92400e; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 10px; padding: 8px 10px; white-space: pre-line; }
     .selected-item .deal-hint { font-size: 0.52rem; color: #9ca3af; margin-top: 2px; }
 
     .generate-btn { width: 100%; background: var(--primary-green); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 900; font-size: 0.95rem; cursor: pointer; margin-top: 6px; }
@@ -67,7 +69,7 @@
 <body>
 <div class="wrap">
     <h1>🖼️ صانع صورة العروض</h1>
-    <p class="sub">اختاري 12 منتج، وبضغطة زر بتطلع صورة واحدة جاهزة لواتساب/انستقرام</p>
+    <p class="sub">اختاري 15 منتج، وبضغطة زر بتطلع صورة واحدة جاهزة لواتساب/انستقرام</p>
 
     <div class="card">
         <h2>1️⃣ عنوان الصورة</h2>
@@ -97,7 +99,7 @@
     <button class="generate-btn" id="generateBtn" onclick="generatePoster()" disabled>🖼️ ولّدي الصورة</button>
     <div class="status-msg" id="statusMsg"></div>
 
-    <canvas id="posterCanvas" width="1080" height="1830"></canvas>
+    <canvas id="posterCanvas" width="1080" height="1920"></canvas>
     <a class="download-btn" id="downloadBtn">⬇️ تنزيل الصورة</a>
 </div>
 
@@ -189,7 +191,7 @@
             color: selectedColor,
             products: selectedProducts.map(p => ({
                 id: p.id, name: p.name, img: p.img, price: p.price, salePrice: p.salePrice,
-                dealQty: p.dealQty || null, dealPrice: p.dealPrice || null
+                dealQty: p.dealQty || null, dealPrice: p.dealPrice || null, posterName: p.posterName || null
             }))
         };
 
@@ -218,7 +220,7 @@
         selectedProducts = draft.products.map(dp => {
             const live = allProducts.find(p => p.id === dp.id);
             const base = live || dp;
-            return { ...base, dealQty: dp.dealQty, dealPrice: dp.dealPrice };
+            return { ...base, dealQty: dp.dealQty, dealPrice: dp.dealPrice, posterName: dp.posterName || null };
         });
 
         renderSelectedGrid();
@@ -359,11 +361,17 @@
         p[field] = value ? Number(value) : null;
     };
 
+    // اسم خاص بالصورة بس (مثلاً لو اسم المنتج بالمتجر بالعبري أو طويل) - ما بيغيّر اسمه بالمتجر
+    window.setPosterName = function(productId, value) {
+        const p = selectedProducts.find(sp => sp.id === productId);
+        if (p) p.posterName = value.trim() || null;
+    };
+
     function renderSelectedGrid() {
         document.getElementById('selCount').innerText = selectedProducts.length;
         const countTextEl = document.getElementById('selCountText');
-        countTextEl.classList.toggle('full', selectedProducts.length === 12);
-        countTextEl.innerText = selectedProducts.length === 12
+        countTextEl.classList.toggle('full', selectedProducts.length === 15);
+        countTextEl.innerText = selectedProducts.length === 15
             ? '✅ اخترتي 15 منتج - جاهزة تولّدي الصورة'
             : `اختاري ${15 - selectedProducts.length} منتج إضافي`;
 
@@ -378,6 +386,7 @@
                     <input type="number" placeholder="سعر الكل" min="0" step="0.01" value="${p.dealPrice || ''}" onchange="window.setDealField('${p.id}', 'dealPrice', this.value)">
                 </div>
                 <div class="deal-hint">عرض كمية (اختياري)</div>
+                <input type="text" class="poster-name-input" placeholder="اسم بالصورة (اختياري)" value="${escapeHtml(p.posterName || '')}" onchange="window.setPosterName('${p.id}', this.value)">
                 <div class="move-buttons">
                     <button onclick="window.moveSelected('${p.id}', -1)" ${idx === 0 ? 'disabled' : ''}>◀ بكّري</button>
                     <button onclick="window.moveSelected('${p.id}', 1)" ${idx === selectedProducts.length - 1 ? 'disabled' : ''}>أخّري ▶</button>
@@ -393,12 +402,58 @@
     // ===================== توليد الصورة على Canvas =====================
     function loadImage(src) {
         return new Promise((resolve) => {
+            if (!src) return resolve(null);
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => resolve(img);
             img.onerror = () => resolve(null); // لو فشلت صورة معينة، منكمل بباقي الصور
             img.src = src;
         });
+    }
+
+    // بتجرّب كذا طريقة لحد ما تزبط: الصورة الأصلية، بعدين نفس الصورة عبر wsrv.nl (بيسمح للصفحة ترسمها
+    // حتى لو التخزين الأصلي رافض)، وآخر إشي النسخة المصغّرة. بترجع null بس إذا فعلاً ما في صورة.
+    async function loadProductImage(p) {
+        const tries = [];
+        if (p.img) {
+            tries.push(p.img);
+            tries.push('https://wsrv.nl/?url=' + encodeURIComponent(p.img) + '&w=700&output=png');
+        }
+        if (p.thumb) tries.push(p.thumb);
+        for (const src of tries) {
+            const img = await loadImage(src);
+            if (img && img.width > 0) return img;
+        }
+        return null;
+    }
+
+    // بتقسم الاسم لسطرين كحد أقصى حسب العرض المتاح، وبتحط "…" بس إذا فعلاً ما وسع بسطرين
+    function wrapName(ctx, text, maxWidth, maxLines) {
+        const words = String(text || '').split(/\s+/).filter(Boolean);
+        const lines = [];
+        let current = '';
+        for (let i = 0; i < words.length; i++) {
+            const test = current ? current + ' ' + words[i] : words[i];
+            if (ctx.measureText(test).width <= maxWidth || !current) {
+                current = test;
+            } else {
+                lines.push(current);
+                current = words[i];
+                if (lines.length === maxLines) { current = words.slice(i).join(' '); break; }
+            }
+        }
+        if (current) lines.push(current);
+        if (lines.length === 0) return [''];
+        if (lines.length > maxLines) {
+            const extra = lines.splice(maxLines - 1).join(' ');
+            lines.push(extra);
+        }
+        let last = lines[lines.length - 1];
+        if (ctx.measureText(last).width > maxWidth) {
+            while (last.length > 1 && ctx.measureText(last + '…').width > maxWidth) last = last.slice(0, -1);
+            lines[lines.length - 1] = last.trim() + '…';
+        }
+        return lines;
     }
 
     function drawRoundedRect(ctx, x, y, w, h, r) {
@@ -415,6 +470,7 @@
         const statusEl = document.getElementById('statusMsg');
         const btn = document.getElementById('generateBtn');
         statusEl.style.display = 'none';
+        statusEl.className = 'status-msg';
         btn.disabled = true;
         btn.innerText = '⏳ جاري التوليد...';
 
@@ -422,6 +478,15 @@
             const canvas = document.getElementById('posterCanvas');
             const ctx = canvas.getContext('2d');
             const W = canvas.width, H = canvas.height;
+
+            // نتأكد إنه خط Cairo جاهز قبل الرسم، وإلا بتطلع الكتابة بخط افتراضي
+            try {
+                await Promise.all([
+                    document.fonts.load('900 62px Cairo'),
+                    document.fonts.load('800 26px Cairo'),
+                    document.fonts.load('700 30px Cairo')
+                ]);
+            } catch (e) {}
 
             // خلفية
             ctx.fillStyle = '#f8faf7';
@@ -447,6 +512,23 @@
                 ctx.fillText(subtitle, W / 2, 150);
             }
 
+            // الشعار على اليمين، جوا مربع أبيض عشان يبين واضح على أي لون خلفية
+            const logo = await loadImage('logo.png');
+            if (logo) {
+                const boxSize = 140;
+                const boxX = W - boxSize - 30;
+                const boxY = (headerH - boxSize) / 2;
+                ctx.fillStyle = 'white';
+                drawRoundedRect(ctx, boxX, boxY, boxSize, boxSize, 24);
+                ctx.fill();
+                const pad = 12;
+                const s = Math.min((boxSize - pad * 2) / logo.width, (boxSize - pad * 2) / logo.height);
+                const lw = logo.width * s, lh = logo.height * s;
+                ctx.drawImage(logo, boxX + (boxSize - lw) / 2, boxY + (boxSize - lh) / 2, lw, lh);
+            }
+
+            const missingImages = [];
+
             // الشبكة: 3 أعمدة × 4 صفوف
             const cols = 3, rows = 5;
             const padding = 22;
@@ -469,32 +551,34 @@
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
-                // صورة المنتج
-                const imgBoxH = cellH * 0.55;
-                if (p.img) {
-                    const img = await loadImage(p.img);
-                    if (img) {
-                        const maxImgW = cellW - 24, maxImgH = imgBoxH - 16;
-                        const scale = Math.min(maxImgW / img.width, maxImgH / img.height);
-                        const iw = img.width * scale, ih = img.height * scale;
-                        const ix = x + (cellW - iw) / 2;
-                        const iy = y + 12 + (imgBoxH - 16 - ih) / 2;
-                        ctx.drawImage(img, ix, iy, iw, ih);
-                    }
+                // صورة المنتج (أكبر من قبل)
+                const imgBoxH = cellH * 0.58;
+                const img = await loadProductImage(p);
+                if (img) {
+                    const maxImgW = cellW - 30, maxImgH = imgBoxH - 20;
+                    const scale = Math.min(maxImgW / img.width, maxImgH / img.height);
+                    const iw = img.width * scale, ih = img.height * scale;
+                    const ix = x + (cellW - iw) / 2;
+                    const iy = y + 14 + (maxImgH - ih) / 2;
+                    ctx.drawImage(img, ix, iy, iw, ih);
+                } else {
+                    missingImages.push(p.posterName || p.name || p.id);
                 }
 
-                // اسم المنتج
-                let name = p.name || '';
-                if (name.length > 22) name = name.slice(0, 20) + '…';
+                // اسم المنتج - لحد سطرين كاملين بدل القص
                 ctx.fillStyle = '#1f2937';
-                ctx.font = '800 24px Cairo, sans-serif';
-                ctx.fillText(name, x + cellW / 2, y + imgBoxH + 34);
+                ctx.font = '800 26px Cairo, sans-serif';
+                const nameLines = wrapName(ctx, p.posterName || p.name || '', cellW - 28, 2);
+                const nameTop = y + imgBoxH + 30;
+                const lineH = 32;
+                const nameStartY = nameLines.length === 1 ? nameTop + lineH / 2 : nameTop;
+                nameLines.forEach((line, li) => ctx.fillText(line, x + cellW / 2, nameStartY + li * lineH));
 
                 // الأسعار
                 const hasSale = p.salePrice !== undefined && p.salePrice !== null && p.salePrice !== '';
                 const sellPrice = Number(p.price) || 0;
                 const salePrice = hasSale ? Number(p.salePrice) : null;
-                const priceY = y + imgBoxH + 92;
+                const priceY = y + cellH - 24;
 
                 const hasDeal = p.dealQty && p.dealPrice;
                 if (hasDeal) {
@@ -510,7 +594,7 @@
                     ctx.fillStyle = 'white';
                     ctx.fillText(dealText, x + cellW / 2, priceY);
                 } else if (hasSale) {
-                    ctx.font = '900 30px Cairo, sans-serif';
+                    ctx.font = '900 36px Cairo, sans-serif';
                     ctx.fillStyle = '#dc2626';
                     ctx.fillText(salePrice.toFixed(2) + '₪', x + cellW / 2 - 8, priceY);
 
@@ -527,8 +611,8 @@
                     ctx.lineTo(oldPriceX + tw / 2 + 2, priceY - 7);
                     ctx.stroke();
                 } else {
-                    ctx.font = '900 28px Cairo, sans-serif';
-                    ctx.fillStyle = '#111827';
+                    ctx.font = '900 38px Cairo, sans-serif';
+                    ctx.fillStyle = '#15803d';
                     ctx.fillText(sellPrice.toFixed(2) + '₪', x + cellW / 2, priceY);
                 }
             }
@@ -541,7 +625,14 @@
             dlBtn.href = dataUrl;
             dlBtn.download = 'عروض-العروبة-اونلاين.png';
             dlBtn.style.display = 'block';
+
+            if (missingImages.length > 0) {
+                statusEl.className = 'status-msg warn';
+                statusEl.innerText = `⚠️ ${missingImages.length} منتج طلع بدون صورة:\n- ${missingImages.join('\n- ')}\n\nضيفي إلهم صورة من لوحة التحكم، أو بدّليهم بمنتجات ثانية قبل ما تبعتي الصورة.`;
+                statusEl.style.display = 'block';
+            }
         } catch (e) {
+            statusEl.className = 'status-msg';
             console.error(e);
             statusEl.innerText = '❌ صار خطأ أثناء توليد الصورة - جربي منتجات ثانية أو حاولي مرة تانية';
             statusEl.style.display = 'block';
