@@ -294,7 +294,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         // إعدادات الـ Firebase الخاصة بمتجرك
@@ -310,7 +309,22 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const storage = getStorage(app);
+        // صور الحزم بترفع على Cloudinary (نفس لوحة التحكم و inventory.html) - بيصغّر الصورة تلقائياً بالرابط
+        const CLOUDINARY_CLOUD_NAME = 'lqrit0u7';
+        const CLOUDINARY_UPLOAD_PRESET = 'v7mkckzz';
+        async function uploadImageToCloudinary(dataUrl) {
+            const formData = new FormData();
+            formData.append('file', dataUrl);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+            formData.append('folder', 'bundles');
+            const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            if (!response.ok) throw new Error('فشل رفع الصورة إلى Cloudinary');
+            const data = await response.json();
+            return data.secure_url;
+        }
         const auth = getAuth(app);
 
         // ===================== بوابة تسجيل الدخول (Firebase Authentication) =====================
@@ -406,10 +420,7 @@
             statusEl.innerText = '⏳ جاري الرفع...';
             try {
                 const dataUrl = await resizeImageFileToDataUrl(file, 800);
-                const fileName = 'bundles/' + Date.now() + '_' + Math.random().toString(36).slice(2, 10) + '.jpg';
-                const storageRef = ref(storage, fileName);
-                await uploadString(storageRef, dataUrl, 'data_url');
-                const url = await getDownloadURL(storageRef);
+                const url = await uploadImageToCloudinary(dataUrl);
                 currentBundleCustomImage = url;
                 updateBundleImagePreview();
                 statusEl.innerText = '✅ تم رفع الصورة';

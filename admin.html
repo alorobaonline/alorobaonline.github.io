@@ -795,7 +795,7 @@
         </div>
         <div class="section-content" id="migrateImagesSectionContent">
             <div style="font-size: 0.72rem; color: #6b7280; margin-bottom: 10px; line-height: 1.7;">
-                هاي أداة <b>مؤقتة</b> بتستخدميها <b>مرة وحدة بس</b>. الرفع رجع لـ Cloudinary، بس المنتجات يلي انرفعت صورها بفترة Firebase لساتها هناك. هاي الأداة بتنقلهم لـ Cloudinary وبتحدّث الرابط بقاعدة البيانات، حتى تصير كل الصور بمكان واحد وتستفيد من التصغير التلقائي. الصور القديمة بتضل موجودة على Firebase (ما بتنحذف)، فما في أي خطر لو وقفت الأداة بالنص.
+                الرفع رجع لـ Cloudinary، بس أي صورة انرفعت بفترة Firebase لساتها هناك. هاي الأداة بتفحص <b>كل</b> الصور - المنتجات، الأقسام، صور الحزم، وشرائح البانر - وبتنقل يلي على Firebase لـ Cloudinary وبتحدّث الرابط بقاعدة البيانات، حتى تصير كل الصور بمكان واحد وتستفيد من التصغير التلقائي. الصور القديمة بتضل موجودة على Firebase (ما بتنحذف)، فما في أي خطر لو وقفت الأداة بالنص. آمن تشغيلها أكثر من مرة.
             </div>
             <button class="btn-main" onclick="migrateCloudinaryImages()" id="migrateImagesBtn">🔄 ابدأي نقل الصور</button>
             <div id="migrateImagesProgress" style="margin-top: 12px; font-size: 0.72rem; font-weight: 700; color: #374151; white-space: pre-line;"></div>
@@ -1563,53 +1563,100 @@
     async function migrateCloudinaryImages() {
         const btn = document.getElementById('migrateImagesBtn');
         const progressEl = document.getElementById('migrateImagesProgress');
-
-        if (!confirm('هاي العملية رح تنقل كل صور المنتجات يلي على Firebase Storage لـ Cloudinary. الصور الأصلية ما بتنحذف من Firebase. تبدأي؟')) return;
+        const isFirebaseImg = (u) => typeof u === 'string' && u.includes('firebasestorage');
 
         btn.disabled = true;
-        btn.innerText = '⏳ جاري النقل...';
-        progressEl.innerText = 'جاري جلب قائمة المنتجات...';
+        btn.innerText = '⏳ جاري الفحص...';
+        progressEl.innerText = 'جاري فحص كل الصور (منتجات، أقسام، حزم، بانر)...';
 
         try {
             const targets = [];
-            let totalScanned = 0;
-            let sampleImgs = [];
-            products.forEach(p => {
-                totalScanned++;
-                if (sampleImgs.length < 3 && p.img) sampleImgs.push(p.img);
-                if (p.img && p.img.includes('firebasestorage') && !p.img.includes('/thumb_')) {
-                    targets.push({ id: p.id, name: p.name || p.id, img: p.img });
-                }
+
+            // 1) صور المنتجات
+            const prodSnap = await window.getDocs(window.collection(window.db, "products"));
+            prodSnap.forEach(d => {
+                const p = d.data();
+                if (!isFirebaseImg(p.img)) return;
+                targets.push({
+                    label: 'منتج: ' + (p.name || d.id),
+                    url: p.img,
+                    // منفضّي النسخة المصغّرة القديمة كمان: Cloudinary بيصغّر تلقائياً من الرابط نفسه
+                    save: (newUrl) => window.updateDoc(window.doc(window.db, "products", d.id), { img: newUrl, thumb: null, thumbFor: null })
+                });
             });
 
+            // 2) صور الأقسام
+            const catSnap = await window.getDocs(window.collection(window.db, "categories"));
+            catSnap.forEach(d => {
+                const c = d.data();
+                if (!isFirebaseImg(c.img)) return;
+                targets.push({
+                    label: 'قسم: ' + d.id,
+                    url: c.img,
+                    save: (newUrl) => window.updateDoc(window.doc(window.db, "categories", d.id), { img: newUrl })
+                });
+            });
+
+            // 3) صور الحزم المخصصة
+            const bunSnap = await window.getDocs(window.collection(window.db, "bundles"));
+            bunSnap.forEach(d => {
+                const b = d.data();
+                if (!isFirebaseImg(b.customImage)) return;
+                targets.push({
+                    label: 'حزمة: ' + (b.name || d.id),
+                    url: b.customImage,
+                    save: (newUrl) => window.updateDoc(window.doc(window.db, "bundles", d.id), { customImage: newUrl })
+                });
+            });
+
+            // 4) شرائح البانر (كلهم جوا مستند واحد، فمنعدّل على النسخة ومنحفظ المصفوفة كاملة كل مرة)
+            const bannerRef = window.doc(window.db, "settings", "banner");
+            const bannerSnap = await window.getDoc(bannerRef);
+            if (bannerSnap.exists() && Array.isArray(bannerSnap.data().slides)) {
+                const slides = bannerSnap.data().slides;
+                slides.forEach((s, i) => {
+                    if (!isFirebaseImg(s && s.img)) return;
+                    targets.push({
+                        label: 'بانر: شريحة ' + (i + 1),
+                        url: s.img,
+                        save: (newUrl) => {
+                            slides[i].img = newUrl;
+                            return window.setDoc(bannerRef, { slides: slides });
+                        }
+                    });
+                });
+            }
+
             if (targets.length === 0) {
-                progressEl.innerText = `✅ فحصنا ${totalScanned} منتج، ما في أي صورة على Firebase Storage - كلهم على Cloudinary أصلاً.\n\nأمثلة على روابط صور شافتها الأداة:\n- ${sampleImgs.join('\n- ') || '(ما في أي منتج فيه صورة أصلاً!)'}`;
+                progressEl.innerText = '✅ ما في أي صورة على Firebase Storage.\nكل الصور (منتجات، أقسام، حزم، بانر) صارت على Cloudinary.';
                 return;
             }
 
+            if (!confirm(`لقينا ${targets.length} صورة لساتها على Firebase Storage. رح ننقلهم لـ Cloudinary (الأصلية ما بتنحذف). نبدأ؟`)) return;
+
+            btn.innerText = '⏳ جاري النقل...';
             let done = 0, failed = [];
-            for (const p of targets) {
-                progressEl.innerText = `جاري النقل: ${done + failed.length + 1} من ${targets.length}\n(${p.name})`;
+            for (const target of targets) {
+                progressEl.innerText = `جاري النقل: ${done + failed.length + 1} من ${targets.length}\n(${target.label})`;
                 try {
-                    const dataUrl = await loadImageAsDataUrl(p.img);
+                    const dataUrl = await loadImageAsDataUrl(target.url);
                     const newUrl = await uploadImageToCloudinary(dataUrl);
-                    // منفضّي النسخة المصغّرة القديمة: Cloudinary بيصغّر تلقائياً من الرابط نفسه
-                    await window.updateDoc(window.doc(window.db, "products", p.id), { img: newUrl, thumb: null, thumbFor: null });
+                    await target.save(newUrl);
                     done++;
                 } catch (e) {
-                    console.error('فشل نقل صورة المنتج: ' + p.name, e);
-                    failed.push(p.name);
+                    console.error('فشل نقل الصورة: ' + target.label, e);
+                    failed.push(target.label);
                 }
             }
 
             let resultMsg = `✅ تم نقل ${done} من ${targets.length} صورة بنجاح.`;
             if (failed.length > 0) {
                 resultMsg += `\n\n❌ فشل نقل ${failed.length} صورة (رابط تالف أو مشكلة بالاتصال) - صورهم لساتها شغالة من Firebase:\n- ${failed.join('\n- ')}`;
-                resultMsg += `\n\nجربي تشغّلي الأداة مرة ثانية بعدين لهالمنتجات، أو حدّثي صورهم يدوياً.`;
+                resultMsg += `\n\nجربي تشغّلي الأداة مرة ثانية - رح تحاول بس بيلي فشلوا.`;
             }
             progressEl.innerText = resultMsg;
 
-            if (typeof loadDataFromCloud === 'function') { // نحدّث نسخة المنتجات المحمّلة بالذاكرة، حتى تنعكس الصور فوراً بلوحة التحكم
+            if (typeof loadDataFromCloud === 'function') { // نحدّث النسخة المحمّلة بالذاكرة، حتى تنعكس الصور فوراً بلوحة التحكم
                 await loadDataFromCloud();
             }
         } catch (e) {
