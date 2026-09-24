@@ -698,7 +698,7 @@
             border-color: var(--accent-green);
         }
         .bundle-item-thumb { width: 42px; height: 42px; object-fit: contain; background: white; border-radius: 10px; border: 1px solid #eee; box-shadow: 0 1px 4px rgba(0,0,0,0.06); flex-shrink: 0; cursor: pointer; }
-        .bundle-item-name { font-size: 13px; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+        .bundle-item-name { font-size: 13px; font-weight: 700; color: #1e293b; max-width: 185px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
         .bundle-item-unit-price { font-size: 11px; color: #94a3b8; font-weight: 600; }
         .bundle-stepper-group { display: flex; align-items: center; gap: 2px; background: white; border: 1.5px solid var(--border-color); border-radius: 20px; padding: 3px; }
         .bundle-stepper-btn { width: 26px; height: 26px; border-radius: 50%; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: transform .12s ease; }
@@ -712,6 +712,10 @@
         .cart-bar { position: fixed; bottom: 60px; left: 0; right: 0; background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; padding: 9px 16px; display: none; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 14px; border-top-right-radius: 14px; z-index: 100; cursor: pointer; box-shadow: 0 -4px 16px rgba(0,0,0,0.12); }
         
         .cart-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; max-width: 480px; margin: 0 auto; }
+        .pg-modal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+        .pg-modal-grid .product-card { min-width: 0; max-width: none; width: 100%; }
+        .pg-modal-grid .product-name { height: 30px; font-size: 11px; }
+        .pg-modal-stepper { display: flex; align-items: center; justify-content: space-between; gap: 4px; background: #f8fafc; border: 1.5px solid var(--border-color); border-radius: 20px; padding: 3px; margin-top: 5px; }
         .cart-modal-content { background: white; width: 100%; border-top-left-radius: 22px; border-top-right-radius: 22px; padding: 20px; max-height: 90vh; overflow-y: auto; }
         
         .image-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 300; max-width: 480px; margin: 0 auto; padding: 20px; }
@@ -4584,8 +4588,6 @@
     function createProductGroupCardHtml(g, members, sizeVariant) {
         if (!members || members.length === 0) return '';
         const sizeClass = sizeVariant === 'small' ? ' product-card-small' : '';
-        const prices = members.map(m => getEffectivePrice(m)).filter(v => !isNaN(v));
-        const minPrice = prices.length ? Math.min(...prices) : 0;
         const allOut = members.every(isProductOutOfStock);
         const img = g.customImage || productThumb(members[0], 300) || 'logo.png';
         // كم حبة من هالعائلة موجودة بالسلة حالياً - عشان الزبون يشوف إنه أصلاً مختار منها
@@ -4607,7 +4609,7 @@
                 <div>
                     <div class="product-price-row" style="display: block;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div><span class="price-text">من ${minPrice.toFixed(2)} ₪</span></div>
+                            <div></div>
                             <button class="add-to-cart-btn" onclick="event.stopPropagation(); openProductGroupModal('${g.id}')" style="${selectedQty > 0 ? 'background: var(--primary-green);' : ''}">${selectedQty > 0 ? selectedQty : '+'}</button>
                         </div>
                     </div>
@@ -4618,8 +4620,6 @@
 
     function createProductGroupListItemHtml(g, members) {
         if (!members || members.length === 0) return '';
-        const prices = members.map(m => getEffectivePrice(m)).filter(v => !isNaN(v));
-        const minPrice = prices.length ? Math.min(...prices) : 0;
         const allOut = members.every(isProductOutOfStock);
         const img = g.customImage || productThumb(members[0], 100) || 'logo.png';
         let selectedQty = 0;
@@ -4636,7 +4636,7 @@
                 <div class="list-info">
                     <div class="product-name">${g.name || ''}</div>
                     <div class="product-price-top" style="display: flex; flex-wrap: wrap;">
-                        <span class="price-text">${allOut ? 'نفذت الكمية' : 'من ' + minPrice.toFixed(2) + ' ₪'}</span>
+                        <span class="product-weight">${allOut ? 'نفذت الكمية' : members.length + ' أنواع'}</span>
                     </div>
                 </div>
                 <div class="list-action">
@@ -4684,35 +4684,37 @@
             listEl.innerHTML = `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 15px;">لا توجد أنواع متاحة حالياً.</p>`;
             return;
         }
-        listEl.innerHTML = members.map(p => {
+        listEl.innerHTML = '<div class="pg-modal-grid">' + members.map(p => {
             const cartItem = cart.find(c => c.id == p.id);
             const qty = cartItem ? cartItem.quantity : 0;
-            const isSelected = qty > 0;
             const isTracked = (p.stockQty !== undefined && p.stockQty !== null && p.stockQty !== '');
             const remainingStock = isTracked ? Math.max(0, Number(p.stockQty) - qty) : null;
             const isOutOfStock = isTracked && remainingStock <= 0;
             const hasSale = hasSalePrice(p);
+            const safeName = (p.name || '').replace(/'/g, "\\'");
             const priceHtml = hasSale
-                ? `${(p.price !== undefined && p.price !== null && Number(p.price) !== Number(p.salePrice)) ? `<span style="text-decoration: line-through; color: #94a3b8;">${Number(p.price).toFixed(2)} ₪</span> ` : ''}<span style="color: #dc2626; font-weight: 800;">${Number(p.salePrice).toFixed(2)} ₪</span>`
-                : `${getEffectivePrice(p).toFixed(2)} ₪`;
+                ? `<span class="price-text sale-price">${Number(p.salePrice).toFixed(2)} ₪</span>${(p.price !== undefined && p.price !== null && Number(p.price) !== Number(p.salePrice)) ? ` <span style="text-decoration: line-through; color: #94a3b8; font-size: 11px;">${Number(p.price).toFixed(2)} ₪</span>` : ''}`
+                : `<span class="price-text">${getEffectivePrice(p).toFixed(2)} ₪</span>`;
             return `
-                <div class="bundle-item-row ${isSelected ? 'bundle-item-selected' : ''}" style="${isOutOfStock ? 'opacity:0.55;' : ''}">
-                    <div style="display: flex; align-items: center; gap: 9px; overflow: hidden;">
-                        <img src="${productThumb(p, 100) || 'logo.png'}" class="bundle-item-thumb" loading="lazy" decoding="async" style="${isOutOfStock ? 'filter: grayscale(1);' : ''}" onclick="openImageModal('${p.img || 'logo.png'}', '${(p.name || '').replace(/'/g, "\\'")}')" onerror="this.onerror=null; this.src='logo.png';">
-                        <div>
-                            <div class="bundle-item-name">${p.name}</div>
-                            <div class="bundle-item-unit-price">${priceHtml}</div>
-                            ${isOutOfStock ? `<div style="color:#dc2626; font-size:10.5px; font-weight:800; margin-top:2px;">🚫 نفذت الكمية</div>` : ''}
+                <div class="product-card${hasSale ? ' has-sale' : ''}" style="${isOutOfStock ? 'opacity:0.6;' : ''}">
+                    <div>
+                        <div class="product-img-box" onclick="openImageModal('${p.img || 'logo.png'}', '${safeName}')">
+                            <span class="qty-badge">${p.weight || 'حبة'}</span>
+                            <img src="${productThumb(p, 300) || 'logo.png'}" class="product-img" loading="lazy" decoding="async" style="${isOutOfStock ? 'filter: grayscale(1);' : ''}" onerror="this.onerror=null; this.src='logo.png';">
                         </div>
+                        <div class="product-name">${p.name}</div>
                     </div>
-                    <div class="bundle-stepper-group">
-                        <button class="bundle-stepper-btn" onclick="productGroupItemDecrease('${p.id}')" ${qty === 0 ? 'disabled' : ''} style="border: none; background: ${qty === 0 ? '#f1f5f9' : '#fee2e2'}; color: ${qty === 0 ? '#cbd5e1' : '#dc2626'};">-</button>
-                        <span class="bundle-item-qty">${qty}</span>
-                        <button class="bundle-stepper-btn" onclick="productGroupItemIncrease('${p.id}')" ${isOutOfStock ? 'disabled' : ''} style="border: none; background: ${isOutOfStock ? '#9ca3af' : 'var(--accent-green)'}; color: white; ${isOutOfStock ? 'cursor:not-allowed;' : ''}">+</button>
+                    <div>
+                        <div>${isOutOfStock ? '<span style="color:#dc2626; font-size:11px; font-weight:800;">🚫 نفذت الكمية</span>' : priceHtml}</div>
+                        <div class="pg-modal-stepper">
+                            <button class="bundle-stepper-btn" onclick="productGroupItemDecrease('${p.id}')" ${qty === 0 ? 'disabled' : ''} style="border: none; background: ${qty === 0 ? '#f1f5f9' : '#fee2e2'}; color: ${qty === 0 ? '#cbd5e1' : '#dc2626'};">-</button>
+                            <span class="bundle-item-qty">${qty}</span>
+                            <button class="bundle-stepper-btn" onclick="productGroupItemIncrease('${p.id}')" ${isOutOfStock ? 'disabled' : ''} style="border: none; background: ${isOutOfStock ? '#9ca3af' : 'var(--accent-green)'}; color: white; ${isOutOfStock ? 'cursor:not-allowed;' : ''}">+</button>
+                        </div>
                     </div>
                 </div>
             `;
-        }).join('');
+        }).join('') + '</div>';
     }
 
     // ===================== العروض المرتبطة (اختيار نكهة/نوع) =====================
