@@ -1247,7 +1247,7 @@
         return canvas.toDataURL(bgWasRemoved ? 'image/png' : 'image/jpeg', 0.92);
     }
 
-    // الرفع صار لـ Firebase Storage (نفس لوحة التحكم) - Cloudinary بس احتياط إذا Firebase فشل لأي سبب
+    // الرفع الرسمي والوحيد لصور المنتجات: Cloudinary (نفس لوحة التحكم) - بيصغّر الصور تلقائياً بالرابط
     async function uploadImageToCloudinary(dataUrl) {
         const formData = new FormData();
         formData.append('file', dataUrl);
@@ -1257,24 +1257,23 @@
             method: 'POST',
             body: formData
         });
-        if (!response.ok) throw new Error('فشل رفع الصورة');
+        if (!response.ok) throw new Error('فشل رفع الصورة إلى Cloudinary');
         const data = await response.json();
         return data.secure_url;
     }
 
     async function uploadImageToStorage(dataUrl) {
         if (!dataUrl || !dataUrl.startsWith('data:')) return dataUrl;
-        const fileName = Date.now() + '_' + Math.random().toString(36).slice(2, 10) + '.jpg';
         try {
-            return await window.uploadImageToFirebaseStorage(dataUrl, fileName);
-        } catch (e) {
-            console.warn('فشل الرفع لـ Firebase Storage، جاري المحاولة عبر Cloudinary:', e);
             return await uploadImageToCloudinary(dataUrl);
+        } catch (e) {
+            console.error(e);
+            throw new Error('فشل رفع الصورة إلى Cloudinary - تأكدي من الإنترنت ومن إنه حساب Cloudinary شغال');
         }
     }
 
-    // نسخة مصغّرة 300px بخلفية بيضاء للبطاقات بالمتجر (نفس لوحة التحكم) - بترجع {thumb, thumbFor} أو {}
-    // إذا ما زبطت (المتجر بيرجع للصورة الكاملة تلقائياً، فما بتوقف حفظ المنتج)
+    // نسخة مصغّرة 300px بخلفية بيضاء - بتشتغل بس لصور Firebase (حالة الاحتياط)، لأنه صور Cloudinary
+    // بتتصغّر تلقائياً من الرابط نفسه. بترجع {} إذا ما زبطت، والمتجر بيرجع للصورة الكاملة
     async function buildThumbFields(imgUrl, sourceDataUrl) {
         if (!imgUrl || !sourceDataUrl || !imgUrl.includes('firebasestorage')) return {};
         try {

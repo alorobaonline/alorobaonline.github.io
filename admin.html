@@ -786,16 +786,16 @@
     </div>
 
     <div class="admin-tab-panel" id="tabPanel_settings">
-    <!-- أداة نقل الصور القديمة من Cloudinary لـ Firebase Storage (استخدمي مرة وحدة بس، وقت ما يكون
-         حساب Cloudinary شغال ووصول الصور متاح مؤقتاً) -->
+    <!-- أداة نقل الصور من Firebase Storage لـ Cloudinary (استخدمي مرة وحدة بس، لترجيع كل الصور
+         لمكان واحد بعد ما رجعنا للرفع على Cloudinary) -->
     <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('migrateImagesSectionContent', this)">
-            <span>🔄 نقل الصور القديمة من Cloudinary إلى Firebase Storage</span>
+            <span>🔄 نقل الصور من Firebase Storage إلى Cloudinary</span>
             <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="migrateImagesSectionContent">
             <div style="font-size: 0.72rem; color: #6b7280; margin-bottom: 10px; line-height: 1.7;">
-                هاي أداة <b>مؤقتة</b> بتستخدميها <b>مرة وحدة بس</b>. بتدور على كل منتج صورته لسا على Cloudinary، وبتنزّلها وترفعها من جديد لـ Firebase Storage تلقائياً، وبتحدّث رابط الصورة بقاعدة البيانات. لازم يكون حساب Cloudinary شغال (مش موقوف) وقت ما تشغّلي الأداة، وإلا رح تفشل كل عملية نقل.
+                هاي أداة <b>مؤقتة</b> بتستخدميها <b>مرة وحدة بس</b>. الرفع رجع لـ Cloudinary، بس المنتجات يلي انرفعت صورها بفترة Firebase لساتها هناك. هاي الأداة بتنقلهم لـ Cloudinary وبتحدّث الرابط بقاعدة البيانات، حتى تصير كل الصور بمكان واحد وتستفيد من التصغير التلقائي. الصور القديمة بتضل موجودة على Firebase (ما بتنحذف)، فما في أي خطر لو وقفت الأداة بالنص.
             </div>
             <button class="btn-main" onclick="migrateCloudinaryImages()" id="migrateImagesBtn">🔄 ابدأي نقل الصور</button>
             <div id="migrateImagesProgress" style="margin-top: 12px; font-size: 0.72rem; font-weight: 700; color: #374151; white-space: pre-line;"></div>
@@ -1303,8 +1303,8 @@
     let offerGroups = [];
     let editingOfferGroupId = null;
 
-    // بيانات حساب Cloudinary القديم - ضلت هون بس لأجل أداة نقل الصور القديمة (migrateCloudinaryImages)،
-    // ما عاد يُستخدم لرفع صور جديدة إطلاقاً (الرفع الجديد صار عن طريق Firebase Storage مباشرة)
+    // حساب Cloudinary - هو المكان الرسمي لتخزين صور المنتجات (رجعنا له بدل Firebase Storage).
+    // ميزته الأساسية: بيصغّر الصور تلقائياً حسب الرابط (w_300,q_auto,f_auto)، فما بنحتاج نرفع نسخ مصغّرة
     const CLOUDINARY_CLOUD_NAME = 'lqrit0u7';
     const CLOUDINARY_UPLOAD_PRESET = 'v7mkckzz';
 
@@ -1487,6 +1487,8 @@
     // أو {} إذا ما زبطت (فشل النسخة الصغيرة ما لازم يوقف حفظ المنتج أبداً - المتجر بيرجع للصورة الكاملة)
     async function buildThumbFields(imgUrl, sourceForThumb) {
         if (!imgUrl || imgUrl === DEFAULT_PLACEHOLDER_IMG || !(imgUrl.startsWith('http'))) return {};
+        // صور Cloudinary بتتصغّر تلقائياً عن طريق الرابط نفسه (optimizeImg بالمتجر)، فما بدها نسخة مصغّرة مرفوعة
+        if (imgUrl.includes('cloudinary.com')) return { thumb: null, thumbFor: null };
         try {
             const thumbDataUrl = await makeThumbDataUrl(sourceForThumb || imgUrl);
             const thumbUrl = await window.uploadImageToFirebaseStorage(thumbDataUrl, thumbFileName(thumbDataUrl));
@@ -1497,22 +1499,35 @@
         }
     }
 
-    // يرفع صورة (dataUrl base64) إلى Firebase Storage ويرجّع رابط تنزيل دائم بدل تخزين base64 كامل
-    // داخل Firestore - نفس نظام تخزين باقي بيانات المتجر، مش خدمة خارجية منفصلة
+    // يرفع صورة (dataUrl base64) إلى Cloudinary ويرجّع رابط دائم بدل تخزين base64 كامل داخل Firestore
+    async function uploadImageToCloudinary(dataUrl) {
+        const formData = new FormData();
+        formData.append('file', dataUrl);
+        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        formData.append('folder', 'products');
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        if (!response.ok) throw new Error('فشل رفع الصورة إلى Cloudinary');
+        const data = await response.json();
+        return data.secure_url;
+    }
+
+    // الرفع الرسمي والوحيد لصور المنتجات: Cloudinary (بيصغّر الصور تلقائياً بالرابط = متجر أسرع).
+    // ما في أي احتياط ثاني - لو فشل الرفع بتطلع رسالة خطأ واضحة بدل ما تنرفع الصورة بمكان ثاني
     async function uploadImageToStorage(dataUrl) {
         if (!dataUrl || !dataUrl.startsWith('data:')) return dataUrl; // مش صورة جديدة (رابط جاهز أصلاً) - رجّعها زي ما هي
 
-        const fileName = Date.now() + '_' + Math.random().toString(36).slice(2, 10) + '.jpg';
-
         try {
-            return await window.uploadImageToFirebaseStorage(dataUrl, fileName);
+            return await uploadImageToCloudinary(dataUrl);
         } catch (e) {
             console.error(e);
-            throw new Error('فشل رفع الصورة إلى Firebase Storage');
+            throw new Error('فشل رفع الصورة إلى Cloudinary - تأكدي من الإنترنت ومن إنه حساب Cloudinary شغال');
         }
     }
 
-    // ===================== أداة نقل الصور القديمة من Cloudinary لـ Firebase Storage (استخدام مرة واحدة) =====================
+    // ===================== أداة نقل الصور من Firebase Storage لـ Cloudinary (استخدام مرة واحدة) =====================
     // بتحوّل صورة (عن طريق Canvas، عشان نتفادى مشاكل CORS المباشرة مع fetch) لـ dataUrl، وبعدين ترفعها
     // بتحمّل صورة من أي رابط وترجعها dataUrl مصغّرة (أقصى بعد 900px، نسبة الطول والعرض ما بتتغير)
     // حتى ملف الصورة النهائي يضل خفيف وسريع التحميل، بدل ما ينرفع بحجمه الأصلي الكامل (اللي ممكن
@@ -1549,7 +1564,7 @@
         const btn = document.getElementById('migrateImagesBtn');
         const progressEl = document.getElementById('migrateImagesProgress');
 
-        if (!confirm('هاي العملية رح تنقل كل صور المنتجات يلي لسا على Cloudinary لـ Firebase Storage. لازم يكون حساب Cloudinary شغال حالياً. تبدأي؟')) return;
+        if (!confirm('هاي العملية رح تنقل كل صور المنتجات يلي على Firebase Storage لـ Cloudinary. الصور الأصلية ما بتنحذف من Firebase. تبدأي؟')) return;
 
         btn.disabled = true;
         btn.innerText = '⏳ جاري النقل...';
@@ -1562,13 +1577,13 @@
             products.forEach(p => {
                 totalScanned++;
                 if (sampleImgs.length < 3 && p.img) sampleImgs.push(p.img);
-                if (p.img && p.img.includes('cloudinary.com')) {
+                if (p.img && p.img.includes('firebasestorage') && !p.img.includes('/thumb_')) {
                     targets.push({ id: p.id, name: p.name || p.id, img: p.img });
                 }
             });
 
             if (targets.length === 0) {
-                progressEl.innerText = `✅ فحصنا ${totalScanned} منتج، ما لقينا أي رابط فيه "cloudinary.com".\n\nأمثلة على روابط صور شافتها الأداة:\n- ${sampleImgs.join('\n- ') || '(ما في أي منتج فيه صورة أصلاً!)'}`;
+                progressEl.innerText = `✅ فحصنا ${totalScanned} منتج، ما في أي صورة على Firebase Storage - كلهم على Cloudinary أصلاً.\n\nأمثلة على روابط صور شافتها الأداة:\n- ${sampleImgs.join('\n- ') || '(ما في أي منتج فيه صورة أصلاً!)'}`;
                 return;
             }
 
@@ -1577,9 +1592,9 @@
                 progressEl.innerText = `جاري النقل: ${done + failed.length + 1} من ${targets.length}\n(${p.name})`;
                 try {
                     const dataUrl = await loadImageAsDataUrl(p.img);
-                    const fileName = Date.now() + '_' + Math.random().toString(36).slice(2, 10) + '.jpg';
-                    const newUrl = await window.uploadImageToFirebaseStorage(dataUrl, fileName);
-                    await window.updateDoc(window.doc(window.db, "products", p.id), { img: newUrl });
+                    const newUrl = await uploadImageToCloudinary(dataUrl);
+                    // منفضّي النسخة المصغّرة القديمة: Cloudinary بيصغّر تلقائياً من الرابط نفسه
+                    await window.updateDoc(window.doc(window.db, "products", p.id), { img: newUrl, thumb: null, thumbFor: null });
                     done++;
                 } catch (e) {
                     console.error('فشل نقل صورة المنتج: ' + p.name, e);
@@ -1589,7 +1604,7 @@
 
             let resultMsg = `✅ تم نقل ${done} من ${targets.length} صورة بنجاح.`;
             if (failed.length > 0) {
-                resultMsg += `\n\n❌ فشل نقل ${failed.length} صورة (لأسباب مثل رابط تالف أو حساب Cloudinary موقوف):\n- ${failed.join('\n- ')}`;
+                resultMsg += `\n\n❌ فشل نقل ${failed.length} صورة (رابط تالف أو مشكلة بالاتصال) - صورهم لساتها شغالة من Firebase:\n- ${failed.join('\n- ')}`;
                 resultMsg += `\n\nجربي تشغّلي الأداة مرة ثانية بعدين لهالمنتجات، أو حدّثي صورهم يدوياً.`;
             }
             progressEl.innerText = resultMsg;
@@ -1613,12 +1628,15 @@
         const btn = document.getElementById('reoptimizeImagesBtn');
         const progressEl = document.getElementById('reoptimizeImagesProgress');
 
-        const withImg = products.filter(p => p.img && p.img.startsWith('http') && p.img !== DEFAULT_PLACEHOLDER_IMG);
+        // صور Cloudinary بتتصغّر تلقائياً من الرابط، فما بتحتاج نسخة مصغّرة مرفوعة - منتخطاها
+        const withImg = products.filter(p => p.img && p.img.startsWith('http') && p.img !== DEFAULT_PLACEHOLDER_IMG && !p.img.includes('cloudinary.com'));
         const targets = withImg.filter(p => !(p.thumb && p.thumbFor === p.img));
         const alreadyDone = withImg.length - targets.length;
 
         if (targets.length === 0) {
-            progressEl.innerText = `✅ كل الصور (${withImg.length}) عندها نسخة مصغّرة جاهزة. ما في إشي لازم ينعمل.`;
+            progressEl.innerText = withImg.length === 0
+                ? '✅ ما في صور بتحتاج تصغير - كل الصور على Cloudinary وبتتصغّر تلقائياً.'
+                : `✅ كل الصور (${withImg.length}) عندها نسخة مصغّرة جاهزة. ما في إشي لازم ينعمل.`;
             return;
         }
 

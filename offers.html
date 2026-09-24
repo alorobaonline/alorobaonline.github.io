@@ -496,10 +496,18 @@
     // بتحوّل سعر الحزمة لرقم مهما كانت طريقة كتابته: أرقام عربية (٢٠)، فارسية (۲۰)، فاصلة (14,90)،
     // أو مع رموز/كلمات ("20₪"، "20 شيكل"، "2=20") - بتاخذ آخر رقم مكتوب لأنه هو السعر
     // الصورة المصغّرة الجاهزة للمنتج (من لوحة التحكم) - بس إذا معمولة من نفس الصورة الحالية
+    // يصغّر صور Cloudinary تلقائياً حسب مكان عرضها (نفس اللي بالمتجر الرئيسي) - بيقلل حجم التحميل
+    // بشكل كبير بدل ما تنزل الصورة الأصلية الكاملة لبطاقة صغيرة
+    function optimizeImg(url, width) {
+        if (!url || typeof url !== 'string') return url;
+        if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) return url;
+        return url.replace('/upload/', `/upload/w_${width || 300},q_auto,f_auto/`);
+    }
+
     function productThumb(p) {
         if (!p) return '';
         if (p.thumb && p.thumbFor && p.thumbFor === p.img) return p.thumb;
-        return p.img || '';
+        return optimizeImg(p.img || '', 300);
     }
 
     function parseBundlePrice(b) {
