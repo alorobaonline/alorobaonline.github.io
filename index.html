@@ -1026,6 +1026,17 @@
     </div>
 </div>
 
+<!-- نافذة اختيار النكهة/النوع من عائلة منتجات (بطاقة وحدة بقسمها بدل كل النكهات فرادى) -->
+<div class="cart-modal" id="productGroupModal" onclick="closeProductGroupModal(event)">
+    <div class="cart-modal-content" onclick="event.stopPropagation()" style="border-radius: 22px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 id="productGroupModalTitle" style="font-size: 16.5px; font-weight: 900; color: var(--primary-green);"></h3>
+            <button onclick="closeProductGroupModal()" style="background: #f1f5f9; border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 15px; cursor: pointer; color: #64748b;">✕</button>
+        </div>
+        <div id="productGroupItemsList"></div>
+    </div>
+</div>
+
 <!-- نافذة اختيار النكهة/النوع بالعروض المرتبطة -->
 <div class="cart-modal" id="offerGroupModal" onclick="closeOfferGroupModal(event)">
     <div class="cart-modal-content" onclick="event.stopPropagation()" style="border-radius: 22px;">
@@ -1599,6 +1610,7 @@
 
     let bundles = [];
     let offerGroups = [];
+    let productGroups = []; // عائلات المنتجات (نفس المنتج بنكهات/أنواع مختلفة) - بطاقة وحدة بدل عشر بطاقات
     let currentBundle = null;
     let bundleBannerInterval = null;
     let currentBundleIndex = 0;
@@ -2273,6 +2285,16 @@
             offerGroups = [];
             groupSnap.forEach(docSnap => {
                 offerGroups.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            requestAnimationFrame(() => {
+                renderMainStoreContent();
+            });
+        });
+
+        window.onSnapshot(window.collection(window.db, "productGroups"), (pgSnap) => {
+            productGroups = [];
+            pgSnap.forEach(docSnap => {
+                productGroups.push({ id: docSnap.id, ...docSnap.data() });
             });
             requestAnimationFrame(() => {
                 renderMainStoreContent();
@@ -4332,7 +4354,12 @@
     // بدون ما ننقسم لصفوف منفصلة حسب أي حزمة/عرض
     function createProductsGridWithBundleDividers(productList) {
         if (!productList || productList.length === 0) return '';
-        return `<div class="products-grid" style="margin-top: 10px;">${productList.map(p => createProductCardHtml(p)).join('')}</div>`;
+        const cards = collapseProductsIntoGroups(productList).map(entry =>
+            entry.type === 'group'
+                ? createProductGroupCardHtml(entry.group, entry.members)
+                : createProductCardHtml(entry.product)
+        ).join('');
+        return `<div class="products-grid" style="margin-top: 10px;">${cards}</div>`;
     }
 
     let productViewMode = (function(){ try { return localStorage.getItem('aloroba_view_mode') || 'grid'; } catch(e) { return 'grid'; } })();
@@ -4462,8 +4489,10 @@
     function createProductsListWithBundleDividers(productList) {
         if (!productList || productList.length === 0) return '';
         let html = '<div class="products-list">';
-        productList.forEach(p => {
-            html += createProductListItemHtml(p);
+        collapseProductsIntoGroups(productList).forEach(entry => {
+            html += entry.type === 'group'
+                ? createProductGroupListItemHtml(entry.group, entry.members)
+                : createProductListItemHtml(entry.product);
         });
         html += '</div>';
         return html;
@@ -4491,6 +4520,199 @@
             if (!b.selectedItems || b.selectedItems.length === 0) return true;
             return b.selectedItems.includes(p.name);
         }) || null;
+    }
+
+    // ===================== عائلات المنتجات (نكهات/أنواع تحت بطاقة وحدة) =====================
+    // الهدف: قسم فيه 60 منتج أغلبهم نفس المشروب بنكهات مختلفة يصير 15 بطاقة. الزبون بيضغط على
+    // البطاقة فبتفتحله نافذة فيها كل النكهات مع أزرار + و− (نفس آلية العروض المرتبطة بالظبط).
+    // المنتجات نفسها ما بتتغير أبداً: كل نكهة بتضل منتج مستقل بسعره ومخزونه وباركوده وتكلفته.
+    function isGroupActive(g) {
+        return g && g.active !== false && Array.isArray(g.selectedItems) && g.selectedItems.length > 0;
+    }
+
+    function findProductGroupForProduct(p) {
+        if (!productGroups || productGroups.length === 0 || !p) return null;
+        return productGroups.find(g => isGroupActive(g) && g.selectedItems.includes(p.name)) || null;
+    }
+
+    // أعضاء العائلة بترتيب المنتجات المعروض حالياً (عشان ترتيب النكهات يطابق ترتيب المتجر)
+    function getProductGroupMembers(g) {
+        if (!g || !Array.isArray(g.selectedItems)) return [];
+        return products.filter(p => g.selectedItems.includes(p.name));
+    }
+
+    function isProductOutOfStock(p) {
+        const isTracked = (p.stockQty !== undefined && p.stockQty !== null && p.stockQty !== '');
+        return isTracked && Number(p.stockQty) <= 0;
+    }
+
+    // وقت البحث ما منجمّع: لو الزبون كتب "بريقات فراولة" لازم يطلعله المنتج نفسه مباشرة
+    function isSearchActive() {
+        const el = document.getElementById('searchInput');
+        return !!(el && el.value.trim() !== '');
+    }
+
+    // بتحوّل قائمة منتجات لقائمة "بطاقات": كل عائلة بتصير بطاقة وحدة بمكان أول عضو إلها بالترتيب،
+    // وباقي أعضائها بينشالوا من القائمة. المنتجات يلي مش بأي عائلة بتضل زي ما هي
+    function collapseProductsIntoGroups(productList) {
+        const entries = [];
+        if (!productList || productList.length === 0) return entries;
+        if (!productGroups || productGroups.length === 0 || isSearchActive()) {
+            productList.forEach(p => entries.push({ type: 'product', product: p }));
+            return entries;
+        }
+        const usedGroupIds = new Set();
+        productList.forEach(p => {
+            const g = findProductGroupForProduct(p);
+            if (!g) {
+                entries.push({ type: 'product', product: p });
+                return;
+            }
+            if (usedGroupIds.has(g.id)) return; // عضو ثاني من نفس العائلة - البطاقة انعرضت أصلاً
+            usedGroupIds.add(g.id);
+            const members = getProductGroupMembers(g).filter(m => productList.some(x => x.id === m.id));
+            if (members.length < 2) {
+                // عضو واحد بس ظاهر بهالقسم - ما في داعي لبطاقة عائلة، منعرضه منتج عادي
+                entries.push({ type: 'product', product: p });
+                return;
+            }
+            entries.push({ type: 'group', group: g, members: members });
+        });
+        return entries;
+    }
+
+    function createProductGroupCardHtml(g, members, sizeVariant) {
+        if (!members || members.length === 0) return '';
+        const sizeClass = sizeVariant === 'small' ? ' product-card-small' : '';
+        const prices = members.map(m => getEffectivePrice(m)).filter(v => !isNaN(v));
+        const minPrice = prices.length ? Math.min(...prices) : 0;
+        const allOut = members.every(isProductOutOfStock);
+        const img = g.customImage || productThumb(members[0], 300) || 'logo.png';
+        // كم حبة من هالعائلة موجودة بالسلة حالياً - عشان الزبون يشوف إنه أصلاً مختار منها
+        let selectedQty = 0;
+        members.forEach(m => {
+            const item = cart.find(c => c.id == m.id);
+            if (item) selectedQty += item.quantity;
+        });
+        return `
+            <div class="product-card${sizeClass}" data-product-group-id="${g.id}" onclick="openProductGroupModal('${g.id}')" style="cursor: pointer; ${allOut ? 'opacity:0.65;' : ''}">
+                <div>
+                    <div class="product-img-box">
+                        <span class="qty-badge">${members.length} أنواع</span>
+                        ${allOut ? '<span class="discount-badge" style="background:#6b7280;">نفذت الكمية</span>' : ''}
+                        <img src="${img}" class="product-img" loading="lazy" decoding="async" style="${allOut ? 'filter: grayscale(1);' : ''}" onerror="this.onerror=null; this.src='logo.png';">
+                    </div>
+                    <div class="product-name">${g.name || ''}</div>
+                </div>
+                <div>
+                    <div class="product-price-row" style="display: block;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div><span class="price-text">من ${minPrice.toFixed(2)} ₪</span></div>
+                            <button class="add-to-cart-btn" onclick="event.stopPropagation(); openProductGroupModal('${g.id}')" style="${selectedQty > 0 ? 'background: var(--primary-green);' : ''}">${selectedQty > 0 ? selectedQty : '+'}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function createProductGroupListItemHtml(g, members) {
+        if (!members || members.length === 0) return '';
+        const prices = members.map(m => getEffectivePrice(m)).filter(v => !isNaN(v));
+        const minPrice = prices.length ? Math.min(...prices) : 0;
+        const allOut = members.every(isProductOutOfStock);
+        const img = g.customImage || productThumb(members[0], 100) || 'logo.png';
+        let selectedQty = 0;
+        members.forEach(m => {
+            const item = cart.find(c => c.id == m.id);
+            if (item) selectedQty += item.quantity;
+        });
+        return `
+            <div class="product-card product-card-list" data-product-group-id="${g.id}" onclick="openProductGroupModal('${g.id}')" style="cursor: pointer; ${allOut ? 'opacity:0.65;' : ''}">
+                <div class="product-img-box">
+                    <span class="qty-badge">${members.length} أنواع</span>
+                    <img src="${img}" class="product-img" loading="lazy" decoding="async" style="${allOut ? 'filter: grayscale(1);' : ''}" onerror="this.onerror=null; this.src='logo.png';">
+                </div>
+                <div class="list-info">
+                    <div class="product-name">${g.name || ''}</div>
+                    <div class="product-price-top" style="display: flex; flex-wrap: wrap;">
+                        <span class="price-text">${allOut ? 'نفذت الكمية' : 'من ' + minPrice.toFixed(2) + ' ₪'}</span>
+                    </div>
+                </div>
+                <div class="list-action">
+                    <button class="add-to-cart-btn" onclick="event.stopPropagation(); openProductGroupModal('${g.id}')" style="${selectedQty > 0 ? 'background: var(--primary-green);' : ''}">${selectedQty > 0 ? selectedQty : '+'}</button>
+                </div>
+            </div>
+        `;
+    }
+
+    // ===================== نافذة اختيار النكهة من عائلة منتجات =====================
+    let currentProductGroup = null;
+
+    function openProductGroupModal(groupId) {
+        const g = productGroups.find(x => x.id === groupId);
+        if (!g) return;
+        currentProductGroup = g;
+        document.getElementById('productGroupModalTitle').innerText = g.name || '';
+        lockBodyScroll();
+        document.getElementById('productGroupModal').style.display = 'flex';
+        renderProductGroupModalItems();
+    }
+
+    function closeProductGroupModal(e) {
+        if (e && e.target !== e.currentTarget) return;
+        document.getElementById('productGroupModal').style.display = 'none';
+        unlockBodyScroll();
+        currentProductGroup = null;
+    }
+
+    function productGroupItemIncrease(prodId) {
+        increaseCartQty(prodId);
+        renderProductGroupModalItems();
+    }
+
+    function productGroupItemDecrease(prodId) {
+        decreaseCartQty(prodId);
+        renderProductGroupModalItems();
+    }
+
+    function renderProductGroupModalItems() {
+        if (!currentProductGroup) return;
+        const members = getProductGroupMembers(currentProductGroup);
+        const listEl = document.getElementById('productGroupItemsList');
+        if (members.length === 0) {
+            listEl.innerHTML = `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 15px;">لا توجد أنواع متاحة حالياً.</p>`;
+            return;
+        }
+        listEl.innerHTML = members.map(p => {
+            const cartItem = cart.find(c => c.id == p.id);
+            const qty = cartItem ? cartItem.quantity : 0;
+            const isSelected = qty > 0;
+            const isTracked = (p.stockQty !== undefined && p.stockQty !== null && p.stockQty !== '');
+            const remainingStock = isTracked ? Math.max(0, Number(p.stockQty) - qty) : null;
+            const isOutOfStock = isTracked && remainingStock <= 0;
+            const hasSale = hasSalePrice(p);
+            const priceHtml = hasSale
+                ? `${(p.price !== undefined && p.price !== null && Number(p.price) !== Number(p.salePrice)) ? `<span style="text-decoration: line-through; color: #94a3b8;">${Number(p.price).toFixed(2)} ₪</span> ` : ''}<span style="color: #dc2626; font-weight: 800;">${Number(p.salePrice).toFixed(2)} ₪</span>`
+                : `${getEffectivePrice(p).toFixed(2)} ₪`;
+            return `
+                <div class="bundle-item-row ${isSelected ? 'bundle-item-selected' : ''}" style="${isOutOfStock ? 'opacity:0.55;' : ''}">
+                    <div style="display: flex; align-items: center; gap: 9px; overflow: hidden;">
+                        <img src="${productThumb(p, 100) || 'logo.png'}" class="bundle-item-thumb" loading="lazy" decoding="async" style="${isOutOfStock ? 'filter: grayscale(1);' : ''}" onclick="openImageModal('${p.img || 'logo.png'}', '${(p.name || '').replace(/'/g, "\\'")}')" onerror="this.onerror=null; this.src='logo.png';">
+                        <div>
+                            <div class="bundle-item-name">${p.name}</div>
+                            <div class="bundle-item-unit-price">${priceHtml}</div>
+                            ${isOutOfStock ? `<div style="color:#dc2626; font-size:10.5px; font-weight:800; margin-top:2px;">🚫 نفذت الكمية</div>` : ''}
+                        </div>
+                    </div>
+                    <div class="bundle-stepper-group">
+                        <button class="bundle-stepper-btn" onclick="productGroupItemDecrease('${p.id}')" ${qty === 0 ? 'disabled' : ''} style="border: none; background: ${qty === 0 ? '#f1f5f9' : '#fee2e2'}; color: ${qty === 0 ? '#cbd5e1' : '#dc2626'};">-</button>
+                        <span class="bundle-item-qty">${qty}</span>
+                        <button class="bundle-stepper-btn" onclick="productGroupItemIncrease('${p.id}')" ${isOutOfStock ? 'disabled' : ''} style="border: none; background: ${isOutOfStock ? '#9ca3af' : 'var(--accent-green)'}; color: white; ${isOutOfStock ? 'cursor:not-allowed;' : ''}">+</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
 
     // ===================== العروض المرتبطة (اختيار نكهة/نوع) =====================

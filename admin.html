@@ -572,6 +572,38 @@
     </div>
 
     <div class="section-box">
+        <div class="section-header-toggle" onclick="toggleSection('productGroupsSectionContent', this)">
+            <span>🧃 عائلات المنتجات (نكهات/أنواع تحت بطاقة وحدة)</span>
+            <span class="toggle-arrow">▼</span>
+        </div>
+        <div class="section-content" id="productGroupsSectionContent">
+            <div style="font-size: 0.72rem; color: #6b7280; margin-bottom: 8px; line-height: 1.6;">
+                لما يكون عندك نفس المنتج بكذا نكهة (مثال: عصير بريقات بـ 6 نكهات)، اجمعهم هون تحت عائلة وحدة. بالمتجر بتطلع <b>بطاقة وحدة بس</b> باسم وصورة العائلة بدل 6 بطاقات، والزبون لما يضغط عليها بتفتحله قائمة النكهات ليختار منها. المنتجات نفسها ما بتتغير: كل نكهة بتضل منتج مستقل بسعره ومخزونه وباركوده.
+                <br><b>ملاحظة:</b> بالبحث بتطلع كل نكهة لحالها زي قبل، حتى الزبون يلاقي نكهة معيّنة مباشرة.
+            </div>
+            <input type="text" id="newProductGroupName" class="form-control" placeholder="اسم العائلة (يظهر للزبون، مثال: عصير بريقات)">
+
+            <label style="font-size: 0.7rem; font-weight: 700; color: #4b5563; display: block; margin: 8px 0 4px;">صورة العائلة (اختيارية - لو ما رفعتي وحدة بتنستخدم صورة أول نكهة):</label>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <button type="button" class="btn-main" style="padding: 6px 12px; font-size: 0.72rem;" onclick="document.getElementById('newProductGroupImgFile').click()">📷 ارفعي صورة</button>
+                <span id="newProductGroupImgStatus" style="font-size: 0.68rem; font-weight: 700; color: #6b7280;"></span>
+                <img id="newProductGroupImgPreview" src="" style="width: 42px; height: 42px; object-fit: contain; border-radius: 8px; border: 1px solid #e5e7eb; background: #fff; display: none;">
+                <button type="button" class="btn-delete" style="padding: 4px 8px; font-size: 0.62rem;" onclick="clearProductGroupImg()">حذف الصورة</button>
+            </div>
+            <input type="file" id="newProductGroupImgFile" accept="image/*" style="display:none;" onchange="handleProductGroupImgUpload(event)">
+            <input type="hidden" id="newProductGroupImg" value="">
+
+            <label style="font-size: 0.7rem; font-weight: 700; color: #4b5563; display: block; margin: 8px 0 4px;">اختاري النكهات/الأنواع التابعة للعائلة (منتجين على الأقل):</label>
+            <input type="text" id="productGroupProductSearch" class="form-control" placeholder="🔍 دوري عن منتج..." oninput="filterProductGroupCheckboxes()">
+            <div id="productGroupProductCheckboxes" style="max-height: 220px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px; background: #fff; margin-bottom: 10px;"></div>
+            <button id="saveProductGroupBtn" class="btn-main" onclick="saveOrUpdateProductGroup()">حفظ العائلة ➕</button>
+
+            <div style="font-size: 0.8rem; font-weight: 900; margin-top: 16px; margin-bottom: 8px;">العائلات الحالية:</div>
+            <div id="productGroupsList"></div>
+        </div>
+    </div>
+
+    <div class="section-box">
         <div class="section-header-toggle" onclick="toggleSection('offerGroupsSectionContent', this)">
             <span>🔀 عروض مرتبطة (اختيار نكهة/نوع)</span>
             <span class="toggle-arrow">▼</span>
@@ -1301,6 +1333,8 @@
     let editingCategoryOriginalName = null;
     let modalNewImageBase64 = null;
     let offerGroups = [];
+    let productGroups = [];
+    let editingProductGroupId = null;
     let editingOfferGroupId = null;
 
     // حساب Cloudinary - هو المكان الرسمي لتخزين صور المنتجات (رجعنا له بدل Firebase Storage).
@@ -2227,7 +2261,7 @@
     async function loadDataFromCloud() {
         try {
             // نفّذ كل الطلبات المستقلة عن بعض بالتوازي بدل ما ننتظر وحدة وحدة (كانت هذي السبب الرئيسي لبطء التحميل)
-            const [catSnap, prodSnap, settingSnap, deliverySettingSnap, zoneSnap, offerGroupsSnap, bannerSnap, bundlesSnap] = await Promise.all([
+            const [catSnap, prodSnap, settingSnap, deliverySettingSnap, zoneSnap, offerGroupsSnap, bannerSnap, bundlesSnap, productGroupsSnap] = await Promise.all([
                 window.getDocs(window.collection(window.db, "categories")),
                 window.getDocs(window.collection(window.db, "products")),
                 window.getDoc(window.doc(window.db, "settings", "storeSettings")).catch(() => null),
@@ -2235,7 +2269,8 @@
                 window.getDocs(window.collection(window.db, "deliveryZones")).catch(() => null),
                 window.getDocs(window.collection(window.db, "offerGroups")).catch(() => null),
                 window.getDoc(window.doc(window.db, "settings", "banner")).catch(() => null),
-                window.getDocs(window.collection(window.db, "bundles")).catch(() => null)
+                window.getDocs(window.collection(window.db, "bundles")).catch(() => null),
+                window.getDocs(window.collection(window.db, "productGroups")).catch(() => null)
             ]);
 
             // نحمّل شرائح البانر المحفوظة فعلياً - قبل هيك كانت الشاشة تفتح بشرائح فاضية دايماً حتى لو
@@ -2319,8 +2354,17 @@
                     offerGroups.push({ id: docSnap.id, ...docSnap.data() });
                 });
             }
+            productGroups = [];
+            if (productGroupsSnap) {
+                productGroupsSnap.forEach(docSnap => {
+                    productGroups.push({ id: docSnap.id, ...docSnap.data() });
+                });
+            }
+
             renderOfferGroupProductCheckboxes();
             renderOfferGroupsList();
+            renderProductGroupCheckboxes();
+            renderProductGroupsList();
             renderOffersOnlyList();
 
             bundles = [];
@@ -3299,6 +3343,197 @@
                 container.innerHTML += renderCatRow(child, true);
             });
         });
+    }
+
+    // ===================== إدارة عائلات المنتجات (نكهات/أنواع تحت بطاقة وحدة) =====================
+    function renderProductGroupCheckboxes(selectedNames) {
+        selectedNames = selectedNames || [];
+        const container = document.getElementById('productGroupProductCheckboxes');
+        if (!container) return;
+        if (!products || products.length === 0) {
+            container.innerHTML = '<span style="font-size:0.7rem; color:#888;">ما فيه منتجات محمّلة بعد</span>';
+            return;
+        }
+        // منتج مربوط بعائلة ثانية منبيّنه، عشان ما ينحط بعائلتين بالغلط
+        const takenByOther = new Set();
+        productGroups.forEach(g => {
+            if (g.id === editingProductGroupId) return;
+            (g.selectedItems || []).forEach(n => takenByOther.add(n));
+        });
+        container.innerHTML = products.map(p => {
+            const isChecked = selectedNames.includes(p.name) ? 'checked' : '';
+            const taken = takenByOther.has(p.name);
+            return `
+                <label class="checkbox-item" data-prodname="${(p.name || '').toLowerCase()}" style="${taken ? 'opacity:0.5;' : ''}">
+                    <input type="checkbox" name="productGroupProdCheckbox" value="${p.name}" ${isChecked} ${taken ? 'disabled' : ''}>
+                    ${p.name} ${taken ? '<span style="color:#b45309; font-weight:800;">(بعائلة ثانية)</span>' : ''}
+                </label>
+            `;
+        }).join('');
+    }
+
+    function filterProductGroupCheckboxes() {
+        const search = document.getElementById('productGroupProductSearch').value.trim().toLowerCase();
+        document.querySelectorAll('#productGroupProductCheckboxes .checkbox-item').forEach(item => {
+            const name = item.getAttribute('data-prodname') || '';
+            item.style.display = name.includes(search) ? '' : 'none';
+        });
+    }
+
+    async function handleProductGroupImgUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const statusEl = document.getElementById('newProductGroupImgStatus');
+        const previewEl = document.getElementById('newProductGroupImgPreview');
+        const urlInput = document.getElementById('newProductGroupImg');
+        statusEl.innerText = '⏳ جاري الرفع...';
+        try {
+            const reader = new FileReader();
+            const dataUrl = await new Promise((resolve, reject) => {
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+            const uploadedUrl = await uploadImageToStorage(dataUrl);
+            urlInput.value = uploadedUrl;
+            previewEl.src = uploadedUrl;
+            previewEl.style.display = 'block';
+            statusEl.innerText = '✅ تم الرفع';
+        } catch (e) {
+            console.error(e);
+            statusEl.innerText = '❌ فشل الرفع';
+            alert('تعذر رفع الصورة: ' + (e.message || e));
+        }
+    }
+
+    function clearProductGroupImg() {
+        document.getElementById('newProductGroupImg').value = '';
+        document.getElementById('newProductGroupImgPreview').style.display = 'none';
+        document.getElementById('newProductGroupImgPreview').src = '';
+        document.getElementById('newProductGroupImgStatus').innerText = '';
+        document.getElementById('newProductGroupImgFile').value = '';
+    }
+
+    async function saveOrUpdateProductGroup() {
+        const name = document.getElementById('newProductGroupName').value.trim();
+        const customImage = document.getElementById('newProductGroupImg').value.trim() || null;
+        const checked = document.querySelectorAll('input[name="productGroupProdCheckbox"]:checked');
+        const selectedItems = Array.from(checked).map(cb => cb.value);
+
+        if (!name) {
+            alert('الرجاء إدخال اسم العائلة');
+            return;
+        }
+        if (selectedItems.length < 2) {
+            alert('اختاري منتجين على الأقل (نكهات/أنواع)، وإلا ما في داعي لبطاقة عائلة');
+            return;
+        }
+
+        const groupData = { name, customImage, selectedItems, active: true };
+        try {
+            if (editingProductGroupId) {
+                await window.updateDoc(window.doc(window.db, "productGroups", editingProductGroupId), groupData);
+                productGroups = productGroups.map(g => g.id === editingProductGroupId ? { id: editingProductGroupId, ...groupData } : g);
+            } else {
+                const docRef = await window.addDoc(window.collection(window.db, "productGroups"), groupData);
+                productGroups.push({ id: docRef.id, ...groupData });
+            }
+            resetProductGroupForm();
+            renderProductGroupsList();
+            alert('تم حفظ العائلة بنجاح! 🚀');
+        } catch (e) {
+            console.error(e);
+            alert('خطأ أثناء حفظ العائلة: ' + (e.message || e));
+        }
+    }
+
+    function resetProductGroupForm() {
+        editingProductGroupId = null;
+        document.getElementById('newProductGroupName').value = '';
+        document.getElementById('productGroupProductSearch').value = '';
+        clearProductGroupImg();
+        renderProductGroupCheckboxes();
+        const btn = document.getElementById('saveProductGroupBtn');
+        btn.innerText = 'حفظ العائلة ➕';
+        btn.style.backgroundColor = '';
+    }
+
+    function editProductGroup(id) {
+        const group = productGroups.find(g => g.id === id);
+        if (!group) return;
+        editingProductGroupId = id;
+        document.getElementById('newProductGroupName').value = group.name || '';
+        const urlInput = document.getElementById('newProductGroupImg');
+        const previewEl = document.getElementById('newProductGroupImgPreview');
+        urlInput.value = group.customImage || '';
+        if (group.customImage) {
+            previewEl.src = group.customImage;
+            previewEl.style.display = 'block';
+        } else {
+            previewEl.style.display = 'none';
+        }
+        document.getElementById('newProductGroupImgStatus').innerText = '';
+        renderProductGroupCheckboxes(group.selectedItems || []);
+        const btn = document.getElementById('saveProductGroupBtn');
+        btn.innerText = 'حفظ التعديلات ✏️';
+        btn.style.backgroundColor = '#3b82f6';
+        document.getElementById('productGroupsSectionContent').style.display = 'block';
+    }
+
+    // إخفاء العائلة بترجّع نكهاتها تطلع فرادى بالمتجر زي قبل، بدون ما تنحذف العائلة
+    async function toggleProductGroupActive(id) {
+        const group = productGroups.find(g => g.id === id);
+        if (!group) return;
+        const newActive = !(group.active !== false);
+        try {
+            await window.updateDoc(window.doc(window.db, "productGroups", id), { active: newActive });
+            group.active = newActive;
+            renderProductGroupsList();
+        } catch (e) {
+            console.error(e);
+            alert('خطأ أثناء التعديل');
+        }
+    }
+
+    async function deleteProductGroup(id, name) {
+        if (!confirm(`متأكدة من حذف عائلة "${name}"؟ النكهات نفسها ما بتنحذف - بترجع تطلع فرادى بالمتجر.`)) return;
+        try {
+            await window.deleteDoc(window.doc(window.db, "productGroups", id));
+            productGroups = productGroups.filter(g => g.id !== id);
+            if (editingProductGroupId === id) resetProductGroupForm();
+            renderProductGroupsList();
+        } catch (e) {
+            console.error(e);
+            alert('خطأ أثناء الحذف');
+        }
+    }
+
+    function renderProductGroupsList() {
+        const container = document.getElementById('productGroupsList');
+        if (!container) return;
+        if (!productGroups || productGroups.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#888; font-size:0.75rem; padding:10px;">ما في عائلات مضافة بعد</p>';
+            return;
+        }
+        container.innerHTML = productGroups.map(g => {
+            const isActive = g.active !== false;
+            const safeName = (g.name || '').replace(/'/g, "\\'");
+            return `
+            <div class="list-item">
+                <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+                    ${g.customImage ? `<img src="${g.customImage}" style="width:34px; height:34px; object-fit:contain; border-radius:6px; border:1px solid #e5e7eb; background:#fff; flex-shrink:0;">` : ''}
+                    <div style="min-width:0;">
+                        <b>🧃 ${g.name}</b>
+                        <div style="color:#6b7280; font-size:0.62rem; margin-top:2px;">${(g.selectedItems || []).length} نكهة ${isActive ? '' : '· <span style="color:#b45309; font-weight:800;">مخفية</span>'}</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 4px;">
+                    <button class="btn-edit" style="padding: 2px 6px; font-size: 0.6rem; background:${isActive ? '#f59e0b' : '#16a34a'};" onclick="toggleProductGroupActive('${g.id}')">${isActive ? 'إخفاء 🙈' : 'إظهار 👁️'}</button>
+                    <button class="btn-edit" style="padding: 2px 6px; font-size: 0.6rem;" onclick="editProductGroup('${g.id}')">تعديل ✏️</button>
+                    <button class="btn-delete" style="padding: 2px 6px; font-size: 0.6rem;" onclick="deleteProductGroup('${g.id}', '${safeName}')">حذف 🗑️</button>
+                </div>
+            </div>
+        `; }).join('');
     }
 
     // ===================== إدارة العروض المرتبطة (اختيار نكهة/نوع) =====================
