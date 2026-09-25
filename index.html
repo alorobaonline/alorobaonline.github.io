@@ -4540,15 +4540,36 @@
         return g && g.active !== false && Array.isArray(g.selectedItems) && g.selectedItems.length > 0;
     }
 
+    // كل عرض حزمة بيتصرف بالمتجر زي العائلة تماماً (بطاقة وحدة + نافذة اختيار)، حتى لو عليه منتج واحد.
+    // الحزمة يلي بدون منتجات محددة (مطبّقة على كل المتجر) بتنستثنى، وإلا بينجمع المتجر كله ببطاقة وحدة
+    function getAllDisplayGroups() {
+        const fromGroups = (productGroups || []).filter(isGroupActive);
+        const fromBundles = (bundles || [])
+            .filter(b => b.active !== false && Array.isArray(b.selectedItems) && b.selectedItems.length > 0)
+            .map(b => ({ ...b, _fromBundle: true }));
+        // العائلة بتفوز لو نفس المنتج موجود بالاثنين (لأنها محددة يدوياً باسم وصورة مختارين)،
+        // والعرض بيضل شغال وبيطلع شريطه الأحمر جوا النافذة
+        const takenNames = new Set();
+        fromGroups.forEach(g => (g.selectedItems || []).forEach(n => takenNames.add(n)));
+        const bundlesNoOverlap = fromBundles.filter(b => !(b.selectedItems || []).some(n => takenNames.has(n)));
+        return fromGroups.concat(bundlesNoOverlap);
+    }
+
     function findProductGroupForProduct(p) {
-        if (!productGroups || productGroups.length === 0 || !p) return null;
-        return productGroups.find(g => isGroupActive(g) && g.selectedItems.includes(p.name)) || null;
+        if (!p) return null;
+        const all = getAllDisplayGroups();
+        if (all.length === 0) return null;
+        return all.find(g => (g.selectedItems || []).includes(p.name)) || null;
     }
 
     // أعضاء العائلة بترتيب المنتجات المعروض حالياً (عشان ترتيب النكهات يطابق ترتيب المتجر)
     function getProductGroupMembers(g) {
         if (!g || !Array.isArray(g.selectedItems)) return [];
         return products.filter(p => g.selectedItems.includes(p.name));
+    }
+
+    function findDisplayGroupById(groupId) {
+        return getAllDisplayGroups().find(g => g.id === groupId) || null;
     }
 
     function isProductOutOfStock(p) {
@@ -4567,7 +4588,7 @@
     function collapseProductsIntoGroups(productList) {
         const entries = [];
         if (!productList || productList.length === 0) return entries;
-        if (!productGroups || productGroups.length === 0 || isSearchActive()) {
+        if (isSearchActive() || getAllDisplayGroups().length === 0) {
             productList.forEach(p => entries.push({ type: 'product', product: p }));
             return entries;
         }
@@ -4581,8 +4602,7 @@
             if (usedGroupIds.has(g.id)) return; // عضو ثاني من نفس العائلة - البطاقة انعرضت أصلاً
             usedGroupIds.add(g.id);
             const members = getProductGroupMembers(g).filter(m => productList.some(x => x.id === m.id));
-            if (members.length < 2) {
-                // عضو واحد بس ظاهر بهالقسم - ما في داعي لبطاقة عائلة، منعرضه منتج عادي
+            if (members.length === 0) {
                 entries.push({ type: 'product', product: p });
                 return;
             }
@@ -4596,6 +4616,11 @@
         const sizeClass = sizeVariant === 'small' ? ' product-card-small' : '';
         const allOut = members.every(isProductOutOfStock);
         const img = g.customImage || productThumb(members[0], 300) || 'logo.png';
+        // لو المجموعة عليها عرض (أو نكهاتها داخلة بعرض)، منبيّن الشارة الحمراء على البطاقة زي قبل
+        const offerBundle = g._fromBundle ? g : findSpecificBundleForProduct(members[0]);
+        const offerBadgeHtml = (offerBundle && Number(offerBundle.qty) && parseBundlePrice(offerBundle))
+            ? `<span class="bundle-price-badge">${Number(offerBundle.qty)} بـ ${parseBundlePrice(offerBundle).toFixed(2)} ₪</span>`
+            : '';
         // كم حبة من هالعائلة موجودة بالسلة حالياً - عشان الزبون يشوف إنه أصلاً مختار منها
         let selectedQty = 0;
         members.forEach(m => {
@@ -4611,6 +4636,7 @@
                         <img src="${img}" class="product-img" loading="lazy" decoding="async" style="${allOut ? 'filter: grayscale(1);' : ''}" onerror="this.onerror=null; this.src='logo.png';">
                     </div>
                     <div class="product-name">${g.name || ''}</div>
+                    ${offerBadgeHtml}
                 </div>
                 <div>
                     <div class="product-price-row" style="display: block;">
@@ -4628,6 +4654,10 @@
         if (!members || members.length === 0) return '';
         const allOut = members.every(isProductOutOfStock);
         const img = g.customImage || productThumb(members[0], 100) || 'logo.png';
+        const offerBundleL = g._fromBundle ? g : findSpecificBundleForProduct(members[0]);
+        const offerBadgeHtmlL = (offerBundleL && Number(offerBundleL.qty) && parseBundlePrice(offerBundleL))
+            ? `<span class="bundle-price-badge">${Number(offerBundleL.qty)} بـ ${parseBundlePrice(offerBundleL).toFixed(2)} ₪</span>`
+            : '';
         let selectedQty = 0;
         members.forEach(m => {
             const item = cart.find(c => c.id == m.id);
@@ -4643,6 +4673,7 @@
                     <div class="product-name">${g.name || ''}</div>
                     <div class="product-price-top" style="display: flex; flex-wrap: wrap;">
                         <span class="product-weight">${allOut ? 'نفذت الكمية' : members.length + ' أنواع'}</span>
+                        <div style="width: 100%;">${offerBadgeHtmlL}</div>
                     </div>
                 </div>
                 <div class="list-action">
@@ -4656,7 +4687,7 @@
     let currentProductGroup = null;
 
     function openProductGroupModal(groupId) {
-        const g = productGroups.find(x => x.id === groupId);
+        const g = findDisplayGroupById(groupId);
         if (!g) return;
         currentProductGroup = g;
         document.getElementById('productGroupModalTitle').innerText = g.name || '';
@@ -4689,10 +4720,12 @@
     function renderProductGroupOfferBanner(members) {
         const el = document.getElementById('productGroupOfferBanner');
         if (!el) return;
-        let matched = null;
-        for (const m of members) {
-            matched = findSpecificBundleForProduct(m);
-            if (matched) break;
+        let matched = (currentProductGroup && currentProductGroup._fromBundle) ? currentProductGroup : null;
+        if (!matched) {
+            for (const m of members) {
+                matched = findSpecificBundleForProduct(m);
+                if (matched) break;
+            }
         }
         if (!matched) {
             el.style.display = 'none';

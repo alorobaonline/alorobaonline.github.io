@@ -131,7 +131,8 @@
                 <i class="fa-solid fa-lightbulb text-sm"></i>
             </div>
             <div>
-                <h2 class="font-bold text-gray-900 text-sm mb-1">عروض الحزمة (X بـ Y ₪)</h2>
+                <h2 class="font-bold text-gray-900 text-sm mb-1">المجموعات والعروض</h2>
+                <p class="text-[11px] text-gray-500 leading-relaxed mb-1">كل مجموعة بتطلع بالمتجر كبطاقة وحدة، والزبون بيضغط عليها فبتفتحله النكهات/الأنواع. لو حطيتي سعر عرض بتصير "X بـ Y ₪"، ولو تركتيه فاضي بتضل مجموعة تنظيمية بس. بتقدري تضيفي العرض أو تشيليه بأي وقت من الأزرار جنب كل مجموعة.</p>
                 <p class="text-gray-500 text-xs leading-relaxed">
                     الزبون يختار بنفسه النكهات من المنتجات المشاركة، والسعر يتحدث تلقائياً عند بلوغ الكمية.
                 </p>
@@ -163,7 +164,7 @@
         <div id="bundles-list" class="space-y-2.5">
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm py-10 flex flex-col items-center gap-3">
                 <i class="fa-solid fa-spinner spin-slow text-2xl text-[var(--primary-green)]"></i>
-                <span class="text-gray-500 text-sm font-bold">جاري تحميل عروض الحزم والمنتجات...</span>
+                <span class="text-gray-500 text-sm font-bold">جاري تحميل المجموعات والمنتجات...</span>
             </div>
         </div>
 
@@ -181,7 +182,7 @@
             <div class="brand-header p-4 flex items-center justify-between text-white flex-shrink-0">
                 <h3 id="modal-title" class="font-bold text-base flex items-center gap-2">
                     <i class="fa-solid fa-gift"></i>
-                    <span>إضافة عرض حزمة جديد</span>
+                    <span>إضافة مجموعة أو عرض جديد</span>
                 </h3>
                 <button onclick="closeAddModal()" class="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center transition cursor-pointer">
                     <i class="fa-solid fa-xmark text-sm"></i>
@@ -190,13 +191,13 @@
 
             <div class="p-5 space-y-4 overflow-y-auto">
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1.5">اسم الحزمة (مثال: 4- مسليات)</label>
-                    <input type="text" id="bundle-name" oninput="updatePreview()" class="w-full border border-gray-200 bg-gray-50 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-green)]/40 focus:border-[var(--primary-green)] transition" placeholder="أدخل اسم الحزمة">
+                    <label class="block text-xs font-bold text-gray-700 mb-1.5">اسم المجموعة (اللي بيشوفه الزبون على البطاقة)</label>
+                    <input type="text" id="bundle-name" oninput="updatePreview()" class="w-full border border-gray-200 bg-gray-50 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-green)]/40 focus:border-[var(--primary-green)] transition" placeholder="مثال: عصير بريقات">
                 </div>
 
                 <div class="grid grid-cols-2 gap-2.5">
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1.5">السعر الإجمالي (₪)</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1.5">سعر العرض (₪) — اتركيه فاضي لو بدون عرض</label>
                         <input type="text" inputmode="decimal" id="bundle-price" oninput="updatePreview()" class="w-full border border-gray-200 bg-gray-50 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-green)]/40 focus:border-[var(--primary-green)] transition" placeholder="14.90">
                     </div>
                     <div>
@@ -585,11 +586,21 @@
         window.loadBundles = async function() {
             const listEl = document.getElementById('bundles-list');
             try {
-                const querySnapshot = await getDocs(collection(db, "bundles"));
+                // منجيب الاثنين مع بعض: "bundles" = مجموعات عليها عرض، "productGroups" = مجموعات بدون عرض.
+                // الاثنين بيطلعوا بالمتجر نفس الإشي (بطاقة وحدة + نافذة اختيار)، والفرق بس بوجود العرض
+                const [bundlesSnap, groupsSnap] = await Promise.all([
+                    getDocs(collection(db, "bundles")),
+                    getDocs(collection(db, "productGroups")).catch(() => null)
+                ]);
                 allBundles = [];
-                querySnapshot.forEach((docSnap) => {
-                    allBundles.push({ id: docSnap.id, ...docSnap.data() });
+                bundlesSnap.forEach((docSnap) => {
+                    allBundles.push({ id: docSnap.id, _col: 'bundles', ...docSnap.data() });
                 });
+                if (groupsSnap) {
+                    groupsSnap.forEach((docSnap) => {
+                        allBundles.push({ id: docSnap.id, _col: 'productGroups', ...docSnap.data() });
+                    });
+                }
 
                 renderBundlesList();
             } catch (error) {
@@ -654,7 +665,9 @@
                         <div class="min-w-0">
                             <div class="flex items-center gap-2 mb-1 flex-wrap">
                                 <span class="font-bold text-gray-900 text-sm">${bundle.name}</span>
-                                <span class="text-[11px] bg-red-600 text-white font-bold px-2 py-0.5 rounded-md whitespace-nowrap">${bundle.qty || 4} بـ ${bundle.priceText} ₪</span>
+                                ${bundle._col === 'bundles'
+                                    ? `<span class="text-[11px] bg-red-600 text-white font-bold px-2 py-0.5 rounded-md whitespace-nowrap">${bundle.qty || 4} بـ ${bundle.priceText} ₪</span>`
+                                    : `<span class="text-[11px] bg-gray-200 text-gray-600 font-bold px-2 py-0.5 rounded-md whitespace-nowrap">بدون عرض</span>`}
                                 ${marketingBadgeHtml}
                             </div>
                             <p class="text-gray-400 text-[11px] truncate max-w-[210px]">${itemsText}</p>
@@ -662,9 +675,16 @@
                     </div>
 
                     <div class="flex items-center gap-1.5 flex-shrink-0">
+                        ${bundle._col === 'bundles' ? `
+                        <button onclick="removeOfferFromGroup('${docId}')" class="icon-btn w-9 h-9 flex items-center justify-center bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 cursor-pointer" title="شيل العرض - بتضل المجموعة ظاهرة بالمتجر بدون سعر عرض">
+                            <i class="fa-solid fa-tag-slash text-xs">✖</i>
+                        </button>
                         <button onclick="toggleCarouselVisibility('${docId}', ${bundle.hiddenFromCarousel !== true})" class="icon-btn w-9 h-9 flex items-center justify-center ${bundle.hiddenFromCarousel === true ? 'bg-gray-100 text-gray-400' : 'bg-amber-50 text-amber-600'} rounded-xl hover:bg-amber-100 cursor-pointer" title="${bundle.hiddenFromCarousel === true ? 'مخفي عن شريط عروض الحزمة - اضغط للإظهار' : 'ظاهر بشريط عروض الحزمة - اضغط للإخفاء'}">
                             <i class="fa-solid ${bundle.hiddenFromCarousel === true ? 'fa-eye-slash' : 'fa-eye'} text-xs"></i>
-                        </button>
+                        </button>` : `
+                        <button onclick="addOfferToGroup('${docId}')" class="icon-btn w-9 h-9 flex items-center justify-center bg-red-600 text-white rounded-xl hover:bg-red-700 cursor-pointer" title="أضف عرض على هالمجموعة">
+                            <i class="fa-solid fa-plus text-xs"></i>
+                        </button>`}
                         <button onclick="openEditModal('${docId}')" class="icon-btn w-9 h-9 flex items-center justify-center bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 cursor-pointer" title="تعديل">
                             <i class="fa-solid fa-pen text-xs"></i>
                         </button>
@@ -684,7 +704,7 @@
                 listEl.innerHTML = `
                     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm py-10 flex flex-col items-center gap-2">
                         <i class="fa-solid fa-box-open text-2xl text-gray-300"></i>
-                        <span class="text-gray-400 text-sm font-bold">لا توجد عروض حزم مضافة حالياً</span>
+                        <span class="text-gray-400 text-sm font-bold">ما في مجموعات مضافة حالياً</span>
                     </div>
                 `;
             }
@@ -766,7 +786,7 @@
                 await Promise.all(newOrder.map((docId, idx) => {
                     const bundle = allBundles.find(b => b.id === docId);
                     if (bundle) bundle.sortOrder = idx; // نحدّث النسخة المحلية فوراً حتى ما ترجع تترتب غلط لو صار رندر تاني بينحصل
-                    return updateDoc(doc(db, "bundles", docId), { sortOrder: idx });
+                    return updateDoc(doc(db, (bundle && bundle._col) || 'bundles', docId), { sortOrder: idx });
                 }));
                 showToast('تم حفظ الترتيب الجديد ✅');
             } catch (error) {
@@ -776,9 +796,14 @@
             }
         }
 
+        function colOf(docId) {
+            const b = allBundles.find(x => x.id === docId);
+            return (b && b._col) || 'bundles';
+        }
+
         window.toggleBundle = async function(docId, newState) {
             try {
-                await updateDoc(doc(db, "bundles", docId), { active: newState });
+                await updateDoc(doc(db, colOf(docId), docId), { active: newState });
                 showToast(newState ? 'تم تفعيل العرض ✅' : 'تم تعطيل العرض');
                 loadBundles();
             } catch (error) {
@@ -824,8 +849,8 @@
         window.deleteBundle = async function(docId) {
             if (confirm('هل أنت متأكد من حذف هذا العرض من النظام؟')) {
                 try {
-                    await deleteDoc(doc(db, "bundles", docId));
-                    showToast('تم حذف العرض 🗑️');
+                    await deleteDoc(doc(db, colOf(docId), docId));
+                    showToast('تم الحذف 🗑️');
                     loadBundles();
                 } catch (error) {
                     console.error("خطأ في الحذف:", error);
@@ -833,6 +858,74 @@
                 }
             }
         };
+
+        // بتحوّل مجموعة بدون عرض -> عرض حزمة: بتسأل عن الكمية والسعر بس، لأنه المنتجات محددة أصلاً
+        window.addOfferToGroup = async function(docId) {
+            const g = allBundles.find(x => x.id === docId);
+            if (!g) return;
+
+            const qtyRaw = prompt(`كم قطعة بالعرض على "${g.name}"؟ (مثال: 3)`);
+            if (qtyRaw === null) return;
+            const qty = parseInt(String(qtyRaw).replace(/[^0-9]/g, ''), 10);
+            if (!qty || qty < 1) { showToast('الكمية لازم تكون رقم أكبر من صفر', 'error'); return; }
+
+            const priceRaw = prompt(`وسعر الـ ${qty} قطع كلهم مع بعض؟ (مثال: 20)`);
+            if (priceRaw === null) return;
+            const priceText = normalizePriceInput(priceRaw);
+            if (!priceText) { showToast('السعر لازم يكون رقم، مثلاً 20 أو 14.90', 'error'); return; }
+
+            try {
+                await addDoc(collection(db, "bundles"), {
+                    name: g.name,
+                    priceText: priceText,
+                    qty: qty,
+                    selectedItems: g.selectedItems || [],
+                    customImage: g.customImage || null,
+                    featuredForOffers: null,
+                    marketingBadge: null,
+                    active: g.active !== false,
+                    sortOrder: g.sortOrder !== undefined ? g.sortOrder : 999999,
+                    createdAt: Date.now()
+                });
+                await deleteDoc(doc(db, "productGroups", docId));
+                showToast(`صار على "${g.name}" عرض: ${qty} بـ ${priceText} ₪ 🎉`);
+                loadBundles();
+            } catch (error) {
+                console.error(error);
+                showToast('حدث خطأ أثناء إضافة العرض', 'error');
+            }
+        };
+
+        // بتشيل العرض وبترجّعها مجموعة عادية - المنتجات والصورة والاسم بيضلوا زي ما هم
+        window.removeOfferFromGroup = async function(docId) {
+            const b = allBundles.find(x => x.id === docId);
+            if (!b) return;
+            if (!confirm(`بدك تشيل العرض عن "${b.name}"؟\nالمجموعة بتضل ظاهرة بالمتجر كبطاقة وحدة، بس بدون سعر عرض.`)) return;
+            try {
+                await addDoc(collection(db, "productGroups"), {
+                    name: b.name,
+                    customImage: b.customImage || null,
+                    selectedItems: b.selectedItems || [],
+                    active: b.active !== false,
+                    sortOrder: b.sortOrder !== undefined ? b.sortOrder : 999999
+                });
+                await deleteDoc(doc(db, "bundles", docId));
+                showToast('تم شيل العرض - المجموعة لساتها ظاهرة بالمتجر');
+                loadBundles();
+            } catch (error) {
+                console.error(error);
+                showToast('حدث خطأ أثناء شيل العرض', 'error');
+            }
+        };
+
+        function normalizePriceInput(raw) {
+            const s = String(raw || '').trim()
+                .replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660))
+                .replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06F0))
+                .replace(/[\u066B,]/g, '.');
+            const nums = s.match(/\d+(?:\.\d+)?/g);
+            return nums ? nums[nums.length - 1] : '';
+        }
 
         window.saveBundle = async function() {
             const name = document.getElementById('bundle-name').value.trim();
@@ -855,36 +948,46 @@
             const featuredForOffers = document.getElementById('bundle-featured-offer').value || null;
             const marketingBadge = document.getElementById('bundle-marketing-badge').value || null;
 
-            if (!name || !priceText) {
-                showToast('يرجى تعبئة اسم الحزمة والسعر على الأقل', 'error');
+            if (!name) {
+                showToast('يرجى تعبئة اسم المجموعة', 'error');
+                return;
+            }
+            if (selectedItems.length === 0) {
+                showToast('اختاري منتج واحد على الأقل للمجموعة', 'error');
                 return;
             }
 
+            // السعر اختياري: مع سعر = مجموعة عليها عرض (bundles)، بدون سعر = مجموعة عادية (productGroups)
+            const hasOffer = !!priceText;
+            const targetCol = hasOffer ? 'bundles' : 'productGroups';
+            const data = hasOffer
+                ? { name, priceText, qty: qty || 4, selectedItems, featuredForOffers, marketingBadge, customImage: currentBundleCustomImage }
+                : { name, selectedItems, customImage: currentBundleCustomImage };
+
             try {
                 if (editingBundleId) {
-                    await updateDoc(doc(db, "bundles", editingBundleId), {
-                        name: name,
-                        priceText: priceText,
-                        qty: qty || 4,
-                        selectedItems: selectedItems,
-                        featuredForOffers: featuredForOffers,
-                        marketingBadge: marketingBadge,
-                        customImage: currentBundleCustomImage
-                    });
-                    showToast('تم تحديث عرض الحزمة بنجاح ✏️');
+                    const existing = allBundles.find(x => x.id === editingBundleId);
+                    const oldCol = (existing && existing._col) || 'bundles';
+                    if (oldCol === targetCol) {
+                        await updateDoc(doc(db, targetCol, editingBundleId), data);
+                    } else {
+                        // تغيّرت الحالة (انضاف عرض أو انشال) - منقلها للمجموعة الصح
+                        await addDoc(collection(db, targetCol), {
+                            ...data,
+                            active: existing && existing.active !== undefined ? existing.active : true,
+                            sortOrder: existing && existing.sortOrder !== undefined ? existing.sortOrder : 999999,
+                            createdAt: Date.now()
+                        });
+                        await deleteDoc(doc(db, oldCol, editingBundleId));
+                    }
+                    showToast('تم حفظ التعديلات ✏️');
                 } else {
-                    await addDoc(collection(db, "bundles"), {
-                        name: name,
-                        priceText: priceText,
-                        qty: qty || 4,
-                        selectedItems: selectedItems,
-                        featuredForOffers: featuredForOffers,
-                        marketingBadge: marketingBadge,
-                        customImage: currentBundleCustomImage,
+                    await addDoc(collection(db, targetCol), {
+                        ...data,
                         active: true,
                         createdAt: Date.now()
                     });
-                    showToast('تم إضافة عرض الحزمة بنجاح 🎉');
+                    showToast(hasOffer ? 'تم إضافة العرض بنجاح 🎉' : 'تم إضافة المجموعة بنجاح 🎉');
                 }
 
                 closeAddModal();
