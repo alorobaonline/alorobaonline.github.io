@@ -1734,6 +1734,11 @@
     (function injectReorderStyles() {
         const st = document.createElement('style');
         st.textContent = `
+            .fam-box { background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
+            .fam-box.is-picked { outline: 2.5px dashed #16a34a; outline-offset: 2px; }
+            .fam-head { display: flex; align-items: center; gap: 10px; padding: 10px; cursor: pointer; }
+            .fam-members { padding: 0 8px 8px; display: none; }
+            .fam-members .product-card-container { background: #fff; }
             .prod-row-thumb { width: 56px; height: 56px; object-fit: contain; background: #fff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 3px; flex-shrink: 0; cursor: pointer; }
             .prod-row-thumb-missing { width: 56px; height: 56px; border-radius: 10px; border: 1px solid #fcd34d; background: #fffbeb; color: #b45309; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
             .prod-badge { font-size: 0.62rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
@@ -2216,7 +2221,7 @@
     async function loadDataFromCloud() {
         try {
             // نفّذ كل الطلبات المستقلة عن بعض بالتوازي بدل ما ننتظر وحدة وحدة (كانت هذي السبب الرئيسي لبطء التحميل)
-            const [catSnap, prodSnap, settingSnap, deliverySettingSnap, zoneSnap, offerGroupsSnap, bannerSnap, bundlesSnap] = await Promise.all([
+            const [catSnap, prodSnap, settingSnap, deliverySettingSnap, zoneSnap, offerGroupsSnap, bannerSnap, bundlesSnap, productGroupsSnap] = await Promise.all([
                 window.getDocs(window.collection(window.db, "categories")),
                 window.getDocs(window.collection(window.db, "products")),
                 window.getDoc(window.doc(window.db, "settings", "storeSettings")).catch(() => null),
@@ -2224,7 +2229,8 @@
                 window.getDocs(window.collection(window.db, "deliveryZones")).catch(() => null),
                 window.getDocs(window.collection(window.db, "offerGroups")).catch(() => null),
                 window.getDoc(window.doc(window.db, "settings", "banner")).catch(() => null),
-                window.getDocs(window.collection(window.db, "bundles")).catch(() => null)
+                window.getDocs(window.collection(window.db, "bundles")).catch(() => null),
+                window.getDocs(window.collection(window.db, "productGroups")).catch(() => null)
             ]);
 
             // نحمّل شرائح البانر المحفوظة فعلياً - قبل هيك كانت الشاشة تفتح بشرائح فاضية دايماً حتى لو
@@ -2318,8 +2324,16 @@
                     bundles.push({ id: docSnap.id, ...docSnap.data() });
                 });
             }
+            productGroups = [];
+            if (productGroupsSnap) {
+                productGroupsSnap.forEach(docSnap => {
+                    productGroups.push({ id: docSnap.id, ...docSnap.data() });
+                });
+            }
+
             renderBundleProductCheckboxes();
             renderBundlesList();
+            renderAdminGroupedProducts();
         } catch (e) {
             console.error("خطأ في جلب البيانات من السحابة: ", e);
         }
@@ -2977,7 +2991,9 @@
                         <input type="text" id="catLocalSearch_${thisGroupIndex}" class="form-control" placeholder="🔍 دور ضمن فئة ${catName}..." oninput="filterCategoryLocal(${thisGroupIndex})" style="display: none; margin-bottom: 6px;">
             `;
 
-            visibleList.forEach(p => {
+            // بيبني صف منتج واحد (سواء مستقل أو جوا عائلة)
+            const buildProductRow = (p, handleCat, isInsideFamily) => {
+                let groupHtml = '';
                 const noImg = productHasNoRealImage(p);
                 const noPrice = productHasNoPrice(p);
                 const outOfStock = productIsOutOfStock(p);
@@ -3003,8 +3019,8 @@
                     ? `<div class="prod-row-thumb-missing">📷</div>`
                     : `<img src="${p.img}" class="prod-row-thumb" loading="lazy" decoding="async" onclick="openModal(this)" onerror="this.onerror=null; this.src='${DEFAULT_PLACEHOLDER_IMG}'">`;
 
-                const handleHtml = catName !== 'أخرى غير مصنفة'
-                    ? `<span class="prod-drag-handle" data-pid="${p.id}" data-cat="${catName}" onclick="onProductHandleTap('${p.id}', '${String(catName).replace(/'/g, "\\'")}')" title="اكبسي هون، وبعدين اكبسي على المنتج يلي بدك تطلعي فوقه">⠿</span>`
+                const handleHtml = handleCat !== 'أخرى غير مصنفة'
+                    ? `<span class="prod-drag-handle" data-pid="${p.id}" data-cat="${handleCat}" onclick="onProductHandleTap('${p.id}', '${String(handleCat).replace(/'/g, "\\'")}')" title="${isInsideFamily ? 'رتّبي النكهات جوا العائلة' : 'اكبسي هون، وبعدين اكبسي على المنتج يلي بدك تطلعي فوقه'}">⠿</span>`
                     : '';
 
                 groupHtml += `
@@ -3030,8 +3046,47 @@
                         </div>
                     </div>
                 `;
-            });
+            
+                return groupHtml;
+            };
 
+            buildCategoryEntries(visibleList).forEach(entry => {
+                if (entry.type === 'product') {
+                    groupHtml += buildProductRow(entry.product, catName, false);
+                    return;
+                }
+
+                // عائلة: عنصر واحد بيفتح على نكهاته
+                const g = entry.group;
+                const famImg = g.customImage || (entry.members[0] && entry.members[0].img) || DEFAULT_PLACEHOLDER_IMG;
+                const offerBadge = g._fromBundle && g.qty && g.priceText
+                    ? `<span class="prod-badge prod-badge-sale">🎁 ${g.qty} بـ ${g.priceText} ₪</span>`
+                    : '';
+                const famHandle = catName !== 'أخرى غير مصنفة'
+                    ? `<span class="prod-drag-handle" data-fam="${g.id}" data-cat="${catName}" onclick="event.stopPropagation(); onFamilyHandleTap('${g.id}', '${String(catName).replace(/'/g, "\\'")}')" title="حرّكي العائلة كلها بمكان واحد">⠿</span>`
+                    : '';
+
+                groupHtml += `
+                    <div class="fam-box" data-fam-id="${g.id}">
+                        <div class="fam-head" onclick="toggleFamilyMembers(this)">
+                            ${famHandle}
+                            <img src="${famImg}" class="prod-row-thumb" onerror="this.onerror=null; this.src='${DEFAULT_PLACEHOLDER_IMG}'">
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-weight:900; font-size:0.78rem; color:#15803d;">🧃 ${g.name || ''}</div>
+                                <div style="display:flex; gap:5px; margin-top:5px; flex-wrap:wrap;">
+                                    <span class="prod-badge prod-badge-neutral">${entry.members.length} نكهات بهالقسم</span>
+                                    ${offerBadge}
+                                </div>
+                            </div>
+                            <span style="font-size:0.8rem; color:#16a34a; font-weight:900;">▾</span>
+                        </div>
+                        <div class="fam-members">
+                            <div style="font-size:0.62rem; color:#15803d; font-weight:800; margin: 4px 2px 6px;">رتّبي النكهات من ⠿ - الترتيب هون هو يلي بيشوفه الزبون بالنافذة</div>
+                            ${entry.members.map(m => buildProductRow(m, catName, true)).join('')}
+                        </div>
+                    </div>
+                `;
+            });
             groupHtml += `</div></div>`;
             container.innerHTML += groupHtml;
         });
@@ -3050,6 +3105,47 @@
         if (items) items.style.display = 'block';
         input.style.display = input.style.display === 'none' ? 'block' : 'none';
         if (input.style.display === 'block') input.focus();
+    }
+
+    // ===================== عائلات المنتجات بإدارة المنتجات =====================
+    // نفس منطق المتجر: كل عرض حزمة بيتصرف كعائلة، والعائلة اليدوية بتفوز لو تعارضوا
+    function getAdminDisplayGroups() {
+        const fromGroups = (productGroups || []).filter(g => g && g.active !== false && Array.isArray(g.selectedItems) && g.selectedItems.length > 0);
+        const fromBundles = (bundles || [])
+            .filter(b => b.active !== false && Array.isArray(b.selectedItems) && b.selectedItems.length > 0)
+            .map(b => ({ ...b, _fromBundle: true }));
+        const taken = new Set();
+        fromGroups.forEach(g => (g.selectedItems || []).forEach(n => taken.add(n)));
+        return fromGroups.concat(fromBundles.filter(b => !(b.selectedItems || []).some(n => taken.has(n))));
+    }
+
+    window.toggleFamilyMembers = function(headEl) {
+        const box = headEl.parentElement;
+        const members = box.querySelector('.fam-members');
+        const arrow = headEl.querySelector('span:last-child');
+        const open = members.style.display === 'block';
+        members.style.display = open ? 'none' : 'block';
+        if (arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+    };
+
+    function findAdminGroupForProduct(p) {
+        if (!p) return null;
+        return getAdminDisplayGroups().find(g => (g.selectedItems || []).includes(p.name)) || null;
+    }
+
+    // بتحوّل قائمة قسم مرتّبة لعناصر عرض: إما منتج مستقل، أو عائلة (بمكان أول نكهة إلها بالقائمة)
+    function buildCategoryEntries(orderedList) {
+        const entries = [];
+        const used = new Set();
+        orderedList.forEach(p => {
+            const g = findAdminGroupForProduct(p);
+            if (!g) { entries.push({ type: 'product', product: p }); return; }
+            if (used.has(g.id)) return;
+            used.add(g.id);
+            const members = orderedList.filter(x => (g.selectedItems || []).includes(x.name));
+            entries.push({ type: 'group', group: g, members: members });
+        });
+        return entries;
     }
 
     // ===================== ترتيب المنتجات: كل قسم إله ترتيبه الخاص =====================
@@ -3087,15 +3183,6 @@
         p.catOrder = catOrder;
     }
 
-    // أول مرة نرتّب قسم، منرقّم منتجاته كلها 10، 20، 30... وبعدها أي نقل بيحتاج حفظ واحد بس
-    async function ensureCategoryNumbered(catName, orderedList) {
-        const needsNumbering = orderedList.some(p => getCatOrder(p, catName) === undefined);
-        if (!needsNumbering) return;
-        for (let i = 0; i < orderedList.length; i++) {
-            await saveProductCatOrder(orderedList[i].id, catName, (i + 1) * 10);
-        }
-    }
-
     window.toggleProductMoreMenu = function(productId, ev) {
         if (ev) ev.stopPropagation();
         document.querySelectorAll('.prod-more-menu').forEach(m => {
@@ -3112,87 +3199,163 @@
 
     function clearPickedProduct() {
         document.querySelectorAll('.prod-drag-handle.is-picked-handle').forEach(h => h.classList.remove('is-picked-handle'));
-        document.querySelectorAll('.product-card-container.is-picked').forEach(c => c.classList.remove('is-picked'));
+        document.querySelectorAll('.product-card-container.is-picked, .fam-box.is-picked').forEach(c => c.classList.remove('is-picked'));
         pickedProduct = null;
     }
 
-    window.onProductHandleTap = async function(productId, catName) {
-        // كبسة أولى = اختيار المنتج، كبسة ثانية على منتج ثاني = حطه فوقه
-        if (!pickedProduct) {
-            pickedProduct = { id: String(productId), cat: catName };
-            const h = document.querySelector(`.prod-drag-handle[data-pid="${productId}"][data-cat="${CSS.escape(catName)}"]`);
-            if (h) {
-                h.classList.add('is-picked-handle');
-                const card = h.closest('.product-card-container');
-                if (card) card.classList.add('is-picked');
-            }
-            return;
+    function markPicked(handleEl) {
+        if (!handleEl) return;
+        handleEl.classList.add('is-picked-handle');
+        const box = handleEl.closest('.fam-box') || handleEl.closest('.product-card-container');
+        if (box) box.classList.add('is-picked');
+    }
+
+    // بتكتب الترتيب الجديد للقسم: بس المنتجات يلي فعلاً تغيّر مكانها بتنحفظ
+    async function applyCategoryOrder(catName, newOrdered) {
+        const writes = [];
+        newOrdered.forEach((p, i) => {
+            const target = (i + 1) * 10;
+            if (getCatOrder(p, catName) !== target) writes.push({ p, target });
+        });
+        for (const w of writes) {
+            await saveProductCatOrder(w.p.id, catName, w.target);
         }
+    }
 
-        if (pickedProduct.id === String(productId) && pickedProduct.cat === catName) {
-            clearPickedProduct();
-            return;
-        }
-
-        if (pickedProduct.cat !== catName) {
-            alert('ما بتقدري تنقلي منتج لقسم ثاني من هون - الترتيب لكل قسم لحاله');
-            clearPickedProduct();
-            return;
-        }
-
-        const movedId = pickedProduct.id;
-        clearPickedProduct();
-
-        // قائمة القسم بترتيبها الحالي المعروض
-        const ordered = getCategoryOrderedList(catName);
-        const moved = ordered.find(p => String(p.id) === movedId);
-        if (!moved) { renderAdminGroupedProducts(); return; }
-
-        const savedScroll = window.scrollY;
-        try {
-            await ensureCategoryNumbered(catName, ordered);
-
-            const without = ordered.filter(p => String(p.id) !== movedId);
-            const targetIdx = without.findIndex(p => String(p.id) === String(productId));
-            if (targetIdx === -1) { renderAdminGroupedProducts(); return; }
-
-            const prev = targetIdx > 0 ? getCatOrder(without[targetIdx - 1], catName) : null;
-            const next = getCatOrder(without[targetIdx], catName);
-
-            let newValue;
-            if (prev === null || prev === undefined) {
-                newValue = next - 10;                      // صار أول القسم
-            } else if (next - prev > 0.001) {
-                newValue = (prev + next) / 2;              // بينهم - حفظ واحد بس
-            } else {
-                newValue = null;                           // ما في مساحة، بدها إعادة ترقيم
-            }
-
-            if (newValue === null) {
-                const rebuilt = without.slice();
-                rebuilt.splice(targetIdx, 0, moved);
-                for (let i = 0; i < rebuilt.length; i++) {
-                    await saveProductCatOrder(rebuilt[i].id, catName, (i + 1) * 10);
-                }
-            } else {
-                await saveProductCatOrder(movedId, catName, newValue);
-            }
-
-            renderAdminGroupedProducts();
-            window.scrollTo(0, savedScroll);
-            setTimeout(() => {
-                const card = document.querySelector(`.prod-drag-handle[data-pid="${movedId}"][data-cat="${CSS.escape(catName)}"]`);
-                const cont = card ? card.closest('.product-card-container') : null;
+    function highlightMoved(ids) {
+        setTimeout(() => {
+            ids.forEach(id => {
+                const h = document.querySelector(`.prod-drag-handle[data-pid="${id}"]`);
+                const cont = h ? h.closest('.product-card-container') : null;
                 if (cont) {
                     cont.style.transition = 'background-color 0.4s ease';
                     cont.style.backgroundColor = '#dcfce7';
                     setTimeout(() => { cont.style.backgroundColor = ''; }, 900);
                 }
-            }, 50);
+            });
+        }, 50);
+    }
+
+    // النقل الفعلي: بنشيل المنتجات المتحركة من ترتيب القسم، وبنحطهم قبل الهدف، وبنحفظ
+    async function performMove(catName, movingProducts, targetProduct) {
+        const ordered = getCategoryOrderedList(catName);
+        const movingIds = new Set(movingProducts.map(p => String(p.id)));
+        const without = ordered.filter(p => !movingIds.has(String(p.id)));
+        const idx = without.findIndex(p => String(p.id) === String(targetProduct.id));
+        if (idx === -1) { renderAdminGroupedProducts(); return; }
+
+        const rebuilt = without.slice(0, idx).concat(movingProducts, without.slice(idx));
+        const savedScroll = window.scrollY;
+        try {
+            await applyCategoryOrder(catName, rebuilt);
+            renderAdminGroupedProducts();
+            window.scrollTo(0, savedScroll);
+            highlightMoved(movingProducts.map(p => p.id));
         } catch (err) {
             console.error('خطأ في حفظ الترتيب:', err);
             alert('حدث خطأ أثناء حفظ الترتيب');
         }
+    }
+
+    // ===== كبس على ⠿ تبع منتج =====
+    window.onProductHandleTap = async function(productId, catName) {
+        const p = products.find(x => String(x.id) === String(productId));
+        if (!p) return;
+        const fam = findAdminGroupForProduct(p);
+        const handleEl = document.querySelector(`.prod-drag-handle[data-pid="${productId}"][data-cat="${CSS.escape(catName)}"]`);
+
+        if (!pickedProduct) {
+            pickedProduct = { kind: 'product', id: String(productId), cat: catName, famId: fam ? fam.id : null };
+            markPicked(handleEl);
+            return;
+        }
+
+        if (pickedProduct.cat !== catName) {
+            alert('الترتيب لكل قسم لحاله - ما بتقدري تنقلي لقسم ثاني من هون');
+            clearPickedProduct();
+            return;
+        }
+
+        if (pickedProduct.kind === 'product' && pickedProduct.id === String(productId)) {
+            clearPickedProduct();
+            return;
+        }
+
+        const picked = pickedProduct;
+        clearPickedProduct();
+
+        if (picked.kind === 'family') {
+            // عائلة مختارة + هدف منتج: منحط العائلة كلها قبله
+            const g = getAdminDisplayGroups().find(x => x.id === picked.famId);
+            if (!g) { renderAdminGroupedProducts(); return; }
+            if (fam && fam.id === g.id) return; // الهدف من نفس العائلة - ما في معنى
+            const members = getCategoryOrderedList(catName).filter(x => (g.selectedItems || []).includes(x.name));
+            await performMove(catName, members, p);
+            return;
+        }
+
+        // منتج مختار: لازم يكون بنفس المستوى (الاثنين جوا نفس العائلة، أو الاثنين برا أي عائلة)
+        const pickedProd = products.find(x => String(x.id) === String(picked.id));
+        if (!pickedProd) { renderAdminGroupedProducts(); return; }
+        const pickedFamId = picked.famId || null;
+        const targetFamId = fam ? fam.id : null;
+        if (pickedFamId !== targetFamId) {
+            alert(pickedFamId
+                ? 'المنتج يلي اخترتيه جوا عائلة - بتقدري ترتبيه جوا عائلته بس، أو تحركي العائلة كلها من ⠿ تبعها'
+                : 'الهدف جوا عائلة - استخدمي ⠿ تبع العائلة نفسها لتحريكها');
+            return;
+        }
+
+        await performMove(catName, [pickedProd], p);
+    };
+
+    // ===== كبس على ⠿ تبع عائلة =====
+    window.onFamilyHandleTap = async function(groupId, catName) {
+        const g = getAdminDisplayGroups().find(x => x.id === groupId);
+        if (!g) return;
+        const handleEl = document.querySelector(`.prod-drag-handle[data-fam="${groupId}"][data-cat="${CSS.escape(catName)}"]`);
+
+        if (!pickedProduct) {
+            pickedProduct = { kind: 'family', id: groupId, cat: catName, famId: groupId };
+            markPicked(handleEl);
+            return;
+        }
+
+        if (pickedProduct.cat !== catName) {
+            alert('الترتيب لكل قسم لحاله - ما بتقدري تنقلي لقسم ثاني من هون');
+            clearPickedProduct();
+            return;
+        }
+
+        if (pickedProduct.kind === 'family' && pickedProduct.id === groupId) {
+            clearPickedProduct();
+            return;
+        }
+
+        const picked = pickedProduct;
+        clearPickedProduct();
+
+        // هدف العائلة = أول نكهة إلها بهالقسم
+        const targetMembers = getCategoryOrderedList(catName).filter(x => (g.selectedItems || []).includes(x.name));
+        if (targetMembers.length === 0) { renderAdminGroupedProducts(); return; }
+        const targetFirst = targetMembers[0];
+
+        if (picked.kind === 'family') {
+            const src = getAdminDisplayGroups().find(x => x.id === picked.famId);
+            if (!src) { renderAdminGroupedProducts(); return; }
+            const members = getCategoryOrderedList(catName).filter(x => (src.selectedItems || []).includes(x.name));
+            await performMove(catName, members, targetFirst);
+            return;
+        }
+
+        // منتج مختار + هدف عائلة
+        if (picked.famId) {
+            alert('المنتج يلي اخترتيه جوا عائلة - رتّبيه جوا عائلته، أو حركي العائلة كلها من ⠿ تبعها');
+            return;
+        }
+        const pickedProd = products.find(x => String(x.id) === String(picked.id));
+        if (!pickedProd) { renderAdminGroupedProducts(); return; }
+        await performMove(catName, [pickedProd], targetFirst);
     };
 
     // بحث فوري ضمن منتجات فئة واحدة بس (بدون إعادة رسم كامل القائمة)
@@ -3584,6 +3747,7 @@
 
     // ===================== عروض الكمية (bundles): "X قطع بسعر Y₪" على أي مجموعة منتجات =====================
     let bundles = [];
+    let productGroups = [];
     let editingBundleId = null;
 
     function renderBundleProductCheckboxes(selectedNames) {

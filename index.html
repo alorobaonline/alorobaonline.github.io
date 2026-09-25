@@ -4589,9 +4589,26 @@
     }
 
     // أعضاء العائلة بترتيب المنتجات المعروض حالياً (عشان ترتيب النكهات يطابق ترتيب المتجر)
+    // أصغر ترتيب للمنتج بأي قسم - هو اللي بيحدد ترتيب النكهات جوا نافذة العائلة،
+    // عشان الترتيب اللي بتعمليه بلوحة التحكم يطلع للزبون زي ما هو
+    function minCatOrderValue(p) {
+        if (!p || !p.catOrder) return undefined;
+        const vals = Object.values(p.catOrder).map(Number).filter(v => !isNaN(v));
+        return vals.length ? Math.min(...vals) : undefined;
+    }
+
     function getProductGroupMembers(g) {
         if (!g || !Array.isArray(g.selectedItems)) return [];
-        return products.filter(p => g.selectedItems.includes(p.name));
+        return products
+            .filter(p => g.selectedItems.includes(p.name))
+            .map((p, i) => ({ p, i, o: minCatOrderValue(p) }))
+            .sort((a, b) => {
+                if (a.o !== undefined && b.o !== undefined) return a.o - b.o || a.i - b.i;
+                if (a.o !== undefined) return -1;
+                if (b.o !== undefined) return 1;
+                return a.i - b.i;
+            })
+            .map(x => x.p);
     }
 
     function findDisplayGroupById(groupId) {
