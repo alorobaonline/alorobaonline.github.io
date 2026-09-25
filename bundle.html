@@ -38,6 +38,8 @@
         .drag-handle { cursor: grab; touch-action: none; color: #9ca3af; padding: 4px 6px; font-size: 1.1rem; line-height: 1; user-select: none; }
         .drag-handle:active { cursor: grabbing; }
         .bundle-card.is-dragging { opacity: 0.4; }
+        .bundle-card.is-picked { outline: 2.5px dashed var(--accent-green); outline-offset: 2px; }
+        .drag-handle.is-picked-handle { color: var(--accent-green); transform: scale(1.25); }
         .bundle-card.drag-target-above { box-shadow: 0 -3px 0 0 var(--accent-green); }
         .bundle-card.drag-target-below { box-shadow: 0 3px 0 0 var(--accent-green); }
 
@@ -161,6 +163,12 @@
         </div>
 
         <!-- Bundle List Container -->
+        <div class="mb-2 text-[11px] text-gray-500 leading-relaxed px-1">
+            💡 لترتيب المجموعات: اكبسي <span class="font-black text-gray-700">⠿</span> تبع المجموعة يلي بدك تحركيها، وبعدين اكبسي <span class="font-black text-gray-700">⠿</span> تبع المجموعة يلي بدك تطلع فوقها. أو اسحبيها بإيدك زي قبل.
+        </div>
+        <div class="mb-3">
+            <input type="search" id="groups-search" oninput="renderBundlesList()" placeholder="🔍 دوري عن مجموعة أو منتج..." class="w-full border border-gray-200 bg-white rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-green)]/40 focus:border-[var(--primary-green)] transition">
+        </div>
         <div id="bundles-list" class="space-y-2.5">
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm py-10 flex flex-col items-center gap-3">
                 <i class="fa-solid fa-spinner spin-slow text-2xl text-[var(--primary-green)]"></i>
@@ -625,88 +633,115 @@
             return null;
         }
 
-        function renderBundlesList() {
-            const listEl = document.getElementById('bundles-list');
-            listEl.innerHTML = '';
+        window.toggleMoreMenu = function(docId) {
+            document.querySelectorAll('.more-menu').forEach(m => {
+                if (m.getAttribute('data-for') !== docId) m.classList.add('hidden');
+            });
+            const el = document.querySelector(`.more-menu[data-for="${docId}"]`);
+            if (el) el.classList.toggle('hidden');
+        };
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.more-wrap')) {
+                document.querySelectorAll('.more-menu').forEach(m => m.classList.add('hidden'));
+            }
+        });
 
-            // نرتّب حسب sortOrder (لو موجود) - العروض يلي ما رتّبناها لسا بتضل بآخر القائمة
-            const sortedBundles = allBundles.slice().sort((a, b) => {
+        function buildGroupCardHtml(bundle) {
+            const docId = bundle.id;
+            const hasOffer = bundle._col === 'bundles';
+            const thumb = findThumbnailForBundle(bundle);
+            const thumbHtml = thumb
+                ? `<img src="${thumb}" class="w-11 h-11 rounded-xl object-cover border border-gray-100 flex-shrink-0" onerror="this.style.display='none'">`
+                : `<div class="w-11 h-11 rounded-xl bg-[var(--accent-green-light)] border border-gray-100 flex items-center justify-center flex-shrink-0 text-[var(--primary-green)]"><i class="fa-solid fa-gift"></i></div>`;
+
+            const marketingLabels = { strong: '🔥 عرض قوي', popular: '👑 الأكثر طلباً', featured: '⭐ عرض مميز', new: '✨ جديد' };
+            const marketingBadgeHtml = bundle.marketingBadge && marketingLabels[bundle.marketingBadge]
+                ? `<span class="text-[10px] bg-amber-100 text-amber-800 font-black px-2 py-0.5 rounded-md whitespace-nowrap">${marketingLabels[bundle.marketingBadge]}</span>`
+                : '';
+            const offerBadgeHtml = hasOffer
+                ? `<span class="text-[11px] bg-red-600 text-white font-bold px-2 py-0.5 rounded-md whitespace-nowrap">${bundle.qty || 4} بـ ${bundle.priceText} ₪</span>`
+                : '';
+            const countBadgeHtml = `<span class="text-[11px] bg-gray-100 text-gray-600 font-bold px-2 py-0.5 rounded-md whitespace-nowrap">${(bundle.selectedItems || []).length} منتجات</span>`;
+
+            // صف الأزرار: بس الأفعال المتكررة ظاهرة، والنادرة/الخطيرة جوا قائمة "⋯"
+            const primaryBtns = hasOffer
+                ? `<button onclick="openEditModal('${docId}')" class="flex-1 text-xs font-bold py-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer"><i class="fa-solid fa-pen text-[10px]"></i> تعديل</button>
+                   <button onclick="toggleCarouselVisibility('${docId}', ${bundle.hiddenFromCarousel !== true})" class="flex-1 text-xs font-bold py-2 rounded-xl ${bundle.hiddenFromCarousel === true ? 'bg-gray-100 text-gray-500' : 'bg-amber-50 text-amber-700'} hover:bg-amber-100 cursor-pointer"><i class="fa-solid ${bundle.hiddenFromCarousel === true ? 'fa-eye-slash' : 'fa-eye'} text-[10px]"></i> بالشريط</button>`
+                : `<button onclick="addOfferToGroup('${docId}')" class="flex-1 text-xs font-bold py-2 rounded-xl bg-red-600 text-white hover:bg-red-700 cursor-pointer"><i class="fa-solid fa-plus text-[10px]"></i> أضف عرض</button>
+                   <button onclick="openEditModal('${docId}')" class="flex-1 text-xs font-bold py-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer"><i class="fa-solid fa-pen text-[10px]"></i> تعديل</button>`;
+
+            const menuItems = (hasOffer
+                ? `<button onclick="removeOfferFromGroup('${docId}')" class="w-full text-right px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 cursor-pointer whitespace-nowrap">✖ شيل العرض</button>`
+                : '')
+                + `<button onclick="deleteBundle('${docId}')" class="w-full text-right px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 cursor-pointer whitespace-nowrap"><i class="fa-regular fa-trash-can text-[10px]"></i> حذف</button>`;
+
+            return `
+                <div class="bundle-card ${bundle.active === false ? 'is-inactive' : ''} p-3 bg-white border border-gray-100 rounded-2xl shadow-sm" data-bundle-id="${docId}">
+                    <div class="flex items-center gap-2.5 mb-2.5">
+                        <span class="drag-handle" data-drag-handle="${docId}" title="اسحبي لترتيب المجموعات">⠿</span>
+                        ${thumbHtml}
+                        <div class="min-w-0 flex-1">
+                            <div class="font-bold text-gray-900 text-sm truncate">${bundle.name || ''}</div>
+                            <div class="flex items-center gap-1.5 mt-1 flex-wrap">${offerBadgeHtml}${countBadgeHtml}${marketingBadgeHtml}</div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer flex-shrink-0" title="إظهار/إخفاء من المتجر">
+                            <input type="checkbox" ${bundle.active !== false ? 'checked' : ''} onchange="toggleBundle('${docId}', ${bundle.active === false})" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-400 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent-green)] relative"></div>
+                        </label>
+                    </div>
+                    <div class="flex items-center gap-1.5 border-t border-gray-100 pt-2.5">
+                        ${primaryBtns}
+                        <div class="more-wrap relative flex-shrink-0">
+                            <button onclick="toggleMoreMenu('${docId}')" class="w-10 text-xs font-bold py-2 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer">⋯</button>
+                            <div class="more-menu hidden absolute left-0 bottom-full mb-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-20 min-w-[130px]" data-for="${docId}">${menuItems}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderBundlesList() {
+            clearPickedState(); // أي اختيار للنقل بينلغى لما تتغير القائمة (بحث/تحديث)
+            const listEl = document.getElementById('bundles-list');
+            const searchEl = document.getElementById('groups-search');
+            const q = (searchEl ? searchEl.value : '').trim().toLowerCase();
+
+            const sorted = allBundles.slice().sort((a, b) => {
                 const oa = a.sortOrder !== undefined ? a.sortOrder : 999999;
                 const ob = b.sortOrder !== undefined ? b.sortOrder : 999999;
                 return oa - ob;
             });
 
-            let activeCount = 0;
-            let inactiveCount = 0;
+            // البحث بيدوّر باسم المجموعة وبأسماء منتجاتها مع بعض
+            const filtered = q === '' ? sorted : sorted.filter(b =>
+                String(b.name || '').toLowerCase().includes(q) ||
+                (b.selectedItems || []).some(n => String(n).toLowerCase().includes(q))
+            );
 
-            sortedBundles.forEach((bundle) => {
-                const docId = bundle.id;
-                if (bundle.active) activeCount++; else inactiveCount++;
+            const withOffer = filtered.filter(b => b._col === 'bundles');
+            const noOffer = filtered.filter(b => b._col !== 'bundles');
 
-                const itemsText = bundle.selectedItems && bundle.selectedItems.length > 0 ? bundle.selectedItems.join(' • ') : 'جميع المنتجات المشاركة...';
-                const thumb = findThumbnailForBundle(bundle);
-                const thumbHtml = thumb
-                    ? `<img src="${thumb}" class="w-12 h-12 rounded-xl object-cover border border-gray-100 flex-shrink-0" onerror="this.style.display='none'">`
-                    : `<div class="w-12 h-12 rounded-xl bg-[var(--accent-green-light)] border border-gray-100 flex items-center justify-center flex-shrink-0 text-[var(--primary-green)]"><i class="fa-solid fa-gift"></i></div>`;
+            let activeCount = 0, inactiveCount = 0;
+            allBundles.forEach(b => { if (b.active !== false) activeCount++; else inactiveCount++; });
 
-                const marketingLabels = { strong: '🔥 عرض قوي', popular: '👑 الأكثر طلباً', featured: '⭐ عرض مميز', new: '✨ جديد' };
-                const marketingBadgeHtml = bundle.marketingBadge && marketingLabels[bundle.marketingBadge]
-                    ? `<span class="text-[10px] bg-amber-100 text-amber-800 font-black px-2 py-0.5 rounded-md whitespace-nowrap">${marketingLabels[bundle.marketingBadge]}</span>`
-                    : '';
+            const sectionHtml = (title, icon, arr) => arr.length === 0 ? '' : `
+                <div class="flex items-center gap-2 mt-1 mb-1.5 px-1">
+                    <i class="fa-solid ${icon} text-[11px] text-gray-400"></i>
+                    <span class="text-xs font-black text-gray-500">${title}</span>
+                    <span class="text-[11px] text-gray-400">· ${arr.length}</span>
+                </div>
+                <div class="space-y-2.5 section-cards">${arr.map(buildGroupCardHtml).join('')}</div>
+            `;
 
-                const itemDiv = document.createElement('div');
-                itemDiv.className = `bundle-card ${bundle.active ? '' : 'is-inactive'} flex items-center justify-between p-3 bg-white border border-gray-100 rounded-2xl shadow-sm gap-3`;
-                itemDiv.setAttribute('data-bundle-id', docId);
-
-                itemDiv.innerHTML = `
-                    <div class="flex items-center gap-3 min-w-0">
-                        <span class="drag-handle" data-drag-handle="${docId}" title="اسحبي لترتيب العروض">⠿</span>
-                        ${thumbHtml}
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-2 mb-1 flex-wrap">
-                                <span class="font-bold text-gray-900 text-sm">${bundle.name}</span>
-                                ${bundle._col === 'bundles'
-                                    ? `<span class="text-[11px] bg-red-600 text-white font-bold px-2 py-0.5 rounded-md whitespace-nowrap">${bundle.qty || 4} بـ ${bundle.priceText} ₪</span>`
-                                    : `<span class="text-[11px] bg-gray-200 text-gray-600 font-bold px-2 py-0.5 rounded-md whitespace-nowrap">بدون عرض</span>`}
-                                ${marketingBadgeHtml}
-                            </div>
-                            <p class="text-gray-400 text-[11px] truncate max-w-[210px]">${itemsText}</p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-1.5 flex-shrink-0">
-                        ${bundle._col === 'bundles' ? `
-                        <button onclick="removeOfferFromGroup('${docId}')" class="icon-btn w-9 h-9 flex items-center justify-center bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 cursor-pointer" title="شيل العرض - بتضل المجموعة ظاهرة بالمتجر بدون سعر عرض">
-                            <i class="fa-solid fa-tag-slash text-xs">✖</i>
-                        </button>
-                        <button onclick="toggleCarouselVisibility('${docId}', ${bundle.hiddenFromCarousel !== true})" class="icon-btn w-9 h-9 flex items-center justify-center ${bundle.hiddenFromCarousel === true ? 'bg-gray-100 text-gray-400' : 'bg-amber-50 text-amber-600'} rounded-xl hover:bg-amber-100 cursor-pointer" title="${bundle.hiddenFromCarousel === true ? 'مخفي عن شريط عروض الحزمة - اضغط للإظهار' : 'ظاهر بشريط عروض الحزمة - اضغط للإخفاء'}">
-                            <i class="fa-solid ${bundle.hiddenFromCarousel === true ? 'fa-eye-slash' : 'fa-eye'} text-xs"></i>
-                        </button>` : `
-                        <button onclick="addOfferToGroup('${docId}')" class="icon-btn w-9 h-9 flex items-center justify-center bg-red-600 text-white rounded-xl hover:bg-red-700 cursor-pointer" title="أضف عرض على هالمجموعة">
-                            <i class="fa-solid fa-plus text-xs"></i>
-                        </button>`}
-                        <button onclick="openEditModal('${docId}')" class="icon-btn w-9 h-9 flex items-center justify-center bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 cursor-pointer" title="تعديل">
-                            <i class="fa-solid fa-pen text-xs"></i>
-                        </button>
-                        <button onclick="deleteBundle('${docId}')" class="icon-btn w-9 h-9 flex items-center justify-center bg-red-50 text-red-600 rounded-xl hover:bg-red-100 cursor-pointer" title="حذف">
-                            <i class="fa-regular fa-trash-can text-xs"></i>
-                        </button>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" ${bundle.active ? 'checked' : ''} onchange="toggleBundle('${docId}', ${!bundle.active})" class="sr-only peer">
-                            <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-400 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent-green)] relative"></div>
-                        </label>
-                    </div>
-                `;
-                listEl.appendChild(itemDiv);
-            });
-
-            if (allBundles.length === 0) {
+            if (filtered.length === 0) {
                 listEl.innerHTML = `
                     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm py-10 flex flex-col items-center gap-2">
                         <i class="fa-solid fa-box-open text-2xl text-gray-300"></i>
-                        <span class="text-gray-400 text-sm font-bold">ما في مجموعات مضافة حالياً</span>
+                        <span class="text-gray-400 text-sm font-bold">${q ? 'ما في نتائج للبحث' : 'ما في مجموعات مضافة حالياً'}</span>
                     </div>
                 `;
+            } else {
+                listEl.innerHTML = sectionHtml('عليها عرض', 'fa-tag', withOffer) + sectionHtml('بدون عرض', 'fa-layer-group', noOffer);
             }
 
             document.getElementById('active-count').innerHTML = `<i class="fa-solid fa-circle text-[6px] text-[var(--accent-green)]"></i> ${activeCount} نشطة`;
@@ -727,21 +762,28 @@
 
         function startDrag(e, cardEl) {
             e.preventDefault();
-            const listEl = document.getElementById('bundles-list');
+            // السحب بيضل جوا نفس القسم (عليها عرض / بدون عرض)، عشان ما تنتقل مجموعة لقسم مش إلها
+            const listEl = cardEl.parentElement;
             dragState = {
                 cardEl,
+                container: listEl,
                 startY: e.clientY,
+                moved: false,
                 cards: Array.from(listEl.querySelectorAll('.bundle-card'))
             };
-            cardEl.classList.add('is-dragging');
-
             window.onpointermove = onDragMove;
             window.onpointerup = endDrag;
         }
 
         function onDragMove(e) {
             if (!dragState) return;
-            const listEl = document.getElementById('bundles-list');
+            // أقل من 6 بكسل بنعتبرها كبسة مش سحب - هيك ما ينختل الترتيب بالغلط عند الكبس
+            if (!dragState.moved) {
+                if (Math.abs(e.clientY - dragState.startY) < 6) return;
+                dragState.moved = true;
+                dragState.cardEl.classList.add('is-dragging');
+            }
+            const listEl = dragState.container;
 
             // نمسح أي علامات هدف قديمة
             dragState.cards.forEach(c => c.classList.remove('drag-target-above', 'drag-target-below'));
@@ -768,19 +810,85 @@
             }
         }
 
+        // ===================== ترتيب بالكبس (أسرع من السحب على الموبايل) =====================
+        // اكبسي ⠿ تبع المجموعة يلي بدك تحركيها، بعدين اكبسي ⠿ تبع المجموعة يلي بدك تطلع فوقها
+        let pickedCardId = null;
+
+        function clearPickedState() {
+            document.querySelectorAll('.bundle-card.is-picked').forEach(c => c.classList.remove('is-picked'));
+            document.querySelectorAll('.drag-handle.is-picked-handle').forEach(h => h.classList.remove('is-picked-handle'));
+            pickedCardId = null;
+        }
+
+        function handleHandleTap(cardEl) {
+            const id = cardEl.getAttribute('data-bundle-id');
+
+            if (!pickedCardId) {
+                pickedCardId = id;
+                cardEl.classList.add('is-picked');
+                const h = cardEl.querySelector('.drag-handle');
+                if (h) h.classList.add('is-picked-handle');
+                showToast('هلأ اكبسي ⠿ تبع المجموعة يلي بدك تطلع فوقها');
+                return;
+            }
+
+            if (pickedCardId === id) {
+                clearPickedState();
+                showToast('تم إلغاء الاختيار');
+                return;
+            }
+
+            const src = document.querySelector(`.bundle-card[data-bundle-id="${pickedCardId}"]`);
+            if (!src) { clearPickedState(); return; }
+
+            if (src.parentElement !== cardEl.parentElement) {
+                showToast('ما بتقدري تنقليها لقسم ثاني', 'error');
+                clearPickedState();
+                return;
+            }
+
+            cardEl.parentElement.insertBefore(src, cardEl);
+            clearPickedState();
+            saveCurrentOrder();
+        }
+
+        async function saveCurrentOrder() {
+            const listEl = document.getElementById('bundles-list');
+            const newOrder = Array.from(listEl.querySelectorAll('.bundle-card')).map(c => c.getAttribute('data-bundle-id'));
+            try {
+                await Promise.all(newOrder.map((docId, idx) => {
+                    const bundle = allBundles.find(b => b.id === docId);
+                    if (bundle) bundle.sortOrder = idx;
+                    return updateDoc(doc(db, (bundle && bundle._col) || 'bundles', docId), { sortOrder: idx });
+                }));
+                showToast('تم حفظ الترتيب الجديد ✅');
+            } catch (error) {
+                console.error('خطأ في حفظ الترتيب:', error);
+                showToast('حدث خطأ أثناء حفظ الترتيب', 'error');
+                loadBundles();
+            }
+        }
+
         async function endDrag() {
             if (!dragState) return;
             const listEl = document.getElementById('bundles-list');
+            const wasMoved = dragState.moved;
+            const cardEl = dragState.cardEl;
 
-            dragState.cardEl.classList.remove('is-dragging');
+            cardEl.classList.remove('is-dragging');
             listEl.querySelectorAll('.bundle-card').forEach(c => c.classList.remove('drag-target-above', 'drag-target-below'));
 
             window.onpointermove = null;
             window.onpointerup = null;
-
-            // نحفظ الترتيب الجديد بقاعدة البيانات حسب ترتيب البطاقات الحالي بالصفحة
-            const newOrder = Array.from(listEl.querySelectorAll('.bundle-card')).map(c => c.getAttribute('data-bundle-id'));
             dragState = null;
+
+            // كبسة بدون سحب = اختيار المجموعة أو وضعها فوق وحدة ثانية
+            if (!wasMoved) {
+                handleHandleTap(cardEl);
+                return;
+            }
+
+            const newOrder = Array.from(listEl.querySelectorAll('.bundle-card')).map(c => c.getAttribute('data-bundle-id'));
 
             try {
                 await Promise.all(newOrder.map((docId, idx) => {
