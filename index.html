@@ -5220,40 +5220,38 @@
         if (list.length === 0) {
             listEl.innerHTML = `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 15px;">لا توجد منتجات متاحة لهذا العرض حالياً.</p>`;
         } else {
-            listEl.innerHTML = list.map(p => {
-                let cartItem = cart.find(c => c.id == p.id);
-                let qty = cartItem ? cartItem.quantity : 0;
-                let isSelected = qty > 0;
-
-                let isTracked = (p.stockQty !== undefined && p.stockQty !== null && p.stockQty !== '');
-                let remainingStock = isTracked ? Math.max(0, Number(p.stockQty) - qty) : null;
-                let isOutOfStock = isTracked && remainingStock <= 0;
-
-                let stockNoteHtml = '';
-                if (isTracked) {
-                    stockNoteHtml = isOutOfStock
-                        ? `<div style="color:#dc2626; font-size:10.5px; font-weight:800; margin-top:2px;">🚫 نفذت الكمية</div>`
-                        : '';
-                }
-
+            // نفس شكل نافذة المجموعات: بطاقتين بالصف بصور كبيرة، بدل القائمة الطويلة
+            listEl.innerHTML = '<div class="pg-modal-grid">' + list.map(p => {
+                const cartItem = cart.find(c => c.id == p.id);
+                const qty = cartItem ? cartItem.quantity : 0;
+                const isTracked = (p.stockQty !== undefined && p.stockQty !== null && p.stockQty !== '');
+                const remainingStock = isTracked ? Math.max(0, Number(p.stockQty) - qty) : null;
+                const isOutOfStock = isTracked && remainingStock <= 0;
+                const hasSale = hasSalePrice(p);
+                const safeName = (p.name || '').replace(/'/g, "\\'");
+                const priceHtml = hasSale
+                    ? `<span class="price-text sale-price">${Number(p.salePrice).toFixed(2)} ₪</span>${(p.price !== undefined && p.price !== null && Number(p.price) !== Number(p.salePrice)) ? ` <span style="text-decoration: line-through; color: #94a3b8; font-size: 11px;">${Number(p.price).toFixed(2)} ₪</span>` : ''}`
+                    : `<span class="price-text">${getEffectivePrice(p).toFixed(2)} ₪</span>`;
                 return `
-                    <div class="bundle-item-row ${isSelected ? 'bundle-item-selected' : ''}" style="${isOutOfStock ? 'opacity:0.55;' : ''}">
-                        <div style="display: flex; align-items: center; gap: 9px; overflow: hidden;">
-                            <img src="${productThumb(p, 100) || 'logo.png'}" class="bundle-item-thumb" loading="lazy" decoding="async" style="${isOutOfStock ? 'filter: grayscale(1);' : ''}" onclick="openImageModal('${p.img || 'logo.png'}', '${p.name.replace(/'/g, "\\'")}')" onerror="this.onerror=null; this.src='logo.png';">
-                            <div>
-                                <div class="bundle-item-name">${p.name}</div>
-                                <div class="bundle-item-unit-price">${getEffectivePrice(p).toFixed(2)} ₪ · حبة</div>
-                                ${stockNoteHtml}
+                    <div class="product-card${hasSale ? ' has-sale' : ''}" style="${isOutOfStock ? 'opacity:0.6;' : ''}">
+                        <div>
+                            <div class="product-img-box" onclick="openImageModal('${p.img || 'logo.png'}', '${safeName}')">
+                                <span class="qty-badge">${p.weight || 'حبة'}</span>
+                                <img src="${productThumb(p, 300) || 'logo.png'}" class="product-img" loading="lazy" decoding="async" style="${isOutOfStock ? 'filter: grayscale(1);' : ''}" onerror="this.onerror=null; this.src='logo.png';">
                             </div>
+                            <div class="product-name">${p.name}</div>
                         </div>
-                        <div class="bundle-stepper-group">
-                            <button class="bundle-stepper-btn" onclick="bundleItemDecrease('${p.id}')" ${qty === 0 ? 'disabled' : ''} style="border: none; background: ${qty === 0 ? '#f1f5f9' : '#fee2e2'}; color: ${qty === 0 ? '#cbd5e1' : '#dc2626'};">-</button>
-                            <span class="bundle-item-qty">${qty}</span>
-                            <button class="bundle-stepper-btn" onclick="bundleItemIncrease('${p.id}')" ${isOutOfStock ? 'disabled' : ''} style="border: none; background: ${isOutOfStock ? '#9ca3af' : 'var(--accent-green)'}; color: white; ${isOutOfStock ? 'cursor:not-allowed;' : ''}">+</button>
+                        <div>
+                            <div>${isOutOfStock ? '<span style="color:#dc2626; font-size:11px; font-weight:800;">🚫 نفذت الكمية</span>' : priceHtml}</div>
+                            <div class="pg-modal-stepper">
+                                <button class="bundle-stepper-btn" onclick="bundleItemDecrease('${p.id}')" ${qty === 0 ? 'disabled' : ''} style="border: none; background: ${qty === 0 ? '#f1f5f9' : '#fee2e2'}; color: ${qty === 0 ? '#cbd5e1' : '#dc2626'};">-</button>
+                                <span class="bundle-item-qty">${qty}</span>
+                                <button class="bundle-stepper-btn" onclick="bundleItemIncrease('${p.id}')" ${isOutOfStock ? 'disabled' : ''} style="border: none; background: ${isOutOfStock ? '#9ca3af' : 'var(--accent-green)'}; color: white; ${isOutOfStock ? 'cursor:not-allowed;' : ''}">+</button>
+                            </div>
                         </div>
                     </div>
                 `;
-            }).join('');
+            }).join('') + '</div>';
         }
 
         renderBundleModalFooter();
