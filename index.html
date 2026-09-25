@@ -712,6 +712,11 @@
         .cart-bar { position: fixed; bottom: 60px; left: 0; right: 0; background: linear-gradient(135deg, var(--primary-green) 0%, var(--accent-green) 100%); color: white; padding: 9px 16px; display: none; justify-content: space-between; align-items: center; max-width: 480px; margin: 0 auto; border-top-left-radius: 14px; border-top-right-radius: 14px; z-index: 100; cursor: pointer; box-shadow: 0 -4px 16px rgba(0,0,0,0.12); }
         
         .cart-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; max-width: 480px; margin: 0 auto; }
+        body.pg-modal-open .cart-bar { z-index: 250; bottom: 0; border-radius: 0; }
+        body.pg-modal-open #productGroupModal .cart-modal-content { padding-bottom: 72px; }
+        .pg-offer-banner { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #fff; border-radius: 14px; padding: 10px 12px; margin-bottom: 12px; text-align: center; }
+        .pg-offer-banner .pg-offer-title { font-size: 13.5px; font-weight: 900; }
+        .pg-offer-banner .pg-offer-sub { font-size: 11.5px; font-weight: 700; opacity: 0.95; margin-top: 2px; }
         .pg-modal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
         .pg-modal-grid .product-card { min-width: 0; max-width: none; width: 100%; }
         .pg-modal-grid .product-name { height: 30px; font-size: 11px; }
@@ -1037,6 +1042,7 @@
             <h3 id="productGroupModalTitle" style="font-size: 16.5px; font-weight: 900; color: var(--primary-green);"></h3>
             <button onclick="closeProductGroupModal()" style="background: #f1f5f9; border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 15px; cursor: pointer; color: #64748b;">✕</button>
         </div>
+        <div id="productGroupOfferBanner" class="pg-offer-banner" style="display: none;"></div>
         <div id="productGroupItemsList"></div>
     </div>
 </div>
@@ -4656,12 +4662,14 @@
         document.getElementById('productGroupModalTitle').innerText = g.name || '';
         lockBodyScroll();
         document.getElementById('productGroupModal').style.display = 'flex';
+        document.body.classList.add('pg-modal-open'); // يرفع شريط السلة الأخضر فوق النافذة
         renderProductGroupModalItems();
     }
 
     function closeProductGroupModal(e) {
         if (e && e.target !== e.currentTarget) return;
         document.getElementById('productGroupModal').style.display = 'none';
+        document.body.classList.remove('pg-modal-open');
         unlockBodyScroll();
         currentProductGroup = null;
     }
@@ -4676,10 +4684,49 @@
         renderProductGroupModalItems();
     }
 
+    // لو نكهات العائلة داخلة بعرض حزمة ("3 بـ 20₪")، منبيّنه واضح فوق النافذة مع تقدّم الزبون -
+    // قبل هيك كان الخصم بيظهر بالسلة بس، والزبون ما بيعرف فيه وهو بيختار
+    function renderProductGroupOfferBanner(members) {
+        const el = document.getElementById('productGroupOfferBanner');
+        if (!el) return;
+        let matched = null;
+        for (const m of members) {
+            matched = findSpecificBundleForProduct(m);
+            if (matched) break;
+        }
+        if (!matched) {
+            el.style.display = 'none';
+            el.innerHTML = '';
+            return;
+        }
+        const calc = computeBundlePricing(matched);
+        if (!calc.qtyNeeded || !calc.bundlePrice) {
+            el.style.display = 'none';
+            return;
+        }
+        let sub;
+        if (calc.totalSelected === 0) {
+            sub = `اختار ${calc.qtyNeeded} قطع من تحت (أي نكهات بدك)`;
+        } else {
+            const remainder = calc.totalSelected % calc.qtyNeeded;
+            if (remainder === 0) {
+                sub = calc.sets > 1 ? `🎉 استفدت من العرض ${calc.sets} مرات!` : '🎉 استفدت من العرض!';
+            } else {
+                sub = `أضف ${calc.qtyNeeded - remainder} أخرى وبتستفيد من العرض`;
+            }
+        }
+        el.innerHTML = `
+            <div class="pg-offer-title">🎉 ${calc.qtyNeeded} قطع بـ ${calc.bundlePrice.toFixed(2)} ₪</div>
+            <div class="pg-offer-sub">${sub}</div>
+        `;
+        el.style.display = 'block';
+    }
+
     function renderProductGroupModalItems() {
         if (!currentProductGroup) return;
         const members = getProductGroupMembers(currentProductGroup);
         const listEl = document.getElementById('productGroupItemsList');
+        renderProductGroupOfferBanner(members);
         if (members.length === 0) {
             listEl.innerHTML = `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 15px;">لا توجد أنواع متاحة حالياً.</p>`;
             return;
@@ -5554,6 +5601,14 @@
 
 
     function openCartModal() {
+        // لو نافذة العائلة مفتوحة (وشريط السلة ظاهر فوقها)، منسكّرها بدون ما نفك قفل التمرير،
+        // لأنه نافذة السلة اللي رح تفتح بدها نفس القفل
+        const pgModal = document.getElementById('productGroupModal');
+        if (pgModal && pgModal.style.display === 'flex') {
+            pgModal.style.display = 'none';
+            document.body.classList.remove('pg-modal-open');
+            currentProductGroup = null;
+        }
         if(cart.length === 0) {
             alert("السلة فارغة حالياً!");
             return;
