@@ -538,6 +538,9 @@
             <span class="toggle-arrow">▼</span>
         </div>
         <div class="section-content" id="manageProductsSectionContent">
+            <div style="font-size: 0.66rem; color: #6b7280; line-height: 1.7; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 9px; margin-bottom: 8px;">
+                💡 <b>لترتيب المنتجات:</b> اكبسي <b style="color:#16a34a;">⠿</b> تبع المنتج يلي بدك تحركيه، وبعدين اكبسي <b style="color:#16a34a;">⠿</b> تبع المنتج يلي بدك تطلعيه فوقه. كل قسم إله ترتيبه الخاص، فتحريك منتج بقسم ما بيأثر على ترتيبه بالأقسام الثانية.
+            </div>
             <input type="text" id="productManageSearchInput" class="form-control" placeholder="🔍 دور بالاسم عشان تلاقي المنتج بسرعة..." oninput="renderAdminGroupedProducts()" style="margin-bottom: 6px;">
             <div style="display:flex; gap:6px; margin-bottom: 10px; flex-wrap:wrap;">
                 <button type="button" id="filterNoImageBtn" onclick="toggleProductQuickFilter('noImage')" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:6px 12px; border-radius:20px; font-size:0.68rem; font-weight:800; cursor:pointer;">📷 بدون صورة</button>
@@ -1728,6 +1731,26 @@
     }
 
     let openCategoryNames = new Set();
+    (function injectReorderStyles() {
+        const st = document.createElement('style');
+        st.textContent = `
+            .prod-row-thumb { width: 56px; height: 56px; object-fit: contain; background: #fff; border-radius: 10px; border: 1px solid #e2e8f0; padding: 3px; flex-shrink: 0; cursor: pointer; }
+            .prod-row-thumb-missing { width: 56px; height: 56px; border-radius: 10px; border: 1px solid #fcd34d; background: #fffbeb; color: #b45309; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+            .prod-badge { font-size: 0.62rem; font-weight: 800; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+            .prod-badge-price { background: #dcfce7; color: #15803d; }
+            .prod-badge-neutral { background: #f1f5f9; color: #475569; }
+            .prod-badge-warn { background: #fef3c7; color: #b45309; }
+            .prod-badge-danger { background: #fee2e2; color: #b91c1c; }
+            .prod-badge-sale { background: #fee2e2; color: #dc2626; }
+            .prod-row-btn { flex: 1; text-align: center; font-size: 0.68rem; font-weight: 800; padding: 8px; border-radius: 8px; border: none; cursor: pointer; }
+            .prod-more-menu { position: absolute; left: 0; bottom: 100%; margin-bottom: 4px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.12); overflow: hidden; z-index: 30; min-width: 120px; }
+            .prod-drag-handle { cursor: pointer; color: #9ca3af; font-size: 1.15rem; line-height: 1; padding: 2px 6px; user-select: none; flex-shrink: 0; transition: transform .12s ease, color .12s ease; }
+            .prod-drag-handle.is-picked-handle { color: #16a34a; transform: scale(1.35); }
+            .product-card-container.is-picked { outline: 2.5px dashed #16a34a; outline-offset: 2px; border-radius: 8px; }
+        `;
+        document.head.appendChild(st);
+    })();
+    let pickedProduct = null; // {id, cat} - المنتج المختار للنقل بالكبس
     let controlPanelCache = {
         archive: false,
         products: false,
@@ -2098,42 +2121,8 @@
             return;
         }
 
-        if (e.target.classList.contains('sort-order-input')) {
-            const productId = e.target.getAttribute('data-id');
-            const newSortOrder = parseInt(e.target.value) || 0;
-            
-            let p = products.find(prod => prod.id == productId);
-            if(p) {
-                p.sortOrder = newSortOrder;
-            }
-
-            // نحفظ موضع التمرير الحالي عشان الصفحة ما تتحرك أو تقفز - بس المنتج يترتب بمكانه الجديد
-            let savedScroll = window.scrollY;
-
-            try {
-                await window.updateDoc(window.doc(window.db, "products", productId), {
-                    sortOrder: newSortOrder
-                });
-                renderAdminGroupedProducts();
-                renderOffersOnlyList();
-                window.scrollTo(0, savedScroll);
-
-                // تمييز بصري بسيط للمنتج بعد ما يترتب بمكانه الجديد، عشان يبين وين انحط
-                setTimeout(() => {
-                    let movedInput = document.querySelector(`.sort-order-input[data-id="${productId}"]`);
-                    let cardContainer = movedInput ? movedInput.closest('.product-card-container') : null;
-                    if (cardContainer) {
-                        cardContainer.style.transition = 'background-color 0.4s ease';
-                        cardContainer.style.backgroundColor = '#dcfce7';
-                        setTimeout(() => { cardContainer.style.backgroundColor = ''; }, 900);
-                    }
-                }, 50);
-            } catch(err) {
-                console.error("خطأ في تحديث الترتيب:", err);
-                alert("حدث خطأ أثناء حفظ الترتيب.");
-            }
-        }
     });
+
 
     function checkNotificationPermissionUI() {
         if ("Notification" in window && Notification.permission === "granted") {
@@ -2961,7 +2950,7 @@
             let list = catGroups[catName];
             if(list.length === 0) return;
 
-            list.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+            list = sortCategoryList(list, catName);
 
             // فلترة حسب البحث العام (لو مكتوب شي بخانة البحث فوق)
             let visibleList = list;
@@ -2989,30 +2978,54 @@
             `;
 
             visibleList.forEach(p => {
-                let activePrice = (p.salePrice !== undefined && p.salePrice !== "") ? `${p.salePrice}₪ (عرض)` : `${p.price}₪`;
-                let catsText = p.categories ? p.categories.join(', ') : '';
+                const noImg = productHasNoRealImage(p);
+                const noPrice = productHasNoPrice(p);
+                const outOfStock = productIsOutOfStock(p);
+                const hasSale = (p.salePrice !== undefined && p.salePrice !== null && p.salePrice !== '');
+                const isTracked = (p.stockQty !== undefined && p.stockQty !== null && p.stockQty !== '');
+
+                // شارات بدل سطور النص - بتشوف حالة المنتج بنظرة بدون ما تقرأ
+                let badges = '';
+                if (noPrice) {
+                    badges += `<span class="prod-badge prod-badge-danger">💰 بدون سعر</span>`;
+                } else if (hasSale) {
+                    badges += `<span class="prod-badge prod-badge-sale">🔥 ${Number(p.salePrice).toFixed(2)} ₪</span>`;
+                    badges += `<span class="prod-badge prod-badge-neutral" style="text-decoration: line-through;">${Number(p.price).toFixed(2)} ₪</span>`;
+                } else {
+                    badges += `<span class="prod-badge prod-badge-price">${Number(p.price).toFixed(2)} ₪</span>`;
+                }
+                badges += `<span class="prod-badge prod-badge-neutral">${p.weight || 'حبة'}</span>`;
+                if (outOfStock) badges += `<span class="prod-badge prod-badge-danger">🚫 نفذ المخزون</span>`;
+                else if (isTracked) badges += `<span class="prod-badge prod-badge-neutral">مخزون ${Number(p.stockQty)}</span>`;
+                if (noImg) badges += `<span class="prod-badge prod-badge-warn">📷 بدون صورة</span>`;
+
+                const thumbHtml = noImg
+                    ? `<div class="prod-row-thumb-missing">📷</div>`
+                    : `<img src="${p.img}" class="prod-row-thumb" loading="lazy" decoding="async" onclick="openModal(this)" onerror="this.onerror=null; this.src='${DEFAULT_PLACEHOLDER_IMG}'">`;
+
+                const handleHtml = catName !== 'أخرى غير مصنفة'
+                    ? `<span class="prod-drag-handle" data-pid="${p.id}" data-cat="${catName}" onclick="onProductHandleTap('${p.id}', '${String(catName).replace(/'/g, "\\'")}')" title="اكبسي هون، وبعدين اكبسي على المنتج يلي بدك تطلعي فوقه">⠿</span>`
+                    : '';
 
                 groupHtml += `
                     <div class="product-card-container" data-pname="${(p.name || '').toLowerCase()}">
-                        <div class="product-mini-row">
-                            <div class="product-mini-info">
-                                <img src="${p.img}" class="product-mini-thumb" loading="lazy" decoding="async" onclick="openModal(this)" onerror="this.src='https://i.ibb.co/3m1K2wP/basket.png'">
-                                <div>
-                                    <div style="font-weight: 800;">${p.name || 'بدون اسم'}</div>
-                                    <div style="color: #6b7280; font-size: 0.65rem;">السعر: ${activePrice} | ${p.weight || 'حبة'}</div>
-                                    <div style="color: #16a34a; font-size: 0.6rem;">الأقسام: ${catsText}</div>
-                                    
-                                    ${catName !== 'أخرى غير مصنفة' ? `
-                                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 3px;">
-                                        <span style="font-size: 0.6rem; color: var(--primary-green); font-weight: bold;">رقم الظهور:</span>
-                                        <input type="number" class="sort-order-input" data-id="${p.id}" value="${p.sortOrder !== undefined ? p.sortOrder : ''}" placeholder="—" onfocus="this.select()" style="width: 50px; padding: 1px 3px; font-size: 0.65rem; text-align: center; border: 1px solid #cbd5e1; border-radius: 4px;">
-                                    </div>
-                                    ` : ''}
+                        <div style="padding: 10px;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 9px;">
+                                ${handleHtml}
+                                ${thumbHtml}
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="font-weight: 800; font-size: 0.78rem; line-height: 1.35; word-break: break-word;">${p.name || 'بدون اسم'}</div>
+                                    <div style="display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap;">${badges}</div>
                                 </div>
                             </div>
-                            <div class="product-actions">
-                                <button class="btn-edit" onclick="openQuickEdit('${p.id}', '${catName}')">تعديل سريع ⚡</button>
-                                <button class="btn-delete" onclick="deleteProduct('${p.id}')">حذف 🗑️</button>
+                            <div style="display: flex; gap: 6px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+                                <button class="prod-row-btn" style="background:#dbeafe; color:#1d4ed8;" onclick="openQuickEdit('${p.id}', '${String(catName).replace(/'/g, "\\'")}')">⚡ تعديل سريع</button>
+                                <div class="prod-more-wrap" style="position: relative; flex-shrink: 0;">
+                                    <button class="prod-row-btn" style="width: 44px; background:#f1f5f9; color:#475569;" onclick="toggleProductMoreMenu('${p.id}', event)">⋯</button>
+                                    <div class="prod-more-menu" data-for="${p.id}" style="display: none;">
+                                        <button style="width:100%; text-align:right; padding:9px 12px; font-size:0.68rem; font-weight:800; color:#dc2626; background:#fff; border:none; cursor:pointer; white-space:nowrap;" onclick="deleteProduct('${p.id}')">🗑️ حذف المنتج</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -3038,6 +3051,149 @@
         input.style.display = input.style.display === 'none' ? 'block' : 'none';
         if (input.style.display === 'block') input.focus();
     }
+
+    // ===================== ترتيب المنتجات: كل قسم إله ترتيبه الخاص =====================
+    // catOrder على المنتج = {اسم القسم: رقم}. نقل منتج بقسم ما بيحرّك ترتيبه بقسم ثاني.
+    function getCatOrder(p, catName) {
+        if (!p || !p.catOrder || !catName) return undefined;
+        const v = p.catOrder[catName];
+        if (v === undefined || v === null || v === '' || isNaN(Number(v))) return undefined;
+        return Number(v);
+    }
+
+    // ترتيب منتجات قسم: يلي إلهم ترتيب خاص بهالقسم أول (تصاعدي)، وبعدها الباقي حسب الرقم العام القديم
+    function sortCategoryList(list, catName) {
+        return list.slice().sort((a, b) => {
+            const ca = getCatOrder(a, catName), cb = getCatOrder(b, catName);
+            if (ca !== undefined && cb !== undefined) return ca - cb;
+            if (ca !== undefined) return -1;
+            if (cb !== undefined) return 1;
+            return (a.sortOrder || 0) - (b.sortOrder || 0);
+        });
+    }
+
+    function getCategoryOrderedList(catName) {
+        const list = products.filter(p => Array.isArray(p.categories) && p.categories.includes(catName));
+        return sortCategoryList(list, catName);
+    }
+
+    async function saveProductCatOrder(productId, catName, value) {
+        const p = products.find(x => x.id == productId);
+        if (!p) return;
+        const catOrder = Object.assign({}, p.catOrder || {});
+        catOrder[catName] = value;
+        // منكتب الخريطة كاملة (مش catOrder.<اسم>) عشان أسماء الأقسام يلي فيها نقطة أو شرطة مائلة ما تكسر الحفظ
+        await window.updateDoc(window.doc(window.db, "products", productId), { catOrder: catOrder });
+        p.catOrder = catOrder;
+    }
+
+    // أول مرة نرتّب قسم، منرقّم منتجاته كلها 10، 20، 30... وبعدها أي نقل بيحتاج حفظ واحد بس
+    async function ensureCategoryNumbered(catName, orderedList) {
+        const needsNumbering = orderedList.some(p => getCatOrder(p, catName) === undefined);
+        if (!needsNumbering) return;
+        for (let i = 0; i < orderedList.length; i++) {
+            await saveProductCatOrder(orderedList[i].id, catName, (i + 1) * 10);
+        }
+    }
+
+    window.toggleProductMoreMenu = function(productId, ev) {
+        if (ev) ev.stopPropagation();
+        document.querySelectorAll('.prod-more-menu').forEach(m => {
+            if (m.getAttribute('data-for') !== String(productId)) m.style.display = 'none';
+        });
+        const el = document.querySelector(`.prod-more-menu[data-for="${productId}"]`);
+        if (el) el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+    };
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.prod-more-wrap')) {
+            document.querySelectorAll('.prod-more-menu').forEach(m => m.style.display = 'none');
+        }
+    });
+
+    function clearPickedProduct() {
+        document.querySelectorAll('.prod-drag-handle.is-picked-handle').forEach(h => h.classList.remove('is-picked-handle'));
+        document.querySelectorAll('.product-card-container.is-picked').forEach(c => c.classList.remove('is-picked'));
+        pickedProduct = null;
+    }
+
+    window.onProductHandleTap = async function(productId, catName) {
+        // كبسة أولى = اختيار المنتج، كبسة ثانية على منتج ثاني = حطه فوقه
+        if (!pickedProduct) {
+            pickedProduct = { id: String(productId), cat: catName };
+            const h = document.querySelector(`.prod-drag-handle[data-pid="${productId}"][data-cat="${CSS.escape(catName)}"]`);
+            if (h) {
+                h.classList.add('is-picked-handle');
+                const card = h.closest('.product-card-container');
+                if (card) card.classList.add('is-picked');
+            }
+            return;
+        }
+
+        if (pickedProduct.id === String(productId) && pickedProduct.cat === catName) {
+            clearPickedProduct();
+            return;
+        }
+
+        if (pickedProduct.cat !== catName) {
+            alert('ما بتقدري تنقلي منتج لقسم ثاني من هون - الترتيب لكل قسم لحاله');
+            clearPickedProduct();
+            return;
+        }
+
+        const movedId = pickedProduct.id;
+        clearPickedProduct();
+
+        // قائمة القسم بترتيبها الحالي المعروض
+        const ordered = getCategoryOrderedList(catName);
+        const moved = ordered.find(p => String(p.id) === movedId);
+        if (!moved) { renderAdminGroupedProducts(); return; }
+
+        const savedScroll = window.scrollY;
+        try {
+            await ensureCategoryNumbered(catName, ordered);
+
+            const without = ordered.filter(p => String(p.id) !== movedId);
+            const targetIdx = without.findIndex(p => String(p.id) === String(productId));
+            if (targetIdx === -1) { renderAdminGroupedProducts(); return; }
+
+            const prev = targetIdx > 0 ? getCatOrder(without[targetIdx - 1], catName) : null;
+            const next = getCatOrder(without[targetIdx], catName);
+
+            let newValue;
+            if (prev === null || prev === undefined) {
+                newValue = next - 10;                      // صار أول القسم
+            } else if (next - prev > 0.001) {
+                newValue = (prev + next) / 2;              // بينهم - حفظ واحد بس
+            } else {
+                newValue = null;                           // ما في مساحة، بدها إعادة ترقيم
+            }
+
+            if (newValue === null) {
+                const rebuilt = without.slice();
+                rebuilt.splice(targetIdx, 0, moved);
+                for (let i = 0; i < rebuilt.length; i++) {
+                    await saveProductCatOrder(rebuilt[i].id, catName, (i + 1) * 10);
+                }
+            } else {
+                await saveProductCatOrder(movedId, catName, newValue);
+            }
+
+            renderAdminGroupedProducts();
+            window.scrollTo(0, savedScroll);
+            setTimeout(() => {
+                const card = document.querySelector(`.prod-drag-handle[data-pid="${movedId}"][data-cat="${CSS.escape(catName)}"]`);
+                const cont = card ? card.closest('.product-card-container') : null;
+                if (cont) {
+                    cont.style.transition = 'background-color 0.4s ease';
+                    cont.style.backgroundColor = '#dcfce7';
+                    setTimeout(() => { cont.style.backgroundColor = ''; }, 900);
+                }
+            }, 50);
+        } catch (err) {
+            console.error('خطأ في حفظ الترتيب:', err);
+            alert('حدث خطأ أثناء حفظ الترتيب');
+        }
+    };
 
     // بحث فوري ضمن منتجات فئة واحدة بس (بدون إعادة رسم كامل القائمة)
     function filterCategoryLocal(groupIndex) {

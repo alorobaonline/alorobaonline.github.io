@@ -3389,6 +3389,30 @@
         }, 120);
     }
 
+    // ترتيب المنتج جوا قسم معيّن - كل قسم إله ترتيبه الخاص (catOrder: {اسم القسم: رقم})،
+    // فنقل منتج بقسم ما بيأثر على ترتيبه بقسم ثاني. لو ما إله ترتيب بهالقسم، منرجع للرقم العام القديم
+    function getCatOrder(p, catName) {
+        if (!p || !p.catOrder || !catName) return undefined;
+        const v = p.catOrder[catName];
+        if (v === undefined || v === null || v === '' || isNaN(Number(v))) return undefined;
+        return Number(v);
+    }
+
+    // بترتّب قائمة قسم حسب ترتيبه الخاص: يلي إله ترتيب بهالقسم بيطلع أول (تصاعدي)،
+    // وباقي المنتجات بتضل بترتيبها الحالي (يلي جاي من الترتيب العام)
+    function applyCatOrder(list, catName) {
+        if (!list || list.length === 0 || !catName) return list;
+        return list
+            .map((p, i) => ({ p, i, o: getCatOrder(p, catName) }))
+            .sort((a, b) => {
+                if (a.o !== undefined && b.o !== undefined) return a.o - b.o || a.i - b.i;
+                if (a.o !== undefined) return -1;
+                if (b.o !== undefined) return 1;
+                return a.i - b.i;
+            })
+            .map(x => x.p);
+    }
+
     function productBelongsToCategory(p, catName) {
         if (!p.categories) return false;
         if (Array.isArray(p.categories)) {
@@ -3497,7 +3521,7 @@
 
             // لو الزبون اختار فئة فرعية محددة من صف الفئات الفرعية، نعرض منتجاتها بس بشبكة واحدة
             if (query === "" && currentCategory !== "الكل" && currentSubCategory !== "الكل") {
-                let subProducts = products.filter(p => productBelongsToCategory(p, currentSubCategory));
+                let subProducts = applyCatOrder(products.filter(p => productBelongsToCategory(p, currentSubCategory)), currentSubCategory);
                 container.innerHTML = subProducts.length > 0
                     ? renderProductsSection(subProducts)
                     : `<p style="text-align: center; color: #888; font-size: 13px; font-weight: 600; padding: 20px;">لا توجد منتجات مطابقة</p>`;
@@ -3512,7 +3536,7 @@
                     let sectionsHtml = renderViewModeToggleHtml();
 
                     // منتجات مربوطة بالفئة الأم نفسها مباشرة (بدون فئة فرعية محددة) بتطلع أول شي، قبل الفئات الفرعية
-                    let directProducts = products.filter(p => productBelongsToCategory(p, currentCategory));
+                    let directProducts = applyCatOrder(products.filter(p => productBelongsToCategory(p, currentCategory)), currentCategory);
                     if (directProducts.length > 0) {
                         let parentCatObj = categories.find(c => c.name === currentCategory);
                         let parentIcon = (parentCatObj && parentCatObj.icon) || '🗂️';
@@ -3525,7 +3549,7 @@
                     }
 
                     children.forEach((child, idx) => {
-                        let childProducts = products.filter(p => productBelongsToCategory(p, child.name));
+                        let childProducts = applyCatOrder(products.filter(p => productBelongsToCategory(p, child.name)), child.name);
                         if (childProducts.length === 0) return;
                         sectionsHtml += `
                             <div class="subcategory-section" data-subcat-section="${child.name}" style="${(idx > 0 || directProducts.length > 0) ? 'border-top: 1px solid var(--border-color); margin-top: 18px; padding-top: 16px;' : 'margin-top: 6px;'}">
@@ -3546,6 +3570,8 @@
                 if (query !== "") return p.name.toLowerCase().includes(query);
                 return currentCategory === "الكل" || productBelongsToCategory(p, currentCategory);
             });
+
+            if (query === "" && currentCategory !== "الكل") filtered = applyCatOrder(filtered, currentCategory);
 
             let gridHtml;
             if(filtered.length === 0) {
@@ -3687,12 +3713,12 @@
         // بنعدّ عروض كل فئة، ونرتب الأقسام من الأكثر عروضاً للأقل - حتى الأقسام الغنية بالعروض
         // تطلع أول شي للزبون
         function getCategoryOfferProducts(secName) {
-            return products.filter(p => {
+            return applyCatOrder(products.filter(p => {
                 if (!productBelongsToCategory(p, secName)) return false;
                 let hasSale = p.salePrice !== undefined && p.salePrice !== "" && p.salePrice !== null;
                 let inBundle = bundles.some(b => b.selectedItems && b.selectedItems.length > 0 && b.selectedItems.includes(p.name));
                 return hasSale || inBundle;
-            });
+            }), secName);
         }
 
         let sectionsList = [layoutData.firstSection, layoutData.secondSection, layoutData.thirdSection].filter(Boolean);
