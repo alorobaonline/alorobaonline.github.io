@@ -1755,7 +1755,8 @@
         `;
         document.head.appendChild(st);
     })();
-    let pickedProduct = null; // {id, cat} - المنتج المختار للنقل بالكبس
+    let pickedProduct = null; // {kind, id, cat, famId} - المختار للنقل بالكبس
+    let openFamilyIds = new Set(); // العائلات المفتوحة - بتضل مفتوحة بعد أي تحريك
     let controlPanelCache = {
         archive: false,
         products: false,
@@ -2959,32 +2960,39 @@
             if(!placed) catGroups["أخرى غير مصنفة"].push(p);
         });
 
+        // بنجهّز قائمة كل قسم بعد الفلترة مرة وحدة
+        const visibleMap = {};
+        Object.keys(catGroups).forEach(cn => {
+            let l = sortCategoryList(catGroups[cn] || [], cn);
+            if (globalQuery) l = l.filter(p => (p.name || '').toLowerCase().includes(globalQuery));
+            visibleMap[cn] = l;
+        });
+
+        const childrenOf = (name) => (categories || [])
+            .filter(c => c.parentCategory === name && c.name !== "الكل")
+            .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
         let groupIndex = 0;
-        Object.keys(catGroups).forEach(catName => {
-            let list = catGroups[catName];
-            if(list.length === 0) return;
 
-            list = sortCategoryList(list, catName);
-
-            // فلترة حسب البحث العام (لو مكتوب شي بخانة البحث فوق)
-            let visibleList = list;
-            if (globalQuery) {
-                visibleList = list.filter(p => (p.name || '').toLowerCase().includes(globalQuery));
-                if (visibleList.length === 0) return; // نخفي الفئة تمامًا لو ما فيها نتائج مطابقة
-            }
+        // بنرسم الأقسام الأم بس، والأقسام الفرعية بتطلع جوا القسم الأم لما تفتحيه
+        const buildCategoryBox = (catName, isChild) => {
+            const list = visibleMap[catName] || [];
+            const visibleList = list;
+            const childBoxes = childrenOf(catName).map(ch => buildCategoryBox(ch.name, true)).filter(Boolean);
+            if (visibleList.length === 0 && childBoxes.length === 0) return '';
 
             // أثناء البحث نفتح كل فئة فيها نتائج تلقائيًا، وإلا نحترم حالة الفتح/الطي المحفوظة
-            let isOpen = globalQuery ? true : openCategoryNames.has(catName);
-            let displayStyle = isOpen ? 'block' : 'none';
-            let thisGroupIndex = groupIndex++;
+            const isOpen = globalQuery ? true : openCategoryNames.has(catName);
+            const displayStyle = isOpen ? 'block' : 'none';
+            const thisGroupIndex = groupIndex++;
 
             let groupHtml = `
-                <div class="category-group-box">
+                <div class="category-group-box" style="${isChild ? 'margin-right: 10px; border-right: 3px solid #bbf7d0;' : ''}">
                     <div class="category-group-title" onclick="toggleCategoryGroup(this, '${catName}')">
-                        <span>🏷️ ${catName}</span>
+                        <span>${isChild ? '↳' : '🏷️'} ${catName}</span>
                         <span style="display: flex; align-items: center; gap: 6px;">
                             <span onclick="toggleCategoryLocalSearch(event, ${thisGroupIndex})" title="بحث ضمن هذه الفئة" style="cursor: pointer; padding: 2px 4px;">🔍</span>
-                            <span class="category-toggle-badge">${visibleList.length}${globalQuery ? ` من ${list.length}` : ''} منتج ▾</span>
+                            <span class="category-toggle-badge">${visibleList.length} منتج${childBoxes.length ? ` · ${childBoxes.length} فرعي` : ''} ▾</span>
                         </span>
                     </div>
                     <div class="category-group-items" style="display: ${displayStyle}; margin-top: 6px;">
@@ -3062,6 +3070,7 @@
                 const offerBadge = g._fromBundle && g.qty && g.priceText
                     ? `<span class="prod-badge prod-badge-sale">🎁 ${g.qty} بـ ${g.priceText} ₪</span>`
                     : '';
+                const isFamOpen = openFamilyIds.has(g.id);
                 const famHandle = catName !== 'أخرى غير مصنفة'
                     ? `<span class="prod-drag-handle" data-fam="${g.id}" data-cat="${catName}" onclick="event.stopPropagation(); onFamilyHandleTap('${g.id}', '${String(catName).replace(/'/g, "\\'")}')" title="حرّكي العائلة كلها بمكان واحد">⠿</span>`
                     : '';
@@ -3078,17 +3087,30 @@
                                     ${offerBadge}
                                 </div>
                             </div>
-                            <span style="font-size:0.8rem; color:#16a34a; font-weight:900;">▾</span>
+                            <span class="fam-arrow" style="font-size:0.8rem; color:#16a34a; font-weight:900; display:inline-block; ${isFamOpen ? 'transform: rotate(180deg);' : ''}">▾</span>
                         </div>
-                        <div class="fam-members">
+                        <div class="fam-members" style="display: ${isFamOpen ? 'block' : 'none'};">
                             <div style="font-size:0.62rem; color:#15803d; font-weight:800; margin: 4px 2px 6px;">رتّبي النكهات من ⠿ - الترتيب هون هو يلي بيشوفه الزبون بالنافذة</div>
                             ${entry.members.map(m => buildProductRow(m, catName, true)).join('')}
                         </div>
                     </div>
                 `;
             });
+            // الأقسام الفرعية بتتعشّش جوا القسم الأم
+            groupHtml += childBoxes.join('');
             groupHtml += `</div></div>`;
-            container.innerHTML += groupHtml;
+            return groupHtml;
+        };
+
+        const topLevel = (categories || [])
+            .filter(c => c.name !== "الكل" && !c.parentCategory)
+            .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+            .map(c => c.name);
+        topLevel.push("أخرى غير مصنفة");
+
+        topLevel.forEach(cn => {
+            const html = buildCategoryBox(cn, false);
+            if (html) container.innerHTML += html;
         });
 
         if (globalQuery && container.innerHTML === '') {
@@ -3120,12 +3142,14 @@
     }
 
     window.toggleFamilyMembers = function(headEl) {
-        const box = headEl.parentElement;
+        const box = headEl.closest('.fam-box');
         const members = box.querySelector('.fam-members');
-        const arrow = headEl.querySelector('span:last-child');
+        const arrow = headEl.querySelector('.fam-arrow');
+        const famId = box.getAttribute('data-fam-id');
         const open = members.style.display === 'block';
         members.style.display = open ? 'none' : 'block';
         if (arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+        if (open) openFamilyIds.delete(famId); else openFamilyIds.add(famId);
     };
 
     function findAdminGroupForProduct(p) {
@@ -3173,16 +3197,6 @@
         return sortCategoryList(list, catName);
     }
 
-    async function saveProductCatOrder(productId, catName, value) {
-        const p = products.find(x => x.id == productId);
-        if (!p) return;
-        const catOrder = Object.assign({}, p.catOrder || {});
-        catOrder[catName] = value;
-        // منكتب الخريطة كاملة (مش catOrder.<اسم>) عشان أسماء الأقسام يلي فيها نقطة أو شرطة مائلة ما تكسر الحفظ
-        await window.updateDoc(window.doc(window.db, "products", productId), { catOrder: catOrder });
-        p.catOrder = catOrder;
-    }
-
     window.toggleProductMoreMenu = function(productId, ev) {
         if (ev) ev.stopPropagation();
         document.querySelectorAll('.prod-more-menu').forEach(m => {
@@ -3210,16 +3224,17 @@
         if (box) box.classList.add('is-picked');
     }
 
-    // بتكتب الترتيب الجديد للقسم: بس المنتجات يلي فعلاً تغيّر مكانها بتنحفظ
-    async function applyCategoryOrder(catName, newOrdered) {
-        const writes = [];
+    // بتحدّث الترتيب محلياً وبترجّع قائمة التغييرات للحفظ - الحفظ بصير بالخلفية عشان الحركة تكون فورية
+    function applyCategoryOrderLocal(catName, newOrdered) {
+        const changed = [];
         newOrdered.forEach((p, i) => {
             const target = (i + 1) * 10;
-            if (getCatOrder(p, catName) !== target) writes.push({ p, target });
+            if (getCatOrder(p, catName) !== target) {
+                p.catOrder = Object.assign({}, p.catOrder || {}, { [catName]: target });
+                changed.push({ id: p.id, catOrder: p.catOrder });
+            }
         });
-        for (const w of writes) {
-            await saveProductCatOrder(w.p.id, catName, w.target);
-        }
+        return changed;
     }
 
     function highlightMoved(ids) {
@@ -3245,16 +3260,22 @@
         if (idx === -1) { renderAdminGroupedProducts(); return; }
 
         const rebuilt = without.slice(0, idx).concat(movingProducts, without.slice(idx));
+
+        // 1) بنحرّك محلياً وبنرسم فوراً - بدون انتظار قاعدة البيانات
+        const changed = applyCategoryOrderLocal(catName, rebuilt);
         const savedScroll = window.scrollY;
-        try {
-            await applyCategoryOrder(catName, rebuilt);
-            renderAdminGroupedProducts();
-            window.scrollTo(0, savedScroll);
-            highlightMoved(movingProducts.map(p => p.id));
-        } catch (err) {
+        renderAdminGroupedProducts();
+        window.scrollTo(0, savedScroll);
+        highlightMoved(movingProducts.map(p => p.id));
+
+        // 2) وبنحفظ بالخلفية، وكلهم مع بعض بالتوازي مش واحد ورا التاني
+        if (changed.length === 0) return;
+        Promise.all(changed.map(c =>
+            window.updateDoc(window.doc(window.db, "products", c.id), { catOrder: c.catOrder })
+        )).catch(err => {
             console.error('خطأ في حفظ الترتيب:', err);
-            alert('حدث خطأ أثناء حفظ الترتيب');
-        }
+            alert('تعذر حفظ الترتيب - حدّثي الصفحة وحاولي مرة ثانية');
+        });
     }
 
     // ===== كبس على ⠿ تبع منتج =====
@@ -3368,6 +3389,14 @@
         items.querySelectorAll('.product-card-container').forEach(card => {
             const name = card.getAttribute('data-pname') || '';
             card.style.display = name.includes(query) ? '' : 'none';
+        });
+        // العائلة بتختفي لو ما في ولا نكهة مطابقة، وبتنفتح لحالها لو فيها نتيجة
+        items.querySelectorAll('.fam-box').forEach(box => {
+            const anyMatch = Array.from(box.querySelectorAll('.product-card-container'))
+                .some(c => c.style.display !== 'none');
+            box.style.display = (query === '' || anyMatch) ? '' : 'none';
+            const members = box.querySelector('.fam-members');
+            if (members && query !== '' && anyMatch) members.style.display = 'block';
         });
     }
 
