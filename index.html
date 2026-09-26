@@ -1637,6 +1637,13 @@
 
     // شبكة أمان: لو البيانات ما وصلت إطلاقاً (نت مقطوع مثلاً)، منخفي الشاشة بعد 15 ثانية
     // حتى ما يعلق الزبون على شاشة الترحيب للأبد
+    // ⚠️ هدول لازم يتعرّفوا هون بالضبط (مع الحالة المبكرة)، مش جنب دوالهم بآخر الملف:
+    // loadCachedData() بتشتغل من أول لحظة وبتنادي renderMainStoreContent، فلو كانوا متعرّفين
+    // بعدها بيوقف السكربت كله بخطأ "Cannot access before initialization" وما بيفتح المتجر
+    let _renderScheduled = false;
+    let _afterRenderQueue = [];
+    let _cacheWriteScheduled = false;
+
     let splashTimeout = setTimeout(() => {
         hideSplashScreen();
     }, 15000);
@@ -3444,9 +3451,7 @@
     // عند فتح الصفحة بيوصل 5-6 تحديثات بيانات ورا بعض (منتجات، حزم، عائلات، أقسام...)، وكل وحدة
     // كانت بتعيد رسم المتجر كامل - يعني 6 رسمات كاملة بثواني التحميل الأولى، وكل رسمة بتعيد بناء
     // كل البطاقات والصور من جديد. هلأ منجمّعهم برسمة وحدة بالإطار التالي
-    let _renderScheduled = false;
     // بتحفظ نسخة المنتجات بالكاش مرة وحدة بوقت فراغ المتصفح، مهما وصل تحديثات ورا بعض
-    let _cacheWriteScheduled = false;
     function scheduleProductsCacheWrite() {
         if (_cacheWriteScheduled) return;
         _cacheWriteScheduled = true;
@@ -3463,7 +3468,6 @@
         else setTimeout(run, 800);
     }
 
-    let _afterRenderQueue = [];
     function renderMainStoreContent(afterRender) {
         if (typeof afterRender === 'function') _afterRenderQueue.push(afterRender);
         if (_renderScheduled) return;
