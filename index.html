@@ -4901,12 +4901,18 @@
             const ownOfferHtml = (ownBundle && Number(ownBundle.qty) && parseBundlePrice(ownBundle))
                 ? `<span class="bundle-price-badge">${Number(ownBundle.qty)} بـ ${parseBundlePrice(ownBundle).toFixed(2)} ₪</span>`
                 : '';
+            // لو للعرض صورة مخصصة (مثلاً كيسين تايد)، منعرضها بدل صورة المنتج المفرد -
+            // هي اللي بتوضح للزبون شكل العرض
+            const cardImgFull = (ownBundle && ownBundle.customImage) ? ownBundle.customImage : (p.img || 'logo.png');
+            const cardImgThumb = (ownBundle && ownBundle.customImage)
+                ? (optimizeImg(ownBundle.customImage, 300) || ownBundle.customImage)
+                : (productThumb(p, 300) || 'logo.png');
             return `
                 <div class="product-card${(hasSale || ownOfferHtml) ? ' has-sale' : ''}" style="${isOutOfStock ? 'opacity:0.6;' : ''}">
                     <div>
-                        <div class="product-img-box" onclick="openImageModal('${p.img || 'logo.png'}', '${safeName}')">
+                        <div class="product-img-box" onclick="openImageModal('${cardImgFull}', '${safeName}')">
                             <span class="qty-badge">${p.weight || 'حبة'}</span>
-                            <img src="${productThumb(p, 300) || 'logo.png'}" class="product-img" loading="lazy" decoding="async" style="${isOutOfStock ? 'filter: grayscale(1);' : ''}" onerror="this.onerror=null; this.src='logo.png';">
+                            <img src="${cardImgThumb}" class="product-img" loading="lazy" decoding="async" style="${isOutOfStock ? 'filter: grayscale(1);' : ''}" onerror="this.onerror=null; this.src='logo.png';">
                         </div>
                         <div class="product-name">${p.name}</div>
                     </div>
