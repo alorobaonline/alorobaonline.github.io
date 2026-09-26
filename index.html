@@ -1629,11 +1629,31 @@
     let currentSpendBannerIndex = 0;
     let visibleSpendOffersCount = 0;
 
+    // شاشة الترحيب بتضل ظاهرة 5 ثواني على الأقل لكل الزبائن (جديد وقديم)، والمتجر بيحمّل وراها.
+    // لو البيانات تأخرت أكثر من 5 ثواني، بتضل لحد ما تجهز فعلياً - حتى ما يشوف الزبون متجر فاضي.
+    const SPLASH_MIN_MS = 5000;
+    const splashStartTime = Date.now();
+    let splashHidePending = false;
+
+    // شبكة أمان: لو البيانات ما وصلت إطلاقاً (نت مقطوع مثلاً)، منخفي الشاشة بعد 15 ثانية
+    // حتى ما يعلق الزبون على شاشة الترحيب للأبد
     let splashTimeout = setTimeout(() => {
         hideSplashScreen();
-    }, 4000);
+    }, 15000);
 
     function hideSplashScreen() {
+        // ما منخفيها قبل ما تكمّل الـ 5 ثواني - وإذا البيانات جاهزة قبل، منستنى الباقي
+        const elapsed = Date.now() - splashStartTime;
+        if (elapsed < SPLASH_MIN_MS) {
+            if (splashHidePending) return;
+            splashHidePending = true;
+            setTimeout(() => {
+                splashHidePending = false;
+                hideSplashScreen();
+            }, SPLASH_MIN_MS - elapsed);
+            return;
+        }
+
         const splash = document.getElementById('splashScreen');
         if (splash && splash.style.display !== 'none') {
             splash.style.opacity = '0';
@@ -1758,11 +1778,9 @@
         if (products.length > 0) {
             renderCategoriesScroll();
             renderSubCategoriesScroll();
-            requestAnimationFrame(() => {
-                renderMainStoreContent();
-            });
             clearTimeout(splashTimeout);
-            hideSplashScreen();
+            // نفس المبدأ: الترحيب بيختفي بعد ما المنتجات المحفوظة تنرسم، مش قبلها
+            renderMainStoreContent(hideSplashScreen);
         }
     }
 
@@ -2241,12 +2259,11 @@
             // يعني شاشة البداية ما بتختفي والمتجر بيبين معلّق
             scheduleProductsCacheWrite();
 
-            renderMainStoreContent();
+            clearTimeout(splashTimeout);
+            // منخفي شاشة الترحيب بعد ما المنتجات تنرسم فعلياً - مش قبلها، حتى ما يبين فراغ للحظة
+            renderMainStoreContent(hideSplashScreen);
             updateCartStateUI();
             renderSpendOffersBanner();
-
-            clearTimeout(splashTimeout);
-            hideSplashScreen();
         });
 
         window.onSnapshot(window.collection(window.db, "bundles"), (bundleSnap) => {
@@ -3446,12 +3463,18 @@
         else setTimeout(run, 800);
     }
 
-    function renderMainStoreContent() {
+    let _afterRenderQueue = [];
+    function renderMainStoreContent(afterRender) {
+        if (typeof afterRender === 'function') _afterRenderQueue.push(afterRender);
         if (_renderScheduled) return;
         _renderScheduled = true;
         requestAnimationFrame(() => {
             _renderScheduled = false;
             renderMainStoreContentNow();
+            // أي إشي لازم يصير بعد ما المحتوى يبين فعلاً (زي إخفاء شاشة الترحيب)
+            const queue = _afterRenderQueue;
+            _afterRenderQueue = [];
+            queue.forEach(fn => { try { fn(); } catch (e) { console.error(e); } });
         });
     }
 
