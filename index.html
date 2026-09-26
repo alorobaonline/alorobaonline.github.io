@@ -4649,14 +4649,14 @@
         return fromGroups.concat(trimmedBundles);
     }
 
-    // بتدوّر على عرض حزمة يشمل أي نكهة من العائلة - مش أول نكهة بس.
-    // قبل هيك، لو العرض كان على النكهة الثالثة مثلاً، ما كانت تطلع ولا شارة عرض على البطاقة
-    function findOfferBundleForMembers(members) {
-        for (const m of (members || [])) {
-            const b = findSpecificBundleForProduct(m);
-            if (b) return b;
-        }
-        return null;
+    // شارة العرض بتطلع على بطاقة العائلة بس إذا العرض بيشمل كل نكهاتها -
+    // لأنه لو العرض على نكهة وحدة من ست، الشارة بتوهم الزبون إنه العرض على الكل
+    function findOfferBundleCoveringAll(members) {
+        if (!members || members.length === 0) return null;
+        const b = findSpecificBundleForProduct(members[0]);
+        if (!b) return null;
+        const names = b.selectedItems || [];
+        return members.every(m => names.includes(m.name)) ? b : null;
     }
 
     function findProductGroupForProduct(p) {
@@ -4738,7 +4738,7 @@
         const allOut = members.every(isProductOutOfStock);
         const img = g.customImage || productThumb(members[0], 300) || 'logo.png';
         // لو المجموعة عليها عرض (أو نكهاتها داخلة بعرض)، منبيّن الشارة الحمراء على البطاقة زي قبل
-        const offerBundle = g._fromBundle ? g : findOfferBundleForMembers(members);
+        const offerBundle = g._fromBundle ? g : findOfferBundleCoveringAll(members);
         const offerBadgeHtml = (offerBundle && Number(offerBundle.qty) && parseBundlePrice(offerBundle))
             ? `<span class="bundle-price-badge">${Number(offerBundle.qty)} بـ ${parseBundlePrice(offerBundle).toFixed(2)} ₪</span>`
             : '';
@@ -4775,7 +4775,7 @@
         if (!members || members.length === 0) return '';
         const allOut = members.every(isProductOutOfStock);
         const img = g.customImage || productThumb(members[0], 100) || 'logo.png';
-        const offerBundleL = g._fromBundle ? g : findOfferBundleForMembers(members);
+        const offerBundleL = g._fromBundle ? g : findOfferBundleCoveringAll(members);
         const offerBadgeHtmlL = (offerBundleL && Number(offerBundleL.qty) && parseBundlePrice(offerBundleL))
             ? `<span class="bundle-price-badge">${Number(offerBundleL.qty)} بـ ${parseBundlePrice(offerBundleL).toFixed(2)} ₪</span>`
             : '';
@@ -4843,15 +4843,11 @@
         if (!el) return;
         // لو المجموعة نفسها حزمة، منجيب نسختها الأصلية الكاملة من قاعدة البيانات عشان حساب
         // التقدّم يكون على كل منتجات العرض، مش على المتبقي منها بس
+        // الشريط الأحمر فوق النافذة معناه "العرض على كل اللي تحت" - فما منعرضه إلا إذا هيك فعلاً.
+        // لو العرض على نكهة أو نكهتين بس، شارة العرض بتطلع تحت هديك النكهات لحالها
         let matched = (currentProductGroup && currentProductGroup._fromBundle)
             ? ((bundles || []).find(b => b.id === currentProductGroup.id) || currentProductGroup)
-            : null;
-        if (!matched) {
-            for (const m of members) {
-                matched = findSpecificBundleForProduct(m);
-                if (matched) break;
-            }
-        }
+            : findOfferBundleCoveringAll(members);
         if (!matched) {
             el.style.display = 'none';
             el.innerHTML = '';
@@ -4900,8 +4896,13 @@
             const priceHtml = hasSale
                 ? `<span class="price-text sale-price">${Number(p.salePrice).toFixed(2)} ₪</span>${(p.price !== undefined && p.price !== null && Number(p.price) !== Number(p.salePrice)) ? ` <span style="text-decoration: line-through; color: #94a3b8; font-size: 11px;">${Number(p.price).toFixed(2)} ₪</span>` : ''}`
                 : `<span class="price-text">${getEffectivePrice(p).toFixed(2)} ₪</span>`;
+            // عرض حزمة على هالنكهة بالذات؟ منحط شارته تحتها هي بس
+            const ownBundle = findSpecificBundleForProduct(p);
+            const ownOfferHtml = (ownBundle && Number(ownBundle.qty) && parseBundlePrice(ownBundle))
+                ? `<span class="bundle-price-badge">${Number(ownBundle.qty)} بـ ${parseBundlePrice(ownBundle).toFixed(2)} ₪</span>`
+                : '';
             return `
-                <div class="product-card${hasSale ? ' has-sale' : ''}" style="${isOutOfStock ? 'opacity:0.6;' : ''}">
+                <div class="product-card${(hasSale || ownOfferHtml) ? ' has-sale' : ''}" style="${isOutOfStock ? 'opacity:0.6;' : ''}">
                     <div>
                         <div class="product-img-box" onclick="openImageModal('${p.img || 'logo.png'}', '${safeName}')">
                             <span class="qty-badge">${p.weight || 'حبة'}</span>
@@ -4911,6 +4912,7 @@
                     </div>
                     <div>
                         <div>${isOutOfStock ? '<span style="color:#dc2626; font-size:11px; font-weight:800;">🚫 نفذت الكمية</span>' : priceHtml}</div>
+                        ${ownOfferHtml}
                         <div class="pg-modal-stepper">
                             <button class="bundle-stepper-btn" onclick="productGroupItemDecrease('${p.id}')" ${qty === 0 ? 'disabled' : ''} style="border: none; background: ${qty === 0 ? '#f1f5f9' : '#fee2e2'}; color: ${qty === 0 ? '#cbd5e1' : '#dc2626'};">-</button>
                             <span class="bundle-item-qty">${qty}</span>
