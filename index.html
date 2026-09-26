@@ -4634,10 +4634,29 @@
             .map(b => ({ ...b, _fromBundle: true }));
         // العائلة بتفوز لو نفس المنتج موجود بالاثنين (لأنها محددة يدوياً باسم وصورة مختارين)،
         // والعرض بيضل شغال وبيطلع شريطه الأحمر جوا النافذة
+        // المنتج يلي انضم لعائلة يدوية بيتبع العائلة، وباقي منتجات الحزمة بتضل مجمّعة ببطاقة الحزمة.
+        // قبل هيك كانت الحزمة كلها بتختفي لو منتج واحد بس منها دخل بعائلة
         const takenNames = new Set();
         fromGroups.forEach(g => (g.selectedItems || []).forEach(n => takenNames.add(n)));
-        const bundlesNoOverlap = fromBundles.filter(b => !(b.selectedItems || []).some(n => takenNames.has(n)));
-        return fromGroups.concat(bundlesNoOverlap);
+        const trimmedBundles = fromBundles
+            .map(b => {
+                const remaining = (b.selectedItems || []).filter(n => !takenNames.has(n));
+                if (remaining.length === 0) return null;
+                if (remaining.length === (b.selectedItems || []).length) return b;
+                return { ...b, selectedItems: remaining };
+            })
+            .filter(Boolean);
+        return fromGroups.concat(trimmedBundles);
+    }
+
+    // بتدوّر على عرض حزمة يشمل أي نكهة من العائلة - مش أول نكهة بس.
+    // قبل هيك، لو العرض كان على النكهة الثالثة مثلاً، ما كانت تطلع ولا شارة عرض على البطاقة
+    function findOfferBundleForMembers(members) {
+        for (const m of (members || [])) {
+            const b = findSpecificBundleForProduct(m);
+            if (b) return b;
+        }
+        return null;
     }
 
     function findProductGroupForProduct(p) {
@@ -4719,7 +4738,7 @@
         const allOut = members.every(isProductOutOfStock);
         const img = g.customImage || productThumb(members[0], 300) || 'logo.png';
         // لو المجموعة عليها عرض (أو نكهاتها داخلة بعرض)، منبيّن الشارة الحمراء على البطاقة زي قبل
-        const offerBundle = g._fromBundle ? g : findSpecificBundleForProduct(members[0]);
+        const offerBundle = g._fromBundle ? g : findOfferBundleForMembers(members);
         const offerBadgeHtml = (offerBundle && Number(offerBundle.qty) && parseBundlePrice(offerBundle))
             ? `<span class="bundle-price-badge">${Number(offerBundle.qty)} بـ ${parseBundlePrice(offerBundle).toFixed(2)} ₪</span>`
             : '';
@@ -4756,7 +4775,7 @@
         if (!members || members.length === 0) return '';
         const allOut = members.every(isProductOutOfStock);
         const img = g.customImage || productThumb(members[0], 100) || 'logo.png';
-        const offerBundleL = g._fromBundle ? g : findSpecificBundleForProduct(members[0]);
+        const offerBundleL = g._fromBundle ? g : findOfferBundleForMembers(members);
         const offerBadgeHtmlL = (offerBundleL && Number(offerBundleL.qty) && parseBundlePrice(offerBundleL))
             ? `<span class="bundle-price-badge">${Number(offerBundleL.qty)} بـ ${parseBundlePrice(offerBundleL).toFixed(2)} ₪</span>`
             : '';
@@ -4822,7 +4841,11 @@
     function renderProductGroupOfferBanner(members) {
         const el = document.getElementById('productGroupOfferBanner');
         if (!el) return;
-        let matched = (currentProductGroup && currentProductGroup._fromBundle) ? currentProductGroup : null;
+        // لو المجموعة نفسها حزمة، منجيب نسختها الأصلية الكاملة من قاعدة البيانات عشان حساب
+        // التقدّم يكون على كل منتجات العرض، مش على المتبقي منها بس
+        let matched = (currentProductGroup && currentProductGroup._fromBundle)
+            ? ((bundles || []).find(b => b.id === currentProductGroup.id) || currentProductGroup)
+            : null;
         if (!matched) {
             for (const m of members) {
                 matched = findSpecificBundleForProduct(m);

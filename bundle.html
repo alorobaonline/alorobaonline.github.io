@@ -507,6 +507,16 @@
                 container.innerHTML = '<p class="text-xs text-gray-500 p-2">لا توجد منتجات مسجلة في المتجر حالياً.</p>';
                 return;
             }
+            // بنبيّن للمستخدمة إذا المنتج داخل بمجموعة ثانية أو عليه عرض، قبل ما تحفظ
+            const otherGroups = (allBundles || []).filter(g => g.id !== editingBundleId);
+            const noteFor = (name) => {
+                const hit = otherGroups.find(g => (g.selectedItems || []).includes(name));
+                if (!hit) return '';
+                return hit._col === 'bundles'
+                    ? `<span class="text-[10px] bg-red-50 text-red-600 font-black px-1.5 py-0.5 rounded whitespace-nowrap">🎁 ${hit.qty} بـ ${hit.priceText} ₪</span>`
+                    : `<span class="text-[10px] bg-amber-50 text-amber-700 font-black px-1.5 py-0.5 rounded whitespace-nowrap">بمجموعة: ${hit.name}</span>`;
+            };
+
             storeProducts.forEach(prod => {
                 const prodName = prod.name || prod.title || '';
                 const isChecked = preSelectedNames.includes(prodName);
@@ -516,6 +526,7 @@
                 div.innerHTML = `
                     <input type="checkbox" value="${prodName}" ${isChecked ? 'checked' : ''} onchange="updateSelectedCounter()" class="product-checkbox accent-[var(--primary-green)] w-4 h-4">
                     <span class="font-semibold">${prodName}</span>
+                    ${noteFor(prodName)}
                     <span class="text-gray-400 mr-auto">${prod.price || 0} ₪</span>
                 `;
                 container.appendChild(div);
