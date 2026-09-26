@@ -2235,12 +2235,13 @@
             prodSnap.forEach(docSnap => {
                 products.push({ id: docSnap.id, ...docSnap.data() });
             });
-            sortProducts(); 
-            localStorage.setItem('aloroba_cached_products', JSON.stringify(products));
-            
-            requestAnimationFrame(() => {
-                renderMainStoreContent();
-            });
+            sortProducts();
+            // الحفظ بالكاش صار بعد ما يخلص الرسم (وقت فراغ المتصفح)، ومحمي بـ try/catch:
+            // قبل هيك، لو امتلأت مساحة التخزين كان بيرمي خطأ هون وبيوقف باقي الدالة -
+            // يعني شاشة البداية ما بتختفي والمتجر بيبين معلّق
+            scheduleProductsCacheWrite();
+
+            renderMainStoreContent();
             updateCartStateUI();
             renderSpendOffersBanner();
 
@@ -2321,7 +2322,7 @@
                     }
                 });
                 categories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-                localStorage.setItem('aloroba_cached_categories', JSON.stringify(categories));
+                try { localStorage.setItem('aloroba_cached_categories', JSON.stringify(categories)); } catch (e) {}
             }
             renderCategoriesScroll();
             renderSubCategoriesScroll();
@@ -3423,7 +3424,38 @@
         return false;
     }
 
+    // عند فتح الصفحة بيوصل 5-6 تحديثات بيانات ورا بعض (منتجات، حزم، عائلات، أقسام...)، وكل وحدة
+    // كانت بتعيد رسم المتجر كامل - يعني 6 رسمات كاملة بثواني التحميل الأولى، وكل رسمة بتعيد بناء
+    // كل البطاقات والصور من جديد. هلأ منجمّعهم برسمة وحدة بالإطار التالي
+    let _renderScheduled = false;
+    // بتحفظ نسخة المنتجات بالكاش مرة وحدة بوقت فراغ المتصفح، مهما وصل تحديثات ورا بعض
+    let _cacheWriteScheduled = false;
+    function scheduleProductsCacheWrite() {
+        if (_cacheWriteScheduled) return;
+        _cacheWriteScheduled = true;
+        const run = () => {
+            _cacheWriteScheduled = false;
+            try {
+                localStorage.setItem('aloroba_cached_products', JSON.stringify(products));
+            } catch (e) {
+                console.warn('تعذر حفظ نسخة المنتجات محلياً (المساحة ممتلئة؟):', e);
+                try { localStorage.removeItem('aloroba_cached_products'); } catch (e2) {}
+            }
+        };
+        if (window.requestIdleCallback) window.requestIdleCallback(run, { timeout: 3000 });
+        else setTimeout(run, 800);
+    }
+
     function renderMainStoreContent() {
+        if (_renderScheduled) return;
+        _renderScheduled = true;
+        requestAnimationFrame(() => {
+            _renderScheduled = false;
+            renderMainStoreContentNow();
+        });
+    }
+
+    function renderMainStoreContentNow() {
         try {
             renderMainStoreContentInner();
         } catch (e) {
