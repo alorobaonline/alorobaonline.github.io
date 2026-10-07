@@ -543,11 +543,14 @@
                 div.className = "product-item flex items-center gap-2.5 text-xs text-gray-800 cursor-pointer bg-white hover:bg-[var(--accent-green-light)] p-2.5 rounded-lg border border-gray-200 transition";
                 div.setAttribute('data-name', prodName.toLowerCase());
                 div.innerHTML = `
-                    <input type="checkbox" value="${prodName}" ${isChecked ? 'checked' : ''} onchange="updateSelectedCounter()" class="product-checkbox accent-[var(--primary-green)] w-4 h-4">
+                    <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="updateSelectedCounter()" class="product-checkbox accent-[var(--primary-green)] w-4 h-4">
                     <span class="font-semibold">${prodName}</span>
                     ${noteFor(prodName)}
                     <span class="text-gray-400 mr-auto">${prod.price || 0} ₪</span>
                 `;
+                // الاسم بينحط كقيمة مباشرة (مش جوا value="...") - أسماء فيها علامة " مثل מ"ל
+                // كانت تنقص عند الـ " وتنحفظ غلط، فالمنتج ما كان يرتبط بالعرض
+                div.querySelector('.product-checkbox').value = prodName;
                 container.appendChild(div);
             });
             updateSelectedCounter();
