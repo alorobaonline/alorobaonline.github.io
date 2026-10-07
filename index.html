@@ -4903,8 +4903,11 @@
                 : '';
             // لو للعرض صورة مخصصة (مثلاً كيسين تايد)، منعرضها بدل صورة المنتج المفرد -
             // هي اللي بتوضح للزبون شكل العرض
-            const cardImgFull = (ownBundle && ownBundle.customImage) ? ownBundle.customImage : (p.img || 'logo.png');
-            const cardImgThumb = (ownBundle && ownBundle.customImage)
+            // بس إذا العرض خاص بهالمنتج لحاله (منتج واحد بالعرض) - لو العرض فيه عدة نكهات،
+            // كل نكهة لازم تظهر بصورتها هي، مش صورة العرض المشتركة
+            const useBundleImg = !!(ownBundle && ownBundle.customImage && ownBundle.selectedItems && ownBundle.selectedItems.length === 1);
+            const cardImgFull = useBundleImg ? ownBundle.customImage : (p.img || 'logo.png');
+            const cardImgThumb = useBundleImg
                 ? (optimizeImg(ownBundle.customImage, 300) || ownBundle.customImage)
                 : (productThumb(p, 300) || 'logo.png');
             return `
