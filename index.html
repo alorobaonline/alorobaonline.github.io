@@ -3152,6 +3152,7 @@
                             <span dir="ltr">${dateStr}</span>
                         </div>
                         ${renderOrderItemsDetailedHtml(order)}
+                        <button onclick='reorderPrevious(${JSON.stringify(order.items)})' style="width:100%; margin-top:8px; background: var(--accent-green); color: white; border: none; padding: 7px 10px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer;">إعادة الطلب 🔄</button>
                     </div>
                 `;
             });
@@ -4086,7 +4087,26 @@
 
     function scrollToAndHighlightProduct(productId) {
         let card = document.querySelector(`.product-card[data-product-id="${productId}"]`);
-        if (!card) return;
+        if (!card) {
+            // المنتج داخل عائلة (مثلاً "حليب / شمينت") فما إله بطاقة لحاله - منفتح العائلة ومنبيّنه جواها
+            const prod = products.find(p => p.id === productId);
+            const g = prod ? findProductGroupForProduct(prod) : null;
+            if (!g) return;
+            const groupCard = document.querySelector(`.product-card[data-product-group-id="${g.id}"]`);
+            if (groupCard) groupCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => {
+                openProductGroupModal(g.id);
+                setTimeout(() => {
+                    const inner = document.querySelector(`#productGroupItemsList [data-pg-product-id="${productId}"]`);
+                    if (!inner) return;
+                    inner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    inner.classList.remove('product-card-highlight');
+                    void inner.offsetWidth;
+                    inner.classList.add('product-card-highlight');
+                }, 150);
+            }, groupCard ? 350 : 0);
+            return;
+        }
         card.scrollIntoView({ behavior: 'smooth', block: 'center' });
         card.classList.remove('product-card-highlight');
         void card.offsetWidth; // إعادة تشغيل الأنيميشن لو كانت اتشغلت قبل شوي على نفس البطاقة
@@ -4731,6 +4751,34 @@
         return entries;
     }
 
+    // عرض "اشتري بقيمة كذا وخذه بسعر مخفض" لمنتج معيّن (نفس شرط بطاقة المنتج العادية: مش داخل بعرض كمية)
+    function getSpendOfferInfoForProduct(p) {
+        if (!p || findBundleForProduct(p)) return null;
+        const offer = (spendOffers || []).find(o => o.active && o.productId === p.id && o.threshold);
+        if (!offer) return null;
+        const required = getSpendOfferCumulativeThreshold(offer);
+        const adjusted = getSpendOffersAdjustedSubtotal();
+        return { offer, achieved: adjusted >= required, gap: required - adjusted };
+    }
+
+    function spendOfferBadgeHtmlFor(p, info) {
+        if (!info) return '';
+        const line = info.achieved
+            ? `✅ مفعّل - خذه بـ ${info.offer.discountedPrice}₪`
+            : `🎯 أضف كمان ${info.gap.toFixed(2)}₪ وخذه بـ ${info.offer.discountedPrice}₪`;
+        return `<span class="spend-offer-price-badge${info.achieved ? ' spend-offer-badge-achieved' : ''}" data-offer-product="${p.id}">${line}</span>`;
+    }
+
+    // شارة على بطاقة العائلة لو وحدة من أنواعها عليها عرض شراء - قبل كانت العروض هاي مخفية تماماً
+    // لأن المنتج نفسه ما بيظهر كبطاقة لحاله لما يكون جوا عائلة
+    function groupSpendOfferBadgeHtml(members) {
+        for (const m of members) {
+            const info = getSpendOfferInfoForProduct(m);
+            if (info) return `<span class="spend-offer-price-badge${info.achieved ? ' spend-offer-badge-achieved' : ''}">🎯 اشتري بـ ${Number(info.offer.threshold)}₪ وخذ نوع منها بـ ${info.offer.discountedPrice}₪</span>`;
+        }
+        return '';
+    }
+
     function createProductGroupCardHtml(g, members, sizeVariant) {
         if (!members || members.length === 0) return '';
         const sizeClass = sizeVariant === 'small' ? ' product-card-small' : '';
@@ -4757,6 +4805,7 @@
                     </div>
                     <div class="product-name">${g.name || ''}</div>
                     ${offerBadgeHtml}
+                    ${groupSpendOfferBadgeHtml(members)}
                 </div>
                 <div>
                     <div class="product-price-row" style="display: block;">
@@ -4793,7 +4842,7 @@
                     <div class="product-name">${g.name || ''}</div>
                     <div class="product-price-top" style="display: flex; flex-wrap: wrap;">
                         <span class="product-weight">${allOut ? 'نفذت الكمية' : members.length + ' أنواع'}</span>
-                        <div style="width: 100%;">${offerBadgeHtmlL}</div>
+                        <div style="width: 100%;">${offerBadgeHtmlL}${groupSpendOfferBadgeHtml(members)}</div>
                     </div>
                 </div>
                 <div class="list-action">
@@ -4900,6 +4949,12 @@
             const ownOfferHtml = (ownBundle && Number(ownBundle.qty) && parseBundlePrice(ownBundle))
                 ? `<span class="bundle-price-badge">${Number(ownBundle.qty)} بـ ${parseBundlePrice(ownBundle).toFixed(2)} ₪</span>`
                 : '';
+            // عرض "اشتري بـ X وخذه بـ Y" على هالنوع بالذات
+            const spendInfo = getSpendOfferInfoForProduct(p);
+            const spendBadgeHtml = spendOfferBadgeHtmlFor(p, spendInfo);
+            const shownPriceHtml = (spendInfo && spendInfo.achieved)
+                ? `<span class="price-text sale-price">${Number(spendInfo.offer.discountedPrice).toFixed(2)} ₪</span> <span style="text-decoration: line-through; color: #94a3b8; font-size: 11px;">${getEffectivePrice(p).toFixed(2)} ₪</span>`
+                : priceHtml;
             // لو للعرض صورة مخصصة (مثلاً كيسين تايد)، منعرضها بدل صورة المنتج المفرد -
             // هي اللي بتوضح للزبون شكل العرض
             // بس إذا العرض خاص بهالمنتج لحاله (منتج واحد بالعرض) - لو العرض فيه عدة نكهات،
@@ -4910,7 +4965,7 @@
                 ? (optimizeImg(ownBundle.customImage, 300) || ownBundle.customImage)
                 : (productThumb(p, 300) || 'logo.png');
             return `
-                <div class="product-card${(hasSale || ownOfferHtml) ? ' has-sale' : ''}" style="${isOutOfStock ? 'opacity:0.6;' : ''}">
+                <div class="product-card${(hasSale || ownOfferHtml || spendInfo) ? ' has-sale' : ''}" data-pg-product-id="${p.id}" style="${isOutOfStock ? 'opacity:0.6;' : ''}">
                     <div>
                         <div class="product-img-box" onclick="openImageModal('${cardImgFull}', '${safeName}')">
                             <span class="qty-badge">${p.weight || 'حبة'}</span>
@@ -4919,8 +4974,8 @@
                         <div class="product-name">${p.name}</div>
                     </div>
                     <div>
-                        <div>${isOutOfStock ? '<span style="color:#dc2626; font-size:11px; font-weight:800;">🚫 نفذت الكمية</span>' : priceHtml}</div>
-                        ${ownOfferHtml}
+                        <div>${isOutOfStock ? '<span style="color:#dc2626; font-size:11px; font-weight:800;">🚫 نفذت الكمية</span>' : shownPriceHtml}</div>
+                        ${ownOfferHtml}${isOutOfStock ? '' : spendBadgeHtml}
                         <div class="pg-modal-stepper">
                             <button class="bundle-stepper-btn" onclick="productGroupItemDecrease('${p.id}')" ${qty === 0 ? 'disabled' : ''} style="border: none; background: ${qty === 0 ? '#f1f5f9' : '#fee2e2'}; color: ${qty === 0 ? '#cbd5e1' : '#dc2626'};">-</button>
                             <span class="bundle-item-qty">${qty}</span>
