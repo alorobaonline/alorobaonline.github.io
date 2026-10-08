@@ -46,7 +46,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, updateDoc, doc, query, where, increment, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, updateDoc, doc, query, where, increment, setDoc, getDoc, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -74,6 +74,7 @@
         window.increment = increment;
         window.setDoc = setDoc;
         window.serverTimestamp = serverTimestamp;
+        window.runTransaction = runTransaction;
 
         // ===================== بوابة تسجيل الدخول (Firebase Authentication) =====================
         let appBooted = false;
@@ -213,7 +214,7 @@
             if (isUnavailable) {
                 return `
                     <div style="display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid #eee; opacity:0.6; background:#fef2f2;">
-                        <img src="${i.img || ''}" style="width:38px; height:38px; border-radius:8px; object-fit:cover; border:1px solid #eee; flex-shrink:0; background:white; filter:grayscale(1);" onerror="this.style.display='none'">
+                        <img src="${escapeHtml(i.img || '')}" style="width:38px; height:38px; border-radius:8px; object-fit:cover; border:1px solid #eee; flex-shrink:0; background:white; filter:grayscale(1);" onerror="this.style.display='none'">
                         <div style="flex:1; min-width:0;">
                             <div style="font-weight:700; font-size:0.78rem; text-decoration:line-through; color:#9ca3af;">${escapeHtml(i.name)}</div>
                             <div style="color:#dc2626; font-size:0.66rem; font-weight:800;">🚫 نفذت الكمية</div>
@@ -224,10 +225,10 @@
             let addedBadge = i.addedByStaff ? `<span style="background:#dcfce7; color:#166534; font-size:0.6rem; font-weight:800; padding:1px 6px; border-radius:6px; margin-left:4px;">➕ أضيف لاحقاً</span>` : '';
             return `
                 <div style="display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid #eee;">
-                    <img src="${i.img || ''}" style="width:38px; height:38px; border-radius:8px; object-fit:cover; border:1px solid #eee; flex-shrink:0; background:white;" onerror="this.style.display='none'">
+                    <img src="${escapeHtml(i.img || '')}" style="width:38px; height:38px; border-radius:8px; object-fit:cover; border:1px solid #eee; flex-shrink:0; background:white;" onerror="this.style.display='none'">
                     <div style="flex:1; min-width:0;">
                         <div style="font-weight:700; font-size:0.78rem;">${addedBadge}${escapeHtml(i.name)}</div>
-                        <div style="color:#6b7280; font-size:0.68rem; font-weight:600;">الكمية: ${i.quantity || i.qty || 1}</div>
+                        <div style="color:#6b7280; font-size:0.68rem; font-weight:600;">الكمية: ${escapeHtml(i.quantity || i.qty || 1)}</div>
                     </div>
                     <div style="font-weight:800; font-size:0.78rem; color:#16a34a; flex-shrink:0; white-space:nowrap;">${(Number(i.price) || 0).toFixed(2)} ₪</div>
                 </div>
@@ -274,12 +275,34 @@
             // نبعت موقعنا الحي بس للطلبيات يلي استلمناها فعليًا (قيد التوصيل) - عشان الزبون يشوفنا عالخريطة
             const pickedUpIds = orders.filter(o => o.status === "قيد التوصيل").map(o => o.id);
             startLiveLocationSharing(pickedUpIds);
+        }, (err) => {
+            // قبل: لو انقطع الاتصال الشاشة كانت تضل زي ما هي والطلبيات الجديدة ما توصل، بدون أي تنبيه
+            console.error('خطأ بالاستماع للطلبيات:', err);
+            const c = document.getElementById('driverOrdersContainer');
+            if (c) c.innerHTML = `<div style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:10px; padding:12px; font-size:0.8rem; font-weight:800; text-align:center;">⚠️ انقطع الاتصال بالطلبيات - الطلبيات الجديدة ما رح تظهر!<br><span style="font-weight:600; font-size:0.7rem;">${escapeHtml(err && err.message)}</span><br><button onclick="location.reload()" style="margin-top:8px; background:#991b1b; color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:800; cursor:pointer;">🔄 حدّث الصفحة</button></div>`;
         });
     }
 
     // ===================== بث موقع السائق الحي (Live GPS) - يشوفه الزبون عالخريطة أثناء التوصيل =====================
     let gpsWatchId = null;
     let activeTrackedOrderIds = [];
+    // الجوال ممكن يعطي موقع جديد كل ثانية - قبل كان كل تحديث ينكتب بقاعدة البيانات لكل طلبية
+    // (آلاف الكتابات بالجولة الوحدة = تكلفة Firebase بدون فايدة). هلأ مرة كل 10 ثواني بالكتير
+    const GPS_MIN_INTERVAL_MS = 10000;
+    let lastGpsWriteAt = 0;
+
+    function showGpsWarning(msg) {
+        let el = document.getElementById('gpsWarning');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'gpsWarning';
+            el.style.cssText = 'background:#fef3c7; color:#92400e; border:1px solid #fde68a; border-radius:10px; padding:8px 10px; font-size:0.7rem; font-weight:800; margin-bottom:10px; text-align:center;';
+            const container = document.getElementById('driverOrdersContainer');
+            container.parentNode.insertBefore(el, container);
+        }
+        el.style.display = msg ? 'block' : 'none';
+        el.innerText = msg || '';
+    }
 
     function startLiveLocationSharing(orderIds) {
         activeTrackedOrderIds = orderIds || [];
@@ -297,6 +320,10 @@
 
         gpsWatchId = navigator.geolocation.watchPosition(
             (pos) => {
+                showGpsWarning('');
+                const nowMs = Date.now();
+                if (nowMs - lastGpsWriteAt < GPS_MIN_INTERVAL_MS) return;
+                lastGpsWriteAt = nowMs;
                 const lat = pos.coords.latitude;
                 const lng = pos.coords.longitude;
                 activeTrackedOrderIds.forEach(orderId => {
@@ -309,6 +336,13 @@
             },
             (err) => {
                 console.error('خطأ بتحديد الموقع الحي:', err);
+                // قبل كان الخطأ صامت - السائق ما بيعرف إنه الزبون مش شايفه عالخريطة
+                if (err && err.code === 1) {
+                    showGpsWarning('📍 الموقع مرفوض - الزبون مش شايفك عالخريطة. فعّل إذن الموقع لهالموقع من إعدادات المتصفح وحدّث الصفحة');
+                    stopLiveLocationSharing();
+                } else {
+                    showGpsWarning('📍 تعذر تحديد موقعك حالياً - تأكد إنه الـ GPS شغّال');
+                }
             },
             { enableHighAccuracy: true, maximumAge: 8000, timeout: 20000 }
         );
@@ -319,6 +353,7 @@
             navigator.geolocation.clearWatch(gpsWatchId);
             gpsWatchId = null;
         }
+        lastGpsWriteAt = 0;
         activeTrackedOrderIds = [];
     }
 
@@ -365,13 +400,15 @@
             });
         }
 
-        container.innerHTML = '';
+        let cardsHtml = ''; // منبني كل البطاقات بنص واحد ومنحطه مرة وحدة
         deliveryOrders.forEach((ord, index) => {
             let delayHtml = '';
             if(ord.delayReason) {
-                delayHtml = `<div class="delay-notice">⚠️ سبب التأخير المسجل: ${ord.delayReason}</div>`;
+                delayHtml = `<div class="delay-notice">⚠️ سبب التأخير المسجل: ${escapeHtml(ord.delayReason)}</div>`;
             }
             let orderLabel = (ord.orderNumber !== undefined && ord.orderNumber !== null && ord.orderNumber !== '') ? `#${ord.orderNumber}` : `#${index + 1}`;
+            // طلبية تعويض (غرض ناقص) - السائق لازم يعرف إنه ما بيجبي مصاري عليها
+            let compHtml = ord.isCompensation ? `<div style="background:#e0f2fe; border:1px solid #bae6fd; color:#0369a1; font-size:0.7rem; font-weight:800; padding:6px 8px; border-radius:8px; margin-bottom:6px;">🔁 تعويض عن غرض ناقص (طلبية #${escapeHtml(ord.compensationForNumber || '')}) - ما بتنجبى مصاري</div>` : '';
 
             let currentStatus = ord.status || 'جاهز للتوصيل';
             let isPickedUp = currentStatus === 'قيد التوصيل';
@@ -389,12 +426,13 @@
 
             if (!isPickedUp) {
                 // بطاقة مقفولة: بس رقم الطلبية والاسم، لحد ما السائق يستلمها فعليًا
-                container.innerHTML += `
+                cardsHtml += `
                     <div class="order-card">
                         <div class="order-header">
                             <span>طلب ${orderLabel} - ${escapeHtml(ord.customerName) || 'زبون'} ${statusBadgeHtml}</span>
                             <span style="color: #16a34a;">${ord.total || 0} ₪</span>
                         </div>
+                        ${compHtml}
                         <div style="font-size: 0.68rem; color: #94a3b8; margin-bottom: 6px;">باقي التفاصيل (الهاتف، العنوان، الموقع) بتفتح بعد ما تستلم الطلبية</div>
                         <button class="btn-complete" style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; margin-bottom:8px;" onclick="openOrderItemsModal('${ord.id}')">📦 عرض منتجات الطلبية</button>
                         <button class="btn-complete btn-pickup" onclick="markOrderPickedUp('${ord.id}')">📦 استلام الطلبية من المتجر</button>
@@ -407,7 +445,7 @@
                     ? `<a href="${safeExternalUrl(ord.customerGps)}" target="_blank" rel="noopener" class="btn-location">📍 فتح الموقع والتوجه للطلبية</a>`
                     : `<div style="font-size: 0.68rem; color: #94a3b8; margin: 4px 0;">📍 الزبون ما حدد موقعه على الخريطة</div>`;
 
-                container.innerHTML += `
+                cardsHtml += `
                     <div class="order-card">
                         <div class="order-header">
                             <span>${seqBadgeHtml}طلب ${orderLabel} - ${escapeHtml(ord.customerName) || 'زبون'} ${statusBadgeHtml}</span>
@@ -416,6 +454,7 @@
                                 <button onclick="cancelOrderByDriver('${ord.id}')" title="إلغاء الطلبية" style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:6px; width:22px; height:22px; font-size:11px; line-height:1; cursor:pointer; flex-shrink:0;">❌</button>
                             </span>
                         </div>
+                        ${compHtml}
                         <div style="font-size: 0.7rem; margin-bottom: 4px;"><b>الهاتف:</b> <a href="${buildWhatsAppLink(ord.customerPhone)}" target="_blank" rel="noopener" style="color: #059669; text-decoration: underline; font-weight: 800;">${escapeHtml(ord.customerPhone)}</a></div>
                         <div style="font-size: 0.7rem; margin-bottom: 6px;"><b>العنوان:</b> ${escapeHtml(ord.customerAddress || ord.address)}</div>
                         
@@ -431,6 +470,7 @@
                 `;
             }
         });
+        container.innerHTML = cardsHtml;
     }
 
     // ===================== تنظيف بسيط لمنع XSS من بيانات الزبون =====================
@@ -570,6 +610,8 @@
 
     async function markOrderPickedUp(orderId) {
         if(confirm("هل استلمت الطلبية من المتجر وبدأت التوصيل؟")) {
+            const live = currentOrdersList.find(o => o.id === orderId);
+            if (!live) { alert('هالطلبية ما عادت بالقائمة (ممكن انلغت أو سائق ثاني استلمها).'); return; }
             try {
                 await window.updateDoc(window.doc(window.db, "orders", orderId), {
                     status: "قيد التوصيل"
@@ -602,32 +644,49 @@
         }
     }
 
+    // تاريخ اليوم بتوقيت إسرائيل - قبل كان UTC، فأي تسليم بين 00:00 و 03:00 بالليل كان ينحسب على اليوم اللي قبل
+    function todayKeyLocal() {
+        return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    }
+
+    const deliverInProgress = new Set();
     async function markOrderDelivered(orderId) {
+        if (deliverInProgress.has(orderId)) return;
         if(confirm("هل أنت متأكد من تسليم الطلب بنجاح وانتقاله للأرشيف؟")) {
+            if (deliverInProgress.has(orderId)) return;
+            deliverInProgress.add(orderId);
             try {
-                let ord = currentOrdersList.find(o => o.id === orderId);
-                let orderTotal = ord ? (Number(ord.total) || 0) : 0;
-
-                await window.updateDoc(window.doc(window.db, "orders", orderId), {
-                    status: "مكتمل",
-                    completedAt: window.serverTimestamp()
+                // كل إشي بعملية وحدة (transaction): منقرأ حالة الطلبية الحالية من قاعدة البيانات، ولو أصلاً
+                // "مكتمل" (كبسة مزدوجة، أو جهازين) ما منحسبها مرة ثانية بالمبيعات. وكمان لو فشل جزء،
+                // ما بيصير إنه الطلبية تنقفل والمبيعات ما تنحدّث (أو العكس)
+                const orderRef = window.doc(window.db, "orders", orderId);
+                const todayKey = todayKeyLocal();
+                const result = await window.runTransaction(window.db, async (tx) => {
+                    const snap = await tx.get(orderRef);
+                    if (!snap.exists()) return 'missing';
+                    const data = snap.data();
+                    if (data.status === 'مكتمل') return 'already';
+                    if (data.status === 'ملغية') return 'cancelled';
+                    const orderTotal = Number(data.total) || 0;
+                    tx.update(orderRef, { status: "مكتمل", completedAt: window.serverTimestamp() });
+                    if (data.isCompensation) return 'ok'; // طلبية تعويض - ما بتنحسب بالمبيعات ولا بعدد الطلبيات
+                    tx.set(window.doc(window.db, "settings", "salesStats"), {
+                        totalRevenue: window.increment(orderTotal),
+                        completedCount: window.increment(1)
+                    }, { merge: true });
+                    tx.set(window.doc(window.db, "salesStatsDaily", todayKey), {
+                        revenue: window.increment(orderTotal),
+                        completedCount: window.increment(1)
+                    }, { merge: true });
+                    return 'ok';
                 });
-
-                // نحدّث إجمالي المبيعات المجمّع فورًا بدل ما تضطر لوحة التحكم تعيد جمع كل الطلبات من الصفر
-                await window.setDoc(window.doc(window.db, "settings", "salesStats"), {
-                    totalRevenue: window.increment(orderTotal),
-                    completedCount: window.increment(1)
-                }, { merge: true });
-
-                // ونسجلها كمان بسجل المبيعات اليومي (يوم بيوم) حتى تظهر بلوحة التحكم مفصّلة
-                const todayKey = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-                await window.setDoc(window.doc(window.db, "salesStatsDaily", todayKey), {
-                    revenue: window.increment(orderTotal),
-                    completedCount: window.increment(1)
-                }, { merge: true });
+                if (result === 'missing') alert('هالطلبية ما عادت موجودة (ممكن انحذفت).');
+                else if (result === 'cancelled') alert('هالطلبية انلغت - ما انحسبت كمكتملة.');
             } catch(e) {
                 console.error(e);
-                alert("خطأ أثناء تحديث حالة الطلب.");
+                alert("خطأ أثناء تحديث حالة الطلب: " + (e.message || e));
+            } finally {
+                deliverInProgress.delete(orderId);
             }
         }
     }

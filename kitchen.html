@@ -89,7 +89,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, updateDoc, doc, query, where, getDoc, getDocs, deleteDoc, setDoc, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, updateDoc, doc, query, where, getDoc, getDocs, deleteDoc, setDoc, increment, serverTimestamp, runTransaction, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
         import { getFunctions, httpsCallableFromURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-functions.js";
@@ -126,6 +126,8 @@
         window.setDoc = setDoc;
         window.increment = increment;
         window.serverTimestamp = serverTimestamp;
+        window.runTransaction = runTransaction;
+        window.Timestamp = Timestamp;
 
         // ===================== بوابة تسجيل الدخول (Firebase Authentication) =====================
         let appBooted = false;
@@ -239,6 +241,7 @@
                     return;
                 }
                 if (gate) gate.style.display = 'none';
+                window.currentStaffEmail = user.email || '';
                 if (!appBooted) {
                     appBooted = true;
                     window.dispatchEvent(new Event('firebase-ready'));
@@ -305,14 +308,55 @@
 
     <button id="unlockSoundBtn" onclick="unlockSound()" style="width: 100%; margin-bottom: 10px; padding: 8px; background: #e0f2fe; border: 1px solid #7dd3fc; border-radius: 8px; font-weight: 800; font-size: 0.75rem; cursor: pointer; color: #0369a1;">🔔 اضغط هنا لتفعيل التنبيه الصوتي عند وصول طلبات جديدة</button>
 
-    <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 10px; color: #4b5563;">
-        الطلبات الواردة للتحضير النشط:
+    <!-- تبويبات: الطلبيات النشطة / طلبيات اليوم المكتملة (للرجوع إلها لو زبون اشتكى) -->
+    <div style="display:flex; gap:6px; margin-bottom:10px;">
+        <button id="tabBtnActive" class="kitchen-tab-btn kitchen-tab-active" onclick="switchKitchenTab('active')">🔥 الطلبيات النشطة</button>
+        <button id="tabBtnToday" class="kitchen-tab-btn" onclick="switchKitchenTab('today')">📋 طلبيات اليوم <span id="todayTabCount"></span></button>
     </div>
 
-    <div id="kitchenOrdersContainer">
-        <p style="text-align: center; color: #888; font-size: 0.75rem;">جاري تحميل الطلبات...</p>
+    <div id="activeOrdersSection">
+        <div style="font-size: 0.75rem; font-weight: bold; margin-bottom: 10px; color: #4b5563;">
+            الطلبات الواردة للتحضير النشط:
+        </div>
+
+        <div id="kitchenOrdersContainer">
+            <p style="text-align: center; color: #888; font-size: 0.75rem;">جاري تحميل الطلبات...</p>
+        </div>
+    </div>
+
+    <div id="todayOrdersSection" style="display:none;">
+        <input type="text" id="todaySearchInput" placeholder="🔍 دور برقم الطلبية أو تلفون الزبون أو اسمه..." oninput="renderTodayOrders()" style="width:100%; padding:10px 12px; border:1.5px solid #e5e7eb; border-radius:10px; font-size:0.8rem; font-weight:600; margin-bottom:10px; box-sizing:border-box;">
+        <div style="font-size: 0.68rem; color: #6b7280; margin-bottom: 8px;">الطلبيات اللي انسلّمت اليوم (بتتصفّر لحالها بنص الليل). لو زبون اشتكى من غرض ناقص، افتح طلبيته واكبس "⚠️ الزبون اشتكى".</div>
+        <div id="todayOrdersContainer">
+            <p style="text-align: center; color: #888; font-size: 0.75rem;">جاري تحميل طلبيات اليوم...</p>
+        </div>
     </div>
 </div>
+
+<!-- نافذة شكوى زبون (غرض ناقص) -->
+<div id="complaintModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:30000; align-items:center; justify-content:center; padding:16px;">
+    <div style="background:white; border-radius:16px; padding:16px; max-width:420px; width:100%; max-height:88vh; display:flex; flex-direction:column;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <h3 id="complaintModalTitle" style="font-size:0.9rem; font-weight:900; color:#b45309;">⚠️ شكوى زبون</h3>
+            <button onclick="closeComplaintModal()" style="background:#f1f5f9; border:none; width:26px; height:26px; border-radius:8px; font-weight:900; cursor:pointer;">✕</button>
+        </div>
+        <div style="font-size:0.7rem; color:#6b7280; margin-bottom:8px;">علّم الأغراض الناقصة والكمية الناقصة من كل غرض:</div>
+        <div id="complaintItemsList" style="overflow-y:auto; flex:1; margin-bottom:8px;"></div>
+        <input type="text" id="complaintNoteInput" placeholder="ملاحظة (اختياري) - مثلاً: الزبون قال الكيس ناقص" style="width:100%; padding:9px 10px; border:1.5px solid #e5e7eb; border-radius:10px; font-size:0.75rem; margin-bottom:8px; box-sizing:border-box;">
+        <div id="complaintTotalLine" style="font-size:0.72rem; font-weight:800; color:#374151; margin-bottom:8px; text-align:center;"></div>
+        <button id="complaintSendBtn" onclick="submitComplaint('send')" class="btn-action" style="margin-top:0; background:#0ea5e9;">🚚 نبعتله الأغراض (طلبية تعويض بـ 0₪ للمطبخ)</button>
+        <button id="complaintRefundBtn" onclick="submitComplaint('refund')" class="btn-action" style="margin-top:6px; background:#f59e0b;">💸 نرجعله سعرها (بينزل من الطلبية والمبيعات)</button>
+    </div>
+</div>
+
+<style>
+    .kitchen-tab-btn { flex:1; padding:9px 6px; border-radius:10px; border:1.5px solid #e2e8f0; background:white; color:#475569; font-weight:800; font-size:0.75rem; cursor:pointer; }
+    .kitchen-tab-active { background: var(--primary-green); color:white; border-color: var(--primary-green); }
+    .today-item-row { display:flex; align-items:flex-start; gap:6px; padding:6px 0; border-bottom:1px dashed #e2e8f0; font-size:0.72rem; }
+    .today-tag { display:inline-block; font-size:0.6rem; font-weight:800; padding:1px 6px; border-radius:6px; margin-inline-start:3px; }
+    .complaint-row { display:flex; align-items:center; gap:8px; padding:8px; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:6px; font-size:0.75rem; }
+    .complaint-row input[type=number] { width:56px; padding:5px; border:1.5px solid #e5e7eb; border-radius:8px; font-weight:800; text-align:center; }
+</style>
 
 <!-- نافذة استبدال منتج -->
 <div id="replaceItemModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:30000; align-items:center; justify-content:center; padding:20px;">
@@ -376,6 +420,7 @@
 
     window.addEventListener('firebase-ready', function() {
         initKitchenOrdersListener();
+        initTodayOrdersListener();
         loadCatalogProducts();
         loadBundlesAndSpendOffers();
     });
@@ -592,7 +637,7 @@
             let currentIds = new Set(activeOrders.map(o => o.id));
 
             if (!isFirstSnapshot) {
-                let newOnes = activeOrders.filter(o => !knownActiveOrderIds.has(o.id));
+                let newOnes = activeOrders.filter(o => !knownActiveOrderIds.has(o.id) && !selfCreatedOrderIds.has(o.id));
                 if (newOnes.length > 0) {
                     newOnes.forEach(o => { if (!pendingNewOrderIds.includes(o.id)) pendingNewOrderIds.push(o.id); });
                     showNewOrderAlert();
@@ -915,6 +960,7 @@
                 : `<span style="background:#f0f9ff; border:1px solid #bae6fd; color:#0369a1; font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:8px;">🚚 توصيل</span>`;
 
             let isExpanded = expandedOrderIds.has(ord.id);
+            let compensationBadgeHtml = ord.isCompensation ? `<span style="background:#e0f2fe; border:1px solid #bae6fd; color:#0369a1; font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:8px;">🔁 تعويض عن طلبية #${escapeHtml(ord.compensationForNumber || '')} - بدون دفع</span>` : '';
 
             cardsHtml += `
                 <div class="order-card" style="border-right: 5px solid ${fulfillmentBorderColor}; padding-bottom: ${isExpanded ? '12px' : '8px'};">
@@ -927,6 +973,7 @@
                     </div>
                     <div style="display:flex; gap:8px; margin: 4px 0 ${isExpanded ? '8px' : '0'}; flex-wrap: wrap;">
                         ${fulfillmentBadgeHtml}
+                        ${compensationBadgeHtml}
                         <span style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:8px;">🛒 المنتجات: ${productsTotalForDisplay.toFixed(2)} ₪</span>
                         <span style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:8px;">🚚 التوصيل: ${deliveryFeeForDisplay.toFixed(2)} ₪</span>
                     </div>
@@ -1433,25 +1480,367 @@
         if (pickupCollectInProgress.has(orderId)) return;
         pickupCollectInProgress.add(orderId);
         try {
-            let orderTotal = Number(ord.total) || 0;
-            await window.updateDoc(window.doc(window.db, "orders", orderId), {
-                status: "مكتمل",
-                completedAt: window.serverTimestamp()
-            });
-            await window.setDoc(window.doc(window.db, "settings", "salesStats"), {
-                totalRevenue: window.increment(orderTotal),
-                completedCount: window.increment(1)
-            }, { merge: true });
+            // عملية وحدة (transaction): لو الطلبية أصلاً مكتملة (جهاز ثاني/كبسة مزدوجة) ما بتنحسب مرتين،
+            // ولو فشل جزء ما بيصير إنه الطلبية تنقفل والمبيعات ما تنحدّث
+            const orderRef = window.doc(window.db, "orders", orderId);
             const todayKey = todayKeyLocal();
-            await window.setDoc(window.doc(window.db, "salesStatsDaily", todayKey), {
-                revenue: window.increment(orderTotal),
-                completedCount: window.increment(1)
-            }, { merge: true });
+            await window.runTransaction(window.db, async (tx) => {
+                const snap = await tx.get(orderRef);
+                if (!snap.exists() || snap.data().status === 'مكتمل') return;
+                const orderTotal = Number(snap.data().total) || 0;
+                tx.update(orderRef, { status: "مكتمل", completedAt: window.serverTimestamp() });
+                if (snap.data().isCompensation) return; // طلبية تعويض - ما بتنحسب بالمبيعات ولا بعدد الطلبيات
+                tx.set(window.doc(window.db, "settings", "salesStats"), {
+                    totalRevenue: window.increment(orderTotal),
+                    completedCount: window.increment(1)
+                }, { merge: true });
+                tx.set(window.doc(window.db, "salesStatsDaily", todayKey), {
+                    revenue: window.increment(orderTotal),
+                    completedCount: window.increment(1)
+                }, { merge: true });
+            });
         } catch(e) {
             console.error(e);
             alert("خطأ أثناء تأكيد الاستلام: " + (e.message || e));
         } finally {
             pickupCollectInProgress.delete(orderId);
+        }
+    }
+
+    // ===================== تبويب "طلبيات اليوم" + شكاوى الزبائن (غرض ناقص) =====================
+    let currentKitchenTab = 'active';
+    let todayOrdersList = [];
+    let todayUnsub = null;
+    let todayListenerDayKey = null;
+    let expandedTodayIds = new Set();
+    let selfCreatedOrderIds = new Set(); // طلبيات تعويض عملناها من هالجهاز - ما بدنا ترن كإنها طلبية زبون جديدة
+
+    function switchKitchenTab(tab) {
+        currentKitchenTab = tab;
+        document.getElementById('activeOrdersSection').style.display = tab === 'active' ? '' : 'none';
+        document.getElementById('todayOrdersSection').style.display = tab === 'today' ? '' : 'none';
+        document.getElementById('tabBtnActive').classList.toggle('kitchen-tab-active', tab === 'active');
+        document.getElementById('tabBtnToday').classList.toggle('kitchen-tab-active', tab === 'today');
+        if (tab === 'today') renderTodayOrders();
+    }
+
+    function tsToMillis(v) {
+        if (!v) return 0;
+        if (typeof v.toMillis === 'function') return v.toMillis();
+        if (typeof v === 'object' && v.seconds) return v.seconds * 1000;
+        const d = new Date(v); return isNaN(d.getTime()) ? 0 : d.getTime();
+    }
+
+    function formatTimeIL(ms) {
+        if (!ms) return '';
+        return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' }).format(new Date(ms));
+    }
+
+    function dayKeyILFromMillis(ms) {
+        return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ms));
+    }
+
+    // بداية اليوم الحالي (00:00 بتوقيت إسرائيل) كوقت حقيقي - بتشتغل صح بالصيفي والشتوي
+    function israelMidnightUtcMs() {
+        const [y, m, d] = todayKeyLocal().split('-').map(Number);
+        const guess = Date.UTC(y, m - 1, d);
+        const parts = {};
+        new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Jerusalem', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+            .formatToParts(new Date(guess)).forEach(p => parts[p.type] = p.value);
+        const asLocal = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute);
+        return guess - (asLocal - guess);
+    }
+
+    function initTodayOrdersListener() {
+        const key = todayKeyLocal();
+        if (todayUnsub && todayListenerDayKey === key) return;
+        if (todayUnsub) { todayUnsub(); todayUnsub = null; }
+        todayListenerDayKey = key;
+        // بس فلتر على وقت الإكمال (completedAt) - ما بيحتاج فهرس (index) خاص بـ Firebase
+        const q = window.query(
+            window.collection(window.db, "orders"),
+            window.where("completedAt", ">=", window.Timestamp.fromMillis(israelMidnightUtcMs()))
+        );
+        todayUnsub = window.onSnapshot(q, (snap) => {
+            const arr = [];
+            snap.forEach(d => { const o = { id: d.id, ...d.data() }; if (o.status === 'مكتمل') arr.push(o); });
+            arr.sort((a, b) => tsToMillis(b.completedAt) - tsToMillis(a.completedAt)); // الأحدث فوق
+            todayOrdersList = arr;
+            const cnt = document.getElementById('todayTabCount');
+            if (cnt) cnt.innerText = arr.length ? `(${arr.length})` : '';
+            if (currentKitchenTab === 'today') renderTodayOrders();
+        }, (err) => {
+            console.error('خطأ بتحميل طلبيات اليوم:', err);
+            const c = document.getElementById('todayOrdersContainer');
+            if (c) c.innerHTML = `<p style="text-align:center; color:#991b1b; font-size:0.75rem; font-weight:800;">⚠️ تعذر تحميل طلبيات اليوم: ${escapeHtml(err && err.message)}</p>`;
+        });
+    }
+    // كل دقيقة منفحص إذا اليوم تغيّر (بعد نص الليل) - إذا هيك القائمة بتتصفّر وبتبلش من جديد
+    setInterval(() => { if (window.db) initTodayOrdersListener(); }, 60000);
+
+    function toggleTodayExpanded(orderId) {
+        if (expandedTodayIds.has(orderId)) expandedTodayIds.delete(orderId); else expandedTodayIds.add(orderId);
+        renderTodayOrders();
+    }
+
+    function itemQty(it) { return Number(it.quantity || it.qty || 1); }
+    function itemAvailableForComplaint(it) {
+        return Math.max(0, itemQty(it) - (Number(it.refundedQty) || 0) - (Number(it.compensatedQty) || 0));
+    }
+
+    function renderTodayOrders() {
+        const c = document.getElementById('todayOrdersContainer');
+        if (!c) return;
+        const qRaw = (document.getElementById('todaySearchInput').value || '').trim();
+        const qClean = qRaw.replace('#', '');
+        const qDigits = qRaw.replace(/[^0-9]/g, '');
+        const list = todayOrdersList.filter(o => {
+            if (!qRaw) return true;
+            const num = String(o.orderNumber ?? '');
+            const phone = String(o.customerPhone || o.phone || '').replace(/[^0-9]/g, '');
+            const name = String(o.customerName || o.clientName || '');
+            return (qDigits && (num.includes(qDigits) || phone.includes(qDigits))) || name.includes(qRaw) || num === qClean;
+        });
+
+        if (list.length === 0) {
+            c.innerHTML = `<p style="text-align:center; color:#888; font-size:0.75rem; padding:20px;">${qRaw ? 'ما في طلبية مطابقة للبحث' : 'لسا ما انسلّمت ولا طلبية اليوم'}</p>`;
+            return;
+        }
+
+        c.innerHTML = list.map(ord => {
+            const label = getOrderLabelFor(ord) || '';
+            const isOpen = expandedTodayIds.has(ord.id);
+            const isPickup = (ord.fulfillmentType || 'توصيل') === 'استلام ذاتي';
+            const complaints = Array.isArray(ord.complaints) ? ord.complaints : [];
+            const compBadge = ord.isCompensation ? `<span class="today-tag" style="background:#e0f2fe; color:#0369a1;">🔁 تعويض</span>` : '';
+            const complaintBadge = complaints.length ? `<span class="today-tag" style="background:#fef3c7; color:#92400e;">⚠️ ${complaints.length} شكوى</span>` : '';
+
+            let bodyHtml = '';
+            if (isOpen) {
+                const checked = Array.isArray(ord.checkedItems) ? ord.checkedItems : [];
+                const itemsHtml = (ord.items || []).map((it, i) => {
+                    const q = itemQty(it);
+                    const tags = [];
+                    if (it.unavailable) tags.push(`<span class="today-tag" style="background:#fee2e2; color:#991b1b;">🚫 نفذت</span>`);
+                    else if (!ord.isCompensation) tags.push(checked[i] ? `<span class="today-tag" style="background:#dcfce7; color:#166534;">✅ انشطب</span>` : `<span class="today-tag" style="background:#f1f5f9; color:#64748b;">⬜ ما انشطب</span>`);
+                    if (it.addedByStaff) tags.push(`<span class="today-tag" style="background:#dcfce7; color:#166534;">➕ أضيف لاحقاً</span>`);
+                    if (Number(it.compensatedQty)) tags.push(`<span class="today-tag" style="background:#e0f2fe; color:#0369a1;">🔁 انبعت تعويض ${Number(it.compensatedQty)}</span>`);
+                    if (Number(it.refundedQty)) tags.push(`<span class="today-tag" style="background:#fef3c7; color:#92400e;">💸 انرجع سعر ${Number(it.refundedQty)}</span>`);
+                    return `<div class="today-item-row" style="${it.unavailable ? 'opacity:0.6;' : ''}">
+                        <div style="flex:1;"><b>${escapeHtml(it.name || 'منتج')}</b> × ${q} ${tags.join('')}</div>
+                        <div style="white-space:nowrap; color:#16a34a; font-weight:800;">${((Number(it.price) || 0) * q).toFixed(2)} ₪</div>
+                    </div>`;
+                }).join('');
+
+                const historyHtml = complaints.length ? `<div style="background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:8px; margin-top:8px; font-size:0.7rem;">
+                    <div style="font-weight:900; color:#92400e; margin-bottom:4px;">سجل الشكاوى:</div>
+                    ${complaints.map(cm => `<div style="padding:3px 0; border-bottom:1px dashed #fde68a;">
+                        ${escapeHtml(formatTimeIL(tsToMillis(cm.at)))} - ${cm.type === 'refund' ? `💸 إرجاع ${Number(cm.refundAmount || 0).toFixed(2)}₪` : '🔁 انبعت تعويض'}:
+                        ${(cm.items || []).map(x => `${escapeHtml(x.name)} × ${Number(x.qty)}`).join('، ')}
+                        ${cm.note ? `<div style="color:#6b7280;">📝 ${escapeHtml(cm.note)}</div>` : ''}
+                    </div>`).join('')}
+                </div>` : '';
+
+                const canComplain = !ord.isCompensation && (ord.items || []).some(it => !it.unavailable && itemAvailableForComplaint(it) > 0);
+                bodyHtml = `
+                    <div class="order-info" style="margin-top:6px;">
+                        <p><strong>الهاتف:</strong> ${escapeHtml(ord.customerPhone || ord.phone || '')}</p>
+                        <p><strong>العنوان:</strong> ${escapeHtml(ord.customerAddress || ord.address || '')}</p>
+                        ${ord.isCompensation ? `<p style="color:#0369a1; font-weight:800;">🔁 طلبية تعويض عن طلبية #${escapeHtml(ord.compensationForNumber || '')}</p>` : ''}
+                        ${(ord.notes && !ord.isCompensation) ? `<div class="order-notes">📝 ملاحظة الزبون: ${escapeHtml(ord.notes)}</div>` : ''}
+                    </div>
+                    <div>${itemsHtml}</div>
+                    ${historyHtml}
+                    ${canComplain ? `<button class="btn-action" style="background:#f59e0b;" onclick="openComplaintModal('${ord.id}')">⚠️ الزبون اشتكى - في غرض ناقص</button>` : ''}
+                `;
+            }
+
+            return `<div class="order-card" style="border-right:5px solid ${complaints.length ? '#f59e0b' : '#94a3b8'};">
+                <div class="order-header" style="cursor:pointer; border-bottom:${isOpen ? '' : 'none'}; margin-bottom:${isOpen ? '' : '0'}; padding-bottom:${isOpen ? '' : '0'};" onclick="toggleTodayExpanded('${ord.id}')">
+                    <span>طلب ${escapeHtml(label)} - ${escapeHtml(ord.customerName || ord.clientName || 'زبون')} ${compBadge}${complaintBadge}</span>
+                    <span style="display:flex; align-items:center; gap:6px;">
+                        <span style="color:#16a34a;">${(Number(ord.total) || 0).toFixed(2)} ₪</span>
+                        <span style="font-size:0.7rem; color:#94a3b8;">${isOpen ? '▲' : '▼'}</span>
+                    </span>
+                </div>
+                <div style="font-size:0.66rem; color:#6b7280; margin-top:4px;">${isPickup ? '🏪 استلام ذاتي' : '🚚 توصيل'} • ✅ انسلّمت الساعة <span dir="ltr">${escapeHtml(formatTimeIL(tsToMillis(ord.completedAt)))}</span></div>
+                ${bodyHtml}
+            </div>`;
+        }).join('');
+    }
+
+    // ---------- نافذة الشكوى ----------
+    let complaintCtx = { orderId: null };
+
+    function openComplaintModal(orderId) {
+        const ord = todayOrdersList.find(o => o.id === orderId);
+        if (!ord) return;
+        complaintCtx = { orderId };
+        document.getElementById('complaintModalTitle').innerText = `⚠️ شكوى - طلب ${getOrderLabelFor(ord)} - ${ord.customerName || 'زبون'}`;
+        document.getElementById('complaintNoteInput').value = '';
+        document.getElementById('complaintItemsList').innerHTML = (ord.items || []).map((it, i) => {
+            if (it.unavailable) return '';
+            const avail = itemAvailableForComplaint(it);
+            if (avail <= 0) return `<div class="complaint-row" style="opacity:0.5;"><span style="flex:1;">${escapeHtml(it.name || 'منتج')}</span><span style="font-size:0.65rem;">تمت معالجته</span></div>`;
+            return `<label class="complaint-row" style="cursor:pointer;">
+                <input type="checkbox" class="complaint-check" data-idx="${i}" onchange="updateComplaintTotal()" style="width:18px; height:18px;">
+                <span style="flex:1; font-weight:700;">${escapeHtml(it.name || 'منتج')}<br><span style="font-size:0.65rem; color:#6b7280; font-weight:600;">${(Number(it.price) || 0).toFixed(2)} ₪ للقطعة</span></span>
+                <input type="number" class="complaint-qty" data-idx="${i}" min="1" max="${avail}" value="1" oninput="updateComplaintTotal()" onclick="event.stopPropagation()">
+                <span style="font-size:0.65rem; color:#6b7280;">من ${avail}</span>
+            </label>`;
+        }).join('');
+        updateComplaintTotal();
+        document.getElementById('complaintModal').style.display = 'flex';
+    }
+
+    function closeComplaintModal() {
+        document.getElementById('complaintModal').style.display = 'none';
+    }
+
+    // بيرجع الأغراض المختارة [{idx, qty}] - أو null مع رسالة لو في غلط
+    function getComplaintSelection(showErrors) {
+        const ord = todayOrdersList.find(o => o.id === complaintCtx.orderId);
+        if (!ord) return null;
+        const sel = [];
+        for (const cb of document.querySelectorAll('.complaint-check:checked')) {
+            const idx = Number(cb.getAttribute('data-idx'));
+            const it = ord.items[idx];
+            const qtyEl = document.querySelector(`.complaint-qty[data-idx="${idx}"]`);
+            const qty = parseInt(qtyEl ? qtyEl.value : '1');
+            const avail = itemAvailableForComplaint(it);
+            if (!qty || qty < 1 || qty > avail) {
+                if (showErrors) alert(`كمية غير صالحة لـ "${it.name}" (لازم بين 1 و ${avail})`);
+                return null;
+            }
+            sel.push({ idx, qty, name: it.name || 'منتج', price: Number(it.price) || 0 });
+        }
+        if (sel.length === 0) {
+            if (showErrors) alert('علّم الغرض الناقص أول');
+            return null;
+        }
+        return sel;
+    }
+
+    function updateComplaintTotal() {
+        const sel = getComplaintSelection(false);
+        const el = document.getElementById('complaintTotalLine');
+        if (!sel) { el.innerText = ''; return; }
+        const sum = sel.reduce((s, x) => s + x.price * x.qty, 0);
+        el.innerText = `قيمة الأغراض المختارة: ${sum.toFixed(2)} ₪`;
+    }
+
+    let complaintBusy = false;
+    async function submitComplaint(type) {
+        if (complaintBusy) return;
+        const { orderId } = complaintCtx;
+        const ord = todayOrdersList.find(o => o.id === orderId);
+        const sel = getComplaintSelection(true);
+        if (!ord || !sel) return;
+        const note = document.getElementById('complaintNoteInput').value.trim();
+        const sum = sel.reduce((s, x) => s + x.price * x.qty, 0);
+        const listTxt = sel.map(x => `• ${x.name} × ${x.qty}`).join('\n');
+        const question = type === 'send'
+            ? `رح تنعمل طلبية تعويض بـ 0₪ فيها:\n${listTxt}\n\nوبتنزل للمطبخ عشان تتجهّز وتنبعت للزبون. متأكد؟`
+            : `رح نرجع للزبون ${sum.toFixed(2)}₪ عن:\n${listTxt}\n\nوبينزل المبلغ من الطلبية ومن المبيعات. متأكد؟`;
+        if (!confirm(question)) return;
+
+        complaintBusy = true;
+        document.getElementById('complaintSendBtn').disabled = true;
+        document.getElementById('complaintRefundBtn').disabled = true;
+        const origRef = window.doc(window.db, "orders", orderId);
+        const compRef = window.doc(window.collection(window.db, "orders")); // رقم جديد لطلبية التعويض
+        if (type === 'send') selfCreatedOrderIds.add(compRef.id);
+        let refundAmount = 0;
+        try {
+            await window.runTransaction(window.db, async (tx) => {
+                // منقرأ الطلبية من قاعدة البيانات نفسها (مش من الشاشة) عشان لو موظفين اثنين سجّلوا
+                // نفس الشكوى بنفس الوقت، ما يتعوّض الغرض مرتين
+                const snap = await tx.get(origRef);
+                if (!snap.exists()) throw new Error('الطلبية مش موجودة');
+                const data = snap.data();
+                const items = (data.items || []).map(it => ({ ...it }));
+                const entryItems = [];
+                refundAmount = 0;
+                sel.forEach(x => {
+                    const it = items[x.idx];
+                    if (!it || it.unavailable) throw new Error('الطلبية تغيّرت - سكّر النافذة وافتحها من جديد');
+                    if (x.qty > itemAvailableForComplaint(it)) throw new Error(`"${it.name}" انعالج قبل هيك - سكّر النافذة وافتحها من جديد`);
+                    if (type === 'send') it.compensatedQty = (Number(it.compensatedQty) || 0) + x.qty;
+                    else { it.refundedQty = (Number(it.refundedQty) || 0) + x.qty; refundAmount += (Number(it.price) || 0) * x.qty; }
+                    entryItems.push({ name: it.name || 'منتج', qty: x.qty, price: Number(it.price) || 0 });
+                });
+                refundAmount = Number(refundAmount.toFixed(2));
+
+                const entry = { type, at: window.Timestamp.now(), items: entryItems, note: note, by: window.currentStaffEmail || '' };
+                const complaints = [...(Array.isArray(data.complaints) ? data.complaints : [])];
+
+                if (type === 'send') {
+                    entry.compensationOrderId = compRef.id;
+                    complaints.push(entry);
+                    tx.update(origRef, { items, complaints });
+                    const comp = {
+                        isCompensation: true,
+                        compensationFor: orderId,
+                        compensationForNumber: (data.orderNumber ?? '') + '',
+                        orderNumber: (data.orderNumber !== undefined && data.orderNumber !== null && data.orderNumber !== '') ? `${data.orderNumber}-ت` : 'تعويض',
+                        status: 'جديد',
+                        fulfillmentType: data.fulfillmentType || 'توصيل',
+                        items: entryItems.map((e, k) => {
+                            const src = items[sel[k].idx];
+                            return { id: src.id || '', name: e.name, img: src.img || '', price: 0, originalPrice: e.price, quantity: e.qty, qty: e.qty };
+                        }),
+                        subtotal: 0, total: 0, deliveryFee: 0, discount: 0, bundleDiscount: 0,
+                        notes: `🔁 تعويض عن غرض ناقص من طلبية #${data.orderNumber ?? ''} - ما بتنجبى مصاري${note ? ' - ' + note : ''}`,
+                        timestamp: window.serverTimestamp(),
+                        createdByStaff: window.currentStaffEmail || ''
+                    };
+                    // منسخ بيانات الزبون الموجودة بس (Firebase ما بيقبل قيم undefined)
+                    ['customerName', 'customerPhone', 'customerAddress', 'address', 'customerGps', 'city', 'street', 'building', 'customerCity', 'customerStreet', 'customerBuilding'].forEach(f => {
+                        if (data[f] !== undefined && data[f] !== null) comp[f] = data[f];
+                    });
+                    tx.set(compRef, comp);
+                } else {
+                    entry.refundAmount = refundAmount;
+                    complaints.push(entry);
+                    const newTotal = Number(Math.max(0, (Number(data.total) || 0) - refundAmount).toFixed(2));
+                    tx.update(origRef, {
+                        items, complaints,
+                        total: newTotal,
+                        refundTotal: Number(((Number(data.refundTotal) || 0) + refundAmount).toFixed(2))
+                    });
+                    // المبلغ بينزل من المبيعات الإجمالية ومن مبيعات اليوم اللي انسلّمت فيه الطلبية
+                    const dayKey = dayKeyILFromMillis(tsToMillis(data.completedAt) || Date.now());
+                    tx.set(window.doc(window.db, "settings", "salesStats"), { totalRevenue: window.increment(-refundAmount) }, { merge: true });
+                    tx.set(window.doc(window.db, "salesStatsDaily", dayKey), { revenue: window.increment(-refundAmount) }, { merge: true });
+                }
+            });
+
+            closeComplaintModal();
+            const label = getOrderLabelFor(ord);
+            const itemsTxt = sel.map(x => `• ${x.name}${x.qty > 1 ? ' × ' + x.qty : ''}`).join('\n');
+            const msg = type === 'send'
+                ? `مرحبا! معك متجر العروبة أونلاين 🙏\n\nبنعتذر عن الغرض الناقص بطلبيتك ${label}:\n${itemsTxt}\n\nرح نبعتلك ياه بأقرب وقت بدون أي تكلفة. آسفين على الإزعاج 🙌`
+                : `مرحبا! معك متجر العروبة أونلاين 🙏\n\nبنعتذر عن الغرض الناقص بطلبيتك ${label}:\n${itemsTxt}\n\nرجّعنالك ${refundAmount.toFixed(2)} ₪. آسفين على الإزعاج 🙌`;
+            if (confirm(type === 'send' ? '✅ انعملت طلبية التعويض وصارت بالمطبخ.\n\nبدك تبعت رسالة واتساب للزبون؟' : `✅ انسجّل إرجاع ${refundAmount.toFixed(2)}₪.\n\nبدك تبعت رسالة واتساب للزبون؟`)) {
+                const phoneRaw = (ord.customerPhone || ord.phone || '').replace(/[^0-9]/g, '');
+                if (phoneRaw) {
+                    const waPhone = phoneRaw.startsWith('0') ? '972' + phoneRaw.slice(1) : phoneRaw;
+                    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+                } else {
+                    alert('ما في رقم تلفون بهالطلبية.');
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            selfCreatedOrderIds.delete(compRef.id);
+            const permission = e && (e.code === 'permission-denied' || /permission/i.test(e.message || ''));
+            alert(permission
+                ? '❌ قاعدة البيانات رفضت العملية - لازم تنضاف قاعدة سماح لطلبيات التعويض بـ Firestore Rules (موجودة بالتعليمات اللي معك).'
+                : '❌ تعذر تسجيل الشكوى: ' + (e.message || e));
+        } finally {
+            complaintBusy = false;
+            document.getElementById('complaintSendBtn').disabled = false;
+            document.getElementById('complaintRefundBtn').disabled = false;
         }
     }
 
