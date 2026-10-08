@@ -177,6 +177,11 @@
             el.style.background = isError ? '#fee2e2' : '#dcfce7';
             el.style.color = isError ? '#991b1b' : '#166534';
             el.innerText = msg;
+            el.style.display = 'block';
+            // رسالة النجاح كانت تضل ثابتة تحت الشاشة وتغطي أزرار آخر طلبية - هلأ بتختفي بعد 4 ثواني
+            clearTimeout(el._hideTimer);
+            if (!isError) el._hideTimer = setTimeout(() => { el.style.display = 'none'; }, 4000);
+            else el.onclick = () => { el.style.display = 'none'; };
         }
 
         async function setupPushNotifications() {
@@ -347,6 +352,18 @@
     let spendOffersList = [];
     let pendingNewOrderIds = [];
     let expandedOrderIds = new Set();
+
+    // أي نص جاي من الزبون (اسم، ملاحظة، عنوان...) لازم ينعرض كنص عادي مش كود - بدونها ملاحظة فيها
+    // < أو " كانت تخرّب شكل البطاقة، وممكن حدا يكتب كود بالملاحظة يشتغل على جهاز المطبخ بصلاحيات الموظف
+    function escapeHtml(v) {
+        return String(v === undefined || v === null ? '' : v)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    // لروابط الصور جوا onclick='...'
+    function escapeJsAttr(v) {
+        return String(v || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
 
     function toggleOrderExpanded(orderId) {
         if (expandedOrderIds.has(orderId)) {
@@ -585,6 +602,11 @@
             knownActiveOrderIds = currentIds;
 
             renderKitchenOrders(allOrders);
+        }, (err) => {
+            // قبل: لو انقطع الاتصال أو صار خطأ صلاحيات، الشاشة كانت تضل "جاري تحميل" بدون ما حدا يعرف
+            console.error('خطأ بالاستماع للطلبيات:', err);
+            const c = document.getElementById('kitchenOrdersContainer');
+            if (c) c.innerHTML = `<div style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:10px; padding:12px; font-size:0.8rem; font-weight:800; text-align:center;">⚠️ انقطع الاتصال بالطلبيات - الطلبيات الجديدة ما رح تظهر!<br><span style="font-weight:600; font-size:0.7rem;">${escapeHtml(err && err.message)}</span><br><button onclick="location.reload()" style="margin-top:8px; background:#991b1b; color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:800; cursor:pointer;">🔄 حدّث الصفحة</button></div>`;
         });
     }
 
@@ -608,10 +630,19 @@
         }
     });
 
+    // سياق صوت واحد للصفحة كلها - قبل كان ينعمل واحد جديد كل 3 ثواني وما ينسكّر، والمتصفحات
+    // (خصوصاً الآيفون/الآيباد) بتوقف الصوت بعد عدد معيّن، أو ما بتسمح لسياق انعمل بدون كبسة يطلّع صوت
+    let sharedAudioCtx = null;
+    function getAudioCtx() {
+        if (!sharedAudioCtx) sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume().catch(() => {});
+        return sharedAudioCtx;
+    }
+
     function unlockSound() {
         soundUnlocked = true;
         try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const ctx = getAudioCtx();
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             gain.gain.value = 0.0001;
@@ -632,7 +663,7 @@
     function playNewOrderSound() {
         if (!soundUnlocked) return;
         try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const ctx = getAudioCtx();
             const playBeep = (startTime, freq) => {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
@@ -685,7 +716,7 @@
         } else {
             body.innerHTML = newOrders.map(ord => {
                 const orderLabel = (ord.orderNumber !== undefined && ord.orderNumber !== null && ord.orderNumber !== '') ? `#${ord.orderNumber}` : '';
-                const itemsListHtml = (ord.items || []).map(it => `<li>${it.name || 'منتج'} × ${it.quantity || it.qty || 1}</li>`).join('');
+                const itemsListHtml = (ord.items || []).map(it => `<li>${escapeHtml(it.name || 'منتج')} × ${escapeHtml(it.quantity || it.qty || 1)}</li>`).join('');
                 let isPickupPopup = (ord.fulfillmentType || 'توصيل') === 'استلام ذاتي';
                 let popupFulfillmentBadge = isPickupPopup
                     ? `<span style="background:#f5f3ff; border:1px solid #ddd6fe; color:#5b21b6; font-size:0.62rem; font-weight:800; padding:2px 7px; border-radius:6px;">🏪 استلام ذاتي</span>`
@@ -693,13 +724,13 @@
                 return `
                     <div style="border:1.5px solid #fecaca; background:#fef2f2; border-radius:12px; padding:10px; margin-bottom:10px;">
                         <div style="display:flex; justify-content:space-between; font-weight:900; font-size:0.85rem; margin-bottom:4px;">
-                            <span>طلب ${orderLabel} - ${ord.customerName || 'زبون'}</span>
+                            <span>طلب ${escapeHtml(orderLabel)} - ${escapeHtml(ord.customerName || 'زبون')}</span>
                             <span style="color:#16a34a;">${ord.total || 0} ₪</span>
                         </div>
                         <div style="margin-bottom:6px;">${popupFulfillmentBadge}</div>
-                        <div style="font-size:0.7rem; color:#6b7280; margin-bottom:6px;">${ord.customerPhone || ''}</div>
+                        <div style="font-size:0.7rem; color:#6b7280; margin-bottom:6px;">${escapeHtml(ord.customerPhone || '')}</div>
                         <ul style="margin:0 0 8px; padding-right:18px; font-size:0.75rem; font-weight:600; color:#374151;">${itemsListHtml}</ul>
-                        <button class="btn-secondary-action" style="width:100%; background:#16a34a; color:white; border:none;" onclick="startPreparingOrder('${ord.id}'); markNewOrderSeen('${ord.id}')">🔥 بدء التحضير</button>
+                        <button class="btn-secondary-action" style="width:100%; background:#16a34a; color:white; border:none;" onclick="startPreparingOrder('${ord.id}').then(ok => { if (ok) markNewOrderSeen('${ord.id}'); })">🔥 بدء التحضير</button>
                     </div>
                 `;
             }).join('');
@@ -794,7 +825,7 @@
             return;
         }
 
-        container.innerHTML = '';
+        let cardsHtml = ''; // منبني كل البطاقات بنص واحد ومنحطه مرة وحدة (أسرع بكتير من innerHTML += لكل طلبية)
         activeOrders.forEach((ord, index) => {
             let itemsHtml = '';
             let totalQty = 0;
@@ -808,7 +839,7 @@
 
                     let imageElement = '';
                     if(imgSrc) {
-                        imageElement = `<div class="product-thumb" onclick="openImageModal('${imgSrc}')"><img src="${imgSrc}" alt="" onerror="this.style.display='none'; this.parentElement.innerHTML='🛒';"></div>`;
+                        imageElement = `<div class="product-thumb" onclick="openImageModal('${escapeJsAttr(imgSrc)}')"><img src="${escapeHtml(imgSrc)}" alt="" onerror="this.style.display='none'; this.parentElement.innerHTML='🛒';"></div>`;
                     } else {
                         imageElement = `<div class="product-thumb">🛒</div>`;
                     }
@@ -833,7 +864,7 @@
                             <input type="checkbox" class="item-check-box" ${isChecked ? 'checked' : ''} ${isUnavailable ? 'disabled' : ''} onchange="toggleItemCheck('${ord.id}', ${itemIdx}, this)">
                             ${imageElement}
                             <div class="product-details">
-                                <span class="product-name" ${isUnavailable ? 'style="text-decoration:line-through; color:#9ca3af;"' : ''}>${addedBadge}${item.name || item.productName || 'منتج'}</span>
+                                <span class="product-name" ${isUnavailable ? 'style="text-decoration:line-through; color:#9ca3af;"' : ''}>${addedBadge}${escapeHtml(item.name || item.productName || 'منتج')}</span>
                                 <span class="product-qty" ${isUnavailable ? 'style="text-decoration:line-through;"' : ''}>الكمية: (<span class="qty-number">${qty}</span>) &nbsp;•&nbsp; ${priceHtml}</span>
                             </div>
                             <div class="item-edit-actions">
@@ -858,7 +889,7 @@
             let estimatedMinutes = 5 + (totalQty * 2);
 
             let notesVal = ord.notes || ord.orderNotes || ord.customerNotes || '';
-            let notesHtml = notesVal ? `<div class="order-notes">📝 ملاحظة الزبون: ${notesVal}</div>` : '';
+            let notesHtml = notesVal ? `<div class="order-notes">📝 ملاحظة الزبون: ${escapeHtml(notesVal)}</div>` : '';
 
             let isPickupOrderRow = (ord.fulfillmentType || 'توصيل') === 'استلام ذاتي';
             let allChecked = isOrderFullyChecked(ord) || isPickupOrderRow; // بالاستلام الذاتي مش شرط تشطيب كل المنتجات، الزبون بيجي ونقله ايش ناقص أو نبدله بالمحل
@@ -885,10 +916,10 @@
 
             let isExpanded = expandedOrderIds.has(ord.id);
 
-            container.innerHTML += `
+            cardsHtml += `
                 <div class="order-card" style="border-right: 5px solid ${fulfillmentBorderColor}; padding-bottom: ${isExpanded ? '12px' : '8px'};">
                     <div class="order-header" style="cursor:pointer;" onclick="toggleOrderExpanded('${ord.id}')">
-                        <span>طلب ${orderLabel} - ${ord.customerName || ord.clientName || 'زبون'} ${statusBadgeHtml}</span>
+                        <span>طلب ${escapeHtml(orderLabel)} - ${escapeHtml(ord.customerName || ord.clientName || 'زبون')} ${statusBadgeHtml}</span>
                         <span style="display:flex; align-items:center; gap:6px;">
                             <span style="color: #16a34a;">${ord.total || 0} ₪</span>
                             <span style="font-size:0.7rem; color:#94a3b8;">${isExpanded ? '▲' : '▼'}</span>
@@ -901,8 +932,8 @@
                     </div>
                     <div style="${isExpanded ? '' : 'display:none;'}">
                     <div class="order-info">
-                        <p><strong>الهاتف:</strong> ${ord.customerPhone || ord.phone || ''}</p>
-                        <p><strong>العنوان:</strong> ${ord.customerAddress || ord.address || ''}</p>
+                        <p><strong>الهاتف:</strong> ${escapeHtml(ord.customerPhone || ord.phone || '')}</p>
+                        <p><strong>العنوان:</strong> ${escapeHtml(ord.customerAddress || ord.address || '')}</p>
                         <div class="order-time">⏰ وقت الطلب: <span dir="ltr" style="display:inline-block;">${orderTimeFormatted}</span> <span class="order-elapsed" data-ts="${orderTsMillis || ''}"></span></div>
                         <span class="prep-time-chip">⏱️ الوقت المتوقع: ~${estimatedMinutes} د</span>
                         ${notesHtml}
@@ -923,6 +954,7 @@
             `;
         });
 
+        container.innerHTML = cardsHtml;
         tickElapsedTimes();
     }
 
@@ -981,6 +1013,8 @@
 
     async function sendOrderNotification(phone, message) {
         if (!phone) return;
+        // الرابط لسا مش محطوط (مكتوب REGION-PROJECT_ID) - كان كل تغيير حالة يبعت طلب لعنوان مش موجود ويفشل بصمت
+        if (NOTIFY_FUNCTION_URL.includes('REGION-PROJECT_ID')) return;
         try {
             await fetch(NOTIFY_FUNCTION_URL, {
                 method: 'POST',
@@ -1014,6 +1048,15 @@
         // نقرّب لخانتين عشريتين هون - جمع/طرح أسعار عشرية (زي 99.9، 25.9) بجافاسكريبت
         // بينتج أحيانًا أرقام زي 283.40000000000003 بدون هالتقريب
         return { subtotal: Number(newSubtotal.toFixed(2)), total: Number(Math.max(0, newTotal).toFixed(2)) };
+    }
+
+    // لما منتج ينستبدل أو تزيد كميته، لازم يرجع "مش مجهّز" - قبل كان يضل مشطوب ✅ مع إنه المنتج
+    // الجديد/القطع الزيادة لسا ما انحطت بالكيس، وممكن الطلبية تطلع للسائق ناقصة
+    function uncheckedFieldFor(ord, itemIdx) {
+        let arr = Array.isArray(ord.checkedItems) ? ord.checkedItems.slice() : [];
+        if (!arr[itemIdx]) return {};
+        arr[itemIdx] = false;
+        return { checkedItems: arr };
     }
 
     async function saveOrderItemsUpdate(orderId, newItems, extraFields) {
@@ -1053,7 +1096,7 @@
         // لأحدث نسخة أول (تحسباً لو ما وصلت onSnapshot لسا) وبعدين نعيد حساب الكل
         await ensureFreshBundlesAndSpendOffers();
         newItems = recomputeAllItemPricesWithPromos(newItems);
-        await saveOrderItemsUpdate(orderId, newItems);
+        await saveOrderItemsUpdate(orderId, newItems, newQty > currentQty ? uncheckedFieldFor(ord, itemIdx) : {});
     }
 
     // بدل ما نحذف المنتج من الطلبية نهائياً، منعلّمه "نفذت الكمية" ومنخليه ظاهر (مشطوب) بالطلبية -
@@ -1156,8 +1199,8 @@
             let price = (p.salePrice !== undefined && p.salePrice !== null && p.salePrice !== '') ? p.salePrice : p.price;
             return `
                 <div style="display:flex; align-items:center; gap:8px; padding:7px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:5px; cursor:pointer;" onclick="confirmReplaceItem('${p.id}')">
-                    <img src="${p.img || ''}" style="width:34px; height:34px; object-fit:contain; border-radius:6px; flex-shrink:0; background:white;" onerror="this.style.display='none'">
-                    <span style="flex:1; font-size:0.75rem; font-weight:700;">${p.name}</span>
+                    <img src="${escapeHtml(p.img || '')}" style="width:34px; height:34px; object-fit:contain; border-radius:6px; flex-shrink:0; background:white;" onerror="this.style.display='none'">
+                    <span style="flex:1; font-size:0.75rem; font-weight:700;">${escapeHtml(p.name)}</span>
                     <span style="font-size:0.7rem; color:#16a34a; font-weight:800; flex-shrink:0;">${price || 0} ₪</span>
                 </div>
             `;
@@ -1199,7 +1242,7 @@
         } : it);
 
         closeReplaceItemModal();
-        await saveOrderItemsUpdate(orderId, newItems);
+        await saveOrderItemsUpdate(orderId, newItems, uncheckedFieldFor(ord, itemIdx));
     }
 
     // ===================== إضافة منتج نسيه الزبون (يضيفه الموظف من المطبخ للطلبية) =====================
@@ -1232,8 +1275,8 @@
             let price = (p.salePrice !== undefined && p.salePrice !== null && p.salePrice !== '') ? p.salePrice : p.price;
             return `
                 <div style="display:flex; align-items:center; gap:8px; padding:7px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:5px; cursor:pointer;" onclick="confirmAddItem('${p.id}')">
-                    <img src="${p.img || ''}" style="width:34px; height:34px; object-fit:contain; border-radius:6px; flex-shrink:0; background:white;" onerror="this.style.display='none'">
-                    <span style="flex:1; font-size:0.75rem; font-weight:700;">${p.name}</span>
+                    <img src="${escapeHtml(p.img || '')}" style="width:34px; height:34px; object-fit:contain; border-radius:6px; flex-shrink:0; background:white;" onerror="this.style.display='none'">
+                    <span style="flex:1; font-size:0.75rem; font-weight:700;">${escapeHtml(p.name)}</span>
                     <span style="font-size:0.7rem; color:#16a34a; font-weight:800; flex-shrink:0;">${price || 0} ₪</span>
                 </div>
             `;
@@ -1284,7 +1327,7 @@
         }
 
         closeAddItemModal();
-        await saveOrderItemsUpdate(orderId, newItems);
+        await saveOrderItemsUpdate(orderId, newItems, existingIdx > -1 ? uncheckedFieldFor(ord, existingIdx) : {});
     }
 
     // ===================== إلغاء الطلبية بالكامل =====================
@@ -1309,11 +1352,11 @@
             // بالاستلام الذاتي، منسأل الموظف قديش الوقت المتوقع حتى تنعرض للزبون على شاشته وهو مستني
             let suggested = 5 + ((ord.items ? ord.items.reduce((s, it) => s + (Number(it.quantity || it.qty) || 0), 0) : 0) * 2);
             let input = prompt("قديش تقريباً الوقت المتوقع لجهوز الطلبية (بالدقائق)؟ رح يظهر للزبون على شاشته.", suggested);
-            if (input === null) return; // ألغى - نوقف هون وما نبدأ التحضير
+            if (input === null) return false; // ألغى - نوقف هون وما نبدأ التحضير
             let minutes = parseInt(input);
             if (!minutes || minutes < 1) {
                 alert('وقت غير صالح');
-                return;
+                return false;
             }
             fieldsToSave.pickupEtaMinutes = minutes;
         }
@@ -1324,14 +1367,17 @@
             if (ord) {
                 sendOrderNotification(ord.customerPhone, `🍳 طلبك ${getOrderLabelFor(ord)} قيد التحضير الآن! - العروبة أونلاين`);
             }
+            return true;
         } catch(e) {
             console.error(e);
             alert("خطأ أثناء تحديث حالة الطلب.");
+            return false;
         }
     }
 
     async function markOrderReady(orderId) {
         let ord = currentOrdersList.find(o => o.id === orderId);
+        if (!ord) return;
         let isPickupOrder = (ord.fulfillmentType || 'توصيل') === 'استلام ذاتي';
 
         // شرط تشطيب كل المنتجات ينطبق بس على التوصيل - بالاستلام الذاتي الزبون بيجي ونقله ايش ناقص
@@ -1371,10 +1417,21 @@
 
     // لما الزبون يجي فعلياً للمتجر ويدفع ويستلم طلبيته (استلام ذاتي) - نكمّل الطلبية من هون مباشرة
     // بدون ما تحتاج تمر على شاشة السائق إطلاقاً، ونحدّث إحصائيات المبيعات متل ما بيصير بالتوصيل تماماً
+    // تاريخ اليوم بتوقيت إسرائيل - قبل كان بتوقيت UTC، فأي طلبية تكتمل بين 00:00 و 03:00 بالليل
+    // كانت تنحسب على اليوم اللي قبل بتقرير "المبيعات يوم بيوم"
+    function todayKeyLocal() {
+        return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    }
+
+    const pickupCollectInProgress = new Set();
     async function markPickupCollected(orderId) {
         let ord = currentOrdersList.find(o => o.id === orderId);
         if (!ord) return;
+        // حماية من الكبسة المزدوجة - كانت تنحسب الطلبية مرتين بالمبيعات
+        if (pickupCollectInProgress.has(orderId) || ord.status === 'مكتمل') return;
         if (!confirm("هل استلم الزبون طلبيته ودفع فعلياً؟")) return;
+        if (pickupCollectInProgress.has(orderId)) return;
+        pickupCollectInProgress.add(orderId);
         try {
             let orderTotal = Number(ord.total) || 0;
             await window.updateDoc(window.doc(window.db, "orders", orderId), {
@@ -1385,7 +1442,7 @@
                 totalRevenue: window.increment(orderTotal),
                 completedCount: window.increment(1)
             }, { merge: true });
-            const todayKey = new Date().toISOString().slice(0, 10);
+            const todayKey = todayKeyLocal();
             await window.setDoc(window.doc(window.db, "salesStatsDaily", todayKey), {
                 revenue: window.increment(orderTotal),
                 completedCount: window.increment(1)
@@ -1393,6 +1450,8 @@
         } catch(e) {
             console.error(e);
             alert("خطأ أثناء تأكيد الاستلام: " + (e.message || e));
+        } finally {
+            pickupCollectInProgress.delete(orderId);
         }
     }
 
@@ -1411,8 +1470,8 @@
                 let rowStyle = isUnavailable ? 'text-decoration:line-through; color:#999;' : '';
                 itemsRows += `
                     <tr>
-                        <td style="padding:4px 6px; border-bottom:1px solid #ddd; ${rowStyle}">${item.name || item.productName || 'منتج'}${isUnavailable ? ' (نفذت الكمية)' : ''}</td>
-                        <td style="padding:4px 6px; border-bottom:1px solid #ddd; text-align:center; ${rowStyle}">${item.qty || item.quantity || 1}</td>
+                        <td style="padding:4px 6px; border-bottom:1px solid #ddd; ${rowStyle}">${escapeHtml(item.name || item.productName || 'منتج')}${isUnavailable ? ' (نفذت الكمية)' : ''}</td>
+                        <td style="padding:4px 6px; border-bottom:1px solid #ddd; text-align:center; ${rowStyle}">${escapeHtml(item.qty || item.quantity || 1)}</td>
                     </tr>
                 `;
             });
@@ -1423,12 +1482,12 @@
                 <h2 style="text-align: center; margin-bottom: 4px;">🍳 العروبة أونلاين</h2>
                 <p style="text-align: center; margin-bottom: 12px; color: #555;">فاتورة تحضير الطلب</p>
                 <hr>
-                <p><strong>رقم الطلبية:</strong> ${orderLabel}</p>
-                <p><strong>الزبون:</strong> ${ord.customerName || ord.clientName || 'زبون'}</p>
-                <p><strong>الهاتف:</strong> ${ord.customerPhone || ord.phone || ''}</p>
-                <p><strong>العنوان:</strong> ${ord.customerAddress || ord.address || ''}</p>
+                <p><strong>رقم الطلبية:</strong> ${escapeHtml(orderLabel)}</p>
+                <p><strong>الزبون:</strong> ${escapeHtml(ord.customerName || ord.clientName || 'زبون')}</p>
+                <p><strong>الهاتف:</strong> ${escapeHtml(ord.customerPhone || ord.phone || '')}</p>
+                <p><strong>العنوان:</strong> ${escapeHtml(ord.customerAddress || ord.address || '')}</p>
                 <p><strong>وقت الطلب:</strong> <span dir="ltr">${formatOrderTime(ord)}</span></p>
-                ${notesVal ? `<p><strong>ملاحظة الزبون:</strong> ${notesVal}</p>` : ''}
+                ${notesVal ? `<p><strong>ملاحظة الزبون:</strong> ${escapeHtml(notesVal)}</p>` : ''}
                 <hr style="margin: 10px 0;">
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
