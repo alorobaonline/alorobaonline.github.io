@@ -1590,7 +1590,7 @@
             await window.updateDoc(window.doc(window.db, "orders", orderId), {
                 status: "ملغية",
                 cancelledAt: window.serverTimestamp(),
-                cancelledBy: "المطبخ",
+                cancelledBy: window.currentStaffEmail || "المطبخ",
                 cancelReason: ord.returnReason ? `رجعت من السائق - ${ord.returnReason}` : 'رجعت من السائق'
             });
         } catch (e) {
@@ -1603,9 +1603,17 @@
     async function cancelWholeOrder(orderId) {
         const ord = currentOrdersList.find(o => o.id === orderId);
         const label = ord ? getOrderLabelFor(ord) : '';
-        if (!confirm(`متأكد من إلغاء الطلبية ${label} بالكامل؟ هاد الإجراء نهائي وما ممكن نتراجع عنه.`)) return;
+        // ما منمحي الطلبية - منسجلها "ملغية" مع السبب، عشان تضل بـ "طلبيات اليوم" وبالسجل
+        const reason = prompt(`سبب إلغاء الطلبية ${label}؟`, 'الزبون غيّر رأيه');
+        if (reason === null) return;
+        if (!confirm(`متأكد من إلغاء الطلبية ${label} بالكامل؟`)) return;
         try {
-            await window.deleteDoc(window.doc(window.db, "orders", orderId));
+            await window.updateDoc(window.doc(window.db, "orders", orderId), {
+                status: "ملغية",
+                cancelledAt: window.serverTimestamp(),
+                cancelledBy: window.currentStaffEmail || "المطبخ",
+                cancelReason: reason.trim()
+            });
         } catch(e) {
             console.error(e);
             alert('تعذر إلغاء الطلبية: ' + (e.message || e));
