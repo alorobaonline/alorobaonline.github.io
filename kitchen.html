@@ -372,9 +372,36 @@
 <div id="addItemModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:30000; align-items:center; justify-content:center; padding:20px;">
     <div style="background:white; border-radius:16px; padding:18px; max-width:400px; width:100%; max-height:85vh; display:flex; flex-direction:column;">
         <h3 style="font-size:0.9rem; font-weight:900; color:var(--primary-green); margin-bottom:10px;">➕ إضافة منتج نسيه الزبون</h3>
+        <button onclick="openShopItemModal()" style="width:100%; background:#fff7ed; color:#9a3412; border:1.5px dashed #fdba74; padding:9px; border-radius:10px; font-weight:800; font-size:0.78rem; cursor:pointer; margin-bottom:8px;">🏪 غرض من المحل (مش موجود بالموقع)</button>
         <input type="text" id="addItemSearchInput" placeholder="🔍 دور باسم المنتج..." style="width:100%; padding:9px 10px; border:1.5px solid #e5e7eb; border-radius:10px; font-size:0.8rem; margin-bottom:10px; box-sizing:border-box;" oninput="renderAddItemResults(this.value.trim())">
         <div id="addItemResultsContainer" style="overflow-y:auto; flex:1;"></div>
         <button onclick="closeAddItemModal()" style="margin-top:10px; background:#94a3b8; color:white; border:none; padding:10px; border-radius:10px; font-weight:800; cursor:pointer;">إلغاء</button>
+    </div>
+</div>
+
+<!-- نافذة إضافة غرض من المحل (مش موجود بالموقع) -->
+<div id="shopItemModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:31000; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:white; border-radius:16px; padding:18px; max-width:400px; width:100%;">
+        <h3 style="font-size:0.9rem; font-weight:900; color:var(--primary-green); margin-bottom:4px;">🏪 غرض من المحل</h3>
+        <div style="font-size:0.68rem; color:#6b7280; margin-bottom:10px;">لغرض موجود بالمحل ومش موجود بالموقع - بينضاف لهالطلبية بس</div>
+        <input type="text" id="shopItemName" placeholder="اسم الغرض" style="width:100%; padding:9px 10px; border:1.5px solid #e5e7eb; border-radius:10px; font-size:0.8rem; font-weight:700; margin-bottom:8px; box-sizing:border-box;">
+        <div style="display:flex; gap:6px; margin-bottom:8px;">
+            <button type="button" id="shopModeUnitBtn" class="kitchen-tab-btn kitchen-tab-active" onclick="setShopItemMode('unit')">بالحبة</button>
+            <button type="button" id="shopModeWeightBtn" class="kitchen-tab-btn" onclick="setShopItemMode('weight')">بالوزن (كغم)</button>
+        </div>
+        <div style="display:flex; gap:6px; margin-bottom:8px;">
+            <div style="flex:1;">
+                <label id="shopItemQtyLabel" style="font-size:0.68rem; font-weight:800; color:#374151;">الكمية</label>
+                <input type="number" id="shopItemQty" inputmode="decimal" min="0" step="1" value="1" oninput="updateShopItemTotal()" style="width:100%; padding:9px 10px; border:1.5px solid #e5e7eb; border-radius:10px; font-size:0.85rem; font-weight:800; box-sizing:border-box;">
+            </div>
+            <div style="flex:1;">
+                <label id="shopItemPriceLabel" style="font-size:0.68rem; font-weight:800; color:#374151;">السعر للحبة ₪</label>
+                <input type="number" id="shopItemPrice" inputmode="decimal" min="0" step="0.01" placeholder="0.00" oninput="updateShopItemTotal()" style="width:100%; padding:9px 10px; border:1.5px solid #e5e7eb; border-radius:10px; font-size:0.85rem; font-weight:800; box-sizing:border-box;">
+            </div>
+        </div>
+        <div id="shopItemTotalLine" style="font-size:0.75rem; font-weight:900; color:#16a34a; text-align:center; margin-bottom:8px;"></div>
+        <button onclick="confirmShopItem()" class="btn-action" style="margin-top:0;">➕ ضيفه للطلبية</button>
+        <button onclick="closeShopItemModal()" style="margin-top:6px; width:100%; background:#94a3b8; color:white; border:none; padding:9px; border-radius:10px; font-weight:800; cursor:pointer;">إلغاء</button>
     </div>
 </div>
 
@@ -425,14 +452,49 @@
         loadBundlesAndSpendOffers();
     });
 
+    let kitchenCategoriesMap = {}; // اسم القسم -> {sortOrder, parentCategory} - لترتيب أغراض الطلبية حسب القسم
+
     async function loadCatalogProducts() {
         try {
-            const snap = await window.getDocs(window.collection(window.db, "products"));
+            const [snap, catSnap] = await Promise.all([
+                window.getDocs(window.collection(window.db, "products")),
+                window.getDocs(window.collection(window.db, "categories")).catch(() => null)
+            ]);
             catalogProducts = [];
             snap.forEach(docSnap => catalogProducts.push({ id: docSnap.id, ...docSnap.data() }));
+            kitchenCategoriesMap = {};
+            if (catSnap) catSnap.forEach(d => { const c = d.data(); if (c && c.name) kitchenCategoriesMap[c.name] = c; });
+            renderKitchenOrders(currentOrdersList); // نعيد الرسم عشان الترتيب حسب الأقسام يتطبّق
         } catch(e) {
             console.error('تعذر تحميل كتالوج المنتجات (خاصية الاستبدال قد لا تعمل):', e);
         }
+    }
+
+    // ترتيب أغراض الطلبية "بالخفاء" حسب أقسام المحل (نفس ترتيب الأقسام بلوحة التحكم)، عشان كل
+    // عامل يجمع أغراض نفس القسم مع بعض. الطلبية نفسها بقاعدة البيانات ما بتتغيّر - بس ترتيب العرض.
+    // أغراض بدون قسم (مثلاً من المحل) بتطلع بالآخر، وجوا نفس القسم بيضل ترتيب الزبون
+    function itemPickKey(item) {
+        const prod = item && item.id ? catalogProducts.find(p => p.id === item.id) : null;
+        const catName = prod && Array.isArray(prod.categories) && prod.categories.length ? prod.categories[0] : null;
+        if (!catName) return [1e9, '', 1e9, ''];
+        const cat = kitchenCategoriesMap[catName];
+        if (cat && cat.parentCategory) {
+            const parent = kitchenCategoriesMap[cat.parentCategory];
+            return [parent ? (Number(parent.sortOrder) || 0) : 1e8, cat.parentCategory, Number(cat.sortOrder) || 0, catName];
+        }
+        return [cat ? (Number(cat.sortOrder) || 0) : 1e8, catName, -1, ''];
+    }
+
+    function getPickingOrder(items) {
+        const keys = (items || []).map(itemPickKey);
+        return (items || []).map((_, i) => i).sort((a, b) => {
+            const ka = keys[a], kb = keys[b];
+            if (ka[0] !== kb[0]) return ka[0] - kb[0];
+            if (ka[1] !== kb[1]) return ka[1].localeCompare(kb[1]);
+            if (ka[2] !== kb[2]) return ka[2] - kb[2];
+            if (ka[3] !== kb[3]) return ka[3].localeCompare(kb[3]);
+            return a - b;
+        });
     }
 
     // عروض الحزمة وعروض "اشتري واحصل على خصم" - حتى لما نضيف منتج نسيه الزبون من المطبخ، نقدر نطبّق
@@ -613,6 +675,8 @@
     function recomputeAllItemPricesWithPromos(orderItems) {
         return orderItems.map(it => {
             if (it.unavailable) return it;
+            // سعر انعدّل يدوياً بالمطبخ (💰) أو غرض من المحل - ما بنرجع نحسبه، بيضل زي ما الموظف حطه
+            if (it.priceLocked || it.shopItem) return it;
             let effective = computeEffectivePriceForOrderItem(it.id, orderItems);
             if (!effective) return it; // منتج مش موجود بالكتالوج (نادر) - نسيبه متل ما هو
             return { ...it, price: Number(effective.unitPrice.toFixed(2)) };
@@ -624,7 +688,7 @@
         // بدل ما نحمّل كل تاريخ الطلبات كل مرة (هذا كان يبطّئ الشاشة مع تراكم الطلبات)
         const activeQuery = window.query(
             window.collection(window.db, "orders"),
-            window.where("status", "in", ["جديد", "new", "قيد التحضير", "جاهز للاستلام"])
+            window.where("status", "in", ["جديد", "new", "قيد التحضير", "جاهز للاستلام", "رجعت للمحل"])
         );
         window.onSnapshot(activeQuery, (snapshot) => {
             let allOrders = [];
@@ -633,11 +697,11 @@
             });
             currentOrdersList = allOrders;
 
-            let activeOrders = allOrders.filter(o => !o.status || o.status === "جديد" || o.status === "new" || o.status === "قيد التحضير" || o.status === "جاهز للاستلام");
+            let activeOrders = allOrders.filter(o => !o.status || o.status === "جديد" || o.status === "new" || o.status === "قيد التحضير" || o.status === "جاهز للاستلام" || o.status === "رجعت للمحل");
             let currentIds = new Set(activeOrders.map(o => o.id));
 
             if (!isFirstSnapshot) {
-                let newOnes = activeOrders.filter(o => !knownActiveOrderIds.has(o.id) && !selfCreatedOrderIds.has(o.id));
+                let newOnes = activeOrders.filter(o => !knownActiveOrderIds.has(o.id) && !selfCreatedOrderIds.has(o.id) && o.status !== 'رجعت للمحل');
                 if (newOnes.length > 0) {
                     newOnes.forEach(o => { if (!pendingNewOrderIds.includes(o.id)) pendingNewOrderIds.push(o.id); });
                     showNewOrderAlert();
@@ -854,7 +918,7 @@
         const container = document.getElementById('kitchenOrdersContainer');
         if(!container) return;
         
-        let activeOrders = orders.filter(o => !o.status || o.status === "جديد" || o.status === "new" || o.status === "قيد التحضير" || o.status === "جاهز للاستلام");
+        let activeOrders = orders.filter(o => !o.status || o.status === "جديد" || o.status === "new" || o.status === "قيد التحضير" || o.status === "جاهز للاستلام" || o.status === "رجعت للمحل");
 
         // ترتيب الطلبات: الأقدم أولاً (أعلى القائمة) عشان ما يتنسى ولا طلب
         activeOrders.sort((a, b) => {
@@ -876,7 +940,8 @@
             let totalQty = 0;
             let itemsCount = (ord.items && Array.isArray(ord.items)) ? ord.items.length : 0;
             if(ord.items && Array.isArray(ord.items)) {
-                ord.items.forEach((item, itemIdx) => {
+                getPickingOrder(ord.items).forEach(itemIdx => {
+                    const item = ord.items[itemIdx]; // itemIdx = مكان الغرض الأصلي بالطلبية (الأزرار بتعتمد عليه)
                     let imgSrc = item.image || item.img || item.imageUrl || item.photo || item.productImage || (item.product && (item.product.image || item.product.img)) || "";
                     let qty = Number(item.qty || item.quantity || 1);
                     let isUnavailable = !!item.unavailable;
@@ -894,12 +959,21 @@
                     let priceHtml = isUnavailable
                         ? `<span style="color:#dc2626; font-weight:800;">🚫 نفذت الكمية - ما بتحسب بالمجموع</span>`
                         : `<span class="product-price">${(Number(item.price) || 0).toFixed(2)} ₪ × ${qty} = ${((Number(item.price) || 0) * qty).toFixed(2)} ₪</span>`;
-                    let addedBadge = (item.addedByStaff && !isUnavailable) ? `<span style="background:#dcfce7; color:#166534; font-size:0.6rem; font-weight:800; padding:1px 6px; border-radius:6px; margin-right:4px;">➕ أضيف لاحقاً</span>` : '';
+                    let addedBadge = (item.shopItem && !isUnavailable)
+                        ? `<span style="background:#ffedd5; color:#9a3412; font-size:0.6rem; font-weight:800; padding:1px 6px; border-radius:6px; margin-right:4px;">🏪 من المحل</span>`
+                        : (item.addedByStaff && !isUnavailable) ? `<span style="background:#dcfce7; color:#166534; font-size:0.6rem; font-weight:800; padding:1px 6px; border-radius:6px; margin-right:4px;">➕ أضيف لاحقاً</span>` : '';
+                    if (item.priceLocked && !item.shopItem && !isUnavailable) {
+                        addedBadge += `<span style="background:#fef3c7; color:#92400e; font-size:0.6rem; font-weight:800; padding:1px 6px; border-radius:6px; margin-right:4px;">💰 سعر معدّل</span>`;
+                        if (item.originalPrice !== undefined && Number(item.originalPrice) !== Number(item.price)) {
+                            priceHtml = `<span style="text-decoration:line-through; color:#94a3b8;">${Number(item.originalPrice).toFixed(2)}</span> ` + priceHtml;
+                        }
+                    }
 
                     let actionsHtml = isUnavailable
                         ? `<button class="item-mini-btn" title="تراجع - رجّع المنتج للطلبية" onclick="restoreOrderItem('${ord.id}', ${itemIdx})">↩️</button>`
                         : `
                             <button class="item-mini-btn" title="تعديل الكمية" onclick="editOrderItemQty('${ord.id}', ${itemIdx})">✏️</button>
+                            <button class="item-mini-btn" title="تعديل السعر" onclick="editOrderItemPrice('${ord.id}', ${itemIdx})">💰</button>
                             <button class="item-mini-btn" title="استبدال المنتج" onclick="openReplaceItemModal('${ord.id}', ${itemIdx})">🔄</button>
                             <button class="item-mini-btn item-mini-btn-danger" title="نفذت الكمية" onclick="markOrderItemUnavailable('${ord.id}', ${itemIdx})">🗑️</button>
                         `;
@@ -925,7 +999,10 @@
             let orderLabel = (ord.orderNumber !== undefined && ord.orderNumber !== null && ord.orderNumber !== '') ? `#${ord.orderNumber}` : `#${index + 1}`;
 
             let currentStatus = ord.status || "جديد";
-            let statusBadgeHtml = currentStatus === 'جاهز للاستلام'
+            let isReturned = currentStatus === 'رجعت للمحل';
+            let statusBadgeHtml = isReturned
+                ? `<span class="status-badge" style="background:#fee2e2; color:#991b1b;">↩️ رجعت للمحل</span>`
+                : currentStatus === 'جاهز للاستلام'
                 ? `<span class="status-badge" style="background:#ede9fe; color:#5b21b6;">🏪 جاهز للاستلام</span>`
                 : currentStatus === 'قيد التحضير'
                 ? `<span class="status-badge status-preparing">🔥 قيد التحضير</span>`
@@ -938,7 +1015,14 @@
 
             let isPickupOrderRow = (ord.fulfillmentType || 'توصيل') === 'استلام ذاتي';
             let allChecked = isOrderFullyChecked(ord) || isPickupOrderRow; // بالاستلام الذاتي مش شرط تشطيب كل المنتجات، الزبون بيجي ونقله ايش ناقص أو نبدله بالمحل
-            let actionButtonHtml = currentStatus === 'جاهز للاستلام'
+            let returnedInfoHtml = isReturned ? `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:10px; padding:8px 10px; font-size:0.72rem; font-weight:800; margin-top:8px;">
+                    ↩️ السائق رجّع الطلبية للمحل${ord.returnedAt ? ` الساعة <span dir="ltr">${escapeHtml(formatTimeIL(tsToMillis(ord.returnedAt)))}</span>` : ''}
+                    ${ord.returnReason ? `<div style="font-weight:600; margin-top:3px;">السبب: ${escapeHtml(ord.returnReason)}</div>` : ''}
+                    <div style="font-weight:600; margin-top:3px; color:#7f1d1d;">رجّع الأغراض عالرفوف وبعدين الغي الطلبية</div>
+                </div>` : '';
+            let actionButtonHtml = isReturned
+                ? `${returnedInfoHtml}<button class="btn-action" style="background:#dc2626;" onclick="cancelReturnedOrder('${ord.id}')">❌ إلغاء الطلبية</button>`
+                : currentStatus === 'جاهز للاستلام'
                 ? `<button class="btn-action" style="background:#7c3aed;" onclick="markPickupCollected('${ord.id}')">✅ تم الاستلام والدفع</button>`
                 : currentStatus === 'قيد التحضير'
                 ? `<button class="btn-action" id="readyBtn_${ord.id}" ${allChecked ? '' : 'disabled'} onclick="markOrderReady('${ord.id}')">✅ ${isPickupOrderRow ? 'تم التجهيز - جاهز للاستلام' : 'تم التحضير - جاهز للتوصيل'}</button>
@@ -963,7 +1047,7 @@
             let compensationBadgeHtml = ord.isCompensation ? `<span style="background:#e0f2fe; border:1px solid #bae6fd; color:#0369a1; font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:8px;">🔁 تعويض عن طلبية #${escapeHtml(ord.compensationForNumber || '')} - بدون دفع</span>` : '';
 
             cardsHtml += `
-                <div class="order-card" style="border-right: 5px solid ${fulfillmentBorderColor}; padding-bottom: ${isExpanded ? '12px' : '8px'};">
+                <div class="order-card" style="border-right: 5px solid ${isReturned ? '#dc2626' : fulfillmentBorderColor}; ${isReturned ? 'background:#fff5f5;' : ''} padding-bottom: ${isExpanded ? '12px' : '8px'};">
                     <div class="order-header" style="cursor:pointer;" onclick="toggleOrderExpanded('${ord.id}')">
                         <span>طلب ${escapeHtml(orderLabel)} - ${escapeHtml(ord.customerName || ord.clientName || 'زبون')} ${statusBadgeHtml}</span>
                         <span style="display:flex; align-items:center; gap:6px;">
@@ -989,7 +1073,7 @@
                     <div class="products-section">
                         <div class="section-label">المنتجات المطلوبة:</div>
                         ${itemsHtml}
-                        <button class="btn-secondary-action" style="margin-top:8px; background:#f0fdf4; color:#166534; border-color:#bbf7d0;" onclick="openAddItemModal('${ord.id}')">➕ إضافة منتج نسيه الزبون</button>
+                        ${isReturned ? '' : `<button class="btn-secondary-action" style="margin-top:8px; background:#f0fdf4; color:#166534; border-color:#bbf7d0;" onclick="openAddItemModal('${ord.id}')">➕ إضافة منتج نسيه الزبون</button>`}
                     </div>
 
                     ${notifyRemovedItemsHtml}
@@ -1049,9 +1133,24 @@
         if (btn) btn.disabled = !allChecked;
         if (hint) hint.style.display = allChecked ? 'none' : 'block';
 
-        // حفظ الحالة بقاعدة البيانات بالخلفية، تضمن استمرارها حتى لو تحدثت الصفحة أو فتحتها من جهاز ثاني
-        window.updateDoc(window.doc(window.db, "orders", orderId), { checkedItems: checkedArr })
-            .catch(e => console.log('تعذر حفظ حالة التعليم بقاعدة البيانات:', e));
+        // حفظ بقاعدة البيانات - بيظهر فوراً عند كل الأجهزة الثانية المفتوحة على المطبخ.
+        // منقرأ أحدث نسخة من قاعدة البيانات ومنغيّر بس هالغرض (transaction) - قبل كان كل جهاز يحفظ
+        // القائمة كاملة زي ما هو شايفها، فلو عاملين شطبوا بنفس الوقت، واحد كان يمحي شطب الثاني
+        const checkedNow = checkboxEl.checked;
+        const ref = window.doc(window.db, "orders", orderId);
+        window.runTransaction(window.db, async (tx) => {
+            const snap = await tx.get(ref);
+            if (!snap.exists()) return;
+            const d = snap.data();
+            const n = (d.items || []).length;
+            const arr = Array.isArray(d.checkedItems) ? d.checkedItems.map(Boolean) : [];
+            while (arr.length < n) arr.push(false);
+            arr[itemIndex] = checkedNow;
+            tx.update(ref, { checkedItems: arr });
+        }).catch(e => {
+            console.error('تعذر حفظ حالة التعليم بقاعدة البيانات:', e);
+            alert('⚠️ ما انحفظ الشطب - تأكد من الإنترنت واشطب مرة ثانية');
+        });
     }
 
     // ===================== إشعارات SMS للزبون عند كل تحديث بحالة طلبيته =====================
@@ -1154,7 +1253,10 @@
         const ord = currentOrdersList.find(o => o.id === orderId);
         if (!ord || !ord.items || !ord.items[itemIdx]) return;
         const item = ord.items[itemIdx];
-        if (!confirm(`تعليم "${item.name || 'المنتج'}" كـ"نفذت الكمية"؟ رح يضل ظاهر بالطلبية (مشطوب) بس ما رح يتحسب بالمجموع، وراح ينعلّم "نفذ" بكل المتجر تلقائياً.`)) return;
+        const confirmMsg = item.shopItem
+            ? `شيل "${item.name || 'الغرض'}" من الطلبية؟ رح يضل ظاهر مشطوب وما بيتحسب بالمجموع.`
+            : `تعليم "${item.name || 'المنتج'}" كـ"نفذت الكمية"؟ رح يضل ظاهر بالطلبية (مشطوب) بس ما رح يتحسب بالمجموع، وراح ينعلّم "نفذ" بكل المتجر تلقائياً.`;
+        if (!confirm(confirmMsg)) return;
         let newItems = ord.items.map((it, i) => i === itemIdx ? { ...it, unavailable: true } : it);
         // شيل هالمنتج ممكن يفكّ مجموعة عرض حزمة كانت كاملة، فباقي القطع لازم ترجع لسعرها العادي
         await ensureFreshBundlesAndSpendOffers();
@@ -1163,13 +1265,114 @@
         await saveOrderItemsUpdate(orderId, newItems, { removedItemsLog: newRemovedLog });
 
         // تحديث المنتج نفسه بقاعدة البيانات "نفذت كميته" - نفس الحقل يلي المتجر والمخزون بيعتمدوا عليه
-        if (item.id) {
+        if (item.id && !item.shopItem) {
             try {
                 await window.updateDoc(window.doc(window.db, "products", item.id), { stockQty: 0 });
             } catch (e) {
                 console.error('تعذر تحديث حالة المخزون للمنتج بقاعدة البيانات:', e);
             }
         }
+    }
+
+    // ===================== تعديل سعر غرض بالطلبية (💰) =====================
+    // التعديل على هالطلبية بس - سعر المنتج بالموقع ما بيتغيّر. السعر بينقفل (priceLocked) عشان لما
+    // تتغيّر كمية غرض ثاني وينعاد حساب العروض، ما يرجع السعر اللي حطيته لحاله
+    async function editOrderItemPrice(orderId, itemIdx) {
+        const ord = currentOrdersList.find(o => o.id === orderId);
+        if (!ord || !ord.items || !ord.items[itemIdx]) return;
+        const item = ord.items[itemIdx];
+        const currentPrice = Number(item.price) || 0;
+        const input = prompt(`السعر الجديد للقطعة من "${item.name || 'المنتج'}" (₪):\nالسعر الحالي: ${currentPrice.toFixed(2)}₪`, currentPrice.toFixed(2));
+        if (input === null) return;
+        const newPrice = parseFloat(String(input).replace(',', '.'));
+        if (isNaN(newPrice) || newPrice < 0) {
+            alert('سعر غير صالح');
+            return;
+        }
+        if (Math.abs(newPrice - currentPrice) < 0.005) return;
+        const qty = Number(item.quantity || item.qty || 1);
+        if (!confirm(`تغيير سعر "${item.name}" من ${currentPrice.toFixed(2)}₪ لـ ${newPrice.toFixed(2)}₪ للقطعة؟\n(× ${qty} = ${(newPrice * qty).toFixed(2)}₪)`)) return;
+        const newItems = ord.items.map((it, i) => i === itemIdx ? {
+            ...it,
+            price: Number(newPrice.toFixed(2)),
+            originalPrice: (it.originalPrice !== undefined ? it.originalPrice : currentPrice), // السعر الأصلي قبل أول تعديل
+            priceLocked: true,
+            priceEditedBy: window.currentStaffEmail || '',
+            priceEditedAt: window.Timestamp ? window.Timestamp.now() : null
+        } : it);
+        await saveOrderItemsUpdate(orderId, newItems);
+    }
+
+    // ===================== غرض من المحل (مش موجود بالموقع) =====================
+    let shopItemMode = 'unit';
+
+    function openShopItemModal() {
+        document.getElementById('shopItemName').value = (document.getElementById('addItemSearchInput').value || '').trim();
+        document.getElementById('shopItemQty').value = '1';
+        document.getElementById('shopItemPrice').value = '';
+        setShopItemMode('unit');
+        document.getElementById('shopItemModal').style.display = 'flex';
+        setTimeout(() => document.getElementById(document.getElementById('shopItemName').value ? 'shopItemPrice' : 'shopItemName').focus(), 50);
+    }
+
+    function closeShopItemModal() {
+        document.getElementById('shopItemModal').style.display = 'none';
+    }
+
+    function setShopItemMode(mode) {
+        shopItemMode = mode;
+        document.getElementById('shopModeUnitBtn').classList.toggle('kitchen-tab-active', mode === 'unit');
+        document.getElementById('shopModeWeightBtn').classList.toggle('kitchen-tab-active', mode === 'weight');
+        document.getElementById('shopItemQtyLabel').innerText = mode === 'weight' ? 'الوزن (كغم)' : 'الكمية';
+        document.getElementById('shopItemPriceLabel').innerText = mode === 'weight' ? 'السعر للكيلو ₪' : 'السعر للحبة ₪';
+        const qtyEl = document.getElementById('shopItemQty');
+        qtyEl.step = mode === 'weight' ? '0.001' : '1';
+        if (mode === 'unit') qtyEl.value = String(Math.max(1, Math.round(Number(qtyEl.value) || 1)));
+        updateShopItemTotal();
+    }
+
+    function readShopItemForm() {
+        const name = document.getElementById('shopItemName').value.trim();
+        const qty = parseFloat(String(document.getElementById('shopItemQty').value).replace(',', '.'));
+        const price = parseFloat(String(document.getElementById('shopItemPrice').value).replace(',', '.'));
+        return { name, qty, price };
+    }
+
+    function updateShopItemTotal() {
+        const { qty, price } = readShopItemForm();
+        const el = document.getElementById('shopItemTotalLine');
+        el.innerText = (qty > 0 && price >= 0 && !isNaN(price)) ? `المجموع: ${(qty * price).toFixed(2)} ₪` : '';
+    }
+
+    async function confirmShopItem() {
+        const { orderId } = addItemContext;
+        const ord = currentOrdersList.find(o => o.id === orderId);
+        if (!ord) return;
+        const { name, qty, price } = readShopItemForm();
+        if (!name) { alert('اكتب اسم الغرض'); return; }
+        if (!(qty > 0)) { alert(shopItemMode === 'weight' ? 'اكتب الوزن' : 'اكتب الكمية'); return; }
+        if (shopItemMode === 'unit' && !Number.isInteger(qty)) { alert('الكمية بالحبة لازم تكون رقم صحيح'); return; }
+        if (isNaN(price) || price < 0) { alert('اكتب السعر'); return; }
+
+        let newItem;
+        const base = {
+            id: 'shop_' + Date.now(),
+            img: '',
+            shopItem: true,       // غرض من المحل - مش مربوط بمنتج بالموقع
+            addedByStaff: true,
+            priceLocked: true
+        };
+        if (shopItemMode === 'weight') {
+            // بالوزن: سطر واحد بسعر الوزن كله، والاسم بيبيّن الوزن وسعر الكيلو
+            const total = Number((qty * price).toFixed(2));
+            newItem = { ...base, name: `${name} (${qty} كغم × ${price.toFixed(2)}₪)`, price: total, quantity: 1, qty: 1, weightKg: qty, pricePerKg: price };
+        } else {
+            newItem = { ...base, name, price: Number(price.toFixed(2)), quantity: qty, qty: qty };
+        }
+
+        closeShopItemModal();
+        closeAddItemModal();
+        await saveOrderItemsUpdate(orderId, [...(ord.items || []), newItem]);
     }
 
     // تراجع عن "نفذت الكمية" - يرجّع المنتج يتحسب بالمجموع عادي (لو انعلّم غلط مثلاً)
@@ -1375,6 +1578,25 @@
 
         closeAddItemModal();
         await saveOrderItemsUpdate(orderId, newItems, existingIdx > -1 ? uncheckedFieldFor(ord, existingIdx) : {});
+    }
+
+    // ===================== طلبية رجعت من السائق (الزبون ما رد) - بتنلغي من المطبخ =====================
+    // منسجلها "ملغية" (مش حذف) عشان تضل بالسجل، ومعها سبب الإرجاع اللي كتبه السائق
+    async function cancelReturnedOrder(orderId) {
+        const ord = currentOrdersList.find(o => o.id === orderId);
+        if (!ord) return;
+        if (!confirm(`إلغاء الطلبية ${getOrderLabelFor(ord)} اللي رجعت للمحل؟\nتأكد إنك رجّعت الأغراض عالرفوف.`)) return;
+        try {
+            await window.updateDoc(window.doc(window.db, "orders", orderId), {
+                status: "ملغية",
+                cancelledAt: window.serverTimestamp(),
+                cancelledBy: "المطبخ",
+                cancelReason: ord.returnReason ? `رجعت من السائق - ${ord.returnReason}` : 'رجعت من السائق'
+            });
+        } catch (e) {
+            console.error(e);
+            alert('تعذر إلغاء الطلبية: ' + (e.message || e));
+        }
     }
 
     // ===================== إلغاء الطلبية بالكامل =====================
@@ -1623,7 +1845,9 @@
                     const tags = [];
                     if (it.unavailable) tags.push(`<span class="today-tag" style="background:#fee2e2; color:#991b1b;">🚫 نفذت</span>`);
                     else if (!ord.isCompensation) tags.push(checked[i] ? `<span class="today-tag" style="background:#dcfce7; color:#166534;">✅ انشطب</span>` : `<span class="today-tag" style="background:#f1f5f9; color:#64748b;">⬜ ما انشطب</span>`);
-                    if (it.addedByStaff) tags.push(`<span class="today-tag" style="background:#dcfce7; color:#166534;">➕ أضيف لاحقاً</span>`);
+                    if (it.shopItem) tags.push(`<span class="today-tag" style="background:#ffedd5; color:#9a3412;">🏪 من المحل</span>`);
+                    else if (it.addedByStaff) tags.push(`<span class="today-tag" style="background:#dcfce7; color:#166534;">➕ أضيف لاحقاً</span>`);
+                    if (it.priceLocked && !it.shopItem) tags.push(`<span class="today-tag" style="background:#fef3c7; color:#92400e;">💰 سعر معدّل${it.originalPrice !== undefined ? ' (كان ' + Number(it.originalPrice).toFixed(2) + ')' : ''}</span>`);
                     if (Number(it.compensatedQty)) tags.push(`<span class="today-tag" style="background:#e0f2fe; color:#0369a1;">🔁 انبعت تعويض ${Number(it.compensatedQty)}</span>`);
                     if (Number(it.refundedQty)) tags.push(`<span class="today-tag" style="background:#fef3c7; color:#92400e;">💸 انرجع سعر ${Number(it.refundedQty)}</span>`);
                     return `<div class="today-item-row" style="${it.unavailable ? 'opacity:0.6;' : ''}">
@@ -1854,7 +2078,8 @@
 
         let itemsRows = '';
         if (ord.items && Array.isArray(ord.items)) {
-            ord.items.forEach(item => {
+            getPickingOrder(ord.items).forEach(i => {
+                const item = ord.items[i];
                 let isUnavailable = !!item.unavailable;
                 let rowStyle = isUnavailable ? 'text-decoration:line-through; color:#999;' : '';
                 itemsRows += `

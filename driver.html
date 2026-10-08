@@ -134,6 +134,7 @@
                     return;
                 }
                 if (gate) gate.style.display = 'none';
+                window.currentStaffEmail = user.email || '';
                 if (!appBooted) {
                     appBooted = true;
                     window.dispatchEvent(new Event('firebase-ready'));
@@ -222,7 +223,10 @@
                     </div>
                 `;
             }
-            let addedBadge = i.addedByStaff ? `<span style="background:#dcfce7; color:#166534; font-size:0.6rem; font-weight:800; padding:1px 6px; border-radius:6px; margin-left:4px;">➕ أضيف لاحقاً</span>` : '';
+            let addedBadge = i.shopItem
+                ? `<span style="background:#ffedd5; color:#9a3412; font-size:0.6rem; font-weight:800; padding:1px 6px; border-radius:6px; margin-left:4px;">🏪 من المحل</span>`
+                : i.addedByStaff ? `<span style="background:#dcfce7; color:#166534; font-size:0.6rem; font-weight:800; padding:1px 6px; border-radius:6px; margin-left:4px;">➕ أضيف لاحقاً</span>` : '';
+            if (i.priceLocked && !i.shopItem) addedBadge += `<span style="background:#fef3c7; color:#92400e; font-size:0.6rem; font-weight:800; padding:1px 6px; border-radius:6px; margin-left:4px;">💰 سعر معدّل</span>`;
             return `
                 <div style="display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid #eee;">
                     <img src="${escapeHtml(i.img || '')}" style="width:38px; height:38px; border-radius:8px; object-fit:cover; border:1px solid #eee; flex-shrink:0; background:white;" onerror="this.style.display='none'">
@@ -451,7 +455,6 @@
                             <span>${seqBadgeHtml}طلب ${orderLabel} - ${escapeHtml(ord.customerName) || 'زبون'} ${statusBadgeHtml}</span>
                             <span style="display:flex; align-items:center; gap:6px;">
                                 <span style="color: #16a34a;">${ord.total || 0} ₪</span>
-                                <button onclick="cancelOrderByDriver('${ord.id}')" title="إلغاء الطلبية" style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:6px; width:22px; height:22px; font-size:11px; line-height:1; cursor:pointer; flex-shrink:0;">❌</button>
                             </span>
                         </div>
                         ${compHtml}
@@ -466,6 +469,7 @@
                         ${delayHtml}
 
                         <button class="btn-complete" onclick="markOrderDelivered('${ord.id}')">تأكيد تسليم الطلب (مكتمل) ✅</button>
+                        <button class="btn-complete" style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca; margin-top:8px;" onclick="returnOrderToShop('${ord.id}')">↩️ إرجاع الطلبية للمحل</button>
                     </div>
                 `;
             }
@@ -650,6 +654,27 @@
     }
 
     const deliverInProgress = new Set();
+    // الزبون ما رد / ما استلم - الطلبية بترجع لشاشة المطبخ، ومن هناك بتنلغي بعد ما الأغراض ترجع عالرفوف
+    async function returnOrderToShop(orderId) {
+        const ord = currentOrdersList.find(o => o.id === orderId);
+        if (!ord) return;
+        const label = ord.orderNumber ? `#${ord.orderNumber}` : '';
+        const reason = prompt(`ليش الطلبية ${label} راجعة للمحل؟`, 'الزبون ما رد');
+        if (reason === null) return;
+        if (!confirm(`إرجاع الطلبية ${label} للمحل؟ رح تختفي من شاشتك وتظهر بالمطبخ.`)) return;
+        try {
+            await window.updateDoc(window.doc(window.db, "orders", orderId), {
+                status: "رجعت للمحل",
+                returnedAt: window.serverTimestamp(),
+                returnedBy: window.currentStaffEmail || 'السائق',
+                returnReason: reason.trim()
+            });
+        } catch(e) {
+            console.error(e);
+            alert("خطأ أثناء إرجاع الطلبية: " + (e.message || e));
+        }
+    }
+
     async function markOrderDelivered(orderId) {
         if (deliverInProgress.has(orderId)) return;
         if(confirm("هل أنت متأكد من تسليم الطلب بنجاح وانتقاله للأرشيف؟")) {
