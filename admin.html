@@ -1818,6 +1818,16 @@
         window.onSnapshot(window.collection(window.db, "appNotificationTokens"), (snapshot) => {
             const el = document.getElementById('registeredDevicesCount');
             if (el) el.innerText = snapshot.size;
+        }, (err) => {
+            // قبل: لو قواعد Firestore رفضت القراءة، الرقم كان يضل "..." للأبد بدون أي تفسير
+            console.error('تعذر قراءة عدد الأجهزة المسجّلة:', err);
+            const el = document.getElementById('registeredDevicesCount');
+            if (el) {
+                el.style.fontSize = '0.75rem';
+                el.innerText = (err && err.code === 'permission-denied')
+                    ? '⚠️ قواعد Firestore مش سامحة بقراءة appNotificationTokens'
+                    : '⚠️ تعذر التحميل: ' + ((err && err.message) || err);
+            }
         });
     }
 
