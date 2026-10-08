@@ -724,6 +724,9 @@
         .cart-modal-content { background: white; width: 100%; border-top-left-radius: 22px; border-top-right-radius: 22px; padding: 20px; max-height: 94vh; max-height: 94dvh; overflow-y: auto; }
         /* قائمة منتجات السلة بتاخد كل الطول المتاح بالشاشة (قبل كانت ثابتة 260px = 4 منتجات بس).
            الـ 300px هي تقريباً مساحة العنوان والخصم والمجموع وزر "التالي" تحتها */
+        /* عنوان النافذة وزر ✕ بيضلّوا ثابتين فوق وإنت بتنزل بالمنتجات - قبل كان الزبون لازم يطلع لفوق عشان يسكّر */
+        .modal-sticky-head { position: sticky; top: -20px; z-index: 6; background: white; margin: -20px -20px 10px !important; padding: 16px 20px 10px; border-bottom: 1px solid #f1f5f9; border-top-left-radius: 22px; border-top-right-radius: 22px; }
+        .modal-sticky-head button { width: 34px !important; height: 34px !important; font-size: 16px !important; flex-shrink: 0; }
         .cart-items-scroll { max-height: max(260px, calc(94vh - 300px)); max-height: max(260px, calc(94dvh - 300px)); }
         
         .image-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 300; max-width: 480px; margin: 0 auto; padding: 20px; }
@@ -1019,7 +1022,7 @@
 <!-- نافذة اختيار منتجات عرض الحزمة -->
 <div class="cart-modal" id="bundleModal" onclick="closeBundleModal(event)">
     <div class="cart-modal-content" onclick="event.stopPropagation()" style="border-radius: 22px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div class="modal-sticky-head" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h3 id="bundleModalTitle" style="font-size: 16.5px; font-weight: 900; color: var(--primary-green);"></h3>
             <button onclick="closeBundleModal()" style="background: #f1f5f9; border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 15px; cursor: pointer; color: #64748b;">✕</button>
         </div>
@@ -1041,7 +1044,7 @@
 <!-- نافذة اختيار النكهة/النوع من عائلة منتجات (بطاقة وحدة بقسمها بدل كل النكهات فرادى) -->
 <div class="cart-modal" id="productGroupModal" onclick="closeProductGroupModal(event)">
     <div class="cart-modal-content" onclick="event.stopPropagation()" style="border-radius: 22px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div class="modal-sticky-head" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h3 id="productGroupModalTitle" style="font-size: 16.5px; font-weight: 900; color: var(--primary-green);"></h3>
             <button onclick="closeProductGroupModal()" style="background: #f1f5f9; border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 15px; cursor: pointer; color: #64748b;">✕</button>
         </div>
@@ -1053,7 +1056,7 @@
 <!-- نافذة اختيار النكهة/النوع بالعروض المرتبطة -->
 <div class="cart-modal" id="offerGroupModal" onclick="closeOfferGroupModal(event)">
     <div class="cart-modal-content" onclick="event.stopPropagation()" style="border-radius: 22px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div class="modal-sticky-head" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h3 id="offerGroupModalTitle" style="font-size: 16.5px; font-weight: 900; color: var(--primary-green);"></h3>
             <button onclick="closeOfferGroupModal()" style="background: #f1f5f9; border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 15px; cursor: pointer; color: #64748b;">✕</button>
         </div>
@@ -1161,7 +1164,7 @@
 <!-- نافذة السلة والدفع -->
 <div class="cart-modal" id="cartModal">
     <div class="cart-modal-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div class="modal-sticky-head" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h3 style="font-size: 15px; font-weight: 900; color: var(--primary-green);" id="cartModalTitle">🛒 مراجعة السلة والمنتجات</h3>
             <button onclick="closeCartModal()" style="background:none; border:none; font-size: 17.5px; cursor:pointer; font-weight: 900;">✕</button>
         </div>
