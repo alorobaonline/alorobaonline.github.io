@@ -326,7 +326,7 @@
 
     <div id="todayOrdersSection" style="display:none;">
         <input type="text" id="todaySearchInput" placeholder="🔍 دور برقم الطلبية أو تلفون الزبون أو اسمه..." oninput="renderTodayOrders()" style="width:100%; padding:10px 12px; border:1.5px solid #e5e7eb; border-radius:10px; font-size:0.8rem; font-weight:600; margin-bottom:10px; box-sizing:border-box;">
-        <div style="font-size: 0.68rem; color: #6b7280; margin-bottom: 8px;">الطلبيات اللي انسلّمت اليوم (بتتصفّر لحالها بنص الليل). لو زبون اشتكى من غرض ناقص، افتح طلبيته واكبس "⚠️ الزبون اشتكى".</div>
+        <div style="font-size: 0.68rem; color: #6b7280; margin-bottom: 8px;">الطلبيات اللي انسلّمت أو انلغت اليوم (بتتصفّر لحالها بنص الليل). لو زبون اشتكى من غرض ناقص، افتح طلبيته واكبس "⚠️ الزبون اشتكى".</div>
         <div id="todayOrdersContainer">
             <p style="text-align: center; color: #888; font-size: 0.75rem;">جاري تحميل طلبيات اليوم...</p>
         </div>
@@ -1733,6 +1733,9 @@
     let currentKitchenTab = 'active';
     let todayOrdersList = [];
     let todayUnsub = null;
+    let todayCancelledUnsub = null;
+    let todayCompletedArr = [];
+    let todayCancelledArr = [];
     let todayListenerDayKey = null;
     let expandedTodayIds = new Set();
     let selfCreatedOrderIds = new Set(); // طلبيات تعويض عملناها من هالجهاز - ما بدنا ترن كإنها طلبية زبون جديدة
@@ -1773,11 +1776,38 @@
         return guess - (asLocal - guess);
     }
 
+    function orderDoneMillis(o) {
+        return o.status === 'ملغية' ? tsToMillis(o.cancelledAt) : tsToMillis(o.completedAt);
+    }
+
+    // بيدمج المكتملة والملغية اليوم بقائمة وحدة، الأحدث فوق
+    function mergeTodayLists() {
+        const arr = [...todayCompletedArr, ...todayCancelledArr];
+        arr.sort((a, b) => orderDoneMillis(b) - orderDoneMillis(a));
+        todayOrdersList = arr;
+        const cnt = document.getElementById('todayTabCount');
+        if (cnt) cnt.innerText = arr.length ? `(${arr.length})` : '';
+        if (currentKitchenTab === 'today') renderTodayOrders();
+    }
+
     function initTodayOrdersListener() {
         const key = todayKeyLocal();
         if (todayUnsub && todayListenerDayKey === key) return;
         if (todayUnsub) { todayUnsub(); todayUnsub = null; }
+        if (todayCancelledUnsub) { todayCancelledUnsub(); todayCancelledUnsub = null; }
+        todayCompletedArr = [];
+        todayCancelledArr = [];
         todayListenerDayKey = key;
+        // الطلبيات الملغية اليوم (مثلاً اللي رجعت من السائق وانلغت بالمطبخ) - بتظهر كمان بطلبيات اليوم
+        todayCancelledUnsub = window.onSnapshot(window.query(
+            window.collection(window.db, "orders"),
+            window.where("cancelledAt", ">=", window.Timestamp.fromMillis(israelMidnightUtcMs()))
+        ), (snap) => {
+            const arr = [];
+            snap.forEach(d => { const o = { id: d.id, ...d.data() }; if (o.status === 'ملغية') arr.push(o); });
+            todayCancelledArr = arr;
+            mergeTodayLists();
+        }, (err) => console.error('خطأ بتحميل الطلبيات الملغية اليوم:', err));
         // بس فلتر على وقت الإكمال (completedAt) - ما بيحتاج فهرس (index) خاص بـ Firebase
         const q = window.query(
             window.collection(window.db, "orders"),
@@ -1786,11 +1816,8 @@
         todayUnsub = window.onSnapshot(q, (snap) => {
             const arr = [];
             snap.forEach(d => { const o = { id: d.id, ...d.data() }; if (o.status === 'مكتمل') arr.push(o); });
-            arr.sort((a, b) => tsToMillis(b.completedAt) - tsToMillis(a.completedAt)); // الأحدث فوق
-            todayOrdersList = arr;
-            const cnt = document.getElementById('todayTabCount');
-            if (cnt) cnt.innerText = arr.length ? `(${arr.length})` : '';
-            if (currentKitchenTab === 'today') renderTodayOrders();
+            todayCompletedArr = arr;
+            mergeTodayLists();
         }, (err) => {
             console.error('خطأ بتحميل طلبيات اليوم:', err);
             const c = document.getElementById('todayOrdersContainer');
@@ -1825,7 +1852,7 @@
         });
 
         if (list.length === 0) {
-            c.innerHTML = `<p style="text-align:center; color:#888; font-size:0.75rem; padding:20px;">${qRaw ? 'ما في طلبية مطابقة للبحث' : 'لسا ما انسلّمت ولا طلبية اليوم'}</p>`;
+            c.innerHTML = `<p style="text-align:center; color:#888; font-size:0.75rem; padding:20px;">${qRaw ? 'ما في طلبية مطابقة للبحث' : 'لسا ما في طلبيات مكتملة أو ملغية اليوم'}</p>`;
             return;
         }
 
@@ -1834,6 +1861,8 @@
             const isOpen = expandedTodayIds.has(ord.id);
             const isPickup = (ord.fulfillmentType || 'توصيل') === 'استلام ذاتي';
             const complaints = Array.isArray(ord.complaints) ? ord.complaints : [];
+            const isCancelled = ord.status === 'ملغية';
+            const cancelledBadge = isCancelled ? `<span class="today-tag" style="background:#fee2e2; color:#991b1b;">❌ ملغية${ord.returnedAt ? ' - رجعت من السائق' : ''}</span>` : '';
             const compBadge = ord.isCompensation ? `<span class="today-tag" style="background:#e0f2fe; color:#0369a1;">🔁 تعويض</span>` : '';
             const complaintBadge = complaints.length ? `<span class="today-tag" style="background:#fef3c7; color:#92400e;">⚠️ ${complaints.length} شكوى</span>` : '';
 
@@ -1865,7 +1894,12 @@
                     </div>`).join('')}
                 </div>` : '';
 
-                const canComplain = !ord.isCompensation && (ord.items || []).some(it => !it.unavailable && itemAvailableForComplaint(it) > 0);
+                const cancelInfoHtml = isCancelled ? `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:10px; padding:8px 10px; font-size:0.7rem; font-weight:700; margin-top:6px;">
+                    ${ord.returnedAt ? `↩️ رجعت من السائق الساعة <span dir="ltr">${escapeHtml(formatTimeIL(tsToMillis(ord.returnedAt)))}</span><br>` : ''}
+                    ❌ انلغت الساعة <span dir="ltr">${escapeHtml(formatTimeIL(tsToMillis(ord.cancelledAt)))}</span>${ord.cancelledBy ? ' (' + escapeHtml(ord.cancelledBy) + ')' : ''}
+                    ${(ord.returnReason || ord.cancelReason) ? `<br>السبب: ${escapeHtml(ord.returnReason || ord.cancelReason)}` : ''}
+                </div>` : '';
+                const canComplain = !isCancelled && !ord.isCompensation && (ord.items || []).some(it => !it.unavailable && itemAvailableForComplaint(it) > 0);
                 bodyHtml = `
                     <div class="order-info" style="margin-top:6px;">
                         <p><strong>الهاتف:</strong> ${escapeHtml(ord.customerPhone || ord.phone || '')}</p>
@@ -1873,21 +1907,22 @@
                         ${ord.isCompensation ? `<p style="color:#0369a1; font-weight:800;">🔁 طلبية تعويض عن طلبية #${escapeHtml(ord.compensationForNumber || '')}</p>` : ''}
                         ${(ord.notes && !ord.isCompensation) ? `<div class="order-notes">📝 ملاحظة الزبون: ${escapeHtml(ord.notes)}</div>` : ''}
                     </div>
+                    ${cancelInfoHtml}
                     <div>${itemsHtml}</div>
                     ${historyHtml}
                     ${canComplain ? `<button class="btn-action" style="background:#f59e0b;" onclick="openComplaintModal('${ord.id}')">⚠️ الزبون اشتكى - في غرض ناقص</button>` : ''}
                 `;
             }
 
-            return `<div class="order-card" style="border-right:5px solid ${complaints.length ? '#f59e0b' : '#94a3b8'};">
+            return `<div class="order-card" style="border-right:5px solid ${isCancelled ? '#dc2626' : complaints.length ? '#f59e0b' : '#94a3b8'}; ${isCancelled ? 'background:#fff5f5;' : ''}">
                 <div class="order-header" style="cursor:pointer; border-bottom:${isOpen ? '' : 'none'}; margin-bottom:${isOpen ? '' : '0'}; padding-bottom:${isOpen ? '' : '0'};" onclick="toggleTodayExpanded('${ord.id}')">
-                    <span>طلب ${escapeHtml(label)} - ${escapeHtml(ord.customerName || ord.clientName || 'زبون')} ${compBadge}${complaintBadge}</span>
+                    <span>طلب ${escapeHtml(label)} - ${escapeHtml(ord.customerName || ord.clientName || 'زبون')} ${cancelledBadge}${compBadge}${complaintBadge}</span>
                     <span style="display:flex; align-items:center; gap:6px;">
-                        <span style="color:#16a34a;">${(Number(ord.total) || 0).toFixed(2)} ₪</span>
+                        <span style="color:${isCancelled ? '#94a3b8; text-decoration:line-through' : '#16a34a'};">${(Number(ord.total) || 0).toFixed(2)} ₪</span>
                         <span style="font-size:0.7rem; color:#94a3b8;">${isOpen ? '▲' : '▼'}</span>
                     </span>
                 </div>
-                <div style="font-size:0.66rem; color:#6b7280; margin-top:4px;">${isPickup ? '🏪 استلام ذاتي' : '🚚 توصيل'} • ✅ انسلّمت الساعة <span dir="ltr">${escapeHtml(formatTimeIL(tsToMillis(ord.completedAt)))}</span></div>
+                <div style="font-size:0.66rem; color:#6b7280; margin-top:4px;">${isPickup ? '🏪 استلام ذاتي' : '🚚 توصيل'} • ${isCancelled ? '❌ انلغت' : '✅ انسلّمت'} الساعة <span dir="ltr">${escapeHtml(formatTimeIL(orderDoneMillis(ord)))}</span></div>
                 ${bodyHtml}
             </div>`;
         }).join('');
