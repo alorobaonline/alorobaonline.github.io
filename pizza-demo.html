@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<title>مكسيكاني وبيتسا أم الفحم - رهط</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#e01a2b;
+  --red-dark:#b3121f;
+  --ink:#141414;
+  --ink-2:#4a4a4a;
+  --muted:#8a8a8a;
+  --bg:#f6f4f1;
+  --card:#ffffff;
+  --line:#ececec;
+  --green:#1a9c53;
+  --radius:18px;
+  --shadow:0 4px 18px rgba(0,0,0,.07);
+  --shadow-lg:0 10px 34px rgba(0,0,0,.14);
+  --maxw:560px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:'Cairo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--ink);
+  padding-bottom:96px;
+  overflow-x:hidden;
+}
+.wrap{max-width:var(--maxw);margin:0 auto;position:relative;background:var(--bg);min-height:100vh}
+img{display:block;max-width:100%}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+/* ============ الغلاف ============ */
+.cover{position:relative;height:230px;overflow:hidden;background:#2a2320}
+.cover img{width:100%;height:100%;object-fit:cover}
+.cover::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 38%,rgba(0,0,0,.25) 100%)}
+.topbar{
+  position:absolute;top:0;left:0;right:0;z-index:5;
+  display:flex;align-items:center;gap:10px;padding:14px 14px 0;
+}
+.round-btn{
+  width:46px;height:46px;flex:none;border-radius:50%;
+  background:rgba(255,255,255,.93);backdrop-filter:blur(6px);
+  display:grid;place-items:center;box-shadow:0 2px 10px rgba(0,0,0,.18);
+  font-size:19px;transition:transform .15s;
+}
+.round-btn:active{transform:scale(.9)}
+.searchbar{
+  flex:1;height:46px;border-radius:999px;
+  background:rgba(255,255,255,.93);backdrop-filter:blur(6px);
+  display:flex;align-items:center;gap:8px;padding:0 16px;
+  box-shadow:0 2px 10px rgba(0,0,0,.18);
+}
+.searchbar input{
+  flex:1;border:none;background:none;outline:none;
+  font-family:inherit;font-size:15px;color:var(--ink);
+}
+.searchbar input::placeholder{color:#9a9a9a}
+
+/* ============ كرت المعلومات ============ */
+.info-shell{margin-top:-46px;position:relative;z-index:6;padding:0 12px}
+.info-card{
+  background:var(--card);border-radius:24px;box-shadow:var(--shadow);
+  padding:48px 18px 18px;position:relative;
+}
+.logo-badge{
+  position:absolute;top:-42px;left:50%;transform:translateX(-50%);
+  width:84px;height:84px;border-radius:50%;
+  background:#111;border:5px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.2);
+  display:grid;place-items:center;overflow:hidden;text-align:center;
+}
+.logo-badge .lg-txt{color:#fff;font-weight:900;font-size:10px;line-height:1.25;padding:4px}
+.logo-badge .lg-txt b{color:#ff3b4a;display:block;font-size:11px}
+.info-actions{position:absolute;top:14px;left:16px;right:16px;display:flex;justify-content:space-between;font-size:20px;color:#2b2b2b}
+.info-actions button{opacity:.75;width:30px;height:30px;border-radius:50%;background:#f2f0ee;display:grid;place-items:center}
+
+.rest-name{font-size:26px;font-weight:900;text-align:center;margin:0 0 4px;letter-spacing:-.3px}
+.rest-addr{text-align:center;color:var(--ink-2);font-size:14px;margin:0 0 8px}
+.status{text-align:center;font-weight:700;font-size:15px;margin-bottom:14px}
+.status.open{color:var(--green)}
+.status.closed{color:var(--red)}
+
+.meta-row{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
+  border-top:1px solid var(--line);padding-top:16px;
+}
+.meta{text-align:center}
+.meta .ic{
+  width:46px;height:46px;border-radius:50%;background:#f2f0ee;
+  display:grid;place-items:center;margin:0 auto 8px;font-size:20px;
+}
+.meta .v{font-weight:700;font-size:15px}
+.meta .s{font-size:12.5px;color:var(--muted);margin-top:2px}
+.meta .s del{color:#b9b9b9;margin-inline-start:7px}
+.ltr{direction:ltr;unicode-bidi:isolate;display:inline-block}
+.meta .s .now{color:var(--red);font-weight:700}
+
+.promos{margin-top:14px;display:flex;flex-direction:column;gap:9px}
+.promo{
+  background:#f4f3f7;border-radius:14px;padding:13px 14px;
+  display:flex;align-items:center;gap:11px;font-size:14px;font-weight:600;line-height:1.5;
+}
+.promo .pi{font-size:19px;flex:none}
+
+/* ============ شريط الأقسام ============ */
+.cats{
+  position:sticky;top:0;z-index:20;background:var(--bg);
+  padding:12px 0 10px;margin-top:16px;
+}
+.cats.stuck{box-shadow:0 6px 16px rgba(0,0,0,.07)}
+.cats-scroll{display:flex;gap:8px;overflow-x:auto;padding:0 12px;scrollbar-width:none}
+.cats-scroll::-webkit-scrollbar{display:none}
+.cat-chip{
+  flex:none;padding:9px 16px;border-radius:999px;background:#fff;
+  font-size:14px;font-weight:700;color:var(--ink-2);border:1.5px solid var(--line);
+  white-space:nowrap;transition:.15s;
+}
+.cat-chip.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* ============ العناوين ============ */
+.sec-head{display:flex;align-items:center;justify-content:space-between;padding:18px 14px 10px}
+.sec-head h2{margin:0;font-size:20px;font-weight:900}
+.see-all{background:#ffe9eb;color:var(--red);font-weight:700;font-size:13px;padding:7px 14px;border-radius:999px}
+
+/* ============ الأكثر مبيعاً (أفقي) ============ */
+.hscroll{display:flex;gap:12px;overflow-x:auto;padding:4px 14px 10px;scrollbar-width:none}
+.hscroll::-webkit-scrollbar{display:none}
+.hcard{
+  flex:none;width:168px;background:var(--card);border-radius:var(--radius);
+  overflow:hidden;box-shadow:var(--shadow);position:relative;
+}
+.hcard .ph{height:120px;position:relative;overflow:hidden}
+.hcard .ph img{width:100%;height:100%;object-fit:cover}
+.hcard .body{padding:10px 11px 12px}
+.hcard .nm{font-size:14px;font-weight:700;line-height:1.35;height:38px;overflow:hidden}
+.hcard .pr{margin-top:6px;font-weight:900;font-size:16px}
+.badges{position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:5px;align-items:flex-end;z-index:2}
+.bdg{
+  font-size:11px;font-weight:800;padding:4px 9px;border-radius:8px;
+  background:#fff6d8;color:#8a6200;box-shadow:0 1px 4px rgba(0,0,0,.12);
+}
+.bdg.sale{background:var(--red);color:#fff}
+.old{color:#b4b4b4;text-decoration:line-through;font-weight:600;font-size:13px;margin-inline-start:6px}
+
+/* ============ شبكة المنتجات ============ */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:4px 14px 10px}
+.card{
+  background:var(--card);border-radius:var(--radius);overflow:hidden;
+  box-shadow:var(--shadow);display:flex;flex-direction:column;position:relative;
+  transition:transform .12s;
+}
+.card:active{transform:scale(.98)}
+.card .ph{height:128px;position:relative;overflow:hidden;background:#eee}
+.card .ph img{width:100%;height:100%;object-fit:cover}
+.card .body{padding:10px 11px 12px;display:flex;flex-direction:column;flex:1}
+.card .nm{font-size:14.5px;font-weight:700;line-height:1.35}
+.card .ds{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.45;height:34px;overflow:hidden}
+.card .foot{display:flex;align-items:center;justify-content:space-between;margin-top:9px}
+.card .pr{font-weight:900;font-size:16.5px}
+.add-btn{
+  width:34px;height:34px;border-radius:11px;background:var(--ink);color:#fff;
+  font-size:20px;font-weight:700;display:grid;place-items:center;line-height:0;
+}
+
+/* ============ نافذة المنتج ============ */
+.sheet-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:60;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.sheet-bg.on{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:61;
+  max-width:var(--maxw);margin:0 auto;
+  background:var(--bg);border-radius:26px 26px 0 0;
+  max-height:94vh;display:flex;flex-direction:column;
+  transform:translateY(102%);transition:transform .3s cubic-bezier(.3,.8,.3,1);
+  box-shadow:var(--shadow-lg);
+}
+.sheet.on{transform:translateY(0)}
+.sheet-close{
+  position:absolute;top:12px;left:12px;z-index:3;width:38px;height:38px;border-radius:50%;
+  background:rgba(255,255,255,.95);display:grid;place-items:center;font-size:17px;box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+.sheet-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1}
+.sheet-hero{height:200px;position:relative;overflow:hidden;background:#ddd}
+.sheet-hero img{width:100%;height:100%;object-fit:cover}
+.sheet-body{padding:16px 16px 20px}
+.sheet-body h3{margin:0 0 6px;font-size:22px;font-weight:900}
+.sheet-body .ds{color:var(--ink-2);font-size:14px;line-height:1.6;margin:0 0 16px}
+
+.opt-group{background:#fff;border-radius:16px;padding:4px 14px;margin-bottom:12px;box-shadow:var(--shadow)}
+.opt-head{display:flex;align-items:center;justify-content:space-between;padding:13px 0 10px}
+.opt-head .t{font-weight:800;font-size:15.5px}
+.opt-head .req{font-size:11px;font-weight:700;background:#ffe9eb;color:var(--red);padding:3px 9px;border-radius:7px}
+.opt-head .opt{font-size:11px;font-weight:700;background:#eee;color:var(--muted);padding:3px 9px;border-radius:7px}
+.opt{
+  display:flex;align-items:center;gap:11px;padding:11px 0;
+  border-top:1px solid #f3f3f3;font-size:14.5px;
+}
+.opt .mark{
+  width:22px;height:22px;flex:none;border-radius:50%;border:2px solid #d2d2d2;
+  display:grid;place-items:center;transition:.15s;
+}
+.opt.sq .mark{border-radius:7px}
+.opt.sel .mark{border-color:var(--red);background:var(--red)}
+.opt.sel .mark::after{content:'✓';color:#fff;font-size:12px;font-weight:900}
+.opt .lb{flex:1;font-weight:600}
+.opt .pp{color:var(--muted);font-weight:700;font-size:13.5px}
+
+.note-box{background:#fff;border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
+.note-box label{font-weight:800;font-size:15.5px;display:block;margin-bottom:9px}
+.note-box textarea{
+  width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px;
+  font-family:inherit;font-size:14px;resize:none;outline:none;
+}
+.note-box textarea:focus{border-color:var(--ink)}
+
+.sheet-foot{
+  padding:12px 16px calc(14px + env(safe-area-inset-bottom));
+  background:#fff;border-top:1px solid var(--line);
+  display:flex;align-items:center;gap:12px;
+}
+.qty{display:flex;align-items:center;gap:4px;background:#f2f0ee;border-radius:13px;padding:4px}
+.qty button{width:36px;height:38px;font-size:21px;font-weight:700;display:grid;place-items:center;border-radius:10px}
+.qty button:active{background:#e2dfdc}
+.qty .n{min-width:28px;text-align:center;font-weight:900;font-size:17px}
+.cta{
+  flex:1;height:52px;border-radius:15px;background:var(--red);color:#fff;
+  font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.cta:active{background:var(--red-dark)}
+.cta:disabled{background:#c9c9c9}
+
+/* ============ شريط السلة ============ */
+.cartbar{
+  position:fixed;bottom:0;left:0;right:0;z-index:40;
+  max-width:var(--maxw);margin:0 auto;
+  padding:10px 14px calc(12px + env(safe-area-inset-bottom));
+  transform:translateY(130%);transition:transform .28s cubic-bezier(.3,.8,.3,1);
+}
+.cartbar.on{transform:translateY(0)}
+.cartbar-in{
+  background:var(--ink);color:#fff;border-radius:17px;height:58px;
+  display:flex;align-items:center;justify-content:space-between;padding:0 16px;
+  box-shadow:var(--shadow-lg);
+}
+.cartbar .cnt{
+  background:rgba(255,255,255,.18);border-radius:9px;padding:4px 10px;
+  font-weight:800;font-size:14px;
+}
+.cartbar .lbl{font-weight:800;font-size:16px}
+.cartbar .tot{font-weight:900;font-size:18px}
+
+/* ============ السلة ============ */
+.cart-item{display:flex;gap:11px;padding:13px 0;border-bottom:1px solid #f0f0f0}
+.cart-item .ph{width:62px;height:62px;border-radius:13px;overflow:hidden;flex:none;background:#eee}
+.cart-item .ph img{width:100%;height:100%;object-fit:cover}
+.cart-item .mid{flex:1;min-width:0}
+.cart-item .nm{font-weight:700;font-size:14.5px}
+.cart-item .sub{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+.cart-item .rowb{display:flex;align-items:center;justify-content:space-between;margin-top:7px}
+.cart-item .pr{font-weight:900;font-size:15px}
+.miniqty{display:flex;align-items:center;gap:2px;background:#f2f0ee;border-radius:10px;padding:2px}
+.miniqty button{width:28px;height:28px;font-size:17px;font-weight:700;display:grid;place-items:center;border-radius:8px}
+.miniqty .n{min-width:22px;text-align:center;font-weight:800;font-size:14px}
+
+.seg{display:flex;background:#eceae7;border-radius:14px;padding:4px;margin-bottom:14px}
+.seg button{flex:1;height:42px;border-radius:11px;font-weight:800;font-size:14.5px;color:var(--ink-2)}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 7px rgba(0,0,0,.09)}
+
+.sum{background:#fff;border-radius:16px;padding:14px 16px;box-shadow:var(--shadow);margin-top:14px}
+.sum .r{display:flex;justify-content:space-between;padding:7px 0;font-size:14.5px;color:var(--ink-2)}
+.sum .r.total{
+  border-top:1px solid var(--line);margin-top:7px;padding-top:12px;
+  font-size:18px;font-weight:900;color:var(--ink);
+}
+.hint{font-size:12.5px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.6}
+
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty .e{font-size:54px;margin-bottom:14px}
+
+.field{margin-bottom:12px}
+.field label{display:block;font-weight:700;font-size:14px;margin-bottom:6px}
+.field input{
+  width:100%;height:48px;border:1.5px solid var(--line);border-radius:13px;
+  padding:0 13px;font-family:inherit;font-size:15px;outline:none;background:#fff;
+}
+.field input:focus{border-color:var(--ink)}
+
+.closed-note{
+  background:#fff1f2;color:var(--red-dark);border-radius:14px;padding:13px;
+  font-size:13.5px;font-weight:700;text-align:center;margin-bottom:14px;line-height:1.6;
+}
+.demo-flag{
+  background:#fff8e1;border:1.5px dashed #e0b73a;color:#7a5c00;
+  border-radius:14px;padding:12px 14px;margin:14px;font-size:13px;line-height:1.7;font-weight:600;
+}
+.foot-note{text-align:center;padding:26px 20px 36px;color:var(--muted);font-size:12.5px;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- الغلاف -->
+  <div class="cover">
+    <img id="coverImg" alt="">
+    <div class="topbar">
+      <button class="round-btn" onclick="openCart()" aria-label="السلة">🛒</button>
+      <div class="searchbar">
+        <span>🔍</span>
+        <input id="search" type="search" placeholder="البحث عن منتجات" oninput="onSearch()">
+      </div>
+      <button class="round-btn" onclick="shareRest()" aria-label="مشاركة">↗</button>
+    </div>
+  </div>
+
+  <!-- كرت المعلومات -->
+  <div class="info-shell">
+    <div class="info-card">
+      <div class="logo-badge">
+        <div class="lg-txt">مكسيكاني<b>وبيتسا</b>أم الفحم</div>
+      </div>
+      <div class="info-actions">
+        <button onclick="toggleFav(this)" aria-label="مفضلة">🤍</button>
+        <button onclick="openInfo()" aria-label="معلومات" style="font-weight:900;font-size:19px;font-family:serif">i</button>
+      </div>
+      <h1 class="rest-name">مكسيكاني وبيتسا أم الفحم</h1>
+      <p class="rest-addr">رهط - الشارع الرئيسي</p>
+      <div class="status" id="statusEl">...</div>
+
+      <div class="meta-row">
+        <div class="meta">
+          <div class="ic">🛵</div>
+          <div class="v">25-35 د</div>
+          <div class="s" style="display:flex;justify-content:center;gap:8px"><span class="now ltr">10 ₪</span><del class="ltr">16 ₪</del></div>
+        </div>
+        <div class="meta">
+          <div class="ic">🕐</div>
+          <div class="v" id="dayName">—</div>
+          <div class="s" id="dayHours">—</div>
+        </div>
+        <div class="meta">
+          <div class="ic">★</div>
+          <div class="v">4.2</div>
+          <div class="s"><span class="ltr">+2,000</span> تقييم</div>
+        </div>
+      </div>
+
+      <div class="promos">
+        <div class="promo"><span class="pi">🏷️</span><span>تخفيض <span class="ltr">50%</span> على بعض العناصر</span></div>
+        <div class="promo"><span class="pi">🛵</span><span>رسوم توصيل <span class="ltr">10 ₪</span> على كل طلبية فوق <span class="ltr">100 ₪</span></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo-flag">
+    ⚠️ <b>نسخة تجريبية للعرض.</b> المنيو والأسعار والصور كلها وهمية مؤقتاً —
+    بتتبدل كلها بالمنيو الحقيقي تبع المطعم. الطلب بوصل على واتساب.
+  </div>
+
+  <!-- الأقسام -->
+  <div class="cats" id="catsBar">
+    <div class="cats-scroll" id="catsScroll"></div>
+  </div>
+
+  <!-- الأكثر مبيعاً -->
+  <div id="bestSec">
+    <div class="sec-head">
+      <h2>الأكثر مبيعاً</h2>
+      <button class="see-all" onclick="jumpTo('بيتسا')">عرض الكل</button>
+    </div>
+    <div class="hscroll" id="bestRow"></div>
+  </div>
+
+  <!-- المنتجات -->
+  <div id="sections"></div>
+
+  <div class="foot-note">
+    مكسيكاني وبيتسا أم الفحم · رهط - الشارع الرئيسي<br>
+    للطلب والاستفسار: <span id="footPhone"></span>
+  </div>
+</div>
+
+<!-- شريط السلة -->
+<div class="cartbar" id="cartbar" onclick="openCart()">
+  <div class="cartbar-in">
+    <span class="cnt" id="cartCount">0</span>
+    <span class="lbl">عرض السلة</span>
+    <span class="tot" id="cartTotal">0.00 ₪</span>
+  </div>
+</div>
+
+<!-- الشاشات المنبثقة -->
+<div class="sheet-bg" id="sheetBg" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <button class="sheet-close" onclick="closeSheet()">✕</button>
+  <div class="sheet-scroll" id="sheetScroll"></div>
+  <div class="sheet-foot" id="sheetFoot"></div>
+</div>
+
+<script>
+/* =========================================================
+   إعدادات المطعم  —  كل شي هون قابل للتعديل
+   ========================================================= */
+const REST = {
+  name:  'مكسيكاني وبيتسا أم الفحم',
+  addr:  'رهط - الشارع الرئيسي',
+  phone: '972500000000',          // ← رقم واتساب المطعم (بدون +)
+  deliveryFee: 16,                // رسوم التوصيل العادية
+  freeishOver: 100,               // فوق هالمبلغ التوصيل بصير…
+  reducedFee: 10,                 // …بهالسعر
+  minOrder: 40                    // أقل طلبية
+};
+
+// ساعات الدوام: [فتح, سكر] بصيغة 24 ساعة. null = مسكّر اليوم
+const HOURS = {
+  0:['11:00','23:30'],  // الأحد
+  1:['11:00','23:30'],
+  2:['11:00','23:30'],
+  3:['11:00','23:30'],
+  4:['11:00','23:30'],
+  5:['11:00','00:30'],  // الجمعة
+  6:['11:00','00:30']   // السبت
+};
+const DAYS = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+
+/* =========================================================
+   مجموعات الخيارات (الأحجام / العجينة / الإضافات)
+   ========================================================= */
+const OPTS = {
+  pizzaSize:{
+    title:'الحجم', type:'one', required:true,
+    items:[
+      {id:'s', label:'صغيرة (شخصية) 23سم', delta:0},
+      {id:'m', label:'وسط (عائلية) 33سم',  delta:18},
+      {id:'l', label:'كبيرة XL 40سم',      delta:34}
+    ]
+  },
+  dough:{
+    title:'نوع العجينة', type:'one', required:true,
+    items:[
+      {id:'reg',   label:'عادية',          delta:0},
+      {id:'thin',  label:'رفيعة ومقرمشة',  delta:0},
+      {id:'thick', label:'سميكة',          delta:0},
+      {id:'chz',   label:'حواف جبنة',      delta:8}
+    ]
+  },
+  pizzaExtra:{
+    title:'إضافات', type:'many', required:false,
+    items:[
+      {id:'x1', label:'جبنة موزاريلا زيادة', delta:6},
+      {id:'x2', label:'زيتون',               delta:4},
+      {id:'x3', label:'فطر',                 delta:5},
+      {id:'x4', label:'ذرة',                 delta:4},
+      {id:'x5', label:'بصل',                 delta:3},
+      {id:'x6', label:'طماطم',               delta:3},
+      {id:'x7', label:'فلفل حار (حلبينو)',   delta:4},
+      {id:'x8', label:'تونة',                delta:8},
+      {id:'x9', label:'سجق بقري',            delta:9}
+    ]
+  },
+  wrapSize:{
+    title:'الحجم', type:'one', required:true,
+    items:[
+      {id:'reg', label:'عادي', delta:0},
+      {id:'big', label:'كبير (دبل لحمة)', delta:14}
+    ]
+  },
+  sauces:{
+    title:'الصلصات', type:'many', required:false,
+    items:[
+      {id:'s1', label:'ثوم',     delta:2},
+      {id:'s2', label:'حار',     delta:2},
+      {id:'s3', label:'باربكيو', delta:2},
+      {id:'s4', label:'طحينة',   delta:2},
+      {id:'s5', label:'كاتشب',   delta:0}
+    ]
+  },
+  fryExtra:{
+    title:'إضافات', type:'many', required:false,
+    items:[
+      {id:'f1', label:'جبنة مبشورة فوق', delta:5},
+      {id:'f2', label:'توابل حارة',      delta:2}
+    ]
+  }
+};
+
+/* =========================================================
+   المنيو  (تجريبي — بيتبدل بالحقيقي)
+   ========================================================= */
+const MENU = [
+ {cat:'بيتسا', emoji:'🍕', items:[
+   {id:1,  n:'بيتسا مارجريتا',    d:'صلصة طماطم بيتية وجبنة موزاريلا',      p:42, opts:['pizzaSize','dough','pizzaExtra'], best:1, tag:'شائع'},
+   {id:2,  n:'بيتسا خضار',        d:'فلفل، زيتون، فطر، ذرة وبصل',            p:48, opts:['pizzaSize','dough','pizzaExtra']},
+   {id:3,  n:'بيتسا زيتون',       d:'زيتون أخضر وأسود مع موزاريلا',          p:45, opts:['pizzaSize','dough','pizzaExtra'], best:1},
+   {id:4,  n:'بيتسا فطر',         d:'فطر طازج مع جبنة سايحة',                p:47, opts:['pizzaSize','dough','pizzaExtra']},
+   {id:5,  n:'بيتسا تونة',        d:'تونة، بصل وزيتون',                      p:52, opts:['pizzaSize','dough','pizzaExtra']},
+   {id:6,  n:'بيتسا مكسيكانية',   d:'حارة! حلبينو، فلفل ملون وسجق بقري',     p:56, opts:['pizzaSize','dough','pizzaExtra'], best:1, tag:'شائع'},
+   {id:7,  n:'بيتسا 4 أجبان',     d:'موزاريلا، شيدر، بلغارية وبارميزان',     p:58, opts:['pizzaSize','dough','pizzaExtra'], best:1, sale:52},
+   {id:8,  n:'بيتسا سجق بقري',    d:'شرائح سجق بقري حلال',                   p:55, opts:['pizzaSize','dough','pizzaExtra']}
+ ]},
+ {cat:'مكسيكاني', emoji:'🌯', items:[
+   {id:20, n:'مكسيكاني شاورما',   d:'شاورما دجاج، خضار وصلصات بالتورتيا',    p:38, opts:['wrapSize','sauces'], best:1, tag:'شائع'},
+   {id:21, n:'مكسيكاني لحمة',     d:'لحمة مشوية على الفحم مع خضار',          p:44, opts:['wrapSize','sauces'], best:1},
+   {id:22, n:'مكسيكاني دجاج مشوي',d:'صدر دجاج متبّل مع جبنة وخضار',          p:40, opts:['wrapSize','sauces']},
+   {id:23, n:'فاهيتا دجاج',       d:'دجاج مع فلفل ملون وبصل مقلي',           p:42, opts:['wrapSize','sauces']}
+ ]},
+ {cat:'سناكات', emoji:'🍟', items:[
+   {id:40, n:'بطاطا مقلية',       d:'حصة كبيرة مقرمشة',                      p:18, opts:['fryExtra','sauces'], best:1},
+   {id:41, n:'أصابع موزاريلا',    d:'6 قطع مع صلصة مارينارا',                p:26, opts:['sauces'], best:1, tag:'شائع'},
+   {id:42, n:'حلقات بصل',         d:'8 حلقات مقرمشة',                        p:22, opts:['sauces']},
+   {id:43, n:'ناجتس دجاج',        d:'9 قطع مع بطاطا',                        p:30, opts:['sauces'], sale:26},
+   {id:44, n:'أجنحة دجاج حارة',   d:'8 أجنحة بصلصة بافلو',                   p:34, opts:['sauces']}
+ ]},
+ {cat:'سلطات', emoji:'🥗', items:[
+   {id:60, n:'سلطة سيزر',         d:'خس، كروتون، بارميزان وصلصة سيزر',       p:28, opts:[]},
+   {id:61, n:'سلطة خضار',         d:'خضار طازجة مقطعة ناعم',                 p:22, opts:[]},
+   {id:62, n:'سلطة كرنب',         d:'كول سلو بيتي',                          p:14, opts:[]}
+ ]},
+ {cat:'مشروبات', emoji:'🥤', items:[
+   {id:80, n:'كوكاكولا 1.5 لتر',  d:'',  p:12, opts:[]},
+   {id:81, n:'كوكاكولا علبة',     d:'',  p:7,  opts:[]},
+   {id:82, n:'سبرايت علبة',       d:'',  p:7,  opts:[]},
+   {id:83, n:'فانتا علبة',        d:'',  p:7,  opts:[]},
+   {id:84, n:'مياه معدنية',       d:'',  p:5,  opts:[]},
+   {id:85, n:'عصير طبيعي',        d:'برتقال طازج',  p:14, opts:[]}
+ ]},
+ {cat:'حلويات', emoji:'🍫', items:[
+   {id:90, n:'كرات الشوكولاتة',   d:'6 قطع ساخنة',           p:24, opts:[]},
+   {id:91, n:'براوني بالآيس كريم',d:'براوني دافي مع فانيلا',  p:28, opts:[]}
+ ]}
+];
+
+/* =========================================================
+   صور مؤقتة (بتتبدل بصور المطعم الحقيقية)
+   ========================================================= */
+function ph(emoji, cat){
+  const pal = {'بيتسا':['#f0b64f','#c2451d'],'مكسيكاني':['#e08a46','#8c3b1e'],
+    'سناكات':['#edc45a','#b07416'],'سلطات':['#8cc45c','#2f6b2a'],
+    'مشروبات':['#6cb6e4','#1f5880'],'حلويات':['#b3825e','#4a2c1d']}[cat] || ['#ccc','#777'];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${pal[0]}"/><stop offset="1" stop-color="${pal[1]}"/>
+    </linearGradient></defs>
+    <rect width="400" height="300" fill="url(#g)"/>
+    <text x="200" y="196" font-size="130" text-anchor="middle">${emoji}</text>
+  </svg>`;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+function coverSvg(){
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="460">
+    <defs><linearGradient id="c" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3a2a1c"/><stop offset="1" stop-color="#12100e"/>
+    </linearGradient></defs>
+    <rect width="800" height="460" fill="url(#c)"/>
+    <text x="400" y="300" font-size="150" text-anchor="middle" opacity=".92">🍕🌯🍟</text>
+  </svg>`;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+/* =========================================================
+   الحالة
+   ========================================================= */
+let cart = [];
+let cur = null;            // المنتج المفتوح حالياً
+let curSel = {};           // الخيارات المختارة
+let curQty = 1;
+let curNote = '';
+let orderType = 'delivery';
+let activeCat = null;
+
+try{ cart = JSON.parse(localStorage.getItem('pz_cart') || '[]'); }catch(e){ cart = []; }
+function saveCart(){ try{ localStorage.setItem('pz_cart', JSON.stringify(cart)); }catch(e){} }
+
+const allItems = () => MENU.flatMap(s => s.items.map(i => ({...i, cat:s.cat, emoji:s.emoji})));
+const byId = id => allItems().find(i => i.id === id);
+const money = n => '\u2066' + Number(n).toFixed(2) + ' ₪\u2069';
+
+/* =========================================================
+   حالة المطعم (مفتوح / مغلق)
+   ========================================================= */
+function toMin(hm){ const [h,m] = hm.split(':').map(Number); return h*60 + m; }
+function restStatus(){
+  const now = new Date();
+  const d = now.getDay();
+  const mins = now.getHours()*60 + now.getMinutes();
+  const today = HOURS[d];
+  if(!today) return {open:false, label:'مغلق اليوم', day:DAYS[d], hours:'مغلق'};
+  const o = toMin(today[0]);
+  let c = toMin(today[1]);
+  const overnight = c <= o;            // بسكّر بعد منتصف الليل
+  const open = overnight ? (mins >= o || mins < c) : (mins >= o && mins < c);
+  return {
+    open,
+    label: open ? 'مفتوح الآن' : 'مغلق',
+    day: DAYS[d],
+    hours: today[0] + ' - ' + today[1]
+  };
+}
+function paintStatus(){
+  const s = restStatus();
+  const el = document.getElementById('statusEl');
+  el.textContent = s.label;
+  el.className = 'status ' + (s.open ? 'open' : 'closed');
+  document.getElementById('dayName').textContent = s.day;
+  document.getElementById('dayHours').innerHTML = '<span class="ltr">' + s.hours + '</span>';
+}
+
+/* =========================================================
+   الرسم
+   ========================================================= */
+function cardHtml(it){
+  const price = it.sale ? it.sale : it.p;
+  const old = it.sale ? `<span class="old ltr">${it.p} ₪</span>` : '';
+  const badges = [];
+  if(it.tag) badges.push(`<span class="bdg">🔥 ${it.tag}</span>`);
+  if(it.sale) badges.push(`<span class="bdg sale">-${Math.round((1-it.sale/it.p)*100)}%</span>`);
+  return `
+  <div class="card" onclick="openProduct(${it.id})">
+    <div class="ph">
+      ${badges.length ? `<div class="badges">${badges.join('')}</div>` : ''}
+      <img src="${ph(it.emoji, it.cat)}" alt="${it.n}" loading="lazy">
+    </div>
+    <div class="body">
+      <div class="nm">${it.n}</div>
+      <div class="ds">${it.d || ''}</div>
+      <div class="foot">
+        <div class="pr"><span class="ltr">${price} ₪</span>${old}</div>
+        <div class="add-btn">+</div>
+      </div>
+    </div>
+  </div>`;
+}
+function hcardHtml(it){
+  const price = it.sale ? it.sale : it.p;
+  const old = it.sale ? `<span class="old ltr">${it.p} ₪</span>` : '';
+  const badges = [];
+  if(it.tag) badges.push(`<span class="bdg">🔥 ${it.tag}</span>`);
+  if(it.sale) badges.push(`<span class="bdg sale">-${Math.round((1-it.sale/it.p)*100)}%</span>`);
+  return `
+  <div class="hcard" onclick="openProduct(${it.id})">
+    <div class="ph">
+      ${badges.length ? `<div class="badges">${badges.join('')}</div>` : ''}
+      <img src="${ph(it.emoji, it.cat)}" alt="${it.n}" loading="lazy">
+    </div>
+    <div class="body">
+      <div class="nm">${it.n}</div>
+      <div class="pr"><span class="ltr">${price} ₪</span>${old}</div>
+    </div>
+  </div>`;
+}
+
+function renderAll(){
+  document.getElementById('coverImg').src = coverSvg();
+  document.getElementById('footPhone').textContent = '0' + REST.phone.slice(3);
+
+  // الأقسام
+  document.getElementById('catsScroll').innerHTML =
+    MENU.map(s => `<button class="cat-chip" data-cat="${s.cat}" onclick="jumpTo('${s.cat}')">${s.emoji} ${s.cat}</button>`).join('');
+
+  // الأكثر مبيعاً
+  document.getElementById('bestRow').innerHTML =
+    allItems().filter(i => i.best).map(hcardHtml).join('');
+
+  // الأقسام والمنتجات
+  document.getElementById('sections').innerHTML = MENU.map(s => `
+    <section id="sec-${encodeURIComponent(s.cat)}">
+      <div class="sec-head"><h2>${s.emoji} ${s.cat}</h2></div>
+      <div class="grid">${s.items.map(i => cardHtml({...i, cat:s.cat, emoji:s.emoji})).join('')}</div>
+    </section>`).join('');
+
+  paintStatus();
+  paintCartBar();
+}
+
+function jumpTo(cat){
+  const el = document.getElementById('sec-' + encodeURIComponent(cat));
+  if(!el) return;
+  const y = el.getBoundingClientRect().top + window.scrollY - 72;
+  window.scrollTo({top:y, behavior:'smooth'});
+}
+
+/* البحث */
+function onSearch(){
+  const q = document.getElementById('search').value.trim();
+  const secs = document.getElementById('sections');
+  const best = document.getElementById('bestSec');
+  if(!q){ best.style.display = ''; renderSections(); return; }
+  best.style.display = 'none';
+  const hits = allItems().filter(i => (i.n + ' ' + (i.d||'')).includes(q));
+  secs.innerHTML = hits.length
+    ? `<div class="sec-head"><h2>نتائج البحث (${hits.length})</h2></div><div class="grid">${hits.map(cardHtml).join('')}</div>`
+    : `<div class="empty"><div class="e">🔎</div><div>ما لقينا إشي باسم "${q}"</div></div>`;
+}
+function renderSections(){
+  document.getElementById('sections').innerHTML = MENU.map(s => `
+    <section id="sec-${encodeURIComponent(s.cat)}">
+      <div class="sec-head"><h2>${s.emoji} ${s.cat}</h2></div>
+      <div class="grid">${s.items.map(i => cardHtml({...i, cat:s.cat, emoji:s.emoji})).join('')}</div>
+    </section>`).join('');
+}
+
+/* =========================================================
+   نافذة المنتج
+   ========================================================= */
+function openProduct(id){
+  cur = byId(id);
+  if(!cur) return;
+  curQty = 1; curNote = ''; curSel = {};
+  (cur.opts || []).forEach(k => {
+    const g = OPTS[k];
+    if(g.type === 'one') curSel[k] = g.items[0].id;   // أول خيار افتراضي
+    else curSel[k] = [];
+  });
+  drawProductSheet();
+  showSheet();
+}
+
+function basePrice(it){ return it.sale ? it.sale : it.p; }
+function curPrice(){
+  if(!cur) return 0;
+  let p = basePrice(cur);
+  (cur.opts || []).forEach(k => {
+    const g = OPTS[k];
+    if(g.type === 'one'){
+      const o = g.items.find(x => x.id === curSel[k]);
+      if(o) p += o.delta;
+    }else{
+      (curSel[k] || []).forEach(sid => {
+        const o = g.items.find(x => x.id === sid);
+        if(o) p += o.delta;
+      });
+    }
+  });
+  return p * curQty;
+}
+
+function drawProductSheet(){
+  const it = cur;
+  const groups = (it.opts || []).map(k => {
+    const g = OPTS[k];
+    const rows = g.items.map(o => {
+      const sel = g.type === 'one' ? curSel[k] === o.id : (curSel[k]||[]).includes(o.id);
+      return `<div class="opt ${g.type==='many'?'sq':''} ${sel?'sel':''}" onclick="pick('${k}','${o.id}')">
+        <div class="mark"></div>
+        <div class="lb">${o.label}</div>
+        <div class="pp ltr">${o.delta ? '+ '+o.delta+' ₪' : ''}</div>
+      </div>`;
+    }).join('');
+    return `<div class="opt-group">
+      <div class="opt-head">
+        <span class="t">${g.title}</span>
+        <span class="${g.required?'req':'opt'}">${g.required?'إلزامي':'اختياري'}</span>
+      </div>${rows}
+    </div>`;
+  }).join('');
+
+  document.getElementById('sheetScroll').innerHTML = `
+    <div class="sheet-hero"><img src="${ph(it.emoji, it.cat)}" alt=""></div>
+    <div class="sheet-body">
+      <h3>${it.n}</h3>
+      <p class="ds">${it.d || ''}</p>
+      ${groups}
+      <div class="note-box">
+        <label>ملاحظات للمطبخ</label>
+        <textarea id="noteTa" rows="2" placeholder="مثلاً: بدون بصل، تحمير زيادة..." oninput="curNote=this.value"></textarea>
+      </div>
+    </div>`;
+  drawProductFoot();
+}
+function drawProductFoot(){
+  document.getElementById('sheetFoot').innerHTML = `
+    <div class="qty">
+      <button onclick="bumpQty(-1)">−</button>
+      <span class="n" id="qtyN">${curQty}</span>
+      <button onclick="bumpQty(1)">+</button>
+    </div>
+    <button class="cta" onclick="addToCart()">
+      <span>أضف للسلة</span>
+      <span id="curPrice">${money(curPrice())}</span>
+    </button>`;
+}
+function pick(groupKey, optId){
+  const g = OPTS[groupKey];
+  if(g.type === 'one') curSel[groupKey] = optId;
+  else{
+    const arr = curSel[groupKey] || [];
+    const i = arr.indexOf(optId);
+    if(i >= 0) arr.splice(i,1); else arr.push(optId);
+    curSel[groupKey] = arr;
+  }
+  const note = curNote;
+  drawProductSheet();
+  const ta = document.getElementById('noteTa');
+  if(ta){ ta.value = note; }
+}
+function bumpQty(d){
+  curQty = Math.max(1, Math.min(30, curQty + d));
+  document.getElementById('qtyN').textContent = curQty;
+  document.getElementById('curPrice').textContent = money(curPrice());
+}
+
+function selLabels(){
+  const out = [];
+  (cur.opts || []).forEach(k => {
+    const g = OPTS[k];
+    if(g.type === 'one'){
+      const o = g.items.find(x => x.id === curSel[k]);
+      if(o && (o.delta || g.items.length > 1)) out.push(o.label);
+    }else{
+      (curSel[k] || []).forEach(sid => {
+        const o = g.items.find(x => x.id === sid);
+        if(o) out.push('+ ' + o.label);
+      });
+    }
+  });
+  return out;
+}
+function addToCart(){
+  const unit = curPrice() / curQty;
+  cart.push({
+    key: Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    id: cur.id, n: cur.n, emoji: cur.emoji, cat: cur.cat,
+    unit, qty: curQty, note: curNote.trim(), labels: selLabels()
+  });
+  saveCart(); paintCartBar(); closeSheet();
+}
+
+/* =========================================================
+   السلة
+   ========================================================= */
+function subtotal(){ return cart.reduce((s,l) => s + l.unit * l.qty, 0); }
+function deliveryFee(){
+  if(orderType === 'pickup') return 0;
+  return subtotal() >= REST.freeishOver ? REST.reducedFee : REST.deliveryFee;
+}
+function grandTotal(){ return subtotal() + deliveryFee(); }
+function cartCount(){ return cart.reduce((s,l) => s + l.qty, 0); }
+
+function paintCartBar(){
+  const bar = document.getElementById('cartbar');
+  document.getElementById('cartCount').textContent = cartCount();
+  document.getElementById('cartTotal').textContent = money(subtotal());
+  bar.classList.toggle('on', cart.length > 0);
+}
+
+function openCart(){
+  const s = restStatus();
+  const lines = cart.map((l,i) => `
+    <div class="cart-item">
+      <div class="ph"><img src="${ph(l.emoji, l.cat)}" alt=""></div>
+      <div class="mid">
+        <div class="nm">${l.n}</div>
+        ${l.labels.length ? `<div class="sub">${l.labels.join(' · ')}</div>` : ''}
+        ${l.note ? `<div class="sub">📝 ${l.note}</div>` : ''}
+        <div class="rowb">
+          <div class="pr">${money(l.unit * l.qty)}</div>
+          <div class="miniqty">
+            <button onclick="lineQty(${i},-1)">−</button>
+            <span class="n">${l.qty}</span>
+            <button onclick="lineQty(${i},1)">+</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+
+  const body = cart.length ? `
+    <div class="sheet-body">
+      <h3>السلة</h3>
+      ${!s.open ? `<div class="closed-note">المطعم مغلق حالياً 🌙<br>بتقدر تجهّز طلبك وتبعته لما يفتح (<span class="ltr">${s.hours}</span>)</div>` : ''}
+      <div class="seg">
+        <button class="${orderType==='delivery'?'on':''}" onclick="setType('delivery')">🛵 توصيل</button>
+        <button class="${orderType==='pickup'?'on':''}" onclick="setType('pickup')">🏪 استلام من المحل</button>
+      </div>
+      ${lines}
+      <div class="field" style="margin-top:16px"><label>الاسم</label><input id="cName" placeholder="اسمك" value="${localStorage.getItem('pz_name')||''}"></div>
+      <div class="field"><label>رقم الهاتف</label><input id="cPhone" type="tel" inputmode="tel" placeholder="05x-xxxxxxx" value="${localStorage.getItem('pz_phone')||''}"></div>
+      ${orderType==='delivery' ? `<div class="field"><label>العنوان</label><input id="cAddr" placeholder="الحي، الشارع، رقم البيت" value="${localStorage.getItem('pz_addr')||''}"></div>` : ''}
+      <div class="sum">
+        <div class="r"><span>المجموع</span><span>${money(subtotal())}</span></div>
+        <div class="r"><span>التوصيل</span><span>${orderType==='pickup' ? 'مجاني' : money(deliveryFee())}</span></div>
+        <div class="r total"><span>الإجمالي</span><span>${money(grandTotal())}</span></div>
+      </div>
+      <div class="hint">
+        ${orderType==='delivery' && subtotal() < REST.freeishOver
+          ? `كمّل لـ ${REST.freeishOver}₪ وخلّي التوصيل ${REST.reducedFee}₪ بدل ${REST.deliveryFee}₪`
+          : 'الطلب بوصل للمطعم على واتساب'}
+      </div>
+    </div>` : `
+    <div class="empty"><div class="e">🛒</div><div>السلة فاضية</div></div>`;
+
+  document.getElementById('sheetScroll').innerHTML = body;
+  const ok = subtotal() >= REST.minOrder;
+  document.getElementById('sheetFoot').innerHTML = cart.length ? `
+    <button class="cta" onclick="sendOrder()" ${ok?'':'disabled'}>
+      ${ok ? `<span>إرسال الطلب</span><span>${money(grandTotal())}</span>`
+           : `<span>أقل طلبية ${REST.minOrder}₪</span>`}
+    </button>` : `
+    <button class="cta" onclick="closeSheet()">تصفّح المنيو</button>`;
+  cur = null;
+  showSheet();
+}
+function setType(t){ orderType = t; openCart(); }
+function lineQty(i, d){
+  cart[i].qty += d;
+  if(cart[i].qty <= 0) cart.splice(i,1);
+  saveCart(); paintCartBar(); openCart();
+}
+
+function sendOrder(){
+  const name  = (document.getElementById('cName')?.value || '').trim();
+  const phone = (document.getElementById('cPhone')?.value || '').trim();
+  const addr  = (document.getElementById('cAddr')?.value || '').trim();
+  if(!name || !phone){ alert('لو سمحت اكتب الاسم ورقم الهاتف'); return; }
+  if(orderType === 'delivery' && !addr){ alert('لو سمحت اكتب العنوان للتوصيل'); return; }
+  try{
+    localStorage.setItem('pz_name', name);
+    localStorage.setItem('pz_phone', phone);
+    localStorage.setItem('pz_addr', addr);
+  }catch(e){}
+
+  let t = `*طلب جديد - ${REST.name}*\n\n`;
+  cart.forEach(l => {
+    t += `• ${l.qty}× ${l.n} — ${money(l.unit * l.qty)}\n`;
+    if(l.labels.length) t += `   ${l.labels.join(' · ')}\n`;
+    if(l.note) t += `   📝 ${l.note}\n`;
+  });
+  t += `\nالمجموع: ${money(subtotal())}`;
+  t += `\nالتوصيل: ${orderType === 'pickup' ? 'استلام من المحل' : money(deliveryFee())}`;
+  t += `\n*الإجمالي: ${money(grandTotal())}*`;
+  t += `\n\n👤 ${name}\n📞 ${phone}`;
+  if(orderType === 'delivery') t += `\n📍 ${addr}`;
+
+  window.open('https://wa.me/' + REST.phone + '?text=' + encodeURIComponent(t), '_blank');
+}
+
+/* =========================================================
+   أدوات
+   ========================================================= */
+function showSheet(){
+  document.getElementById('sheetBg').classList.add('on');
+  document.getElementById('sheet').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet(){
+  document.getElementById('sheetBg').classList.remove('on');
+  document.getElementById('sheet').classList.remove('on');
+  document.body.style.overflow = '';
+  document.getElementById('sheetScroll').scrollTop = 0;
+}
+function toggleFav(btn){ btn.textContent = btn.textContent === '🤍' ? '❤️' : '🤍'; }
+function shareRest(){
+  const data = {title:REST.name, text:'اطلب من ' + REST.name, url:location.href};
+  if(navigator.share) navigator.share(data).catch(()=>{});
+  else{ navigator.clipboard?.writeText(location.href); alert('تم نسخ الرابط'); }
+}
+function openInfo(){
+  const s = restStatus();
+  const rows = Object.keys(HOURS).map(d =>
+    `<div class="r"><span>${DAYS[d]}</span><span class="ltr">${HOURS[d] ? HOURS[d][0]+' - '+HOURS[d][1] : 'مغلق'}</span></div>`).join('');
+  document.getElementById('sheetScroll').innerHTML = `
+    <div class="sheet-body">
+      <h3>${REST.name}</h3>
+      <p class="ds">${REST.addr}</p>
+      <div class="sum" style="margin-top:0">
+        <div class="r" style="font-weight:800;color:var(--ink)"><span>ساعات الدوام</span><span>${s.open?'مفتوح الآن':'مغلق'}</span></div>
+        ${rows}
+      </div>
+      <div class="sum">
+        <div class="r"><span>رسوم التوصيل</span><span>${REST.deliveryFee}₪</span></div>
+        <div class="r"><span>فوق ${REST.freeishOver}₪</span><span>${REST.reducedFee}₪</span></div>
+        <div class="r"><span>أقل طلبية</span><span>${REST.minOrder}₪</span></div>
+        <div class="r"><span>وقت التحضير</span><span>25-35 دقيقة</span></div>
+      </div>
+    </div>`;
+  document.getElementById('sheetFoot').innerHTML =
+    `<button class="cta" onclick="closeSheet()">تمام</button>`;
+  cur = null;
+  showSheet();
+}
+
+/* تمييز القسم أثناء التمرير */
+let ticking = false;
+window.addEventListener('scroll', () => {
+  if(ticking) return;
+  ticking = true;
+  requestAnimationFrame(() => {
+    ticking = false;
+    const bar = document.getElementById('catsBar');
+    const top = bar.getBoundingClientRect().top;
+    bar.classList.toggle('stuck', top <= 1);
+    let found = null;
+    MENU.forEach(s => {
+      const el = document.getElementById('sec-' + encodeURIComponent(s.cat));
+      if(el && el.getBoundingClientRect().top <= 110) found = s.cat;
+    });
+    if(found !== activeCat){
+      activeCat = found;
+      document.querySelectorAll('.cat-chip').forEach(c =>
+        c.classList.toggle('active', c.dataset.cat === found));
+    }
+  });
+}, {passive:true});
+
+renderAll();
+setInterval(paintStatus, 60000);
+</script>
+</body>
+</html>
