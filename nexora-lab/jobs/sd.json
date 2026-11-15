@@ -1,7 +1,7 @@
 {
  "type": "multi",
  "m5": true,
- "priority": 8,
+ "priority": 20,
  "coins": [
   "AKEUSDT",
   "NEARUSDT",
