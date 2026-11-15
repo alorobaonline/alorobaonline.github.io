@@ -1178,6 +1178,87 @@ const SSD = (() => {
   return { run, decide, prepare, h1State, firstTouch, pivots, lastLE, smaAtr, CFG, strats: [strat] };
 })();
 
+// NEXORA V63 (volume breakout from a tight 20-bar range, 1H EMA50>150>200 trend, ADX>=20, smart-volume).
+// Port of nexora_v63_strategy.py. Indicators run on the whole 15m history (causal). Replay: entry on the next
+// 15m open, stop/target levels from the signal (target 2R), stop-first exits, one position per coin.
+const V63 = (() => {
+  const M15 = 900000;
+  function emaSeed(vals, p) { const out = []; let prev = null; const a = 2/(p+1); for (const x of vals) { prev = prev === null ? x : a*x + (1-a)*prev; out.push(prev); } return out; }
+  function prepare(D) {
+    const O = D.o, H = D.h, L = D.l, C = D.c, n = C.length;
+    const hours = []; for (let i = 0; i + 3 < n; i += 4) hours.push(C[i+3]);
+    const e50 = emaSeed(hours, 50), e150 = emaSeed(hours, 150), e200 = emaSeed(hours, 200);
+    const up = hours.map((h, j) => j >= 205 && h > e50[j] && e50[j] > e150[j] && e150[j] > e200[j] && e200[j] > e200[j-5]);
+    const dn = hours.map((h, j) => j >= 205 && h < e50[j] && e50[j] < e150[j] && e150[j] < e200[j] && e200[j] < e200[j-5]);
+    const atr = new Array(n).fill(null), tr = [];
+    for (let i = 0; i < n; i++) { const pc = i ? C[i-1] : C[i]; tr.push(Math.max(H[i] - L[i], Math.abs(H[i] - pc), Math.abs(L[i] - pc)));
+      if (i === 13) { let s = 0; for (let k = 0; k < 14; k++) s += tr[k]; atr[i] = s/14; } else if (i > 13) atr[i] = (atr[i-1]*13 + tr[i])/14; }
+    const adx = new Array(n).fill(null), P = 14;
+    if (n >= 2*P + 1) {
+      const t2 = new Array(n).fill(0), pl = new Array(n).fill(0), mi = new Array(n).fill(0);
+      for (let i = 1; i < n; i++) { const u = H[i] - H[i-1], d = L[i-1] - L[i]; pl[i] = u > d && u > 0 ? u : 0; mi[i] = d > u && d > 0 ? d : 0;
+        t2[i] = Math.max(H[i] - L[i], Math.abs(H[i] - C[i-1]), Math.abs(L[i] - C[i-1])); }
+      let st = 0, sp = 0, sm = 0; for (let k = 1; k <= P; k++) { st += t2[k]; sp += pl[k]; sm += mi[k]; }
+      const dx = [];
+      for (let i = P; i < n; i++) {
+        if (i > P) { st = st - st/P + t2[i]; sp = sp - sp/P + pl[i]; sm = sm - sm/P + mi[i]; }
+        const den = sp + sm; dx.push(den ? 100*Math.abs(sp - sm)/den : 0);
+        if (dx.length === P) { let s = 0; for (const x of dx) s += x; adx[i] = s/P; } else if (dx.length > P) adx[i] = (adx[i-1]*(P-1) + dx[dx.length-1])/P;
+      }
+    }
+    return { up, dn, atr, adx };
+  }
+  function sig(D, X, i, side) {
+    const O = D.o, H = D.h, L = D.l, C = D.c, V = X.V, hi = Math.floor(i/4) - 1, tr = side === 1 ? X.up : X.dn;
+    if (i < 899 || hi < 0 || hi >= tr.length || !tr[hi] || X.adx[i] === null || X.adx[i] < 20) return null;
+    let res = -Infinity, sup = Infinity, vs = 0, v5 = 0, v15 = 0;
+    if (V[i] == null) return null;
+    for (let k = i - 20; k < i; k++) { if (V[k] == null) return null; res = Math.max(res, H[k]); sup = Math.min(sup, L[k]); vs += V[k]; }
+    for (let k = i - 5; k < i; k++) v5 += V[k]; for (let k = i - 20; k < i - 5; k++) v15 += V[k];
+    let pa = 0; for (let k = i - 40; k < i; k++) { if (X.atr[k] === null) return null; pa += X.atr[k]; }
+    if (X.atr[i] === null || X.atr[i-1] === null) return null;
+    const avg = vs/20, c = C[i], o = O[i], v = V[i];
+    const base = sup > 0 && (res - sup)/sup <= .09 && X.atr[i-1] < .85*pa/40 && (side === 1 ? c > res && c > o : c < sup && c < o) && v >= 1.5*avg;
+    const smart = avg > 0 && v >= 2*avg && v5/5 < v15/15;
+    if (!(base && smart)) return null;
+    return side === 1 ? { atr: c - 1.5*X.atr[i], time: Math.min(sup, c - 1.5*X.atr[i]) } : { atr: c + 1.5*X.atr[i], time: Math.max(res, c + 1.5*X.atr[i]) };
+  }
+  const memo = new WeakMap();
+  function vol15(D) {   // فوليوم 15 دقيقة: من البيانات، أو من شموع الـ5 دقايق
+    if (D.v) return D.v; if (!D.m5 || !D.m5.v) return null;
+    const v = new Array(D.c.length).fill(null), m = D.m5;
+    for (let q = 0; q < D.c.length; q++) { const a = Math.round((D.t0 + q*M15 - m.t0)/300000); if (a >= 0 && a + 2 < m.v.length) v[q] = m.v[a] + m.v[a+1] + m.v[a+2]; }
+    return v;
+  }
+  function run(D, inds, sp, startTs) {
+    const VV = vol15(D); if (!VV) return [];
+    if (!memo.has(D)) memo.set(D, prepare(D)); const X = memo.get(D); X.V = VV;
+    const n = D.c.length, out = []; let pos = null, pend = null;
+    for (let i = 0; i < n; i++) {
+      if (pend) { const e = D.o[i]; if ((e - pend.stop)*pend.d > 0 && (pend.target - e)*pend.d > 0) pos = { d: pend.d, e: i, entry: e, stop: pend.stop, target: pend.target }; pend = null; }
+      if (pos) {
+        const s = pos.d, o = D.o[i]; let raw = null, why = null;
+        if (s*(o - pos.stop) <= 0) { raw = o; why = "INIT_STOP"; }
+        else if (s*(o - pos.target) >= 0) { raw = pos.target; why = "TARGET"; }
+        else if (s === 1 ? D.l[i] <= pos.stop : D.h[i] >= pos.stop) { raw = pos.stop; why = "INIT_STOP"; }
+        else if (s === 1 ? D.h[i] >= pos.target : D.l[i] <= pos.target) { raw = pos.target; why = "TARGET"; }
+        if (raw !== null) { out.push({ name: sp.name, d: s, e: pos.e, x: i, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: pos.target }); pos = null; }
+      }
+      if (pos || i === n - 1 || D.t0 + (i+1)*M15 <= startTs) continue;
+      const c = D.c[i];
+      for (const side of sp.sides) {
+        const s = sig(D, X, i, side); if (!s) continue;
+        const stop = s[sp.kind];
+        if (side === 1 ? (0 < stop && stop < c) : stop > c) { pend = { d: side, stop, target: c + side*2*Math.abs(c - stop) }; break; }
+      }
+    }
+    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.e, x: n - 1, rawIn: pos.entry, rawOut: D.c[n-1], why: "TIME", open: true, stop: pos.stop, target: pos.target });
+    return out;
+  }
+  const mk = (name, kind, sides) => ({ name, kind, sides, mult: 0, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "NEXORA V63", needV: true });
+  return { prepare, sig, run, strats: [mk("V63 volume_atr", "atr", [1, -1]), mk("V63 volume_time", "time", [1, -1]), mk("V63 volume_atr LONG", "atr", [1]), mk("V63 volume_time LONG", "time", [1])] };
+})();
+
 const S = (name, mult, sig, sm, tm, hold, trail = null, cd = null, entry = "imm") => ({ name, mult, sig, sm, tm, hold, trail, cd, entry });
 const V40 = (a, b) => ["v40", a, b];
 const STRATS = [
@@ -1208,6 +1289,7 @@ const STRATS = [
   ...SEXT.strats,
   ...S5.strats,
   ...SSD.strats,
+  ...V63.strats,
 ];
 
 function v33Entry(D, i, d, hi) {
@@ -1292,7 +1374,7 @@ function money(t, D, P, funding, lastPrice) {
 </script>
 
 <script id="lab">
-const LAB_STRATS = STRATS.filter(s => !s.m5);   // استراتيجيات الـ5 دقايق بس على المنصة هلأ
+const LAB_STRATS = STRATS.filter(s => !s.m5 && !s.needV);   // استراتيجيات الـ5 دقايق بس على المنصة هلأ
 // ===================== حسابات المختبر (صافية، بدون واجهة) =====================
 const LAB_START = Date.UTC(2024, 7, 16), LAB_END = Date.UTC(2026, 7, 16);
 const LAB_SPLIT = LAB_START + Math.floor((LAB_END - LAB_START) * 2 / 3);

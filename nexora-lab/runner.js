@@ -59,10 +59,10 @@ function buildD(rows) {
   const t0 = Math.ceil(Math.max(keys[0], E.LAB_START) / H4) * H4;
   let n = Math.floor((keys[keys.length-1] - t0)/M15) + 1; n -= n % 16;
   if (n < 16*60) return null;
-  const D = { t0, o: [], h: [], l: [], c: [] }; let prev = null;
+  const D = { t0, o: [], h: [], l: [], c: [], v: [] }; let prev = null;
   for (let i = 0; i < n; i++) { const r = rows.get(t0 + i*M15);
-    if (r) { const o = +r[1], c = +r[4]; D.o.push(o); D.h.push(Math.max(+r[2], o, c)); D.l.push(Math.min(+r[3], o, c)); D.c.push(c); prev = c; }
-    else { const p = prev ?? +rows.get(keys.find(x => x > t0 + i*M15))[1]; D.o.push(p); D.h.push(p); D.l.push(p); D.c.push(p); } }
+    if (r) { const o = +r[1], c = +r[4]; D.o.push(o); D.h.push(Math.max(+r[2], o, c)); D.l.push(Math.min(+r[3], o, c)); D.c.push(c); D.v.push(+r[5]); prev = c; }
+    else { const p = prev ?? +rows.get(keys.find(x => x > t0 + i*M15))[1]; D.o.push(p); D.h.push(p); D.l.push(p); D.c.push(p); D.v.push(0); } }
   return D;
 }
 const fixF = (F, D) => F.map(f => f.mark ? f : { ...f, mark: D.c[Math.min(D.c.length-1, Math.max(0, Math.floor((f.t - D.t0)/M15)))] });
