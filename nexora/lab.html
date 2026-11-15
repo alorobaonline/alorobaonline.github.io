@@ -1410,21 +1410,41 @@ async function runMulti(sp, nc, slots, P3, mainName, useFund) {
   html += `<h2>كل عملة (تكلفة ${mainName})</h2><div class="wrap"><table><tr><th>العملة</th><th>تدريب</th><th>اختبار</th><th>جديدة</th><th>الحكم</th></tr>` +
     rows.map(r => `<tr><td class="nm">${r.sym}</td>${r.s.map(x => `<td>${x.n}ص ${usd(x.usd)} <span class="mut num">PF ${pfS(x.pf)}</span></td>`).join("")}<td class="${vCls(r.v)}">${r.v}</td></tr>`).join("") + `</table></div>`;
 
+  // كل ربع سنة لحاله: بتشتغل بكل ظروف السوق ولا بفترة وحدة؟
+  const qmap = new Map();
+  for (const t of port[mainName].taken) { const d = new Date(t.eTs), q = `${d.getUTCFullYear()}-Q${Math.floor(d.getUTCMonth()/3)+1}`;
+    if (!qmap.has(q)) qmap.set(q, { n: 0, net: 0, L: 0, S: 0, gp: 0, gl: 0 }); const o = qmap.get(q); o.n++; o.net += t.net; if (t.d === 1) o.L += t.net; else o.S += t.net; if (t.net > 0) o.gp += t.net; else o.gl -= t.net; }
+  const qs = [...qmap.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1);
+  const qPos = qs.filter(([, o]) => o.net > 0).length;
+  html += `<h2>كل ربع سنة لحاله (${qPos}/${qs.length} رابح)</h2><div class="wrap"><table><tr><th>الربع</th><th>صفقات</th><th>الصافي</th><th>PF</th><th>لونغ</th><th>شورت</th></tr>` +
+    qs.map(([q, o]) => `<tr><td>${q}</td><td>${o.n}</td><td><b>${usd(o.net)}</b></td><td><span class="num">${pfS(o.gl ? o.gp/o.gl : (o.gp ? 99 : 0))}</span></td><td>${usd(o.L)}</td><td>${usd(o.S)}</td></tr>`).join("") + `</table></div>`;
   let txt = `NEXORA LAB | ${sp.name} | أكبر ${syms.length} عملة | slots ${slots} | الحكم: ${mainName} | Maker ${(mainP.maker*100).toFixed(3)}% Taker ${(mainP.taker*100).toFixed(3)}% | تمويل ${useFund ? "نعم" : "لا"}\n`;
   txt += `المحفظة: ${pv} | عملات رابحة بالتلات: ${posAll}/${syms.length} | اختيار من التدريب: ${sv} (${chosen.join(",")})\n`;
   for (const [cn] of P3) txt += `${cn}: ` + port[cn].s.map((x, i) => `${PERIODS[i]} ${txtP(x)}`).join(" | ") + "\n";
+  txt += `أرباع (${qPos}/${qs.length} رابح): ` + qs.map(([q, o]) => `${q} n${o.n} ${f2(o.net)}$ (L${f2(o.L)}/S${f2(o.S)})`).join(" | ") + "\n";
   if (sel) txt += `اختيار-تدريب: ` + sel.map((x, i) => `${PERIODS[i]} ${txtP(x)}`).join(" | ") + "\n";
   txt += `كل عملة:\n` + rows.map(r => `${r.sym} ${r.v} | ` + r.s.map((x, i) => `${PERIODS[i]} ${x.n} ${f2(x.usd)}$ PF${pfS(x.pf)}`).join(" | ")).join("\n");
   return { html, txt };
 }
 
+let BATCH = null;
 async function go() {
   $("go").disabled = true; $("out").innerHTML = ""; $("copyBox").style.display = "none"; setProg(0); REQ = 0;
   const t0 = Date.now();
   try {
     const P3 = costSet(+$("maker").value/100, +$("taker").value/100, +$("slip").value/100, +$("notional").value);
     const mainName = $("main").value, useFund = $("fund").checked;
-    const r = $("mode").value === "btc" ? await runBTC(P3, mainName, useFund)
+    let r;
+    if (BATCH) {   // عدة استراتيجيات ورا بعض، نتيجة وحدة
+      r = { html: "", txt: "" };
+      for (let q = 0; q < BATCH.length; q++) {
+        const sp = LAB_STRATS.find(s => s.name.startsWith(BATCH[q])); if (!sp) continue;
+        setStatus(`🧪 [${q+1}/${BATCH.length}] ${sp.name}`);
+        const x = await runMulti(sp, Math.max(2, +$("coins").value), Math.max(1, +$("slots").value), P3, mainName, useFund);
+        r.html += x.html + "<hr>"; r.txt += x.txt + "\n\n";
+        $("out").innerHTML = r.html;
+      }
+    } else r = $("mode").value === "btc" ? await runBTC(P3, mainName, useFund)
       : await runMulti(LAB_STRATS[+$("strat").value], Math.max(2, +$("coins").value), Math.max(1, +$("slots").value), P3, mainName, useFund);
     $("out").innerHTML = r.html; $("txt").value = r.txt; $("copyBox").style.display = "";
     setProg(1); setStatus(`✅ خلص بـ ${((Date.now()-t0)/1000).toFixed(0)} ثانية (${REQ} طلب لبايننس)`);
@@ -1440,6 +1460,7 @@ async function go() {
   $("go").onclick = go;
   // روابط جاهزة: #combo30 = COMBO على 30 عملة | #v43-30 = V43 على 30 عملة | #all = كل الاستراتيجيات على BTC
   const H = location.hash.replace("#", "");
+  if (H === "top4") { BATCH = ["COMBO", "V42 4H SHORT b0", "G-V43 Gann 2/.3", "S15 Sweep+MSS V2 4h"]; $("mode").value = "multi"; $("coins").value = 30; sync(); setTimeout(go, 300); }
   const preset = { "combo30": ["multi", "COMBO", 30], "v43-30": ["multi", "V43 1H SHORT b0", 30], "all": ["btc", null, 0] }[H];
   if (preset) {
     $("mode").value = preset[0];
