@@ -320,6 +320,245 @@ const S17 = (() => {
   return { calc, sig, run, CFG };
 })();
 
+// ===================== Strategy 16: SMC Supply & Demand + Liquidity Sweep (منقولة من smc/engine.py + paper.py) =====================
+const S16 = (() => {
+  const TFM = { "15m": 900000, "1h": 3600000, "4h": 14400000 };
+  const CFG = { atrPeriod: 14, displacementAtr: 0.8, maxZoneWidthAtr: 3, baseMaxWidthAtr: 1, maxZoneAgeBars: 120,
+    interactionBars: 8, reversalBars: 3, allowTestedZones: false, maxTouches: 3 };
+  const PORTS = [["16A-1h", "A", "1h"], ["16A-4h", "A", "4h"], ["16B-1h", "B", "1h"], ["16B-4h", "B", "4h"]];
+  const id = (...v) => v.map(x => Array.isArray(x) ? "[" + x.join(",") + "]" : String(x)).join("|");
+  const TERM = new Set(["PAPER_POSITION_OPEN", "POSITION_CLOSED", "SETUP_EXPIRED", "ZONE_INVALIDATED", "SIGNAL_REJECTED", "DATA_UNAVAILABLE"]);
+  const terminal = x => TERM.has(x.state);
+  const transition = (setup, status, at, reason) => { setup.state = status; setup.updatedAt = at; if (reason) setup.reason = reason; };
+  const blank = (sym) => ({ symbol: sym, frames: {}, zones: new Map(), setups: new Map(), setupEpoch: 0 });
+
+  function frameStep(s, tf, b) {
+    let f = s.frames[tf];
+    if (!f) f = s.frames[tf] = { bars: [], count: 0, atr: null, trSum: 0, highs: [], lows: [], broken: [] };
+    const prior = f.bars.length ? f.bars[f.bars.length-1].close : b.open;
+    const tr = Math.max(b.high - b.low, Math.abs(b.high - prior), Math.abs(b.low - prior));
+    f.count++; const n = CFG.atrPeriod;
+    if (f.count <= n) { f.trSum += tr; if (f.count === n) f.atr = f.trSum / n; }
+    else f.atr = (f.atr * (n - 1) + tr) / n;
+    return f;
+  }
+  function confirmSwings(s, f, b) {
+    const bars = f.bars.concat([b]); if (bars.length < 7) return;
+    const pivot = bars[bars.length-4], nb = bars.slice(-7, -4).concat(bars.slice(-3));
+    for (const [side, field, cmp] of [["high", "high", (a, c) => a > c], ["low", "low", (a, c) => a < c]]) {
+      if (nb.every(x => cmp(pivot[field], x[field]))) {
+        const point = { id: id(s.symbol, side, pivot.openTime), price: pivot[field], openTime: pivot.openTime, confirmedAt: b.closeTime, atrAtConfirmation: f.atr };
+        const key = side === "high" ? "highs" : "lows";
+        f[key].push(point); f[key] = f[key].slice(-24);
+      }
+    }
+  }
+  function baseFor(bars, side, atr) {
+    if (!bars.length) return null;
+    const opposite = b => side === "LONG" ? b.close < b.open : b.close > b.open;
+    for (let size = Math.min(3, bars.length); size > 1; size--) {
+      const part = bars.slice(-size);
+      if (Math.max(...part.map(x => x.high)) - Math.min(...part.map(x => x.low)) <= CFG.baseMaxWidthAtr * atr &&
+          part.every(x => Math.abs(x.close - x.open) <= .5 * atr)) return part;
+    }
+    return opposite(bars[bars.length-1]) ? bars.slice(-1) : null;
+  }
+  function makeZone(s, tf, side, base, b, atr) {
+    const lower = Math.min(...base.map(x => x.low)), upper = Math.max(...base.map(x => x.high));
+    if (!(0 < upper - lower && upper - lower <= CFG.maxZoneWidthAtr * atr)) return null;
+    const key = id(s.symbol, tf, side, base[0].openTime, base[base.length-1].closeTime);
+    if (!s.zones.has(key)) s.zones.set(key, { id: key, timeframe: tf, side, lower, upper, baseAt: base[0].openTime, createdAt: b.closeTime,
+      confirmedAt: null, status: "pending", touchCount: 0, inside: false });
+    return s.zones.get(key);
+  }
+  function zoneStep(s, tf, f, b) {
+    const atr = f.atr; if (!atr || atr <= 0) return;
+    for (const z of s.zones.values()) {
+      if (z.timeframe !== tf || z.status !== "pending") continue;
+      if (b.closeTime - z.createdAt > 3 * TFM[tf]) { z.status = "expired"; z.endedAt = b.closeTime; }
+    }
+    for (const [side, levels] of [["LONG", f.highs], ["SHORT", f.lows]]) {
+      const el = levels.filter(p => p.confirmedAt < b.openTime); if (!el.length) continue;
+      const p = el[el.length-1];
+      const broken = side === "LONG" ? b.close > p.price : b.close < p.price;
+      if (!broken || f.broken.includes(p.id)) continue;
+      f.broken = f.broken.concat([p.id]).slice(-64);
+      const directional = side === "LONG" ? b.close > b.open : b.close < b.open;
+      if (!directional || Math.abs(b.close - b.open) < CFG.displacementAtr * atr) continue;
+      const base = baseFor(f.bars, side, atr); if (!base) continue;
+      const z = makeZone(s, tf, side, base, b, atr);
+      if (z && z.status === "pending") { z.status = "fresh"; z.confirmedAt = b.closeTime; z.bosLevel = p.price; }
+    }
+    for (const side of ["LONG", "SHORT"]) { const base = baseFor(f.bars.concat([b]), side, atr); if (base) makeZone(s, tf, side, base, b, atr); }
+  }
+  function liquidity(f, side, b, atr) {
+    const levels = f[side === "LONG" ? "lows" : "highs"].filter(p => p.confirmedAt < b.openTime);
+    if (!levels.length) return null;
+    const latest = levels[levels.length-1], defAtr = latest.atrAtConfirmation || atr;
+    const equals = levels.slice(0, -1).filter(p => Math.abs(p.price - latest.price) <= .2 * defAtr);
+    const prices = equals.map(p => p.price).concat([latest.price]);
+    return { price: side === "LONG" ? Math.min(...prices) : Math.max(...prices),
+      confirmedAt: Math.max(...equals.map(p => p.confirmedAt).concat([latest.confirmedAt])), referenceIds: equals.map(p => p.id).concat([latest.id]) };
+  }
+  function waiting(s, z, port, v, at) {
+    const number = z.touchCount + 1, key = id(z.id, port, number, s.setupEpoch);
+    if (!s.setups.has(key)) {
+      const x = { id: key, zoneId: z.id, portfolioId: port, version: v, side: z.side, touchNumber: number, touchedAt: null,
+        expiresAt: z.confirmedAt + CFG.maxZoneAgeBars * TFM[z.timeframe], interactionExpiresAt: null, sweepId: null, state: "WAITING_FOR_ZONE_RETEST" };
+      s.setups.set(key, x); transition(x, "WAITING_FOR_ZONE_RETEST", at);
+    }
+    return s.setups.get(key);
+  }
+  function armWaiting(s, at) {
+    for (const z of s.zones.values()) {
+      if (!(z.status === "fresh" || z.status === "tested") || z.inside) continue;
+      if (z.touchCount && (!CFG.allowTestedZones || z.touchCount >= CFG.maxTouches)) continue;
+      for (const [port, v, tf] of PORTS) if (tf === z.timeframe) waiting(s, z, port, v, at);
+    }
+  }
+  function interactionStep(s, f, b, live) {
+    const atr = f.atr;
+    for (const z of s.zones.values()) {
+      if (!(z.status === "fresh" || z.status === "tested")) continue;
+      const at = b.closeTime;
+      const invalid = z.side === "LONG" ? b.close < z.lower : b.close > z.upper;
+      const expired = at - z.confirmedAt >= CFG.maxZoneAgeBars * TFM[z.timeframe];
+      if (invalid || expired) {
+        z.status = invalid ? "invalidated" : "expired"; z.endedAt = at;
+        for (const x of s.setups.values()) if (x.zoneId === z.id && !terminal(x)) transition(x, invalid ? "ZONE_INVALIDATED" : "SETUP_EXPIRED", at, "zone");
+        continue;
+      }
+      if (b.openTime <= z.confirmedAt) continue;
+      if (live && !z.inside) {
+        if (!z.touchCount || (CFG.allowTestedZones && z.touchCount < CFG.maxTouches))
+          for (const [port, v, tf] of PORTS) if (tf === z.timeframe) waiting(s, z, port, v, at);
+      }
+      const inside = b.low <= z.upper && b.high >= z.lower, newTouch = inside && !z.inside;
+      if (newTouch) {
+        const previous = z.touchCount; z.touchCount++; z.status = "tested"; z.lastTouchAt = at;
+        if (live) for (const [port, v, tf] of PORTS) {
+          if (tf !== z.timeframe) continue;
+          const key = id(z.id, port, z.touchCount, s.setupEpoch);
+          const x = { id: key, zoneId: z.id, portfolioId: port, version: v, side: z.side, touchNumber: z.touchCount, touchedAt: at,
+            expiresAt: at + (CFG.interactionBars - 1) * TFM["15m"], sweepId: null, state: "WAITING_FOR_ZONE_RETEST" };
+          x.interactionExpiresAt = x.expiresAt;
+          s.setups.set(key, x); transition(x, "ZONE_TOUCHED", at);
+          if (previous > 0 && (!CFG.allowTestedZones || z.touchCount > CFG.maxTouches)) transition(x, "SIGNAL_REJECTED", at, "tested");
+          else transition(x, "WAITING_FOR_LIQUIDITY_SWEEP", at);
+        }
+      }
+      z.inside = inside;
+    }
+    if (!live || !atr || atr <= 0) return [];
+    const entries = [];
+    for (const x of Array.from(s.setups.values())) {
+      if (terminal(x)) continue;
+      const z = s.zones.get(x.zoneId);
+      if (!z || !(z.status === "fresh" || z.status === "tested")) continue;
+      if (x.state === "WAITING_FOR_ZONE_RETEST") continue;
+      if (b.closeTime > x.expiresAt) { transition(x, "SETUP_EXPIRED", b.closeTime, "window"); continue; }
+      if (x.touchNumber !== z.touchCount) { transition(x, "SIGNAL_REJECTED", b.closeTime, "retest"); continue; }
+      const long = x.side === "LONG";
+      if (x.sweepId && b.closeTime > x.sweepAt) {
+        if (long ? b.low < x.sweepExtreme : b.high > x.sweepExtreme) { transition(x, "SIGNAL_REJECTED", b.closeTime, "breach"); continue; }
+      }
+      if (x.state === "WAITING_FOR_LIQUIDITY_SWEEP") {
+        const level = liquidity(f, x.side, b, atr);
+        const inside = b.low <= z.upper && b.high >= z.lower;
+        const swept = level && (long ? b.low <= level.price - .1 * atr : b.high >= level.price + .1 * atr);
+        if (!(inside && swept)) continue;
+        Object.assign(x, { sweepId: id(s.symbol, x.side, b.openTime, level.referenceIds), sweepAt: b.closeTime,
+          sweepExtreme: long ? b.low : b.high, liquidity: level, sweepAtr: atr });
+        if (x.version === "B") x.expiresAt = b.closeTime + 8 * TFM["15m"];
+        transition(x, "SWEEP_DETECTED", b.closeTime);
+      }
+      if (x.state === "SWEEP_DETECTED") {
+        if (b.closeTime > x.interactionExpiresAt || b.closeTime - x.sweepAt > CFG.reversalBars * TFM["15m"]) { transition(x, "SETUP_EXPIRED", b.closeTime, "rev"); continue; }
+        const reclaim = long ? b.close > x.liquidity.price : b.close < x.liquidity.price;
+        const dirc = long ? b.close > b.open : b.close < b.open;
+        const body = Math.abs(b.close - b.open), span = b.high - b.low;
+        if (!(reclaim && dirc && span > 0 && body / span >= .5)) continue;
+        x.reversalAt = b.closeTime; transition(x, "REVERSAL_CONFIRMED", b.closeTime);
+        if (x.version === "B") transition(x, "WAITING_FOR_CHOCH", b.closeTime);
+        else { x.confirmedAt = b.closeTime; x.entryAtr = atr; transition(x, "ENTRY_ELIGIBLE", b.closeTime); entries.push({ ...x }); continue; }
+      }
+      if (x.state === "WAITING_FOR_CHOCH") {
+        if (b.closeTime - x.sweepAt > 8 * TFM["15m"]) { transition(x, "SETUP_EXPIRED", b.closeTime, "choch"); continue; }
+        const opp = f[long ? "highs" : "lows"].filter(p => p.confirmedAt < b.openTime);
+        if (!opp.length || b.closeTime <= x.sweepAt) continue;
+        const ref = opp[opp.length-1], prev = f.bars[f.bars.length-1].close;
+        const crossed = long ? (prev <= ref.price && ref.price < b.close) : (prev >= ref.price && ref.price > b.close);
+        if (crossed) { Object.assign(x, { confirmedAt: b.closeTime, entryAtr: atr, chochLevel: ref.price, chochReferenceAt: ref.confirmedAt });
+          transition(x, "ENTRY_ELIGIBLE", b.closeTime); entries.push({ ...x }); }
+      }
+    }
+    return entries;
+  }
+  function step(s, tf, b, live) {
+    const f = frameStep(s, tf, b); let entries = [];
+    if (tf === "1h" || tf === "4h") zoneStep(s, tf, f, b); else entries = interactionStep(s, f, b, live);
+    if ((tf === "1h" || tf === "4h") && live) armWaiting(s, b.closeTime);
+    confirmSwings(s, f, b);
+    f.bars = f.bars.concat([b]).slice(-Math.max(60, CFG.atrPeriod + 8));
+    for (const [k, z] of Array.from(s.zones)) if (!(["pending", "fresh", "tested"].includes(z.status) || b.closeTime - (z.endedAt ?? b.closeTime) < 4 * TFM["4h"])) s.zones.delete(k);
+    for (const [k, x] of Array.from(s.setups)) if (!(!terminal(x) || b.closeTime - x.updatedAt < 4 * TFM["4h"])) s.setups.delete(k);
+    return entries;
+  }
+
+  // تشغيل كامل على البيانات: 4 محافظ مستقلة، دخول على فتح الشمعة الجاية، وقف = طرف السويب ∓ 0.25 ATR، هدف 2R، أقصى 48 شمعة 15m
+  const cache = new WeakMap();
+  function runAll(D, inds, startTs) {
+    const key = inds[1];
+    if (cache.has(key) && cache.get(key).startTs === startTs) return cache.get(key).out;
+    const s = blank("BTCUSDT"), mk = (I, m, k) => ({ openTime: D.t0 + k*m*900000, closeTime: D.t0 + (k+1)*m*900000 - 1, open: I.O[k], high: I.H[k], low: I.L[k], close: I.C[k] });
+    const ev = [];
+    for (const [m, tf, ord] of [[16, "4h", 0], [4, "1h", 1], [1, "15m", 2]]) { const I = inds[m]; for (let k = 0; k < I.n; k++) ev.push([D.t0 + (k+1)*m*900000 - 1, ord, tf, m, k]); }
+    ev.sort((a, b) => (a[0] - b[0]) || (a[1] - b[1]));
+    const out = {}, open = {}, used = {};
+    for (const [p] of PORTS) { out[p] = []; open[p] = null; used[p] = new Set(); }
+    let armed = false;
+    const I15 = inds[1];
+    for (const [ct, , tf, m, k] of ev) {
+      const live = ct >= startTs;
+      if (live && !armed) { armWaiting(s, ct); armed = true; }
+      // إدارة الصفقات المفتوحة على شمعة 15m قبل ما الشمعة تدخل المحرّك
+      if (tf === "15m") for (const [p] of PORTS) {
+        const pos = open[p]; if (!pos || k < pos.e) continue;
+        const d = pos.d, o = I15.O[k], h = I15.H[k], l = I15.L[k], c = I15.C[k];
+        let raw = null, why = null;
+        if (d === 1 ? l <= pos.stop : h >= pos.stop) { raw = d === 1 ? Math.min(o, pos.stop) : Math.max(o, pos.stop); why = "INIT_STOP"; }
+        else if (d === 1 ? h >= pos.target : l <= pos.target) { raw = d === 1 ? Math.max(o, pos.target) : Math.min(o, pos.target); why = "TARGET"; }
+        else if (k >= pos.e + 47) { raw = c; why = "TIME"; }
+        if (raw !== null) { out[p].push({ d, e: pos.e, x: k, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: pos.target }); open[p] = null;
+          const st = s.setups.get(pos.setupId); if (st) transition(st, "POSITION_CLOSED", ct); }
+      }
+      const I = inds[m], bar = mk(I, m, k);
+      const cands = step(s, tf, bar, live);
+      for (const cnd of cands) {
+        const p = cnd.portfolioId, setup = s.setups.get(cnd.id), e = k + 1;
+        const z = s.zones.get(cnd.zoneId);
+        const reject = () => { if (setup) transition(setup, "SIGNAL_REJECTED", ct, "rejected"); };
+        if (e >= I15.n || !z || !(z.status === "fresh" || z.status === "tested") || !setup || setup.state !== "ENTRY_ELIGIBLE" || open[p] || used[p].has(cnd.sweepId)) { reject(); continue; }
+        const d = cnd.side === "LONG" ? 1 : -1, entry = I15.O[e];
+        if (d === 1 ? entry <= cnd.sweepExtreme : entry >= cnd.sweepExtreme) { reject(); continue; }
+        const stop = cnd.sweepExtreme - d * .25 * cnd.entryAtr, dist = d * (entry - stop);
+        if (!(stop > 0 && dist > 0)) { reject(); continue; }
+        open[p] = { d, e, entry, stop, target: entry + d * 2 * dist, setupId: cnd.id }; used[p].add(cnd.sweepId);
+        transition(setup, "PAPER_POSITION_OPEN", ct);
+      }
+    }
+    for (const [p] of PORTS) if (open[p]) { const pos = open[p]; out[p].push({ d: pos.d, e: pos.e, x: I15.n - 1, rawIn: pos.entry, rawOut: I15.C[I15.n-1], why: "TIME", open: true, stop: pos.stop, target: pos.target }); }
+    cache.set(key, { startTs, out });
+    return out;
+  }
+  const strat = (port, label) => ({
+    name: "S16 SMC " + label, mult: 1, sm: 0, tm: 0, hold: 48, trail: null, cd: null, entry: "imm", src: "Replit #16",
+    sig: () => 0,
+    run: (D, inds, sp, startTs) => runAll(D, inds, startTs)[port].filter(t => D.t0 + t.e*900000 >= startTs).map(t => ({ ...t, name: sp.name })),
+  });
+  return { blank, step, armWaiting, runAll, CFG, PORTS, strats: [strat("16A-1h", "A 1h"), strat("16A-4h", "A 4h"), strat("16B-1h", "B 1h (CHoCH)"), strat("16B-4h", "B 4h (CHoCH)")] };
+})();
+
 const S = (name, mult, sig, sm, tm, hold, trail = null, cd = null, entry = "imm") => ({ name, mult, sig, sm, tm, hold, trail, cd, entry });
 const V40 = (a, b) => ["v40", a, b];
 const STRATS = [
@@ -344,6 +583,7 @@ const STRATS = [
   S("COMBO V42 Short + Gann Long", 16, sigCombo(), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
   S("G-V46 1H Dual", 4, sigDual(0.4), 1.5, 3, 144),
   { name: "S17 SSL+QQE+WAE 15m", mult: 1, sig: S17.sig, run: S17.run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Replit #17" },
+  ...S16.strats,
 ];
 
 function v33Entry(D, i, d, hi) {
