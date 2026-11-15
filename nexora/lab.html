@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXORA LAB — مختبر فحص الاستراتيجيات</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--line:#262a33;--txt:#e8eaed;--mut:#8b93a1;--pos:#22c55e;--neg:#ef4444;--acc:#a78bfa;--yel:#eab308}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;padding:14px;max-width:1200px;margin-inline:auto}
+h1{font-size:20px;margin:0 0 4px} h2{font-size:15px;margin:22px 0 8px;color:#cfd3da} h3{font-size:14px;margin:16px 0 6px}
+a{color:#60a5fa}
+.mut{color:var(--mut);font-size:12.5px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:end;background:var(--card);padding:10px;border-radius:12px;margin-top:10px}
+.bar label{display:flex;flex-direction:column;font-size:12px;color:var(--mut);gap:3px}
+.bar input,.bar select{background:#0f1115;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:7px;font-size:14px}
+.bar input[type=number]{width:90px} .bar input[type=checkbox]{width:auto}
+button{background:var(--acc);color:#0d0a1a;border:0;border-radius:8px;padding:10px 16px;font-weight:700;font-size:14px;cursor:pointer}
+button:disabled{opacity:.5} button.sec{background:#2a2f3a;color:var(--txt)}
+.prog{height:6px;background:#222;border-radius:4px;overflow:hidden;margin-top:8px} .prog div{height:100%;width:0;background:var(--acc);transition:width .2s}
+#status{margin-top:6px;font-size:13px}
+.wrap{overflow-x:auto;background:var(--card);border-radius:12px;margin-bottom:8px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{padding:6px 7px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+th{background:#1f232c;color:#cfd3da;font-weight:600} td.nm{text-align:right}
+.pos{color:var(--pos)} .neg{color:var(--neg)} .yel{color:var(--yel)}
+.num{direction:ltr;unicode-bidi:isolate;display:inline-block}
+.box{background:var(--card);border-radius:12px;padding:12px;margin:8px 0;line-height:1.7}
+.v{font-size:15px;font-weight:700}
+textarea{width:100%;height:120px;background:#0f1115;color:var(--mut);border:1px solid var(--line);border-radius:8px;font-family:ui-monospace,monospace;font-size:11px;direction:ltr}
+</style>
+</head>
+<body>
+<h1>🔬 NEXORA LAB — مختبر الفحص</h1>
+<div class="mut">بيفحص الاستراتيجيات على أسعار بايننس فيوتشرز الحقيقية جوّا المتصفح — بدون كمبيوتر ولا cmd. نفس محرّك المنصة بالضبط. <a href="./">← رجوع للمنصة</a></div>
+
+<div class="bar">
+  <label>نوع الفحص
+    <select id="mode">
+      <option value="btc">كل الاستراتيجيات على BTC</option>
+      <option value="multi">استراتيجية وحدة على أكبر العملات</option>
+    </select></label>
+  <label id="stratL" style="display:none">الاستراتيجية<select id="strat"></select></label>
+  <label id="coinsL" style="display:none">كم عملة<input type="number" id="coins" value="30" min="2" max="100"></label>
+  <label id="slotsL" style="display:none">أقصى صفقات مع بعض<input type="number" id="slots" value="10" min="1" max="50"></label>
+</div>
+<div class="bar">
+  <label>حجم الصفقة $<input type="number" id="notional" value="200" step="10"></label>
+  <label>Maker %<input type="number" id="maker" value="0.02" step="0.001"></label>
+  <label>Taker %<input type="number" id="taker" value="0.05" step="0.001"></label>
+  <label>سليبج %<input type="number" id="slip" value="0.01" step="0.01"></label>
+  <label>احسب التمويل<input type="checkbox" id="fund" checked></label>
+  <label>الحكم على أساس
+    <select id="main"><option value="Taker">Taker (دخول Market)</option><option value="البوت">البوت (دخول Maker)</option></select></label>
+  <button id="go">▶ افحص</button>
+</div>
+<div class="prog"><div id="pb"></div></div>
+<div id="status" class="mut">جاهز. أول فحص على 30 عملة بياخد كم دقيقة (تحميل)، وبعدها البيانات بتنحفظ بالمتصفح وبيصير سريع.</div>
+
+<div id="out"></div>
+<div id="copyBox" style="display:none">
+  <h2>النتيجة كنص</h2>
+  <button id="copy" class="sec">📋 انسخ النتيجة (والصقها لـ Claude)</button>
+  <textarea id="txt" readonly></textarea>
+</div>
+
+<script id="engine">
+// ===================== NEXORA ENGINE (نفس منطق الفحص بالضبط) =====================
+const M15 = 900000, H4 = 16 * M15;
+
+function aggregate(D, m) {
+  const n = Math.floor(D.o.length / m), O = [], H = [], L = [], C = [];
+  for (let i = 0; i < n; i++) {
+    O.push(D.o[i*m]); let hi = -Infinity, lo = Infinity;
+    for (let k = i*m; k < (i+1)*m; k++) { if (D.h[k] > hi) hi = D.h[k]; if (D.l[k] < lo) lo = D.l[k]; }
+    H.push(hi); L.push(lo); C.push(D.c[(i+1)*m-1]);
+  }
+  return { O, H, L, C };
+}
+
+function ema(C, p) { const k = 2/(p+1), out = []; for (let i = 0; i < C.length; i++) out.push(i === 0 ? C[0] : C[i]*k + out[i-1]*(1-k)); return out; }
+
+function makeInd(D, m) {
+  const { O, H, L, C } = aggregate(D, m), n = C.length;
+  const BLO = O.map((o, i) => Math.min(o, C[i])), BHI = O.map((o, i) => Math.max(o, C[i]));
+  const tr = [H[0]-L[0]];
+  for (let i = 1; i < n; i++) tr.push(Math.max(H[i]-L[i], Math.abs(H[i]-C[i-1]), Math.abs(L[i]-C[i-1])));
+  const atr = []; let a = null;
+  for (let i = 0; i < n; i++) {
+    if (i === 13) { a = 0; for (let k = 0; k < 14; k++) a += tr[k]; a /= 14; }
+    else if (i > 13) a = (a*13 + tr[i]) / 14;
+    atr.push(a);
+  }
+  const pdm = [0], mdm = [0];
+  for (let i = 1; i < n; i++) {
+    const up = H[i]-H[i-1], dn = L[i-1]-L[i];
+    pdm.push(up > dn ? Math.max(up, 0) : 0); mdm.push(dn > up ? Math.max(dn, 0) : 0);
+  }
+  const adx = new Array(n).fill(null);
+  let smtr = 0, smp = 0, smm = 0; for (let k = 1; k < 15 && k < n; k++) { smtr += tr[k]; smp += pdm[k]; smm += mdm[k]; }
+  let cnt = 0, first = 0;
+  for (let i = 14; i < n; i++) {
+    if (i > 14) { smtr = smtr - smtr/14 + tr[i]; smp = smp - smp/14 + pdm[i]; smm = smm - smm/14 + mdm[i]; }
+    const pdi = smtr > 0 ? 100*smp/smtr : 0, mdi = smtr > 0 ? 100*smm/smtr : 0;
+    const dx = (pdi + mdi) > 0 ? 100*Math.abs(pdi-mdi)/(pdi+mdi) : 0;
+    cnt++;
+    if (cnt <= 14) first += dx;
+    if (cnt === 14) adx[i] = first/14; else if (cnt > 14) adx[i] = (adx[i-1]*13 + dx)/14;
+  }
+  return { m, n, O, H, L, C, BLO, BHI, atr, ema200: ema(C, 200), ema50: ema(C, 50), adx };
+}
+
+const minR = (a, s, e) => { let v = Infinity; for (let k = Math.max(0, s); k < e; k++) if (a[k] < v) v = a[k]; return v; };
+const maxR = (a, s, e) => { let v = -Infinity; for (let k = Math.max(0, s); k < e; k++) if (a[k] > v) v = a[k]; return v; };
+
+const sigV33 = k => (I, i) => I.C[i] > maxR(I.BHI, i-k, i) ? 1 : (I.C[i] < minR(I.BLO, i-k, i) ? -1 : 0);
+const sigShort = body => (I, i) => {
+  if (I.adx[i] === null || I.atr[i] === null || I.atr[i] <= 0 || I.adx[i] <= 25) return 0;
+  if (Math.abs(I.C[i]-I.O[i]) < body*I.atr[i]) return 0;
+  return (I.C[i] < minR(I.BLO, i-4, i) && I.C[i] < I.ema200[i]) ? -1 : 0;
+};
+const sigDip = () => (I, i) => {
+  if (I.atr[i] === null || I.atr[i] <= 0) return 0;
+  if (I.C[i] <= I.ema200[i] || I.C[i] <= I.ema50[i]) return 0;
+  let dipped = false; for (let j = Math.max(0, i-3); j < i; j++) if (I.L[j] <= I.ema50[j]*1.005) dipped = true;
+  return (dipped && I.C[i] > I.O[i] && (I.C[i]-I.O[i]) >= 0.3*I.atr[i]) ? 1 : 0;
+};
+const sigGann43 = (lb, bm) => (I, i) => {
+  if (I.atr[i] === null || I.atr[i] <= 0 || I.C[i] <= I.ema200[i]) return 0;
+  return (I.BLO[i] === minR(I.BLO, i-lb, i+1) && (I.C[i]-I.O[i]) >= bm*I.atr[i]) ? 1 : 0;
+};
+const sigGann44 = mn => (I, i) => {
+  if (I.adx[i] === null || I.atr[i] === null || I.atr[i] <= 0) return 0;
+  if (I.C[i] <= I.ema200[i] || I.adx[i] < mn) return 0;
+  return (I.BLO[i] === minR(I.BLO, i-3, i+1) && (I.C[i]-I.O[i]) >= 0.4*I.atr[i]) ? 1 : 0;
+};
+const sigDual = bm => (I, i) => {
+  if (I.atr[i] === null || I.atr[i] <= 0 || Math.abs(I.C[i]-I.O[i]) < bm*I.atr[i]) return 0;
+  if (I.BLO[i] === minR(I.BLO, i-2, i+1) && I.C[i] > I.O[i] && I.C[i] > I.ema50[i]) return 1;
+  if (I.BHI[i] === maxR(I.BHI, i-2, i+1) && I.C[i] < I.O[i] && I.C[i] < I.ema50[i]) return -1;
+  return 0;
+};
+// دمج: SHORT من V42 (تحت EMA200) و LONG من Gann 3/.4 (فوق EMA200) — ما بيتعارضوا لأن شرط EMA200 عكس بعض
+const sigCombo = () => { const sh = sigShort(0), lg = sigGann43(3, 0.4); return (I, i) => sh(I, i) || lg(I, i); };
+const S = (name, mult, sig, sm, tm, hold, trail = null, cd = null, entry = "imm") => ({ name, mult, sig, sm, tm, hold, trail, cd, entry });
+const V40 = (a, b) => ["v40", a, b];
+const STRATS = [
+  S("V33 B3 TRAIL فوري", 16, sigV33(3), 1.5, 2.25, 96, "v33trail"),
+  S("V33 B3 TRAIL 15m", 16, sigV33(3), 1.5, 2.25, 96, "v33trail", null, "conf15"),
+  S("V33 B6 STRUCT فوري", 16, sigV33(6), 1.5, 2.25, 96, "v33struct"),
+  S("V33 B6 STRUCT 15m", 16, sigV33(6), 1.5, 2.25, 96, "v33struct", null, "conf15"),
+  S("V42 4H SHORT b0", 16, sigShort(0), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("V42 4H SHORT b.5", 16, sigShort(0.5), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("V43 1H SHORT b0", 4, sigShort(0), 1.5, 3, 288, V40(1.5, 1.25), "entry"),
+  S("V43 1H SHORT b.5", 4, sigShort(0.5), 1.5, 3, 288, V40(1.5, 1.25), "entry"),
+  S("V43 15m SHORT b0", 1, sigShort(0), 1.5, 3, 288, V40(1.5, 1.25), "entry"),
+  S("V43 15m SHORT b.5", 1, sigShort(0.5), 1.5, 3, 288, V40(1.5, 1.25), "entry"),
+  S("G-V42 Dip", 16, sigDip(), 2, 3.5, 288, V40(2, 1.5), "sig"),
+  S("G-V43 Gann 3/.4", 16, sigGann43(3, 0.4), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("G-V43 Gann 4/.5", 16, sigGann43(4, 0.5), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("G-V43 Gann 2/.3", 16, sigGann43(2, 0.3), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("G-V44 Gann ADX18", 16, sigGann44(18), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("G-V44 Gann ADX20", 16, sigGann44(20), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("G-V44 Gann ADX25", 16, sigGann44(25), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("G-V45 1H Dual", 4, sigDual(0.2), 1.2, 2.5, 96),
+  S("COMBO V42 Short + Gann Long", 16, sigCombo(), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("G-V46 1H Dual", 4, sigDual(0.4), 1.5, 3, 144),
+];
+
+function v33Entry(D, i, d, hi) {
+  const first = (i+1)*16, last = Math.min(first+16, hi*16);
+  for (let j = first; j < last; j++) {
+    if (j < 3) continue;
+    let bh = -Infinity, bl = Infinity;
+    for (let x = j-3; x < j; x++) { bh = Math.max(bh, D.o[x], D.c[x]); bl = Math.min(bl, D.o[x], D.c[x]); }
+    if ((d === 1 && D.c[j] > bh) || (d === -1 && D.c[j] < bl)) return (j+1 < hi*16) ? j+1 : null;
+  }
+  return null;
+}
+
+function trade(D, I16, sp, d, e, lastExcl, A) {
+  const o = D.o, h = D.h, l = D.l, c = D.c, entry = o[e];
+  let stop = entry - d*sp.sm*A; const target = entry + d*sp.tm*A;
+  let best = entry, active = false, ext = null;
+  const holdEnd = e + sp.hold - 1, end = Math.min(holdEnd, lastExcl - 1);
+  for (let j = e; j <= end; j++) {
+    if (sp.trail === "v33trail" && j > e) {
+      const v = d === 1 ? h[j-1] : l[j-1];
+      ext = ext === null ? v : (d === 1 ? Math.max(ext, v) : Math.min(ext, v));
+      const cand = ext - d*1.25*A; stop = d === 1 ? Math.max(stop, cand) : Math.min(stop, cand);
+    } else if (sp.trail === "v33struct" && j > e && j % 16 === 0) {
+      const k = j/16 - 1;
+      const cand = d === 1 ? I16.BLO[k] - .3*A : I16.BHI[k] + .3*A;
+      stop = d === 1 ? Math.max(stop, cand) : Math.min(stop, cand);
+    }
+    if (d === 1 ? l[j] <= stop : h[j] >= stop)
+      return { x: j, raw: d === 1 ? Math.min(o[j], stop) : Math.max(o[j], stop), why: active ? "TRAIL_STOP" : "INIT_STOP", open: false, stop, target };
+    if (d === 1 ? h[j] >= target : l[j] <= target)
+      return { x: j, raw: d === 1 ? Math.max(o[j], target) : Math.min(o[j], target), why: "TARGET", open: false, stop, target };
+    if (sp.trail && sp.trail[0] === "v40") {
+      const trig = sp.trail[1], dist = sp.trail[2];
+      if (d === 1 && h[j] > best) { best = h[j]; if (best - entry >= trig*A) { active = true; stop = Math.max(stop, best - dist*A); } }
+      else if (d === -1 && l[j] < best) { best = l[j]; if (entry - best >= trig*A) { active = true; stop = Math.min(stop, best + dist*A); } }
+    }
+  }
+  return { x: end, raw: c[end], why: "TIME", open: holdEnd > end, stop, target };
+}
+
+// بيرجّع صفقات الاستراتيجية اللي إشارتها بعد startTs
+function evaluate(D, inds, sp, startTs) {
+  const m = sp.mult, I = inds[m], I16 = inds[16];
+  let lo = 0; while (lo < I.n && D.t0 + (lo+1)*m*M15 <= startTs) lo++;
+  const hi = I.n, out = [];
+  let nextAllowed = lo*m, cd4 = -1;
+  for (let i = Math.max(lo, 200); i < hi-1; i++) {
+    const d = sp.sig(I, i); if (!d) continue;
+    if (sp.cd === "sig" && i < cd4) continue;
+    let e;
+    if (sp.entry === "conf15") { e = v33Entry(D, i, d, hi); if (e === null) continue; }
+    else e = (i+1)*m;
+    if (e >= hi*m || e < nextAllowed) continue;
+    if (sp.cd === "entry" && e < cd4*16) continue;
+    const A = I.atr[i]; if (A === null || A <= 0) continue;
+    const r = trade(D, I16, sp, d, e, hi*m, A);
+    out.push({ name: sp.name, d, e, x: r.x, rawIn: D.o[e], rawOut: r.raw, why: r.why, open: r.open, stop: r.stop, target: r.target });
+    nextAllowed = r.x + 1;
+    if (r.why === "INIT_STOP" && sp.cd && !r.open) cd4 = Math.floor(r.x/16) + 3;
+  }
+  return out;
+}
+
+// العمولة والتمويل والصافي لكل صفقة
+function money(t, D, P, funding, lastPrice) {
+  const d = t.d, fillIn = P.makerEntry ? t.rawIn : t.rawIn*(1 + d*P.slip), qty = P.notional/fillIn;
+  const feeIn = qty*fillIn*(P.makerEntry ? P.maker : P.taker);
+  const eTs = D.t0 + t.e*M15, xTs = D.t0 + (t.x+1)*M15;
+  let fillOut, feeOut, gross;
+  if (t.open) { fillOut = lastPrice; feeOut = 0; }
+  else if (t.why === "TARGET") { fillOut = t.rawOut; feeOut = qty*fillOut*P.maker; }
+  else { fillOut = t.rawOut*(1 - d*P.slip); feeOut = qty*fillOut*P.taker; }
+  gross = d*(fillOut - fillIn)*qty;
+  let fund = 0; const until = t.open ? Infinity : xTs;
+  for (const f of funding) if (f.t > eTs && f.t <= until) fund += -d*f.rate*qty*f.mark;
+  const fee = feeIn + feeOut;
+  return { ...t, eTs, xTs, fillIn, fillOut, qty, gross, fee, fund, net: gross - fee + fund };
+}
+</script>
+
+<script id="lab">
+// ===================== حسابات المختبر (صافية، بدون واجهة) =====================
+const LAB_START = Date.UTC(2024, 7, 16), LAB_END = Date.UTC(2026, 7, 16);
+const LAB_SPLIT = LAB_START + Math.floor((LAB_END - LAB_START) * 2 / 3);
+const PERIODS = ["تدريب", "اختبار", "جديدة"];
+
+function costSet(maker, taker, slip, notional) {
+  return [
+    ["Taker", { notional, maker, taker, slip, makerEntry: false }],
+    ["البوت", { notional, maker, taker, slip, makerEntry: true }],
+    ["Stress", { notional, maker: taker, taker, slip: slip*3, makerEntry: false }],
+  ];
+}
+
+function periodOf(ts) { return ts < LAB_SPLIT ? 0 : (ts < LAB_END ? 1 : 2); }
+
+function statsOf(list, days, N) {
+  const n = list.length;
+  if (!n) return { n: 0, usd: 0, pf: 0, win: 0, avg: 0, gross: 0, t: 0, dd: 0, streak: 0, perDay: 0 };
+  let gp = 0, gl = 0, eq = 0, peak = 0, dd = 0, st = 0, mx = 0, sum = 0, gs = 0;
+  for (const t of list) {
+    const r = t.net; sum += r; if (r > 0) gp += r; else gl -= r;
+    eq += r; peak = Math.max(peak, eq); dd = Math.max(dd, peak - eq);
+    st = r <= 0 ? st + 1 : 0; mx = Math.max(mx, st);
+    gs += t.d*(t.rawOut - t.rawIn)/t.rawIn*N;
+  }
+  const mean = sum/n; let v = 0; for (const t of list) v += (t.net - mean)**2;
+  const sd = n > 1 ? Math.sqrt(v/(n-1)) : 0;
+  return { n, usd: sum, pf: gl ? gp/gl : (gp ? 99 : 0), win: 100*list.filter(t => t.net > 0).length/n,
+           avg: mean, gross: gs/n, t: sd > 0 ? mean/sd*Math.sqrt(n) : 0, dd, streak: mx, perDay: n/days };
+}
+
+function verdictOf(p) {
+  const [tr, te, fr] = p;
+  if (tr.n < 5 || te.n < 5) return "⚪ صفقات قليلة";
+  if (!(tr.usd > 0 && te.usd > 0)) return "❌";
+  const strong = Math.min(tr.pf, te.pf) > 1.1 && tr.t >= 2 && te.t >= 2;
+  const fresh = fr.n === 0 || fr.usd > 0;
+  if (strong && fresh) return "✅";
+  return fresh ? "🟡" : "🟡↓";
+}
+
+function periodDays(now) { return [(LAB_SPLIT - LAB_START)/864e5, (LAB_END - LAB_SPLIT)/864e5, Math.max((now - LAB_END)/864e5, 1)]; }
+
+// صفقات خام (بدون عمولة) لاستراتيجية على رمز
+function rawTrades(D, inds, sp) { return evaluate(D, inds, sp, D.t0).filter(t => !t.open); }
+
+// تقسيم وحساب لتكلفة وحدة
+function split3(raw, D, P, funding, now) {
+  const days = periodDays(now), buckets = [[], [], []];
+  for (const t of raw) { const m = money(t, D, P, funding, 0); buckets[periodOf(m.eTs)].push(m); }
+  return buckets.map((b, k) => statsOf(b, days[k], P.notional));
+}
+
+// محفظة: أقصى slots صفقات مفتوحة مع بعض
+function portfolio(flat, slots) {
+  flat.sort((a, b) => (a.eTs - b.eTs) || (a.rank - b.rank));
+  const taken = []; let open = [];
+  for (const t of flat) { open = open.filter(x => x > t.eTs); if (open.length < slots) { taken.push(t); open.push(t.xTs); } }
+  return { taken, skipped: flat.length - taken.length };
+}
+</script>
+
+<script>
+// ===================== بايننس + كاش =====================
+const BASE = "https://fapi.binance.com";
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const f2 = x => (x >= 0 ? "+" : "") + x.toFixed(2);
+const usd = x => `<span class="num ${x > 0 ? "pos" : x < 0 ? "neg" : ""}">${f2(x)}$</span>`;
+const pfS = x => x >= 99 ? "∞" : x.toFixed(2);
+const vCls = v => v.startsWith("✅") ? "pos" : v.startsWith("🟡") ? "yel" : v.startsWith("❌") ? "neg" : "mut";
+let REQ = 0;
+
+async function api(path, params) {
+  const url = BASE + path + (params ? "?" + new URLSearchParams(params) : "");
+  for (let k = 0; k < 6; k++) {
+    try {
+      const r = await fetch(url); REQ++;
+      if (r.ok) return await r.json();
+      if (r.status === 451) throw new Error("STOP:بايننس حاظرة منطقتك (451)");
+      if (r.status === 429 || r.status === 418) { setStatus("⏳ بايننس طلبت استراحة (حد الطلبات)… بستنى 30 ثانية"); await sleep(30000); continue; }
+    } catch (e) { if (String(e.message).startsWith("STOP:")) throw new Error(e.message.slice(5)); }
+    await sleep(1500*(k+1));
+  }
+  throw new Error("ما قدرت أوصل لبايننس. تأكد من النت.");
+}
+
+// IndexedDB بسيط
+const idb = (() => {
+  let dbp = null;
+  const open = () => dbp || (dbp = new Promise((res, rej) => {
+    const q = indexedDB.open("nexora_lab", 1);
+    q.onupgradeneeded = () => q.result.createObjectStore("kv");
+    q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+  }));
+  const guard = (pr, v) => Promise.race([pr, new Promise(r => setTimeout(() => r(v), 4000))]);   // إذا المتصفح علّق: كمّل بدون كاش
+  return {
+    get: k => guard(rawGet(k), undefined),
+    set: (k, v) => guard(rawSet(k, v), undefined),
+  };
+  async function rawGet(k) { try { const db = await open(); return await new Promise(r => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => r(q.result); q.onerror = () => r(undefined); }); } catch (e) { return undefined; } }
+  async function rawSet(k, v) { try { const db = await open(); await new Promise(r => { const tx = db.transaction("kv", "readwrite"); tx.objectStore("kv").put(v, k); tx.oncomplete = r; tx.onerror = r; }); } catch (e) {} }
+})();
+
+async function loadSymbol(sym, onProg) {
+  const now = Date.now();
+  const cached = await idb.get("k_" + sym);
+  const rows = new Map();
+  if (cached) for (let i = 0; i < cached.t.length; i++) rows.set(cached.t[i], [cached.v[4*i], cached.v[4*i+1], cached.v[4*i+2], cached.v[4*i+3]]);
+  let t = cached && cached.t.length ? cached.t[cached.t.length-1] + M15 : LAB_START, fetched = 0;
+  while (t < now - M15) {
+    const r = await api("/fapi/v1/klines", { symbol: sym, interval: "15m", startTime: t, limit: 1500 });
+    if (!r.length) break;
+    for (const k of r) if (k[6] < now) { rows.set(k[0], [+k[1], +k[2], +k[3], +k[4]]); fetched++; }
+    t = r[r.length-1][0] + M15;
+    onProg && onProg(new Date(r[r.length-1][0]).toISOString().slice(0, 10));
+    await sleep(260);
+  }
+  const keys = [...rows.keys()].sort((a, b) => a - b);
+  if (fetched) {
+    const T = new Float64Array(keys.length), V = new Float64Array(4*keys.length);
+    keys.forEach((k, i) => { T[i] = k; const v = rows.get(k); V[4*i] = v[0]; V[4*i+1] = v[1]; V[4*i+2] = v[2]; V[4*i+3] = v[3]; });
+    await idb.set("k_" + sym, { t: T, v: V });
+  }
+  if (!keys.length) return null;
+  const t0 = Math.ceil(Math.max(keys[0], LAB_START) / H4) * H4;
+  let n = Math.floor((keys[keys.length-1] - t0)/M15) + 1; n -= n % 16;
+  if (n < 16*60) return null;
+  const D = { t0, o: [], h: [], l: [], c: [] }; let prev = null;
+  for (let i = 0; i < n; i++) {
+    const v = rows.get(t0 + i*M15);
+    if (v) { D.o.push(v[0]); D.h.push(Math.max(v[1], v[0], v[3])); D.l.push(Math.min(v[2], v[0], v[3])); D.c.push(v[3]); prev = v[3]; }
+    else { const p = prev ?? rows.get(keys.find(x => x > t0 + i*M15))[0]; D.o.push(p); D.h.push(p); D.l.push(p); D.c.push(p); }
+  }
+  return D;
+}
+
+async function loadFunding(sym) {
+  const key = "f_" + sym, cached = (await idb.get(key)) || [];
+  let t = cached.length ? cached[cached.length-1].t + 1 : LAB_START; const out = cached.slice(); let added = 0;
+  for (let g = 0; g < 30; g++) {
+    const r = await api("/fapi/v1/fundingRate", { symbol: sym, startTime: t, limit: 1000 });
+    for (const f of r) { out.push({ t: f.fundingTime, rate: +f.fundingRate, mark: +(f.markPrice || 0) }); added++; }
+    await sleep(200);
+    if (r.length < 1000) break; t = r[r.length-1].fundingTime + 1;
+  }
+  if (added) await idb.set(key, out);
+  return out.map(f => f.mark ? f : { ...f, mark: 0 });
+}
+
+async function topCoins(nc) {
+  const info = await api("/fapi/v1/exchangeInfo");
+  const ok = new Set(info.symbols.filter(s => s.contractType === "PERPETUAL" && s.status === "TRADING" && s.quoteAsset === "USDT").map(s => s.symbol));
+  const STABLE = new Set(["USDCUSDT", "FDUSDUSDT", "TUSDUSDT", "USDPUSDT", "DAIUSDT", "BUSDUSDT", "EURUSDT", "USDEUSDT", "XUSDUSDT", "RLUSDUSDT"]);
+  const tk = await api("/fapi/v1/ticker/24hr");
+  return tk.filter(t => ok.has(t.symbol) && !STABLE.has(t.symbol)).sort((a, b) => +b.quoteVolume - +a.quoteVolume).slice(0, nc).map(t => t.symbol);
+}
+
+// ===================== واجهة =====================
+function setStatus(m) { $("status").textContent = m; }
+function setProg(x) { $("pb").style.width = (100*x).toFixed(1) + "%"; }
+function fundingFix(funding, D) { return funding.map(f => f.mark ? f : { ...f, mark: D.c[Math.min(D.c.length-1, Math.max(0, Math.floor((f.t - D.t0)/M15)))] }); }
+
+function periodRow(name, s) {
+  return `<tr><td>${name}</td><td>${s.n}</td><td>${s.perDay.toFixed(2)}</td><td><b>${usd(s.usd)}</b></td><td><span class="num">${pfS(s.pf)}</span></td><td>${s.win.toFixed(0)}%</td><td>${usd(s.avg)}</td><td>${usd(s.gross)}</td><td><span class="num">${s.t.toFixed(1)}</span></td><td><span class="num neg">${s.dd ? "−" + s.dd.toFixed(1) + "$" : "—"}</span></td><td>${s.streak}</td></tr>`;
+}
+const PHEAD = `<tr><th>الفترة</th><th>صفقات</th><th>/يوم</th><th>الصافي</th><th>PF</th><th>فوز</th><th>صافي/صفقة</th><th>قبل العمولة/صفقة</th><th>دليل</th><th>أسوأ تراجع</th><th>خسائر ورا بعض</th></tr>`;
+const txtP = (s) => `n=${s.n} ${f2(s.usd)}$ PF${pfS(s.pf)} win${s.win.toFixed(0)}% gross/t${f2(s.gross)}$ t${s.t.toFixed(1)} DD${s.dd.toFixed(0)}$`;
+
+async function runBTC(P3, mainName, useFund) {
+  setStatus("⬇️ بحمّل أسعار BTC…");
+  const D = await loadSymbol("BTCUSDT", d => setStatus(`⬇️ BTC… ${d}`));
+  let funding = [];
+  if (useFund) { setStatus("⏳ التمويل…"); funding = fundingFix(await loadFunding("BTCUSDT"), D); }
+  setStatus("⚙️ بحسب…"); await sleep(20);
+  const inds = { 1: makeInd(D, 1), 4: makeInd(D, 4), 16: makeInd(D, 16) }, now = D.t0 + D.c.length*M15;
+  const res = [];
+  STRATS.forEach((sp, k) => {
+    const raw = rawTrades(D, inds, sp), by = {};
+    for (const [cn, P] of P3) by[cn] = split3(raw, D, P, funding, now);
+    res.push({ sp, by, v: verdictOf(by[mainName]), longs: raw.filter(t => t.d === 1).length, shorts: raw.filter(t => t.d === -1).length });
+    setProg((k+1)/STRATS.length);
+  });
+  const order = { "✅": 0, "🟡": 1, "🟡↓": 2, "⚪": 3, "❌": 4 };
+  res.sort((a, b) => (order[a.v.split(" ")[0]] - order[b.v.split(" ")[0]]) || (b.by[mainName][1].usd + b.by[mainName][2].usd) - (a.by[mainName][1].usd + a.by[mainName][2].usd));
+  let html = `<h2>الترتيب — ${STRATS.length} استراتيجية على BTC (الحكم على تكلفة ${mainName})</h2><div class="wrap"><table><tr><th>#</th><th>الحكم</th><th>الاستراتيجية</th><th>لونغ/شورت</th><th>تدريب</th><th>اختبار</th><th>جديدة</th><th>دليل الاختبار</th></tr>`;
+  let txt = `NEXORA LAB | كل الاستراتيجيات على BTC | الحكم: ${mainName} | Maker ${(P3[0][1].maker*100).toFixed(3)}% Taker ${(P3[0][1].taker*100).toFixed(3)}% slip ${(P3[0][1].slip*100).toFixed(3)}% | تمويل ${useFund ? "نعم" : "لا"} | صفقة ${P3[0][1].notional}$\n`;
+  txt += `فترات: تدريب→${new Date(LAB_SPLIT).toISOString().slice(0,10)} | اختبار→2026-08-16 | جديدة→${new Date(now).toISOString().slice(0,10)}\n`;
+  res.forEach((r, k) => {
+    const s = r.by[mainName];
+    html += `<tr><td>${k+1}</td><td class="${vCls(r.v)}">${r.v}</td><td class="nm">${r.sp.name}</td><td>${r.longs}/${r.shorts}</td><td>${usd(s[0].usd)}</td><td>${usd(s[1].usd)}</td><td>${usd(s[2].usd)}</td><td><span class="num">${s[1].t.toFixed(1)}</span></td></tr>`;
+    txt += `${r.v} ${r.sp.name} | L${r.longs}/S${r.shorts}\n`;
+    for (const [cn] of P3) txt += `   ${cn}: ` + r.by[cn].map((x, i) => `${PERIODS[i]} ${txtP(x)}`).join(" | ") + "\n";
+  });
+  html += `</table></div><h2>التفاصيل</h2>`;
+  for (const r of res) {
+    html += `<h3 class="${vCls(r.v)}">${r.v} ${r.sp.name}</h3>`;
+    for (const [cn] of P3) html += `<div class="mut">${cn}</div><div class="wrap"><table>${PHEAD}${r.by[cn].map((x, i) => periodRow(PERIODS[i], x)).join("")}</table></div>`;
+  }
+  return { html, txt };
+}
+
+async function runMulti(sp, nc, slots, P3, mainName, useFund) {
+  setStatus("⏳ بجيب أكبر العملات…");
+  const coins = await topCoins(nc), rank = Object.fromEntries(coins.map((c, i) => [c, i]));
+  const per = {}; let now = 0;
+  for (let k = 0; k < coins.length; k++) {
+    const sym = coins[k];
+    const D = await loadSymbol(sym, d => setStatus(`⬇️ [${k+1}/${coins.length}] ${sym} ${d}`));
+    setProg((k+1)/coins.length);
+    if (!D) continue;
+    let funding = [];
+    if (useFund) funding = fundingFix(await loadFunding(sym), D);
+    const inds = { [sp.mult]: makeInd(D, sp.mult), 16: makeInd(D, 16) };
+    now = Math.max(now, D.t0 + D.c.length*M15);
+    per[sym] = { D, funding, raw: rawTrades(D, inds, sp) };
+    setStatus(`⚙️ [${k+1}/${coins.length}] ${sym}: ${per[sym].raw.length} صفقة`);
+    await sleep(5);
+  }
+  const syms = Object.keys(per), mainP = P3.find(x => x[0] === mainName)[1];
+  // كل عملة
+  const rows = syms.map(sym => { const s = split3(per[sym].raw, per[sym].D, mainP, per[sym].funding, now); return { sym, s, v: verdictOf(s) }; });
+  rows.sort((a, b) => (b.s[1].usd + b.s[2].usd) - (a.s[1].usd + a.s[2].usd));
+  const posAll = rows.filter(r => r.s.every(x => x.usd > 0)).length;
+  // المحفظة
+  const flatFor = P => syms.flatMap(sym => per[sym].raw.map(t => ({ ...money(t, per[sym].D, P, per[sym].funding, 0), sym, rank: rank[sym] })));
+  const days = periodDays(now);
+  const port = {};
+  for (const [cn, P] of P3) {
+    const { taken, skipped } = portfolio(flatFor(P), slots);
+    const b = [[], [], []]; for (const t of taken) b[periodOf(t.eTs)].push(t);
+    port[cn] = { s: b.map((x, i) => statsOf(x, days[i], P.notional)), skipped, taken };
+  }
+  const pv = verdictOf(port[mainName].s);
+  // اختيار صادق من التدريب
+  const chosen = rows.filter(r => r.s[0].n >= 10 && r.s[0].pf > 1).map(r => r.sym);
+  let sel = null;
+  if (chosen.length) { const b = [[], [], []]; for (const t of port[mainName].taken) if (chosen.includes(t.sym)) b[periodOf(t.eTs)].push(t); sel = b.map((x, i) => statsOf(x, days[i], mainP.notional)); }
+  const sv = sel ? verdictOf(sel) : "—";
+  const L = syms.reduce((a, s) => a + per[s].raw.filter(t => t.d === 1).length, 0), S_ = syms.reduce((a, s) => a + per[s].raw.filter(t => t.d === -1).length, 0);
+
+  let html = `<h2>${sp.name} — أكبر ${syms.length} عملة (لونغ ${L} / شورت ${S_})</h2>
+  <div class="box">المحفظة: <span class="v ${vCls(pv)}">${pv}</span> &nbsp;|&nbsp; عملات ربحت بالتلات فترات: <b>${posAll}/${syms.length}</b> &nbsp;|&nbsp; اختيار العملات من التدريب: <span class="v ${vCls(sv)}">${sv}</span><br>
+  <span class="mut">الحكم على تكلفة ${mainName}. ✅ = ربح بالتدريب والاختبار + PF>1.1 + دليل≥2 + ما خسر بالجديدة.</span></div>
+  <h2>المحفظة (أقصى ${slots} صفقات مع بعض)</h2>`;
+  for (const [cn] of P3) html += `<div class="mut">${cn}${cn === mainName ? " ← الحكم" : ""}</div><div class="wrap"><table>${PHEAD}${port[cn].s.map((x, i) => periodRow(PERIODS[i], x)).join("")}</table></div>`;
+  html += `<div class="mut">صفقات انرفضت لأن الخانات مليانة: ${port[mainName].skipped}</div>`;
+  html += `<h2>اختيار العملات من التدريب بس (فحص صادق)</h2><div class="box">${chosen.length ? chosen.join("، ") : "ولا عملة ربحت بالتدريب"}</div>`;
+  if (sel) html += `<div class="wrap"><table>${PHEAD}${sel.map((x, i) => periodRow(PERIODS[i], x)).join("")}</table></div>`;
+  html += `<h2>كل عملة (تكلفة ${mainName})</h2><div class="wrap"><table><tr><th>العملة</th><th>تدريب</th><th>اختبار</th><th>جديدة</th><th>الحكم</th></tr>` +
+    rows.map(r => `<tr><td class="nm">${r.sym}</td>${r.s.map(x => `<td>${x.n}ص ${usd(x.usd)} <span class="mut num">PF ${pfS(x.pf)}</span></td>`).join("")}<td class="${vCls(r.v)}">${r.v}</td></tr>`).join("") + `</table></div>`;
+
+  let txt = `NEXORA LAB | ${sp.name} | أكبر ${syms.length} عملة | slots ${slots} | الحكم: ${mainName} | Maker ${(mainP.maker*100).toFixed(3)}% Taker ${(mainP.taker*100).toFixed(3)}% | تمويل ${useFund ? "نعم" : "لا"}\n`;
+  txt += `المحفظة: ${pv} | عملات رابحة بالتلات: ${posAll}/${syms.length} | اختيار من التدريب: ${sv} (${chosen.join(",")})\n`;
+  for (const [cn] of P3) txt += `${cn}: ` + port[cn].s.map((x, i) => `${PERIODS[i]} ${txtP(x)}`).join(" | ") + "\n";
+  if (sel) txt += `اختيار-تدريب: ` + sel.map((x, i) => `${PERIODS[i]} ${txtP(x)}`).join(" | ") + "\n";
+  txt += `كل عملة:\n` + rows.map(r => `${r.sym} ${r.v} | ` + r.s.map((x, i) => `${PERIODS[i]} ${x.n} ${f2(x.usd)}$ PF${pfS(x.pf)}`).join(" | ")).join("\n");
+  return { html, txt };
+}
+
+async function go() {
+  $("go").disabled = true; $("out").innerHTML = ""; $("copyBox").style.display = "none"; setProg(0); REQ = 0;
+  const t0 = Date.now();
+  try {
+    const P3 = costSet(+$("maker").value/100, +$("taker").value/100, +$("slip").value/100, +$("notional").value);
+    const mainName = $("main").value, useFund = $("fund").checked;
+    const r = $("mode").value === "btc" ? await runBTC(P3, mainName, useFund)
+      : await runMulti(STRATS[+$("strat").value], Math.max(2, +$("coins").value), Math.max(1, +$("slots").value), P3, mainName, useFund);
+    $("out").innerHTML = r.html; $("txt").value = r.txt; $("copyBox").style.display = "";
+    setProg(1); setStatus(`✅ خلص بـ ${((Date.now()-t0)/1000).toFixed(0)} ثانية (${REQ} طلب لبايننس)`);
+  } catch (e) { setStatus("❌ " + e.message); console.error(e); }
+  $("go").disabled = false;
+}
+
+(function init() {
+  STRATS.forEach((s, i) => { const o = document.createElement("option"); o.value = i; o.textContent = s.name; $("strat").appendChild(o); });
+  const ci = STRATS.findIndex(s => s.name.startsWith("COMBO")); if (ci >= 0) $("strat").value = ci;
+  const sync = () => { const m = $("mode").value === "multi"; ["stratL", "coinsL", "slotsL"].forEach(id => $(id).style.display = m ? "" : "none"); };
+  $("mode").onchange = sync; sync();
+  $("go").onclick = go;
+  $("copy").onclick = async () => {
+    try { await navigator.clipboard.writeText($("txt").value); $("copy").textContent = "✅ انتسخت — الصقها بالمحادثة"; }
+    catch (e) { $("txt").select(); document.execCommand && document.execCommand("copy"); $("copy").textContent = "✅ انتسخت (أو انسخ من المربع)"; }
+  };
+})();
+</script>
+</body>
+</html>
