@@ -53,6 +53,7 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
 <h1>🧪 NEXORA PAPER — BTCUSDT فيوتشرز <span id="live" class="live"><i></i><span>متوقف</span></span></h1>
 <div class="mut"><a href="lab.html" style="color:#a78bfa;font-weight:700">🔬 المختبر: افحص الاستراتيجيات من هون</a> · تداول وهمي على أسعار بايننس الحقيقية. كل ما تفتح الصفحة بتحسب كل الصفقات من تاريخ البداية لهلأ — ما في سيرفر، ولا بتحتاج تضل مفتوحة.</div>
 
+<details id="settings"><summary style="cursor:pointer;margin-top:10px;color:#cfd3da">⚙️ الإعدادات والفترة (اضغط لتفتح)</summary>
 <div class="bar">
   <label>من تاريخ<input type="date" id="start"></label>
   <label>رصيد البداية<input type="number" id="balance" value="10000" step="100"></label>
@@ -68,10 +69,15 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
   <button class="sec" data-days="90">90 يوم</button>
   <button class="sec" data-days="365">سنة</button>
 </div>
+</details>
 <div id="status" class="mut"></div>
 <div id="toasts"></div>
 
 <div id="out" style="display:none">
+  <h2>💼 الحساب الوهمي <span class="mut" id="accNote"></span></h2>
+  <div class="acc" id="acc"></div>
+  <h2>📂 الصفقات المفتوحة هلأ <span class="mut">(بتتحدث مع السعر كل 5 ثواني)</span></h2>
+  <div class="wrap"><table id="openT"></table></div>
   <h2>⚡ لايف</h2>
   <div class="lv">
     <div class="panel">
@@ -89,10 +95,6 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
   </div>
   <h2>📡 رادار الإشارات <span class="mut">(لو الشمعة سكّرت على السعر الحالي — بيتحدث كل 10 ثواني)</span></h2>
   <div class="wrap"><table class="radar" id="radar"></table></div>
-  <h2>💼 الحساب الوهمي <span class="mut" id="accNote"></span></h2>
-  <div class="acc" id="acc"></div>
-  <h2>📂 الصفقات المفتوحة هلأ <span class="mut">(بتتحدث مع السعر كل 5 ثواني)</span></h2>
-  <div class="wrap"><table id="openT"></table></div>
   <h2>المجموع <span class="mut" id="scope"></span></h2>
   <div class="cards" id="cards"></div>
   <h2>الصافي التراكمي</h2>
