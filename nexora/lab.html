@@ -64,7 +64,7 @@ textarea{width:100%;height:120px;background:#0f1115;color:var(--mut);border:1px 
   <textarea id="txt" readonly></textarea>
 </div>
 
-
+<script id="engine">
 // ===================== NEXORA ENGINE (نفس منطق الفحص بالضبط) =====================
 const M15 = 900000, H4 = 16 * M15;
 
@@ -863,7 +863,7 @@ function money(t, D, P, funding, lastPrice) {
   const fee = feeIn + feeOut;
   return { ...t, eTs, xTs, fillIn, fillOut, qty, gross, fee, fund, net: gross - fee + fund };
 }
-
+</script>
 
 <script id="lab">
 // ===================== حسابات المختبر (صافية، بدون واجهة) =====================
