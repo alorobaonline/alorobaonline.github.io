@@ -50,13 +50,13 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
 </style>
 </head>
 <body>
-<h1>🧪 NEXORA PAPER — أعلى 30 عملة فيوتشرز <span id="live" class="live"><i></i><span>متوقف</span></span></h1>
+<h1>🧪 NEXORA PAPER — حتى 150 عملة فيوتشرز — FAST CACHE <span id="live" class="live"><i></i><span>متوقف</span></span></h1>
 <div class="mut"><a href="lab.html" style="color:#a78bfa;font-weight:700">🔬 المختبر: افحص الاستراتيجيات من هون</a> · تداول وهمي على أسعار بايننس الحقيقية. كل ما تفتح الصفحة بتحسب كل الصفقات من تاريخ البداية لهلأ — ما في سيرفر، ولا بتحتاج تضل مفتوحة.</div>
 
 <details id="settings"><summary style="cursor:pointer;margin-top:10px;color:#cfd3da">⚙️ الإعدادات والفترة (اضغط لتفتح)</summary>
 <div class="bar">
   <label>من تاريخ<input type="date" id="start"></label>
-  <label>عدد العملات<input type="number" id="ncoins" value="30" min="1" max="50" step="1"></label>
+  <label>عدد العملات<input type="number" id="ncoins" value="30" min="1" max="150" step="1"></label>
   <label>أقصى صفقات مفتوحة (0 = بلا حد)<input type="number" id="maxOpen" value="0" min="0" step="1"></label>
   <label>رصيد البداية<input type="number" id="balance" value="10000" step="100"></label>
   <label>حجم الصفقة $<input type="number" id="notional" value="200" step="10"></label>
@@ -72,7 +72,7 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
   <button class="sec" data-days="365">سنة</button>
 </div>
 </details>
-<div id="status" class="mut"></div>
+<div id="status" class="mut"></div><div class="mut" style="margin-top:5px">⚡ FAST CACHE: يخزن الشموع الجديدة فوراً، ويتجنب تنزيل شموع لم تُغلق بعد، ويعرض مدة الفحص. أول تحميل لـ150 عملة وفترة طويلة قد يظل بطيئاً بسبب Binance وحساب الاستراتيجيات.</div>
 <div id="toasts"></div>
 
 <div id="out" style="display:none">
@@ -1329,7 +1329,7 @@ function money(t, D, P, funding, lastPrice) {
   else if (t.why === "TARGET") { fillOut = t.rawOut; feeOut = qty*fillOut*P.maker; }
   else { fillOut = t.rawOut*(1 - d*P.slip); feeOut = qty*fillOut*P.taker; }
   gross = d*(fillOut - fillIn)*qty;
-  let fund = 0; const until = t.open ? Infinity : xTs;
+  let fund = 0; const until = t.open ? Math.min(Date.now(), D.t0 + D.c.length*M15) : xTs;
   for (const f of funding) if (f.t > eTs && f.t <= until) fund += -d*f.rate*qty*f.mark;
   const fee = feeIn + feeOut;
   return { ...t, eTs, xTs, fillIn, fillOut, qty, gross, fee, fund, net: gross - fee + fund };
@@ -1381,7 +1381,7 @@ const idb = (() => {
 const MEM = {};
 // يكمّل الشموع الناقصة: القديمة (لو رجعت تاريخ البداية لورا) والجديدة، بدون ما يعيد تحميل الموجود
 let LAST_REQ = 0;
-async function paced() { const w = LAST_REQ + 150 - Date.now(); LAST_REQ = Math.max(Date.now(), LAST_REQ + 150); if (w > 0) await sleep(w); }
+async function paced() { const w = LAST_REQ - Date.now(); LAST_REQ = Math.max(Date.now(), LAST_REQ) + 150; if (w > 0) await sleep(w); }
 async function fillKlines(sym, interval, step, width, st, fromTs, prog) {
   const now = Date.now(); let added = 0;
   const grab = async (from, until) => { const T = [], V = []; let t = from;
@@ -1394,7 +1394,8 @@ async function fillKlines(sym, interval, step, width, st, fromTs, prog) {
     return [T, V]; };
   if (st.t.length && st.t[0] > fromTs + step) {   // ناقص من الأول
     const [T, V] = await grab(fromTs, st.t[0]); st.t = T.concat(st.t); st.v = V.concat(st.v); added += T.length; }
-  const [T, V] = await grab(st.t.length ? st.t[st.t.length-1] + step : fromTs, Infinity);
+  const nextMissing = st.t.length ? st.t[st.t.length-1] + step : fromTs;
+  const [T, V] = nextMissing + step <= Math.floor((Date.now()-1)/step)*step ? await grab(nextMissing, Infinity) : [[], []];
   for (let i = 0; i < T.length; i++) if (!st.t.length || T[i] > st.t[st.t.length-1]) { st.t.push(T[i]); for (let q = 0; q < width; q++) st.v.push(V[width*i+q]); added++; }
   return added;
 }
@@ -1405,7 +1406,7 @@ async function loadCandles(sym, fromTs, prog) {
   const added = await fillKlines(sym, "15m", M15, 4, st, fromTs, prog);
   MEM[sym] = st;
   st.dirty = (st.dirty || 0) + added;
-  if (st.dirty > 40) { st.dirty = 0; await idb.set("k_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) }); }
+  if (added > 50 || (st.dirty && Date.now() - (st.saved || 0) > 600000)) { st.dirty = 0; st.saved = Date.now(); await idb.set("k_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) }); }
   if (!st.t.length) return null;
   // شموع متواصلة من حد 4H، والفجوات بشمعة مسطّحة
   let a = 0; while (a < st.t.length && st.t[a] < fromTs) a++;
@@ -1431,7 +1432,7 @@ async function loadM5(sym, fromTs, prog) {
   const added = await fillKlines(sym, "5m", M5, 5, st, fromTs, prog);
   MEM5[sym] = st;
   st.dirty = (st.dirty || 0) + added;
-  if (st.dirty > 30) { st.dirty = 0; await idb.set("m5_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) }); }
+  if (added > 50 || (st.dirty && Date.now() - (st.saved || 0) > 600000)) { st.dirty = 0; st.saved = Date.now(); await idb.set("m5_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) }); }
   let a = 0; while (a < st.t.length && st.t[a] < fromTs) a++;
   if (a >= st.t.length) return null;
   const t0 = Math.ceil(st.t[a] / M15) * M15, n = Math.floor((st.t[st.t.length-1] - t0)/M5) + 1;
@@ -1516,19 +1517,21 @@ async function run(silent, only5) {
   try {
     $("run").disabled = true;
     const startTs = new Date($("start").value + "T00:00:00").getTime();
-    const warm = 260*24*3600e3;   // سخونة المؤشرات (1500 شمعة 4H)
+    const warm = 260*24*3600e3;   // فترة الإحماء الأصلية محفوظة دون تغيير
     const fromTs = Math.floor((startTs - warm)/H4)*H4;
-    const nc = Math.min(50, Math.max(1, +$("ncoins").value || 30));
+    const nc = Math.min(150, Math.max(1, +$("ncoins").value || 30));
+    const startedAt = performance.now();
+    if (!silent && CACHE && CACHE.startTs === startTs && CACHE.coins.length === nc && CACHE.upd >= Math.floor(Date.now()/M15)*M15) { recalc(); st("⚡ النتائج من الذاكرة — بدون تنزيل جديد"); return; }
     if (!COINS || COINS.length !== nc) { st("🔎 بجيب أعلى العملات حسب حجم التداول…"); COINS = await topCoins(nc); fillCoinSel(); connectWS(); }
-    const coins = [], done = { n: 0 };
+    const coins = [], done = { n: 0 }, failed = [];
     // تحميل: 3 عملات بنفس الوقت عشان ما نتعدى حد بايننس
     const queue = COINS.slice();
     const worker = async () => { while (queue.length) { const sym = queue.shift();
       try { const D = await loadCandles(sym, fromTs, d => st(`⬇️ ${done.n}/${COINS.length} — ${cn(sym)} ${d}`));
         if (D) { if (!CK[sym]) CK[sym] = (await idb.get("ck_" + sym)) || {}; D.s5ck = CK[sym]; D.m5 = await loadM5(sym, Math.floor((startTs - 2*864e5)/H4)*H4, d => st(`⬇️ ${done.n}/${COINS.length} — ${cn(sym)} 5m ${d}`));
-          const funding = await loadFunding(sym, startTs, D); coins.push({ sym, D, funding }); } } catch (e) { if (String(e.message).includes("451")) throw e; }
+          const funding = await loadFunding(sym, startTs, D); coins.push({ sym, D, funding }); } } catch (e) { failed.push(`${sym}: ${e.message}`); if (String(e.message).includes("451")) throw e; }
       done.n++; st(`⬇️ حمّلت ${done.n}/${COINS.length} عملة…`); } };
-    await Promise.all([worker(), worker(), worker(), worker()]);
+    await Promise.all(Array.from({length: Math.min(6, COINS.length)}, () => worker()));
     coins.sort((a, b) => COINS.indexOf(a.sym) - COINS.indexOf(b.sym));
     let k = 0;
     for (const c of coins) {
@@ -1544,13 +1547,14 @@ async function run(silent, only5) {
       }
     }
     for (const c of coins) idb.set("ck_" + c.sym, CK[c.sym]);   // نقطة الاستكمال لاستراتيجيات الـ5 دقايق
+    if (!coins.length) throw new Error("لم تُحمّل أي عملة؛ تحقق من الاتصال ببايننس");
     const upd = Math.max(...coins.map(c => c.D.t0 + c.D.c.length*M15));
     const upd5 = Math.max(...coins.map(c => c.D.m5 ? c.D.m5.t0 + c.D.m5.c.length*M5 : 0));
     CACHE = { coins, bySym: Object.fromEntries(coins.map(c => [c.sym, c])), startTs, upd, upd5 };
     try { localStorage.setItem("nexora_start", $("start").value); localStorage.setItem("nexora_nc", String(nc)); } catch (e) {}
     recalc(); announce();
     const b = pxOf("BTCUSDT");
-    $("status").textContent = `✅ ${coins.length} عملة — آخر شمعة مسكّرة: ${dt(RESULT.upd)} — الفحص الجاي ${dt(RESULT.upd + M15)}${b ? " | BTC " + b.toLocaleString("en-US", { maximumFractionDigits: 1 }) : ""}`;
+    $("status").textContent = `✅ ${coins.length}/${nc} عملة خلال ${((performance.now()-startedAt)/1000).toFixed(1)} ثانية${failed.length ? " | أخطاء: " + failed.length : ""} — آخر شمعة مسكّرة: ${dt(RESULT.upd)} — الفحص الجاي ${dt(RESULT.upd + M15)}${b ? " | BTC " + b.toLocaleString("en-US", { maximumFractionDigits: 1 }) : ""}`;
   } catch (e) {
     st("❌ " + e.message);
   } finally { $("run").disabled = false; }

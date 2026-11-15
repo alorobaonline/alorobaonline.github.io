@@ -1284,7 +1284,7 @@ function money(t, D, P, funding, lastPrice) {
   else if (t.why === "TARGET") { fillOut = t.rawOut; feeOut = qty*fillOut*P.maker; }
   else { fillOut = t.rawOut*(1 - d*P.slip); feeOut = qty*fillOut*P.taker; }
   gross = d*(fillOut - fillIn)*qty;
-  let fund = 0; const until = t.open ? Infinity : xTs;
+  let fund = 0; const until = t.open ? Math.min(Date.now(), D.t0 + D.c.length*M15) : xTs;
   for (const f of funding) if (f.t > eTs && f.t <= until) fund += -d*f.rate*qty*f.mark;
   const fee = feeIn + feeOut;
   return { ...t, eTs, xTs, fillIn, fillOut, qty, gross, fee, fund, net: gross - fee + fund };
