@@ -101,7 +101,7 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
   <div class="cards" id="cards"></div>
   <h2>الصافي التراكمي</h2>
   <div id="chart"></div>
-  <h2>الترتيب <span class="mut">(اضغط على استراتيجية لتشوف صفقاتها بس)</span></h2>
+  <h2>الترتيب <span class="mut">(اضغط على استراتيجية لتشوف صفقاتها بس)</span> <button class="sec" id="copyBoard" style="padding:5px 10px;font-size:12px">📋 انسخ الملخص لـ Claude</button></h2>
   <div class="wrap"><table id="board"></table></div>
   <h2>الصفقات <span class="mut" id="tscope"></span></h2>
   <div class="wrap" style="max-height:520px"><table id="trades"></table></div>
@@ -1478,6 +1478,15 @@ function render() {
   const eatTxt = r => r.n === 0 ? "—" : (r.eat >= 999 ? `<span class="neg">خسران قبلها</span>` : `<span class="num ${r.eat >= 100 ? "neg" : r.eat >= 50 ? "" : "pos"}">${r.eat.toFixed(0)}%</span>`);
   $("board").innerHTML = `<tr><th>#</th>${th("name", "الاستراتيجية")}${th("n", "صفقات")}${th("win", "ربح%")}${th("pf", "PF")}${th("gpt", "قبل العمولة/صفقة")}${th("eat", "العمولة أكلت")}${th("gross", "إجمالي")}${th("fee", "عمولة")}${th("fund", "تمويل")}${th("net", "صافي")}${th("avg", "صافي/صفقة")}${th("dd", "أسوأ تراجع")}${th("mx", "خسائر ورا بعض")}<th>مفتوحة هلأ</th></tr>` +
     rows.map((r, k) => `<tr data-n="${r.name}" class="${SEL === r.name ? "sel" : ""}"><td>${k+1}</td><td class="nm">${r.name}</td><td>${r.n}</td><td>${r.win.toFixed(0)}%</td><td><span class="num">${r.n ? (r.pf >= 99 ? "∞" : r.pf.toFixed(2)) : "—"}</span></td><td>${usd(r.gpt)}</td><td>${eatTxt(r)}</td><td>${usd(r.gross)}</td><td>${fee$(r.fee)}</td><td>${usd(r.fund)}</td><td><b>${usd(r.net)}</b></td><td>${usd(r.avg)}</td><td><span class="num neg">${r.dd ? "−" + r.dd.toFixed(2) + "$" : "—"}</span></td><td>${r.mx}</td><td>${r.o ? `<span class="num">${r.o.n}</span> ${usd(r.o.net)}` : "—"}</td></tr>`).join("");
+  $("copyBoard").onclick = () => {
+    const days = ((Date.now() - RESULT.startTs)/864e5).toFixed(1);
+    const head = `NEXORA PAPER | from ${$("start").value} (${days}d) | coins ${CACHE.coins.length} | notional ${P.notional}$ | maker ${(P.maker*100).toFixed(3)}% taker ${(P.taker*100).toFixed(3)}% slip ${(P.slip*100).toFixed(3)}% | makerEntry ${P.makerEntry} | cap ${$("maxOpen").value}`;
+    const lines = rows.map(r => { const c = closed.filter(t => t.name === r.name), L = c.filter(t => t.d === 1), S = c.filter(t => t.d === -1);
+      return `${r.name} | n=${r.n} (L${L.length}/S${S.length}) win${r.win.toFixed(0)}% PF${r.n ? (r.pf >= 99 ? "inf" : r.pf.toFixed(2)) : "-"} gross/t ${r.gpt.toFixed(3)}$ fee ${r.fee.toFixed(2)}$ fund ${r.fund.toFixed(2)}$ net ${r.net.toFixed(2)}$ (L ${sum(L, "net").toFixed(2)} / S ${sum(S, "net").toFixed(2)}) DD ${r.dd.toFixed(2)}$ open ${r.o ? r.o.n : 0}`; });
+    const txt = head + "\n" + lines.join("\n");
+    const done = () => { $("copyBoard").textContent = "✅ انتسخ — الصقه بالمحادثة"; setTimeout(() => $("copyBoard").textContent = "📋 انسخ الملخص لـ Claude", 3000); };
+    (navigator.clipboard ? navigator.clipboard.writeText(txt).then(done, () => prompt("انسخ:", txt)) : prompt("انسخ:", txt));
+  };
   $("board").querySelectorAll("th[data-k]").forEach(h => h.onclick = () => { const k = h.dataset.k; SORT = { k, dir: SORT.k === k ? -SORT.dir : -1 }; render(); });
   $("board").querySelectorAll("tr[data-n]").forEach(tr => tr.onclick = () => { SEL = SEL === tr.dataset.n ? null : tr.dataset.n; render(); });
 
