@@ -755,6 +755,289 @@ const SEXT = (() => {
   return { prepare, run, decide, strats: [mk("#13 Ichimoku 15m+1h", "ichi"), mk("#8 Lux Trendline+TRAMA+Chandelier", "lux")] };
 })();
 
+// Replit 5m scalping families: legacy #1-#7 (strategy_rules.rule_decision + score gate) and extended
+// #9-#12, #14 (extended_rules.evaluate_extended). Port of backtesting.replay on a 5m base:
+// 300-bar rolling windows, entry on next 5m open, ATR 1.5 stop / 2R target, stop-first protective exits.
+const S5 = (() => {
+  const M5 = 300000, M15 = 900000;
+  const LEG = { volumeRatio: 1.5, rsiLow: 30, rsiHigh: 70, levelToleranceAtr: 0.25, wickRatio: 0.4, stopAtr: 1.5, rewardRisk: 2, minScore: 50 };
+  const EXT = { ...LEG, volumeRatio: 1.2, minScore: 0 };
+
+  function series(O, H, L, C, V, t0, step) {
+    const n = O.length, S = { O, H, L, C, V, t0, step, n };
+    const emaG = p => { const out = new Array(n).fill(null); if (n < p) return out; let v = 0; for (let i = 0; i < p; i++) v += C[i]; v /= p; out[p-1] = v; for (let i = p; i < n; i++) { v += (C[i] - v)*2/(p+1); out[i] = v; } return out; };
+    S.e20 = emaG(20); const e12 = emaG(12), e26 = emaG(26);
+    // MACD signal = EMA9 over the macd values list (starts where EMA26 exists)
+    S.hist = new Array(n).fill(null);
+    { let sig = null, cnt = 0, sum = 0; for (let i = 25; i < n; i++) { const m = e12[i] - e26[i];
+      if (sig === null) { sum += m; cnt++; if (cnt === 9) sig = sum/9; } else sig += (m - sig)*2/10;
+      if (sig !== null) S.hist[i] = m - sig; } }
+    // RSI14 (Wilder seeded by mean)
+    S.rsi = new Array(n).fill(null);
+    { let g = null, l = null, gs = 0, ls = 0, cnt = 0; for (let i = 1; i < n; i++) { const d = C[i] - C[i-1], up = Math.max(d, 0), dn = Math.max(-d, 0);
+      if (g === null) { gs += up; ls += dn; cnt++; if (cnt === 14) { g = gs/14; l = ls/14; } } else { g = (g*13 + up)/14; l = (l*13 + dn)/14; }
+      if (g !== null) S.rsi[i] = g === 0 && l === 0 ? 50 : l === 0 ? 100 : 100 - 100/(1 + g/l); } }
+    S.atr = new Array(n).fill(null);
+    { let a = null, cnt = 0, sum = 0; for (let i = 1; i < n; i++) { const tr = Math.max(H[i] - L[i], Math.abs(H[i] - C[i-1]), Math.abs(L[i] - C[i-1]));
+      if (a === null) { sum += tr; cnt++; if (cnt === 14) a = sum/14; } else a = (a*13 + tr)/14; S.atr[i] = a; } }
+    S.cs = [0]; for (let i = 0; i < n; i++) S.cs.push(S.cs[i] + C[i]);
+    S.ph = []; S.pl = [];
+    for (let i = 2; i < n-2; i++) { let up = true, dn = true;
+      for (const j of [i-2, i-1, i+1, i+2]) { if (!(H[i] > H[j])) up = false; if (!(L[i] < L[j])) dn = false; }
+      if (up) S.ph.push(i); if (dn) S.pl.push(i); }
+    S.memo = new Map(); S.st = new Map();
+    return S;
+  }
+  const lastLE = (arr, x) => { let lo = 0, hi = arr.length - 1, r = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (arr[m] <= x) { r = m; lo = m + 1; } else hi = m - 1; } return r; };
+  // analyze() on the window ending at k (last 300 bars)
+  function an(S, k) {
+    if (S.memo.has(k)) return S.memo.get(k);
+    const s = Math.max(0, k - 299), len = k - s + 1, C = S.C;
+    const r = { ready: len >= 200 };
+    const emaW = p => { if (len < p) return null; let v = (S.cs[s+p] - S.cs[s])/p; for (let i = s+p; i <= k; i++) v += (C[i] - v)*2/(p+1); return v; };
+    r.ema20 = len >= 20 ? S.e20[k] : null; r.ema50 = emaW(50); r.ema200 = emaW(200);
+    const rw = i => i - s >= 14 ? S.rsi[i] : null;
+    r.rsi = rw(k); r.atr = k - s >= 14 ? S.atr[k] : null;
+    r.hist = k - s >= 33 ? S.hist[k] : null;
+    const st = i => { if (i - s < 27) return null; let lo = Infinity, hi = -Infinity; for (let j = i-13; j <= i; j++) { lo = Math.min(lo, S.rsi[j]); hi = Math.max(hi, S.rsi[j]); } return hi === lo ? 50 : (S.rsi[i] - lo)/(hi - lo)*100; };
+    const K = i => { if (i - s < 29) return null; return (st(i) + st(i-1) + st(i-2))/3; };
+    r.sk = K(k); r.sd = k - s >= 31 ? (K(k) + K(k-1) + K(k-2))/3 : null;
+    if (len >= 20) { let m = 0; for (let j = k-19; j <= k; j++) m += C[j]; m /= 20; let v = 0; for (let j = k-19; j <= k; j++) v += (C[j] - m)**2; const sd = Math.sqrt(v/20); r.bbU = m + 2*sd; r.bbL = m - 2*sd; } else { r.bbU = r.bbL = null; }
+    r.trend = r.ema50 !== null && r.ema200 !== null ? (C[k] > r.ema50 && r.ema50 > r.ema200 ? "bullish" : C[k] < r.ema50 && r.ema50 < r.ema200 ? "bearish" : "mixed") : "unavailable";
+    // price action (pivots inside the window)
+    const inW = (arr, maxI) => { const out = []; let q = lastLE(arr, maxI); while (q >= 0 && arr[q] >= s+2 && out.length < 2) { out.unshift(arr[q]); q--; } return out; };
+    const hh = inW(S.ph, k-2), ll = inW(S.pl, k-2);
+    r.structure = "undetermined";
+    if (hh.length >= 2 && ll.length >= 2) { const a = S.H[hh[1]] > S.H[hh[0]], b = S.L[ll[1]] > S.L[ll[0]], c = S.H[hh[1]] < S.H[hh[0]], d = S.L[ll[1]] < S.L[ll[0]];
+      r.structure = a && b ? "higher_highs_higher_lows" : c && d ? "lower_highs_lower_lows" : "range"; }
+    const rh = inW(S.ph, k-3), rl = inW(S.pl, k-3);
+    r.resistance = rh.length ? S.H[rh[rh.length-1]] : null; r.support = rl.length ? S.L[rl[rl.length-1]] : null;
+    r.breakout = "none";
+    if (len > 1) { const p = C[k-1], c = C[k];
+      if (r.resistance !== null && p <= r.resistance && r.resistance < c) r.breakout = "above_resistance";
+      else if (r.support !== null && p >= r.support && r.support > c) r.breakout = "below_support"; }
+    r.vr = null;
+    if (S.V && k >= 1) { let sum = 0, ok = true; for (let j = Math.max(0, k-20); j < k; j++) { if (S.V[j] == null) { ok = false; break; } sum += S.V[j]; }
+      const avg = sum/20; if (ok && S.V[k] != null) r.vr = avg > 0 ? S.V[k]/avg : null; }
+    if (S.memo.size > 300000) S.memo.clear();
+    S.memo.set(k, r); return r;
+  }
+  const fin = v => v !== null && v !== undefined && Number.isFinite(v);
+  const KEYS = ["ema20", "ema50", "ema200", "rsi", "hist", "sk", "sd", "bbL", "bbU", "atr"];
+
+  // ---- windowed extended indicators (exact on the 300-bar window) ----
+  function rmaWin(vals, p) { const out = new Array(vals.length).fill(null); let v = null, seed = 0, cnt = 0;
+    for (let i = 0; i < vals.length; i++) { const x = vals[i]; if (x === null) { v = null; seed = 0; cnt = 0; continue; }
+      if (v === null) { seed += x; cnt++; if (cnt === p) v = seed/p; } else v = (v*(p-1) + x)/p; out[i] = v; } return out; }
+  function atrWin(S, s, k, p) { const tr = [null]; for (let i = s+1; i <= k; i++) tr.push(Math.max(S.H[i] - S.L[i], Math.abs(S.H[i] - S.C[i-1]), Math.abs(S.L[i] - S.C[i-1]))); return rmaWin(tr, p); }
+  function supertrendWin(S, k, p = 10, mult = 3) {   // returns [prevDir, lastDir] on the window ending at k
+    const s = Math.max(0, k - 299); let atr = null, sum = 0, cnt = 0, up = null, lo = null, dir = 1, prev = null, last = null;
+    for (let i = s; i <= k; i++) {
+      if (i > s) { const tr = Math.max(S.H[i] - S.L[i], Math.abs(S.H[i] - S.C[i-1]), Math.abs(S.L[i] - S.C[i-1]));
+        if (atr === null) { sum += tr; cnt++; if (cnt === p) atr = sum/p; } else atr = (atr*(p-1) + tr)/p; }
+      prev = last;
+      if (atr === null) { last = null; continue; }
+      const mid = (S.H[i] + S.L[i])/2; let u = mid + mult*atr, l = mid - mult*atr;
+      if (up !== null) { u = (u < up || S.C[i-1] > up) ? u : up; l = (l > lo || S.C[i-1] < lo) ? l : lo;
+        if (dir === -1 && S.C[i] > u) dir = 1; else if (dir === 1 && S.C[i] < l) dir = -1; }
+      else dir = S.C[i] >= mid ? 1 : -1;
+      up = u; lo = l; last = dir; }
+    return [prev, last];
+  }
+  function adxWin(S, k, p = 14) {
+    const s = Math.max(0, k - 299), pos = [null], neg = [null];
+    for (let i = s+1; i <= k; i++) { const u = S.H[i] - S.H[i-1], d = S.L[i-1] - S.L[i]; pos.push(u > d && u > 0 ? u : 0); neg.push(d > u && d > 0 ? d : 0); }
+    const atr = atrWin(S, s, k, p), P = rmaWin(pos, p), N = rmaWin(neg, p), dx = [];
+    let pp = null, nn = null;
+    for (let w = 0; w < atr.length; w++) { const a = atr[w];
+      if (a === null) { dx.push(null); pp = nn = null; continue; }
+      pp = a ? 100*P[w]/a : 0; nn = a ? 100*N[w]/a : 0;
+      dx.push(pp + nn ? 100*Math.abs(pp - nn)/(pp + nn) : 0); }
+    const v = rmaWin(dx, p), last = v.length - 1;
+    return v[last] === null ? null : { adx: v[last], plus: pp, minus: nn };
+  }
+  function vwapAt(S, s, i) {   // full-UTC-session VWAP, None if the session started before the window
+    const day = Math.floor((S.t0 + i*S.step)/86400000)*86400000, first = Math.round((day - S.t0)/S.step);
+    if (first < s || first < 0) return null;
+    let vol = 0, val = 0; for (let j = first; j <= i; j++) { vol += S.V[j]; val += (S.H[j] + S.L[j] + S.C[j])/3*S.V[j]; }
+    return vol > 0 ? val/vol : null;
+  }
+  function divergence(S, k, maxBars = 60) {
+    const s = Math.max(0, k - 299), out = { bullish: false, bearish: false, bullishBreak: false, bearishBreak: false };
+    // RSI on the window (Wilder seeded inside the window)
+    const R = new Array(k - s + 1).fill(null);
+    { let g = null, l = null, gs = 0, ls = 0, cnt = 0; for (let w = 1; w <= k - s; w++) { const d = S.C[s+w] - S.C[s+w-1], up = Math.max(d, 0), dn = Math.max(-d, 0);
+      if (g === null) { gs += up; ls += dn; cnt++; if (cnt === 14) { g = gs/14; l = ls/14; } } else { g = (g*13 + up)/14; l = (l*13 + dn)/14; }
+      if (g !== null) R[w] = g === 0 && l === 0 ? 50 : l === 0 ? 100 : 100 - 100/(1 + g/l); } }
+    const rv = i => R[i - s];
+    const pick = arr => { const o = []; for (let q = lastLE(arr, k-3); q >= 0 && arr[q] >= s+2; q--) o.unshift(arr[q]); return o; };
+    for (const [name, piv, opp, sign] of [["bullish", S.pl, S.ph, 1], ["bearish", S.ph, S.pl, -1]]) {
+      const el = pick(piv).filter(i => rv(i) !== null); if (el.length < 2) continue;
+      const a = el[el.length-2], b = el[el.length-1], P = sign === 1 ? S.L : S.H;
+      out[name] = (k - b <= maxBars) && sign*(P[b] - P[a]) < 0 && sign*(rv(b) - rv(a)) > 0;
+      const btw = pick(opp).filter(i => a < i && i < b);
+      if (btw.length) { const Q = sign === 1 ? S.H : S.L, lvl = sign === 1 ? Math.max(...btw.map(i => Q[i])) : Math.min(...btw.map(i => Q[i]));
+        out[name + "Break"] = out[name] && (sign === 1 ? S.C[k-1] <= lvl && lvl < S.C[k] : S.C[k-1] >= lvl && lvl > S.C[k]); }
+    }
+    return out;
+  }
+
+  // ---- decisions ----
+  function legacy(id, S, k, hS, hk) {
+    const i = an(S, k), p = an(S, k-1), c = { o: S.O[k], h: S.H[k], l: S.L[k], c: S.C[k] }, pc = S.C[k-1], po = S.O[k-1];
+    if (!i.ready || !p.ready) return null;
+    if (KEYS.some(x => !fin(i[x]) || !fin(p[x]))) return null;
+    const bull = c.c > c.o, bear = c.c < c.o, range = c.h - c.l, body = Math.abs(c.c - c.o), validBody = range > 0 && body/range >= 0.4;
+    let long = false, short = false;
+    if (id === "ema") { const vok = i.vr !== null && i.vr >= 1.2;
+      long = p.ema20 <= p.ema50 && i.ema20 > i.ema50 && c.c > i.ema200 && 50 <= i.rsi && i.rsi <= LEG.rsiHigh && bull && vok;
+      short = p.ema20 >= p.ema50 && i.ema20 < i.ema50 && c.c < i.ema200 && LEG.rsiLow <= i.rsi && i.rsi <= 50 && bear && vok; }
+    else if (id === "rsi") { long = p.rsi < LEG.rsiLow && LEG.rsiLow <= i.rsi && bull && validBody; short = p.rsi > LEG.rsiHigh && LEG.rsiHigh >= i.rsi && bear && validBody; }
+    else if (id === "macd") { long = p.hist <= 0 && 0 < i.hist && c.c > i.ema50 && bull; short = p.hist >= 0 && 0 > i.hist && c.c < i.ema50 && bear; }
+    else if (id === "bb") { long = pc < p.bbL && c.c >= i.bbL && bull && validBody; short = pc > p.bbU && c.c <= i.bbU && bear && validBody; }
+    else if (id === "brk") { const vr = i.vr !== null && i.vr >= LEG.volumeRatio, sb = range > 0 && body/range >= 0.5;
+      long = i.breakout === "above_resistance" && vr && sb && c.c > i.ema200; short = i.breakout === "below_support" && vr && sb && c.c < i.ema200; }
+    else if (id === "sr") { const tol = i.atr*LEG.levelToleranceAtr, lw = Math.min(c.o, c.c) - c.l, uw = c.h - Math.max(c.o, c.c);
+      long = i.support !== null && Math.abs(c.l - i.support) <= tol && c.c > i.support && bull && range > 0 && lw/range >= LEG.wickRatio;
+      short = i.resistance !== null && Math.abs(c.h - i.resistance) <= tol && c.c < i.resistance && bear && range > 0 && uw/range >= LEG.wickRatio; }
+    else if (id === "mtf") {
+      if (hk < 0) return null; const h = an(hS, hk);
+      if (!h.ready || !fin(h.rsi) || !fin(h.hist)) return null;
+      const eb = bull && pc < po && c.c > po && c.o <= pc, es = bear && pc > po && c.c < po && c.o >= pc;
+      long = h.trend === "bullish" && h.rsi > 50 && h.hist > 0 && h.structure === "higher_highs_higher_lows" && i.rsi > 50 && i.hist > 0 && p.sk <= p.sd && i.sk > i.sd && (i.breakout === "above_resistance" || eb);
+      short = h.trend === "bearish" && h.rsi < 50 && h.hist < 0 && h.structure === "lower_highs_lower_lows" && i.rsi < 50 && i.hist < 0 && p.sk >= p.sd && i.sk < i.sd && (i.breakout === "below_support" || es); }
+    if (long === short) return null;
+    return score(long ? 1 : -1, i, S, k, LEG);
+  }
+  function score(d, i, S, k, R) {
+    const pos = d === 1;
+    const checks = [i.trend === (pos ? "bullish" : "bearish"), pos ? i.rsi > 50 && i.hist > 0 : i.rsi < 50 && i.hist < 0,
+      i.structure === (pos ? "higher_highs_higher_lows" : "lower_highs_lower_lows"), i.vr !== null && i.vr >= R.volumeRatio];
+    const sc = Math.round(checks.filter(Boolean).length/4*100*1e4)/1e4, dist = i.atr*R.stopAtr;
+    const stop = S.C[k] - d*dist, target = S.C[k] + d*dist*R.rewardRisk;
+    if (sc < R.minScore || !(dist > 0) || !Number.isFinite(stop) || !Number.isFinite(target) || Math.min(stop, target) <= 0) return null;
+    return { d, atr: i.atr, score: sc };
+  }
+  function extended(id, S, k, hS, hk) {
+    const i = an(S, k), p = an(S, k-1);
+    if (!i.ready || !p.ready) return null;
+    if (hk < 0) return null; const h = an(hS, hk); if (!h.ready || hk + 1 < 200) return null;
+    if (!fin(i.atr) || !fin(i.rsi)) return null;
+    const o = S.O[k], hi = S.H[k], lo = S.L[k], c = S.C[k], bull = c > o, bear = c < o, atr = i.atr, body = Math.abs(c - o), width = hi - lo;
+    const volume = i.vr !== null && i.vr >= EXT.volumeRatio, tu = h.trend === "bullish", td = h.trend === "bearish";
+    const s = Math.max(0, k - 299);
+    let B, Sx;
+    if (id === "vwap") {
+      const v1 = vwapAt(S, s, k), v2 = vwapAt(S, s, k-1);
+      if (v1 === null || v2 === null || i.vr === null) return null;
+      const sep = h.atr ? Math.abs(h.ema20 - h.ema50)/h.atr : 0;
+      const q = sep >= 0.1 && body >= atr*0.1 && atr > 0;
+      B = [tu, S.C[k-1] <= v2, c > v1 && bull, volume, q]; Sx = [td, S.C[k-1] >= v2, c < v1 && bear, volume, q];
+    } else if (id === "st") {
+      const st = supertrendWin(S, k);
+      if (!hS.stm) hS.stm = new Map(); if (!hS.stm.has(hk)) hS.stm.set(hk, supertrendWin(hS, hk)); const hst = hS.stm.get(hk);
+      const s1 = st[1], s2 = st[0], hs = hst[1];
+      if (s1 == null || s2 == null || hs == null) return null;
+      if (!(s2 === -1 && s1 === 1) && !(s2 === 1 && s1 === -1)) return null;   // no flip: neither side can pass
+      const a = adxWin(S, k); if (!a) return null;
+      const strong = a.adx >= 20, bounded = atr > 0 && width <= 2.5*atr;
+      B = [s2 === -1 && s1 === 1, hs === 1, strong, a.plus > a.minus, bounded]; Sx = [s2 === 1 && s1 === -1, hs === -1, strong, a.minus > a.plus, bounded];
+    } else if (id === "sweep") {
+      const hs0 = Math.max(0, hk - 299), openT = S.t0 + k*S.step;
+      // confirmed 15m pivots inside the 15m window, confirmed before this 5m bar opened
+      const conf = (arr) => { for (let q = lastLE(arr, hk - 2); q >= 0 && arr[q] >= hs0 + 2; q--) { const j = arr[q]; if (hS.t0 + (j + 3)*hS.step - 1 < openT) return j; } return -1; };
+      const sj = conf(hS.pl), rj = conf(hS.ph), sup = sj >= 0 ? hS.L[sj] : null, res = rj >= 0 ? hS.H[rj] : null;
+      B = [sup !== null, sup !== null && lo < sup, sup !== null && c > sup, bull, width > 0 && (Math.min(o, c) - lo)/width >= EXT.wickRatio];
+      Sx = [res !== null, res !== null && hi > res, res !== null && c < res, bear, width > 0 && (hi - Math.max(o, c))/width >= EXT.wickRatio];
+    } else if (id === "don") {
+      if (k - s < 20 || i.vr === null) return null;
+      let ch = -Infinity, cl = Infinity; for (let j = k-20; j < k; j++) { ch = Math.max(ch, S.H[j]); cl = Math.min(cl, S.L[j]); }
+      B = [S.C[k-1] <= ch && ch < c, tu, volume, bull && body >= atr*0.1 && width > 0 && (hi - c)/width <= .25];
+      Sx = [S.C[k-1] >= cl && cl > c, td, volume, bear && body >= atr*0.1 && width > 0 && (c - lo)/width <= .25];
+    } else if (id === "div") {
+      const dv = divergence(S, k);
+      B = [dv.bullish, dv.bullishBreak, bull, h.structure !== "lower_highs_lower_lows"];
+      Sx = [dv.bearish, dv.bearishBreak, bear, h.structure !== "higher_highs_higher_lows"];
+    }
+    const L = B.every(Boolean), Sh = Sx.every(Boolean);
+    if (L === Sh) return null;
+    return score(L ? 1 : -1, i, S, k, EXT);
+  }
+
+  // ---- data ----
+  function aggS(O, H, L, C, V, t0, m, step) {
+    const n = Math.floor(O.length/m), o = [], h = [], l = [], c = [], v = V ? [] : null;
+    for (let q = 0; q < n; q++) { let hi = -Infinity, lo = Infinity, vol = 0, ok = true;
+      for (let j = q*m; j < (q+1)*m; j++) { hi = Math.max(hi, H[j]); lo = Math.min(lo, L[j]); if (V) { if (V[j] == null) ok = false; else vol += V[j]; } }
+      o.push(O[q*m]); h.push(hi); l.push(lo); c.push(C[(q+1)*m - 1]); if (v) v.push(ok ? vol : null); }
+    return series(o, h, l, c, v, t0, step*m);
+  }
+  function prepare(D) {
+    const m5 = D.m5, S5 = series(m5.o, m5.h, m5.l, m5.c, m5.v, m5.t0, M5);
+    // 15m volume from the 5m bars (only where the 5m data covers the whole 15m bar)
+    const v15 = new Array(D.o.length).fill(null);
+    for (let q = 0; q < D.o.length; q++) { const a = Math.round((D.t0 + q*M15 - m5.t0)/M5); if (a >= 0 && a + 2 < m5.o.length) v15[q] = m5.v[a] + m5.v[a+1] + m5.v[a+2]; }
+    const S15 = series(D.o, D.h, D.l, D.c, v15, D.t0, M15);
+    const S1h = aggS(D.o, D.h, D.l, D.c, null, D.t0, 4, M15), S4h = aggS(D.o, D.h, D.l, D.c, null, D.t0, 16, M15);
+    return { S5, S15, S1h, S4h };
+  }
+  const memo = new WeakMap();
+  const closedIdx = (S, cutoff) => Math.floor((cutoff + 1 - S.t0)/S.step) - 1;   // last bar with closeTime <= cutoff
+
+  function run(D, inds, sp, startTs) {
+    if (!D.m5 || D.m5.o.length < 300) return [];
+    if (!memo.has(D)) memo.set(D, prepare(D));
+    const P = memo.get(D), B = P.S5, n = B.n, out = [], R = sp.legacy ? LEG : EXT;
+    const HT = { "15m": P.S15, "1h": P.S1h, "4h": P.S4h };
+    const modes = sp.id === "mtf" ? [["15m", "4h"], ["5m", "1h"]] : [[sp.tf || "5m", sp.htf || null]];
+    const toE = ts => (ts - D.t0)/M15;
+    let pos = null, pend = null;
+    for (let j = 0; j < n; j++) {
+      if (pend) { const e = B.O[j], dist = R.stopAtr*pend.atr, stop = e - pend.d*dist, target = e + pend.d*dist*R.rewardRisk;
+        if (Math.min(stop, target) > 0) pos = { d: pend.d, j, entry: e, stop, target }; pend = null; }
+      if (pos) {
+        const s = pos.d, o = B.O[j]; let raw = null, why = null;
+        if (s*(o - pos.stop) <= 0) { raw = o; why = "INIT_STOP"; }
+        else if (s*(o - pos.target) >= 0) { raw = pos.target; why = "TARGET"; }
+        else if (s === 1 ? B.L[j] <= pos.stop : B.H[j] >= pos.stop) { raw = pos.stop; why = "INIT_STOP"; }
+        else if (s === 1 ? B.H[j] >= pos.target : B.L[j] <= pos.target) { raw = pos.target; why = "TARGET"; }
+        if (raw !== null) { out.push({ name: sp.name, d: s, e: toE(B.t0 + pos.j*M5), x: toE(B.t0 + (j+1)*M5) - 1, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: pos.target }); pos = null; }
+      }
+      if (j < 200) continue;
+      const cutoff = B.t0 + (j+1)*M5 - 1;
+      const cands = [];
+      for (const [tf, htf] of modes) {
+        const S = tf === "5m" ? B : HT[tf], k = closedIdx(S, cutoff);
+        if (k < 1 || S.t0 + (k+1)*S.step - 1 !== cutoff) continue;
+        const hS = htf ? HT[htf] : null, hk = hS ? closedIdx(hS, cutoff) : -1;
+        const r = sp.legacy ? legacy(sp.id, S, k, hS, hk) : extended(sp.id, S, k, hS, hk);
+        if (r) cands.push({ ...r, mode: (htf || "") + "/" + tf });
+      }
+      if (!cands.length) continue;
+      cands.sort((a, b) => b.score - a.score || (a.mode < b.mode ? -1 : a.mode > b.mode ? 1 : 0));
+      if (pos || j === n - 1 || B.t0 + (j+1)*M5 <= startTs) continue;
+      pend = cands[0];
+    }
+    if (pos) out.push({ name: sp.name, d: pos.d, e: toE(B.t0 + pos.j*M5), x: D.o.length - 1, rawIn: pos.entry, rawOut: B.C[n-1], why: "TIME", open: true, stop: pos.stop, target: pos.target });
+    return out;
+  }
+  const mk = (name, id, legacy, src, tf = "5m", htf = null) => ({ name, id, legacy, tf, htf, mult: 0, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src, m5: true });
+  return { run, an, series, prepare, strats: [
+    mk("#1 EMA Trend Scalping 5m", "ema", true, "Replit #1"),
+    mk("#2 RSI Mean Reversion 5m", "rsi", true, "Replit #2"),
+    mk("#3 MACD Momentum 5m", "macd", true, "Replit #3"),
+    mk("#4 Bollinger Reversion 5m", "bb", true, "Replit #4"),
+    mk("#5 Breakout + Volume 5m", "brk", true, "Replit #5"),
+    mk("#6 Support & Resistance 5m", "sr", true, "Replit #6"),
+    mk("#7 MTF Triple Confirmation", "mtf", true, "Replit #7"),
+    mk("#9 VWAP Pullback 5m", "vwap", false, "Replit #9", "5m", "15m"),
+    mk("#10 Supertrend + ADX 5m", "st", false, "Replit #10", "5m", "15m"),
+    mk("#11 Liquidity Sweep 5m", "sweep", false, "Replit #11", "5m", "15m"),
+    mk("#12 Donchian Breakout 5m", "don", false, "Replit #12", "5m", "15m"),
+    mk("#14 RSI Divergence 5m", "div", false, "Replit #14", "5m", "15m"),
+  ] };
+})();
+
 const S = (name, mult, sig, sm, tm, hold, trail = null, cd = null, entry = "imm") => ({ name, mult, sig, sm, tm, hold, trail, cd, entry });
 const V40 = (a, b) => ["v40", a, b];
 const STRATS = [
@@ -782,6 +1065,7 @@ const STRATS = [
   ...S16.strats,
   ...S15.strats,
   ...SEXT.strats,
+  ...S5.strats,
 ];
 
 function v33Entry(D, i, d, hi) {
@@ -866,6 +1150,7 @@ function money(t, D, P, funding, lastPrice) {
 </script>
 
 <script id="lab">
+const LAB_STRATS = STRATS.filter(s => !s.m5);   // استراتيجيات الـ5 دقايق بس على المنصة هلأ
 // ===================== حسابات المختبر (صافية، بدون واجهة) =====================
 const LAB_START = Date.UTC(2024, 7, 16), LAB_END = Date.UTC(2026, 7, 16);
 const LAB_SPLIT = LAB_START + Math.floor((LAB_END - LAB_START) * 2 / 3);
@@ -1043,15 +1328,15 @@ async function runBTC(P3, mainName, useFund) {
   setStatus("⚙️ بحسب…"); await sleep(20);
   const inds = { 1: makeInd(D, 1), 4: makeInd(D, 4), 16: makeInd(D, 16) }, now = D.t0 + D.c.length*M15;
   const res = [];
-  STRATS.forEach((sp, k) => {
+  LAB_STRATS.forEach((sp, k) => {
     const raw = rawTrades(D, inds, sp), by = {};
     for (const [cn, P] of P3) by[cn] = split3(raw, D, P, funding, now);
     res.push({ sp, by, v: verdictOf(by[mainName]), longs: raw.filter(t => t.d === 1).length, shorts: raw.filter(t => t.d === -1).length });
-    setProg((k+1)/STRATS.length);
+    setProg((k+1)/LAB_STRATS.length);
   });
   const order = { "✅": 0, "🟡": 1, "🟡↓": 2, "⚪": 3, "❌": 4 };
   res.sort((a, b) => (order[a.v.split(" ")[0]] - order[b.v.split(" ")[0]]) || (b.by[mainName][1].usd + b.by[mainName][2].usd) - (a.by[mainName][1].usd + a.by[mainName][2].usd));
-  let html = `<h2>الترتيب — ${STRATS.length} استراتيجية على BTC (الحكم على تكلفة ${mainName})</h2><div class="wrap"><table><tr><th>#</th><th>الحكم</th><th>الاستراتيجية</th><th>لونغ/شورت</th><th>تدريب</th><th>اختبار</th><th>جديدة</th><th>دليل الاختبار</th></tr>`;
+  let html = `<h2>الترتيب — ${LAB_STRATS.length} استراتيجية على BTC (الحكم على تكلفة ${mainName})</h2><div class="wrap"><table><tr><th>#</th><th>الحكم</th><th>الاستراتيجية</th><th>لونغ/شورت</th><th>تدريب</th><th>اختبار</th><th>جديدة</th><th>دليل الاختبار</th></tr>`;
   let txt = `NEXORA LAB | كل الاستراتيجيات على BTC | الحكم: ${mainName} | Maker ${(P3[0][1].maker*100).toFixed(3)}% Taker ${(P3[0][1].taker*100).toFixed(3)}% slip ${(P3[0][1].slip*100).toFixed(3)}% | تمويل ${useFund ? "نعم" : "لا"} | صفقة ${P3[0][1].notional}$\n`;
   txt += `فترات: تدريب→${new Date(LAB_SPLIT).toISOString().slice(0,10)} | اختبار→2026-08-16 | جديدة→${new Date(now).toISOString().slice(0,10)}\n`;
   res.forEach((r, k) => {
@@ -1133,7 +1418,7 @@ async function go() {
     const P3 = costSet(+$("maker").value/100, +$("taker").value/100, +$("slip").value/100, +$("notional").value);
     const mainName = $("main").value, useFund = $("fund").checked;
     const r = $("mode").value === "btc" ? await runBTC(P3, mainName, useFund)
-      : await runMulti(STRATS[+$("strat").value], Math.max(2, +$("coins").value), Math.max(1, +$("slots").value), P3, mainName, useFund);
+      : await runMulti(LAB_STRATS[+$("strat").value], Math.max(2, +$("coins").value), Math.max(1, +$("slots").value), P3, mainName, useFund);
     $("out").innerHTML = r.html; $("txt").value = r.txt; $("copyBox").style.display = "";
     setProg(1); setStatus(`✅ خلص بـ ${((Date.now()-t0)/1000).toFixed(0)} ثانية (${REQ} طلب لبايننس)`);
   } catch (e) { setStatus("❌ " + e.message); console.error(e); }
@@ -1141,8 +1426,8 @@ async function go() {
 }
 
 (function init() {
-  STRATS.forEach((s, i) => { const o = document.createElement("option"); o.value = i; o.textContent = s.name; $("strat").appendChild(o); });
-  const ci = STRATS.findIndex(s => s.name.startsWith("COMBO")); if (ci >= 0) $("strat").value = ci;
+  LAB_STRATS.forEach((s, i) => { const o = document.createElement("option"); o.value = i; o.textContent = s.name; $("strat").appendChild(o); });
+  const ci = LAB_STRATS.findIndex(s => s.name.startsWith("COMBO")); if (ci >= 0) $("strat").value = ci;
   const sync = () => { const m = $("mode").value === "multi"; ["stratL", "coinsL", "slotsL"].forEach(id => $(id).style.display = m ? "" : "none"); };
   $("mode").onchange = sync; sync();
   $("go").onclick = go;
@@ -1151,7 +1436,7 @@ async function go() {
   const preset = { "combo30": ["multi", "COMBO", 30], "v43-30": ["multi", "V43 1H SHORT b0", 30], "all": ["btc", null, 0] }[H];
   if (preset) {
     $("mode").value = preset[0];
-    if (preset[1]) { const k = STRATS.findIndex(s => s.name.startsWith(preset[1])); if (k >= 0) $("strat").value = k; $("coins").value = preset[2]; }
+    if (preset[1]) { const k = LAB_STRATS.findIndex(s => s.name.startsWith(preset[1])); if (k >= 0) $("strat").value = k; $("coins").value = preset[2]; }
     sync(); setTimeout(go, 300);
   }
   $("copy").onclick = async () => {
