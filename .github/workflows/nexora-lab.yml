@@ -3,14 +3,14 @@ name: nexora-lab
 on:
   push:
     branches: [main]
-    paths: ["nexora-lab/jobs/**", "nexora-lab/runner.js"]
+    paths: ["nexora-lab/jobs/**", "nexora-lab/runner.js", ".github/workflows/nexora-lab.yml"]
   schedule:
     - cron: "17 3 * * *"
   workflow_dispatch:
 permissions:
   contents: write
 concurrency:
-  group: nexora-lab
+  group: nexora-lab-v2
   cancel-in-progress: false
 jobs:
   run:
