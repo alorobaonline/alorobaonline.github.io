@@ -110,6 +110,18 @@ function jobMulti(job, per, coins) {
     const PM = { ...P, makerEntry: true }, tm = E.portfolio(flatOf(per, name, PM, rank), job.slots || 10).taken, bm = [[], [], []];
     for (const t of tm) bm[E.periodOf(t.eTs)].push(t);
     const sm = bm.map((x, i) => E.statsOf(x, days[i], P.notional));
+    if (job.coinPick) {   // اختيار العملات من فترة التدريب بس، وبعدين منشوف شو عملت هالعملات بالاختبار والجديدة
+      for (const rule of job.coinPick) {
+        const picked = Object.keys(per).filter(sym => { const tr = taken.filter(t => t.sym === sym && E.periodOf(t.eTs) === 0);
+          if (tr.length < rule.minN) return false; let gp = 0, gl = 0; for (const t of tr) { if (t.net > 0) gp += t.net; else gl -= t.net; } return (gl ? gp/gl : 99) >= rule.pf; });
+        const ps = new Set(picked), rest = Object.keys(per).filter(x => !ps.has(x));
+        const st = set => { const b = [[], [], []]; for (const t of taken) if (set.has(t.sym)) b[E.periodOf(t.eTs)].push(t); return b.map((x, i) => E.statsOf(x, days[i], P.notional)); };
+        const a = st(ps), o = st(new Set(rest));
+        lines.push(`coin-pick (train n>=${rule.minN}, PF>=${rule.pf}) -> ${picked.length} coins [${picked.join(",")}]`,
+          "  picked: " + E.PERIODS.map((p, i) => `${p}: ${sP(a[i])}`).join(" | "),
+          "  others: " + E.PERIODS.map((p, i) => `${p}: ${sP(o[i])}`).join(" | "));
+      }
+    }
     SUM.push({ name, s, sm, v: E.verdictOf(s), vm: E.verdictOf(sm), coins: coinsAll, nc: Object.keys(per).length, q: qs.length ? [qs.filter(([, o]) => o.net > 0).length, qs.length] : null });
     lines.push(`## ${name} | ${E.verdictOf(s)} (maker-entry ${E.verdictOf(sm)}) | coins+all3 ${coinsAll}/${Object.keys(per).length}`,
       E.PERIODS.map((p, i) => `${p}: ${sP(s[i])}`).join(" | "),
@@ -171,6 +183,7 @@ function pushFiles(files, msg) {   // فحوصات متوازية: كل واحد
     if (old.includes(`hash=${hash}`) && !process.env.FORCE) continue;
     todo.push({ id, job, hash, rf });
   }
+  if (process.env.ONLY_CHANGED !== undefined) { const keep = process.env.ONLY_CHANGED.split(",").filter(Boolean); todo.splice(0, todo.length, ...todo.filter(t => keep.includes(t.id))); }
   if (process.env.LIST) { fs.writeFileSync(process.env.LIST, JSON.stringify(todo.sort((a, b) => (b.job.priority || 0) - (a.job.priority || 0)).map(t => t.id))); console.log("todo:", todo.map(t => t.id).join(",")); return; }
   if (process.env.ONLY) { const keep = process.env.ONLY.split(","); todo.splice(0, todo.length, ...todo.filter(t => keep.includes(t.id))); }
   if (!todo.length) { console.log("nothing to do"); return; }

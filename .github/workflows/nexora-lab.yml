@@ -11,8 +11,8 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: nexora-lab-v3
-  cancel-in-progress: true
+  group: nexora-lab-${{ github.run_id }}
+  cancel-in-progress: false
 jobs:
   plan:
     runs-on: ubuntu-latest
@@ -20,11 +20,18 @@ jobs:
       ids: ${{ steps.p.outputs.ids }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
       - id: p
         run: |
+          # عند الرفع: بس الفحوصات اللي ملفها تغيّر بهالرفعة (الباقي إما خلص أو شغال بدفعة ثانية)
+          if [ "${{ github.event_name }}" = "push" ] && git cat-file -e "${{ github.event.before }}" 2>/dev/null; then
+            export ONLY_CHANGED=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" -- nexora-lab/jobs | sed 's#nexora-lab/jobs/##; s#\.json$##' | paste -sd, -)
+            echo "changed: $ONLY_CHANGED"
+          fi
           LIST=/tmp/todo.json node nexora-lab/runner.js
           echo "ids=$(cat /tmp/todo.json)" >> "$GITHUB_OUTPUT"
   run:
