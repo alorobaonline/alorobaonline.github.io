@@ -1,0 +1,40 @@
+name: nexora-lab
+# فحوصات NEXORA على سيرفرات GitHub (بيانات بايننس الحقيقية من data.binance.vision). ما بيلمس ملفات المتجر.
+on:
+  push:
+    branches: [main]
+    paths: ["nexora-lab/jobs/**", "nexora-lab/runner.js", "nexora/index.html", "nexora/lab.html"]
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: nexora-lab
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nexora-data
+          key: nexora-data-${{ github.run_id }}
+          restore-keys: nexora-data-
+      - name: probe binance archive
+        run: curl -sS -o /dev/null -w "data.binance.vision %{http_code}\n" https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-01.zip
+      - name: run jobs
+        run: node nexora-lab/runner.js
+      - name: commit results
+        run: |
+          git config user.name "nexora-lab-bot"
+          git config user.email "nexora-lab-bot@users.noreply.github.com"
+          git add nexora-lab/results
+          git diff --cached --quiet && echo "no changes" && exit 0
+          git commit -m "nexora-lab: results $(date -u +%F_%H%M)"
+          for i in 1 2 3; do git pull --rebase -q && git push && break; sleep 5; done
