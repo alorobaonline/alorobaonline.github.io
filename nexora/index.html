@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXORA PAPER — تداول وهمي فيوتشرز</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--line:#262a33;--txt:#e8eaed;--mut:#8b93a1;--pos:#22c55e;--neg:#ef4444;--acc:#60a5fa}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;padding:14px;max-width:1200px;margin-inline:auto}
+h1{font-size:20px;margin:0 0 4px} h2{font-size:15px;margin:22px 0 8px;color:#cfd3da}
+.mut{color:var(--mut);font-size:12.5px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:end;background:var(--card);padding:10px;border-radius:12px;margin-top:10px}
+.bar label{display:flex;flex-direction:column;font-size:12px;color:var(--mut);gap:3px}
+.bar input,.bar select{background:#0f1115;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:7px;font-size:14px;width:120px}
+.bar input[type=checkbox]{width:auto}
+button{background:var(--acc);color:#081018;border:0;border-radius:8px;padding:9px 14px;font-weight:600;font-size:14px;cursor:pointer}
+button.sec{background:#2a2f3a;color:var(--txt)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.card{background:var(--card);border-radius:12px;padding:10px 12px}
+.card .k{font-size:12px;color:var(--mut)} .card .v{font-size:19px;font-weight:700;margin-top:3px}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
+.num{direction:ltr;unicode-bidi:isolate;display:inline-block}
+.wrap{overflow-x:auto;background:var(--card);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+th{position:sticky;top:0;background:#1f232c;font-weight:600;color:#cfd3da;cursor:pointer}
+td.nm{text-align:right} tr.sel{background:#1d2633}
+svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;display:block}
+#status{margin-top:8px;font-size:13px}
+.tag{font-size:11px;padding:2px 6px;border-radius:6px;background:#2a2f3a}
+.tag.L{background:#123524;color:#7ee2a8}.tag.S{background:#3a1717;color:#f5a3a3}
+</style>
+</head>
+<body>
+<h1>🧪 NEXORA PAPER — BTCUSDT فيوتشرز</h1>
+<div class="mut">تداول وهمي على أسعار بايننس الحقيقية. كل ما تفتح الصفحة بتحسب كل الصفقات من تاريخ البداية لهلأ — ما في سيرفر، ولا بتحتاج تضل مفتوحة.</div>
+
+<div class="bar">
+  <label>من تاريخ<input type="date" id="start"></label>
+  <label>حجم الصفقة $<input type="number" id="notional" value="200" step="10"></label>
+  <label>Maker %<input type="number" id="maker" value="0.02" step="0.001"></label>
+  <label>Taker %<input type="number" id="taker" value="0.05" step="0.001"></label>
+  <label>سليبج Market %<input type="number" id="slip" value="0.01" step="0.01"></label>
+  <label>خصم BNB 10%<input type="checkbox" id="bnb"></label>
+  <button id="run">احسب</button>
+  <button class="sec" data-days="30">آخر 30 يوم</button>
+  <button class="sec" data-days="90">90 يوم</button>
+  <button class="sec" data-days="365">سنة</button>
+</div>
+<div id="status" class="mut"></div>
+
+<div id="out" style="display:none">
+  <h2>المجموع <span class="mut" id="scope"></span></h2>
+  <div class="cards" id="cards"></div>
+  <h2>الصافي التراكمي</h2>
+  <div id="chart"></div>
+  <h2>الترتيب <span class="mut">(اضغط على استراتيجية لتشوف صفقاتها بس)</span></h2>
+  <div class="wrap"><table id="board"></table></div>
+  <h2>الصفقات <span class="mut" id="tscope"></span></h2>
+  <div class="wrap" style="max-height:520px"><table id="trades"></table></div>
+  <p class="mut">العمولة: الدخول والوقف والوقت Taker مع سليبج، الهدف Maker. التمويل (Funding) الحقيقي من بايننس. الحساب: صافي = إجمالي − عمولة + تمويل.</p>
+</div>
+
+<script id="engine">
+// ===================== NEXORA ENGINE (نفس منطق الفحص بالضبط) =====================
+const M15 = 900000, H4 = 16 * M15;
+
+function aggregate(D, m) {
+  const n = Math.floor(D.o.length / m), O = [], H = [], L = [], C = [];
+  for (let i = 0; i < n; i++) {
+    O.push(D.o[i*m]); let hi = -Infinity, lo = Infinity;
+    for (let k = i*m; k < (i+1)*m; k++) { if (D.h[k] > hi) hi = D.h[k]; if (D.l[k] < lo) lo = D.l[k]; }
+    H.push(hi); L.push(lo); C.push(D.c[(i+1)*m-1]);
+  }
+  return { O, H, L, C };
+}
+
+function ema(C, p) { const k = 2/(p+1), out = []; for (let i = 0; i < C.length; i++) out.push(i === 0 ? C[0] : C[i]*k + out[i-1]*(1-k)); return out; }
+
+function makeInd(D, m) {
+  const { O, H, L, C } = aggregate(D, m), n = C.length;
+  const BLO = O.map((o, i) => Math.min(o, C[i])), BHI = O.map((o, i) => Math.max(o, C[i]));
+  const tr = [H[0]-L[0]];
+  for (let i = 1; i < n; i++) tr.push(Math.max(H[i]-L[i], Math.abs(H[i]-C[i-1]), Math.abs(L[i]-C[i-1])));
+  const atr = []; let a = null;
+  for (let i = 0; i < n; i++) {
+    if (i === 13) { a = 0; for (let k = 0; k < 14; k++) a += tr[k]; a /= 14; }
+    else if (i > 13) a = (a*13 + tr[i]) / 14;
+    atr.push(a);
+  }
+  const pdm = [0], mdm = [0];
+  for (let i = 1; i < n; i++) {
+    const up = H[i]-H[i-1], dn = L[i-1]-L[i];
+    pdm.push(up > dn ? Math.max(up, 0) : 0); mdm.push(dn > up ? Math.max(dn, 0) : 0);
+  }
+  const adx = new Array(n).fill(null);
+  let smtr = 0, smp = 0, smm = 0; for (let k = 1; k < 15 && k < n; k++) { smtr += tr[k]; smp += pdm[k]; smm += mdm[k]; }
+  let cnt = 0, first = 0;
+  for (let i = 14; i < n; i++) {
+    if (i > 14) { smtr = smtr - smtr/14 + tr[i]; smp = smp - smp/14 + pdm[i]; smm = smm - smm/14 + mdm[i]; }
+    const pdi = smtr > 0 ? 100*smp/smtr : 0, mdi = smtr > 0 ? 100*smm/smtr : 0;
+    const dx = (pdi + mdi) > 0 ? 100*Math.abs(pdi-mdi)/(pdi+mdi) : 0;
+    cnt++;
+    if (cnt <= 14) first += dx;
+    if (cnt === 14) adx[i] = first/14; else if (cnt > 14) adx[i] = (adx[i-1]*13 + dx)/14;
+  }
+  return { m, n, O, H, L, C, BLO, BHI, atr, ema200: ema(C, 200), ema50: ema(C, 50), adx };
+}
+
+const minR = (a, s, e) => { let v = Infinity; for (let k = Math.max(0, s); k < e; k++) if (a[k] < v) v = a[k]; return v; };
+const maxR = (a, s, e) => { let v = -Infinity; for (let k = Math.max(0, s); k < e; k++) if (a[k] > v) v = a[k]; return v; };
+
+const sigV33 = k => (I, i) => I.C[i] > maxR(I.BHI, i-k, i) ? 1 : (I.C[i] < minR(I.BLO, i-k, i) ? -1 : 0);
+const sigShort = body => (I, i) => {
+  if (I.adx[i] === null || I.atr[i] === null || I.atr[i] <= 0 || I.adx[i] <= 25) return 0;
+  if (Math.abs(I.C[i]-I.O[i]) < body*I.atr[i]) return 0;
+  return (I.C[i] < minR(I.BLO, i-4, i) && I.C[i] < I.ema200[i]) ? -1 : 0;
+};
+const sigDip = () => (I, i) => {
+  if (I.atr[i] === null || I.atr[i] <= 0) return 0;
+  if (I.C[i] <= I.ema200[i] || I.C[i] <= I.ema50[i]) return 0;
+  let dipped = false; for (let j = Math.max(0, i-3); j < i; j++) if (I.L[j] <= I.ema50[j]*1.005) dipped = true;
+  return (dipped && I.C[i] > I.O[i] && (I.C[i]-I.O[i]) >= 0.3*I.atr[i]) ? 1 : 0;
+};
+const sigGann43 = (lb, bm) => (I, i) => {
+  if (I.atr[i] === null || I.atr[i] <= 0 || I.C[i] <= I.ema200[i]) return 0;
+  return (I.BLO[i] === minR(I.BLO, i-lb, i+1) && (I.C[i]-I.O[i]) >= bm*I.atr[i]) ? 1 : 0;
+};
+const sigGann44 = mn => (I, i) => {
+  if (I.adx[i] === null || I.atr[i] === null || I.atr[i] <= 0) return 0;
+  if (I.C[i] <= I.ema200[i] || I.adx[i] < mn) return 0;
+  return (I.BLO[i] === minR(I.BLO, i-3, i+1) && (I.C[i]-I.O[i]) >= 0.4*I.atr[i]) ? 1 : 0;
+};
+const sigDual = bm => (I, i) => {
+  if (I.atr[i] === null || I.atr[i] <= 0 || Math.abs(I.C[i]-I.O[i]) < bm*I.atr[i]) return 0;
+  if (I.BLO[i] === minR(I.BLO, i-2, i+1) && I.C[i] > I.O[i] && I.C[i] > I.ema50[i]) return 1;
+  if (I.BHI[i] === maxR(I.BHI, i-2, i+1) && I.C[i] < I.O[i] && I.C[i] < I.ema50[i]) return -1;
+  return 0;
+};
+const S = (name, mult, sig, sm, tm, hold, trail = null, cd = null, entry = "imm") => ({ name, mult, sig, sm, tm, hold, trail, cd, entry });
+const V40 = (a, b) => ["v40", a, b];
+const STRATS = [
+  S("V33 B3 TRAIL فوري", 16, sigV33(3), 1.5, 2.25, 96, "v33trail"),
+  S("V33 B3 TRAIL 15m", 16, sigV33(3), 1.5, 2.25, 96, "v33trail", null, "conf15"),
+  S("V33 B6 STRUCT فوري", 16, sigV33(6), 1.5, 2.25, 96, "v33struct"),
+  S("V33 B6 STRUCT 15m", 16, sigV33(6), 1.5, 2.25, 96, "v33struct", null, "conf15"),
+  S("V42 4H SHORT b0", 16, sigShort(0), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("V42 4H SHORT b.5", 16, sigShort(0.5), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("V43 1H SHORT b0", 4, sigShort(0), 1.5, 3, 288, V40(1.5, 1.25), "entry"),
+  S("V43 1H SHORT b.5", 4, sigShort(0.5), 1.5, 3, 288, V40(1.5, 1.25), "entry"),
+  S("V43 15m SHORT b0", 1, sigShort(0), 1.5, 3, 288, V40(1.5, 1.25), "entry"),
+  S("V43 15m SHORT b.5", 1, sigShort(0.5), 1.5, 3, 288, V40(1.5, 1.25), "entry"),
+  S("G-V42 Dip", 16, sigDip(), 2, 3.5, 288, V40(2, 1.5), "sig"),
+  S("G-V43 Gann 3/.4", 16, sigGann43(3, 0.4), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("G-V43 Gann 4/.5", 16, sigGann43(4, 0.5), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("G-V43 Gann 2/.3", 16, sigGann43(2, 0.3), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("G-V44 Gann ADX18", 16, sigGann44(18), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("G-V44 Gann ADX20", 16, sigGann44(20), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("G-V44 Gann ADX25", 16, sigGann44(25), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
+  S("G-V45 1H Dual", 4, sigDual(0.2), 1.2, 2.5, 96),
+  S("G-V46 1H Dual", 4, sigDual(0.4), 1.5, 3, 144),
+];
+
+function v33Entry(D, i, d, hi) {
+  const first = (i+1)*16, last = Math.min(first+16, hi*16);
+  for (let j = first; j < last; j++) {
+    if (j < 3) continue;
+    let bh = -Infinity, bl = Infinity;
+    for (let x = j-3; x < j; x++) { bh = Math.max(bh, D.o[x], D.c[x]); bl = Math.min(bl, D.o[x], D.c[x]); }
+    if ((d === 1 && D.c[j] > bh) || (d === -1 && D.c[j] < bl)) return (j+1 < hi*16) ? j+1 : null;
+  }
+  return null;
+}
+
+function trade(D, I16, sp, d, e, lastExcl, A) {
+  const o = D.o, h = D.h, l = D.l, c = D.c, entry = o[e];
+  let stop = entry - d*sp.sm*A; const target = entry + d*sp.tm*A;
+  let best = entry, active = false, ext = null;
+  const holdEnd = e + sp.hold - 1, end = Math.min(holdEnd, lastExcl - 1);
+  for (let j = e; j <= end; j++) {
+    if (sp.trail === "v33trail" && j > e) {
+      const v = d === 1 ? h[j-1] : l[j-1];
+      ext = ext === null ? v : (d === 1 ? Math.max(ext, v) : Math.min(ext, v));
+      const cand = ext - d*1.25*A; stop = d === 1 ? Math.max(stop, cand) : Math.min(stop, cand);
+    } else if (sp.trail === "v33struct" && j > e && j % 16 === 0) {
+      const k = j/16 - 1;
+      const cand = d === 1 ? I16.BLO[k] - .3*A : I16.BHI[k] + .3*A;
+      stop = d === 1 ? Math.max(stop, cand) : Math.min(stop, cand);
+    }
+    if (d === 1 ? l[j] <= stop : h[j] >= stop)
+      return { x: j, raw: d === 1 ? Math.min(o[j], stop) : Math.max(o[j], stop), why: active ? "TRAIL_STOP" : "INIT_STOP", open: false, stop, target };
+    if (d === 1 ? h[j] >= target : l[j] <= target)
+      return { x: j, raw: d === 1 ? Math.max(o[j], target) : Math.min(o[j], target), why: "TARGET", open: false, stop, target };
+    if (sp.trail && sp.trail[0] === "v40") {
+      const trig = sp.trail[1], dist = sp.trail[2];
+      if (d === 1 && h[j] > best) { best = h[j]; if (best - entry >= trig*A) { active = true; stop = Math.max(stop, best - dist*A); } }
+      else if (d === -1 && l[j] < best) { best = l[j]; if (entry - best >= trig*A) { active = true; stop = Math.min(stop, best + dist*A); } }
+    }
+  }
+  return { x: end, raw: c[end], why: "TIME", open: holdEnd > end, stop, target };
+}
+
+// بيرجّع صفقات الاستراتيجية اللي إشارتها بعد startTs
+function evaluate(D, inds, sp, startTs) {
+  const m = sp.mult, I = inds[m], I16 = inds[16];
+  let lo = 0; while (lo < I.n && D.t0 + (lo+1)*m*M15 <= startTs) lo++;
+  const hi = I.n, out = [];
+  let nextAllowed = lo*m, cd4 = -1;
+  for (let i = Math.max(lo, 200); i < hi-1; i++) {
+    const d = sp.sig(I, i); if (!d) continue;
+    if (sp.cd === "sig" && i < cd4) continue;
+    let e;
+    if (sp.entry === "conf15") { e = v33Entry(D, i, d, hi); if (e === null) continue; }
+    else e = (i+1)*m;
+    if (e >= hi*m || e < nextAllowed) continue;
+    if (sp.cd === "entry" && e < cd4*16) continue;
+    const A = I.atr[i]; if (A === null || A <= 0) continue;
+    const r = trade(D, I16, sp, d, e, hi*m, A);
+    out.push({ name: sp.name, d, e, x: r.x, rawIn: D.o[e], rawOut: r.raw, why: r.why, open: r.open, stop: r.stop, target: r.target });
+    nextAllowed = r.x + 1;
+    if (r.why === "INIT_STOP" && sp.cd && !r.open) cd4 = Math.floor(r.x/16) + 3;
+  }
+  return out;
+}
+
+// العمولة والتمويل والصافي لكل صفقة
+function money(t, D, P, funding, lastPrice) {
+  const d = t.d, fillIn = t.rawIn*(1 + d*P.slip), qty = P.notional/fillIn;
+  const feeIn = qty*fillIn*P.taker;
+  const eTs = D.t0 + t.e*M15, xTs = D.t0 + (t.x+1)*M15;
+  let fillOut, feeOut, gross;
+  if (t.open) { fillOut = lastPrice; feeOut = 0; }
+  else if (t.why === "TARGET") { fillOut = t.rawOut; feeOut = qty*fillOut*P.maker; }
+  else { fillOut = t.rawOut*(1 - d*P.slip); feeOut = qty*fillOut*P.taker; }
+  gross = d*(fillOut - fillIn)*qty;
+  let fund = 0; const until = t.open ? Infinity : xTs;
+  for (const f of funding) if (f.t > eTs && f.t <= until) fund += -d*f.rate*qty*f.mark;
+  const fee = feeIn + feeOut;
+  return { ...t, eTs, xTs, fillIn, fillOut, qty, gross, fee, fund, net: gross - fee + fund };
+}
+</script>
+
+<script>
+// ===================== جلب البيانات من بايننس =====================
+const BASE = "https://fapi.binance.com";
+const $ = id => document.getElementById(id);
+const fmt = (x, k = 2) => (x >= 0 ? "+" : "") + x.toFixed(k);
+const usd = (x, cls = true) => `<span class="num ${cls ? (x > 0 ? "pos" : x < 0 ? "neg" : "") : ""}">${fmt(x)}$</span>`;
+const fee$ = x => `<span class="num neg">−${x.toFixed(2)}$</span>`;
+const dt = ts => { const z = new Date(ts); return z.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit" }) + " " + z.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); };
+const WHY = { TARGET: "الهدف 🎯", INIT_STOP: "الوقف", TRAIL_STOP: "وقف متحرك", TIME: "انتهى الوقت" };
+
+async function getJSON(path, params) {
+  const url = BASE + path + "?" + new URLSearchParams(params);
+  for (let k = 0; k < 4; k++) {
+    try { const r = await fetch(url); if (r.ok) return await r.json(); if (r.status === 451) throw new Error("451"); }
+    catch (e) { if (String(e.message) === "451") throw new Error("بايننس حاظرة منطقتك (451)"); }
+    await new Promise(z => setTimeout(z, 1500*(k+1)));
+  }
+  throw new Error("ما قدرت أوصل لبايننس. تأكد من النت.");
+}
+
+async function load15m(fromTs, status) {
+  const rows = new Map(); let t = fromTs; const now = Date.now();
+  while (t < now) {
+    const r = await getJSON("/fapi/v1/klines", { symbol: "BTCUSDT", interval: "15m", startTime: t, limit: 1500 });
+    if (!r.length) break;
+    for (const k of r) if (k[6] < now) rows.set(k[0], [+k[1], +k[2], +k[3], +k[4]]);
+    t = r[r.length-1][0] + M15;
+    status(`⬇️ بحمّل الأسعار… ${new Date(r[r.length-1][0]).toISOString().slice(0, 10)}`);
+  }
+  // شموع متواصلة من حد 4H، والفجوات بشمعة مسطّحة
+  const keys = [...rows.keys()].sort((a, b) => a - b);
+  const t0 = Math.ceil(keys[0] / H4) * H4;
+  let n = Math.floor((keys[keys.length-1] - t0)/M15) + 1; n -= n % 16;
+  const D = { t0, o: [], h: [], l: [], c: [] }; let prev = null;
+  for (let i = 0; i < n; i++) {
+    const v = rows.get(t0 + i*M15);
+    if (v) { D.o.push(v[0]); D.h.push(Math.max(v[1], v[0], v[3])); D.l.push(Math.min(v[2], v[0], v[3])); D.c.push(v[3]); prev = v[3]; }
+    else { const p = prev ?? rows.get(keys.find(x => x > t0 + i*M15))[0]; D.o.push(p); D.h.push(p); D.l.push(p); D.c.push(p); }
+  }
+  return D;
+}
+
+async function loadFunding(fromTs) {
+  const out = []; let t = fromTs;
+  for (let g = 0; g < 50; g++) {
+    const r = await getJSON("/fapi/v1/fundingRate", { symbol: "BTCUSDT", startTime: t, limit: 1000 });
+    for (const f of r) out.push({ t: f.fundingTime, rate: +f.fundingRate, mark: +(f.markPrice || 0) });
+    if (r.length < 1000) break; t = r[r.length-1].fundingTime + 1;
+  }
+  return out;
+}
+
+// ===================== التشغيل والعرض =====================
+let RESULT = null, SEL = null, SORT = { k: "net", dir: -1 };
+
+async function run() {
+  const st = m => $("status").textContent = m;
+  try {
+    $("run").disabled = true;
+    const startTs = new Date($("start").value + "T00:00:00").getTime();
+    const P = { notional: +$("notional").value, maker: +$("maker").value/100, taker: +$("taker").value/100, slip: +$("slip").value/100 };
+    if ($("bnb").checked) { P.maker *= 0.9; P.taker *= 0.9; }
+    const warm = 260*24*3600e3;   // سخونة المؤشرات (1500 شمعة 4H)
+    const D = await load15m(Math.floor((startTs - warm)/H4)*H4, st);
+    st("⏳ بجيب التمويل (Funding)…");
+    const funding = await loadFunding(startTs);
+    st("⚙️ بحسب الاستراتيجيات…");
+    await new Promise(z => setTimeout(z, 30));
+    const inds = { 1: makeInd(D, 1), 4: makeInd(D, 4), 16: makeInd(D, 16) };
+    const last = D.c[D.c.length-1];
+    const trades = [];
+    for (const sp of STRATS) for (const t of evaluate(D, inds, sp, startTs)) trades.push(money(t, D, P, funding, last));
+    RESULT = { trades, last, startTs, P, upd: D.t0 + D.c.length*M15 };
+    try { localStorage.setItem("nexora_start", $("start").value); } catch (e) {}
+    render();
+    st(`✅ آخر شمعة: ${dt(RESULT.upd)} | BTC ${last.toLocaleString("en-US", { maximumFractionDigits: 1 })}`);
+  } catch (e) {
+    st("❌ " + e.message);
+  } finally { $("run").disabled = false; }
+}
+
+function render() {
+  const { trades, P } = RESULT;
+  const closed = trades.filter(t => !t.open), open = trades.filter(t => t.open);
+  const sum = (a, k) => a.reduce((s, t) => s + t[k], 0);
+  $("out").style.display = "";
+  $("scope").textContent = `(من ${$("start").value} — صفقة ${P.notional}$ — Maker ${(P.maker*100).toFixed(3)}% / Taker ${(P.taker*100).toFixed(3)}%)`;
+  const wins = closed.filter(t => t.net > 0).length;
+  $("cards").innerHTML = [
+    ["صفقات مسكّرة", `<span class="num">${closed.length}</span>`],
+    ["نسبة الربح", `<span class="num">${closed.length ? (100*wins/closed.length).toFixed(0) : 0}%</span>`],
+    ["الإجمالي", usd(sum(closed, "gross"))],
+    ["عمولة مدفوعة", fee$(sum(closed, "fee"))],
+    ["تمويل", usd(sum(closed, "fund"))],
+    ["الصافي", usd(sum(closed, "net"))],
+    ["مفتوحة هلأ", `<span class="num">${open.length}</span> ${open.length ? usd(sum(open, "net")) : ""}`],
+  ].map(([k, v]) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+
+  // رسم الصافي التراكمي (كل الاستراتيجيات أو المختارة)
+  const series = closed.filter(t => !SEL || t.name === SEL).sort((a, b) => a.xTs - b.xTs);
+  let cum = 0; const pts = series.map(t => (cum += t.net));
+  if (pts.length >= 2) {
+    const lo = Math.min(0, ...pts), hi = Math.max(0, ...pts), sp = (hi - lo) || 1;
+    const xy = pts.map((v, i) => `${(800*i/(pts.length-1)).toFixed(1)},${(180 - 170*(v-lo)/sp).toFixed(1)}`).join(" ");
+    const z = 180 - 170*(0-lo)/sp;
+    $("chart").innerHTML = `<svg class="chart" viewBox="0 0 800 190" preserveAspectRatio="none"><line x1="0" x2="800" y1="${z}" y2="${z}" stroke="#444" stroke-dasharray="5"/><polyline fill="none" stroke="${pts[pts.length-1] >= 0 ? "#22c55e" : "#ef4444"}" stroke-width="2" points="${xy}"/></svg><div class="mut">${SEL ? SEL : "كل الاستراتيجيات"} — ${pts.length} صفقة</div>`;
+  } else $("chart").innerHTML = `<div class="mut">لسا ما في صفقات مسكّرة كفاية للرسم.</div>`;
+
+  // الترتيب
+  const rows = STRATS.map(sp => {
+    const c = closed.filter(t => t.name === sp.name), o = open.find(t => t.name === sp.name);
+    return { name: sp.name, n: c.length, win: c.length ? 100*c.filter(t => t.net > 0).length/c.length : 0,
+      gross: sum(c, "gross"), fee: sum(c, "fee"), fund: sum(c, "fund"), net: sum(c, "net"), o };
+  });
+  rows.sort((a, b) => SORT.dir*((a[SORT.k] > b[SORT.k]) - (a[SORT.k] < b[SORT.k])) || (b.net - a.net));
+  const th = (k, t) => `<th data-k="${k}">${t}${SORT.k === k ? (SORT.dir < 0 ? " ▼" : " ▲") : ""}</th>`;
+  $("board").innerHTML = `<tr><th>#</th>${th("name", "الاستراتيجية")}${th("n", "صفقات")}${th("win", "ربح%")}${th("gross", "إجمالي")}${th("fee", "عمولة")}${th("fund", "تمويل")}${th("net", "صافي")}<th>مفتوحة هلأ</th></tr>` +
+    rows.map((r, k) => `<tr data-n="${r.name}" class="${SEL === r.name ? "sel" : ""}"><td>${k+1}</td><td class="nm">${r.name}</td><td>${r.n}</td><td>${r.win.toFixed(0)}%</td><td>${usd(r.gross)}</td><td>${fee$(r.fee)}</td><td>${usd(r.fund)}</td><td><b>${usd(r.net)}</b></td><td>${r.o ? `<span class="tag ${r.o.d === 1 ? "L" : "S"}">${r.o.d === 1 ? "LONG" : "SHORT"}</span> ${usd(r.o.net)}` : "—"}</td></tr>`).join("");
+  $("board").querySelectorAll("th[data-k]").forEach(h => h.onclick = () => { const k = h.dataset.k; SORT = { k, dir: SORT.k === k ? -SORT.dir : -1 }; render(); });
+  $("board").querySelectorAll("tr[data-n]").forEach(tr => tr.onclick = () => { SEL = SEL === tr.dataset.n ? null : tr.dataset.n; render(); });
+
+  // الصفقات
+  const list = trades.filter(t => !SEL || t.name === SEL).sort((a, b) => (b.open - a.open) || (b.xTs - a.xTs));
+  $("tscope").textContent = SEL ? `— ${SEL} (اضغط عليها مرة تانية لترجع للكل)` : "— كل الاستراتيجيات";
+  $("trades").innerHTML = `<tr><th>دخول</th><th>خروج</th><th>الاستراتيجية</th><th>اتجاه</th><th>سعر الدخول → الخروج</th><th>السبب</th><th>إجمالي</th><th>عمولة</th><th>تمويل</th><th>صافي</th></tr>` +
+    list.slice(0, 400).map(t => `<tr><td>${dt(t.eTs)}</td><td>${t.open ? "<b>مفتوحة</b>" : dt(t.xTs)}</td><td class="nm">${t.name}</td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><span class="num">${t.fillIn.toFixed(1)} → ${t.fillOut.toFixed(1)}</span></td><td>${t.open ? `وقف ${t.stop.toFixed(1)} / هدف ${t.target.toFixed(1)}` : WHY[t.why]}</td><td>${usd(t.gross)}</td><td>${fee$(t.fee)}</td><td>${usd(t.fund)}</td><td><b>${usd(t.net)}</b></td></tr>`).join("") ||
+    `<tr><td colspan="10" class="mut">لسا ما في صفقات من هالتاريخ.</td></tr>`;
+}
+
+(function init() {
+  let s = "2026-11-15";
+  try { s = localStorage.getItem("nexora_start") || s; } catch (e) {}
+  $("start").value = s;
+  $("run").onclick = run;
+  document.querySelectorAll("button[data-days]").forEach(b => b.onclick = () => {
+    const d = new Date(Date.now() - (+b.dataset.days)*864e5); $("start").value = d.toISOString().slice(0, 10); run();
+  });
+  run();
+})();
+</script>
+</body>
+</html>
