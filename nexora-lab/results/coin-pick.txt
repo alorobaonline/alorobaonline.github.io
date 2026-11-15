@@ -1,0 +1,94 @@
+NEXORA LAB (GitHub) | coin-pick | 2026-11-15T12:54:33.073Z | hash=be63dc7a53 | engine=353d2e39 | coins 102 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
+# SELECTION (chosen on TRAIN only)
+best-train taker: ⭐ S15 V2 4h R2.5 h40 (coin-pick) | تدريب: n=1043 +2027.86$ PF1.26 win41% gross/t+2.23$ t2.9 DD660$ | اختبار: n=572 +379.82$ PF1.11 win40% gross/t+0.86$ t0.9 DD434$ | جديدة: n=217 +715.37$ PF1.49 win47% gross/t+3.58$ t2.2 DD270$
+best-train maker: ⭐ S15 V2 4h R2.5 h40 (coin-pick) | تدريب: n=1043 +2111.26$ PF1.27 win41% gross/t+2.23$ t3.1 DD653$ | اختبار: n=572 +425.50$ PF1.12 win40% gross/t+0.86$ t1.0 DD430$ | جديدة: n=217 +732.73$ PF1.51 win47% gross/t+3.58$ t2.3 DD265$
+# all variants by train net (taker): ⭐ S15 V2 4h R2.5 h40 (coin-pick) +2027.86/+379.82/+715.37 ; S15 Sweep+MSS V2 4h +1319.25/+70.52/+463.69 ; V42 4H SHORT b0 +990.39/+147.65/+201.12 ; #8 Lux Trendline+TRAMA+Chandelier +20.48/-1824.36/-521.75 ; COMBO V42 Short + Gann Long -2.02/-460.13/+285.87 ; G-V42 Dip -274.20/-938.29/+385.32 ; S15 Sweep+MSS V2 1h -1228.24/-609.62/-432.58 ; #13 Ichimoku 15m+1h -2261.12/-2110.36/-729.01
+
+coin-pick (train n>=8, PF>=1.2) -> 39 coins [BTCUSDT,ETHUSDT,SOLUSDT,XRPUSDT,LINKUSDT,AVAXUSDT,SUIUSDT,BCHUSDT,DOTUSDT,ARBUSDT,OPUSDT,UNIUSDT,AAVEUSDT,ATOMUSDT,SEIUSDT,ONDOUSDT,WIFUSDT,1000BONKUSDT,1000SHIBUSDT,HBARUSDT,XLMUSDT,RENDERUSDT,IMXUSDT,GALAUSDT,CRVUSDT,RUNEUSDT,ZECUSDT,ORDIUSDT,NOTUSDT,PEOPLEUSDT,POPCATUSDT,ETHFIUSDT,EIGENUSDT,DYDXUSDT,KASUSDT,APEUSDT,BLURUSDT,VIRTUALUSDT,CAKEUSDT]
+  picked: تدريب: n=665 +2575.06$ PF1.79 win54% gross/t+4.13$ t6.0 DD255$ | اختبار: n=354 +237.51$ PF1.15 win49% gross/t+0.92$ t1.1 DD286$ | جديدة: n=137 +212.88$ PF1.33 win46% gross/t+1.81$ t1.4 DD122$
+  others: تدريب: n=822 -1255.81$ PF0.78 win40% gross/t-1.25$ t-2.9 DD1586$ | اختبار: n=488 -166.98$ PF0.94 win41% gross/t-0.15$ t-0.5 DD469$ | جديدة: n=189 +250.80$ PF1.22 win45% gross/t+1.58$ t1.0 DD175$
+coin-pick (train n>=8, PF>=1.5) -> 28 coins [ETHUSDT,SOLUSDT,XRPUSDT,LINKUSDT,AVAXUSDT,SUIUSDT,DOTUSDT,OPUSDT,AAVEUSDT,SEIUSDT,ONDOUSDT,WIFUSDT,1000SHIBUSDT,XLMUSDT,RENDERUSDT,IMXUSDT,GALAUSDT,RUNEUSDT,ZECUSDT,ORDIUSDT,PEOPLEUSDT,ETHFIUSDT,DYDXUSDT,KASUSDT,APEUSDT,BLURUSDT,VIRTUALUSDT,CAKEUSDT]
+  picked: تدريب: n=462 +2227.33$ PF2.06 win56% gross/t+5.08$ t6.3 DD214$ | اختبار: n=259 +297.68$ PF1.26 win50% gross/t+1.40$ t1.5 DD236$ | جديدة: n=90 +197.78$ PF1.49 win50% gross/t+2.45$ t1.6 DD117$
+  others: تدريب: n=1025 -908.07$ PF0.87 win41% gross/t-0.61$ t-1.8 DD1480$ | اختبار: n=583 -227.15$ PF0.93 win42% gross/t-0.19$ t-0.7 DD511$ | جديدة: n=236 +265.91$ PF1.19 win44% gross/t+1.38$ t1.0 DD219$
+## S15 Sweep+MSS V2 4h | 🟡 (maker-entry 🟡) | coins+all3 27/102
+تدريب: n=1487 +1319.25$ PF1.15 win46% gross/t+1.16$ t2.1 DD594$ | اختبار: n=842 +70.52$ PF1.02 win45% gross/t+0.30$ t0.2 DD513$ | جديدة: n=326 +463.69$ PF1.26 win45% gross/t+1.68$ t1.6 DD232$
+maker-entry: تدريب: n=1487 +1438.11$ PF1.16 win46% gross/t+1.16$ t2.3 DD581$ | اختبار: n=842 +137.79$ PF1.03 win45% gross/t+0.30$ t0.4 DD499$ | جديدة: n=326 +489.77$ PF1.28 win46% gross/t+1.68$ t1.7 DD229$
+quarters 8/10: 2024Q3 n49 +230.63 (L+299.71/S-69.08) | 2024Q4 n290 +76.88 (L+68.14/S+8.74) | 2025Q1 n276 +472.55 (L+40.98/S+431.57) | 2025Q2 n309 -36.57 (L-114.50/S+77.93) | 2025Q3 n297 +52.86 (L+121.62/S-68.76) | 2025Q4 n323 +432.80 (L-256.35/S+689.15) | 2026Q1 n278 +149.25 (L-277.33/S+426.58) | 2026Q2 n336 -226.33 (L-213.26/S-13.07) | 2026Q3 n330 +461.13 (L+551.02/S-89.89) | 2026Q4 n167 +240.27 (L-238.14/S+478.40)
+
+coin-pick (train n>=8, PF>=1.2) -> 37 coins [BTCUSDT,ETHUSDT,SOLUSDT,XRPUSDT,SUIUSDT,UNIUSDT,ATOMUSDT,TIAUSDT,SEIUSDT,ENAUSDT,WIFUSDT,1000SHIBUSDT,TONUSDT,HBARUSDT,ICPUSDT,RENDERUSDT,FETUSDT,IMXUSDT,KAVAUSDT,SOPHUSDT,ORDIUSDT,1000SATSUSDT,NOTUSDT,PEOPLEUSDT,POPCATUSDT,STRKUSDT,COMPUSDT,SNXUSDT,EGLDUSDT,XTZUSDT,KASUSDT,1000FLOKIUSDT,APEUSDT,VIRTUALUSDT,BERAUSDT,XMRUSDT,CAKEUSDT]
+  picked: تدريب: n=826 +2191.07$ PF1.72 win63% gross/t+2.89$ t6.2 DD218$ | اختبار: n=448 +49.32$ PF1.03 win52% gross/t+0.41$ t0.3 DD280$ | جديدة: n=152 -134.27$ PF0.79 win49% gross/t-0.62$ t-1.2 DD275$
+  others: تدريب: n=1174 -1200.67$ PF0.81 win48% gross/t-0.76$ t-3.0 DD1343$ | اختبار: n=843 +98.33$ PF1.03 win52% gross/t+0.47$ t0.4 DD363$ | جديدة: n=225 +335.39$ PF1.40 win56% gross/t+1.80$ t1.7 DD238$
+coin-pick (train n>=8, PF>=1.5) -> 24 coins [SOLUSDT,SUIUSDT,TIAUSDT,WIFUSDT,1000SHIBUSDT,TONUSDT,RENDERUSDT,FETUSDT,SOPHUSDT,ORDIUSDT,1000SATSUSDT,PEOPLEUSDT,POPCATUSDT,COMPUSDT,SNXUSDT,EGLDUSDT,XTZUSDT,KASUSDT,1000FLOKIUSDT,APEUSDT,VIRTUALUSDT,BERAUSDT,XMRUSDT,CAKEUSDT]
+  picked: تدريب: n=485 +1787.66$ PF1.98 win65% gross/t+3.91$ t6.0 DD149$ | اختبار: n=222 +74.53$ PF1.09 win54% gross/t+0.67$ t0.5 DD183$ | جديدة: n=85 -177.93$ PF0.60 win44% gross/t-1.80$ t-2.0 DD228$
+  others: تدريب: n=1515 -797.27$ PF0.89 win50% gross/t-0.27$ t-1.8 DD970$ | اختبار: n=1069 +73.12$ PF1.02 win52% gross/t+0.40$ t0.2 DD455$ | جديدة: n=292 +379.05$ PF1.36 win56% gross/t+1.59$ t1.8 DD237$
+## V42 4H SHORT b0 | 🟡 (maker-entry 🟡) | coins+all3 10/102
+تدريب: n=2000 +990.39$ PF1.11 win54% gross/t+0.75$ t1.8 DD599$ | اختبار: n=1291 +147.65$ PF1.03 win52% gross/t+0.45$ t0.4 DD552$ | جديدة: n=377 +201.12$ PF1.13 win53% gross/t+0.82$ t0.9 DD434$
+maker-entry: تدريب: n=2000 +1150.28$ PF1.12 win54% gross/t+0.75$ t2.1 DD582$ | اختبار: n=1291 +250.91$ PF1.05 win52% gross/t+0.45$ t0.8 DD528$ | جديدة: n=377 +231.26$ PF1.16 win53% gross/t+0.82$ t1.0 DD423$
+quarters 6/10: 2024Q3 n13 -40.25 (L+0.00/S-40.25) | 2024Q4 n296 -39.72 (L+0.00/S-39.72) | 2025Q1 n529 +511.56 (L+0.00/S+511.56) | 2025Q2 n427 +326.04 (L+0.00/S+326.04) | 2025Q3 n333 -235.04 (L+0.00/S-235.04) | 2025Q4 n491 +335.04 (L+0.00/S+335.04) | 2026Q1 n491 +430.54 (L+0.00/S+430.54) | 2026Q2 n452 +4.38 (L+0.00/S+4.38) | 2026Q3 n373 -512.27 (L+0.00/S-512.27) | 2026Q4 n263 +558.90 (L+0.00/S+558.90)
+
+coin-pick (train n>=8, PF>=1.2) -> 31 coins [BTCUSDT,ETHUSDT,SUIUSDT,DOTUSDT,UNIUSDT,TIAUSDT,SEIUSDT,ENAUSDT,WIFUSDT,TONUSDT,RENDERUSDT,FETUSDT,STXUSDT,MANAUSDT,SOPHUSDT,ORDIUSDT,1000SATSUSDT,NOTUSDT,PEOPLEUSDT,ETHFIUSDT,EGLDUSDT,VETUSDT,KASUSDT,1000FLOKIUSDT,JASMYUSDT,VIRTUALUSDT,BERAUSDT,IPUSDT,XMRUSDT,ARUSDT,CAKEUSDT]
+  picked: تدريب: n=897 +2033.77$ PF1.60 win61% gross/t+2.51$ t5.6 DD211$ | اختبار: n=435 -215.79$ PF0.87 win51% gross/t-0.21$ t-1.1 DD414$ | جديدة: n=174 -209.80$ PF0.73 win47% gross/t-0.93$ t-1.6 DD419$
+  others: تدريب: n=2057 -2035.79$ PF0.81 win48% gross/t-0.73$ t-3.8 DD2248$ | اختبار: n=1167 -244.34$ PF0.95 win50% gross/t+0.11$ t-0.7 DD509$ | جديدة: n=477 +495.66$ PF1.26 win55% gross/t+1.30$ t1.8 DD213$
+coin-pick (train n>=8, PF>=1.5) -> 17 coins [SUIUSDT,TIAUSDT,ENAUSDT,WIFUSDT,TONUSDT,RENDERUSDT,MANAUSDT,SOPHUSDT,ORDIUSDT,1000SATSUSDT,EGLDUSDT,VETUSDT,1000FLOKIUSDT,VIRTUALUSDT,BERAUSDT,XMRUSDT,CAKEUSDT]
+  picked: تدريب: n=431 +1466.54$ PF1.86 win65% gross/t+3.64$ t5.2 DD122$ | اختبار: n=204 -124.87$ PF0.85 win52% gross/t-0.29$ t-0.9 DD370$ | جديدة: n=79 -229.73$ PF0.53 win39% gross/t-2.59$ t-2.3 DD334$
+  others: تدريب: n=2523 -1468.56$ PF0.88 win50% gross/t-0.32$ t-2.5 DD1701$ | اختبار: n=1398 -335.26$ PF0.94 win50% gross/t+0.07$ t-0.9 DD600$ | جديدة: n=572 +515.60$ PF1.23 win55% gross/t+1.16$ t1.8 DD255$
+## COMBO V42 Short + Gann Long | ❌ (maker-entry ❌) | coins+all3 8/102
+تدريب: n=2954 -2.02$ PF1.00 win52% gross/t+0.25$ t-0.0 DD701$ | اختبار: n=1602 -460.13$ PF0.93 win50% gross/t+0.03$ t-1.2 DD864$ | جديدة: n=651 +285.87$ PF1.11 win53% gross/t+0.70$ t0.9 DD393$
+maker-entry: تدريب: n=2954 +234.10$ PF1.02 win52% gross/t+0.25$ t0.4 DD643$ | اختبار: n=1602 -332.03$ PF0.95 win50% gross/t+0.03$ t-0.9 DD767$ | جديدة: n=651 +337.95$ PF1.13 win53% gross/t+0.70$ t1.1 DD376$
+quarters 5/10: 2024Q3 n96 +19.73 (L+59.15/S-39.42) | 2024Q4 n621 -157.94 (L-266.66/S+108.72) | 2025Q1 n603 +190.86 (L-187.97/S+378.83) | 2025Q2 n579 +371.54 (L-87.30/S+458.84) | 2025Q3 n583 -503.02 (L-281.52/S-221.50) | 2025Q4 n568 -126.29 (L-249.62/S+123.32) | 2026Q1 n572 +284.80 (L-186.78/S+471.58) | 2026Q2 n617 -318.31 (L-220.15/S-98.15) | 2026Q3 n633 -87.63 (L+405.79/S-493.42) | 2026Q4 n335 +149.97 (L-287.72/S+437.70)
+
+coin-pick (train n>=8, PF>=1.2) -> 20 coins [SOLUSDT,DOGEUSDT,LINKUSDT,1000PEPEUSDT,LTCUSDT,DOTUSDT,APTUSDT,ARBUSDT,SEIUSDT,WIFUSDT,MANAUSDT,ZECUSDT,1000SATSUSDT,POPCATUSDT,BOMEUSDT,ETHFIUSDT,STRKUSDT,GMXUSDT,SNXUSDT,BERAUSDT]
+  picked: تدريب: n=389 +1495.43$ PF1.75 win58% gross/t+4.08$ t4.3 DD119$ | اختبار: n=200 -111.08$ PF0.88 win49% gross/t-0.39$ t-0.8 DD254$ | جديدة: n=101 +89.89$ PF1.18 win52% gross/t+1.15$ t0.7 DD185$
+  others: تدريب: n=1328 -1769.62$ PF0.79 win46% gross/t-1.09$ t-3.6 DD2032$ | اختبار: n=859 -827.22$ PF0.83 win45% gross/t-0.79$ t-2.2 DD1117$ | جديدة: n=355 +295.43$ PF1.17 win52% gross/t+1.09$ t1.1 DD466$
+coin-pick (train n>=8, PF>=1.5) -> 10 coins [SOLUSDT,DOTUSDT,SEIUSDT,WIFUSDT,MANAUSDT,ZECUSDT,POPCATUSDT,BOMEUSDT,STRKUSDT,SNXUSDT]
+  picked: تدريب: n=181 +1108.14$ PF2.12 win59% gross/t+6.30$ t3.9 DD80$ | اختبار: n=84 -27.24$ PF0.93 win46% gross/t-0.09$ t-0.3 DD116$ | جديدة: n=41 +137.33$ PF1.87 win61% gross/t+3.62$ t1.6 DD55$
+  others: تدريب: n=1536 -1382.34$ PF0.85 win48% gross/t-0.66$ t-2.6 DD1880$ | اختبار: n=975 -911.06$ PF0.83 win46% gross/t-0.77$ t-2.3 DD1227$ | جديدة: n=415 +247.99$ PF1.12 win51% gross/t+0.85$ t0.9 DD604$
+## G-V42 Dip | ❌ (maker-entry ❌) | coins+all3 8/102
+تدريب: n=1717 -274.20$ PF0.97 win49% gross/t+0.08$ t-0.4 DD1541$ | اختبار: n=1059 -938.29$ PF0.84 win46% gross/t-0.71$ t-2.3 DD1268$ | جديدة: n=456 +385.32$ PF1.17 win52% gross/t+1.10$ t1.3 DD629$
+maker-entry: تدريب: n=1717 -136.85$ PF0.99 win49% gross/t+0.08$ t-0.2 DD1512$ | اختبار: n=1059 -853.66$ PF0.85 win46% gross/t-0.71$ t-2.1 DD1192$ | جديدة: n=456 +421.84$ PF1.19 win52% gross/t+1.10$ t1.4 DD610$
+quarters 4/10: 2024Q3 n65 +246.77 (L+246.77/S+0.00) | 2024Q4 n445 -128.86 (L-128.86/S+0.00) | 2025Q1 n244 -677.48 (L-677.48/S+0.00) | 2025Q2 n330 +37.57 (L+37.57/S+0.00) | 2025Q3 n418 +444.61 (L+444.61/S+0.00) | 2025Q4 n244 -117.45 (L-117.45/S+0.00) | 2026Q1 n317 -486.16 (L-486.16/S+0.00) | 2026Q2 n471 -413.93 (L-413.93/S+0.00) | 2026Q3 n497 +870.40 (L+870.40/S+0.00) | 2026Q4 n201 -602.64 (L-602.64/S+0.00)
+
+coin-pick (train n>=8, PF>=1.2) -> 23 coins [SOLUSDT,ADAUSDT,UNIUSDT,TIAUSDT,1000BONKUSDT,TONUSDT,HBARUSDT,ICPUSDT,STXUSDT,IMXUSDT,SHELLUSDT,EVAAUSDT,ORDIUSDT,NOTUSDT,POPCATUSDT,BOMEUSDT,SNXUSDT,ALGOUSDT,KASUSDT,TURBOUSDT,PNUTUSDT,SUSHIUSDT,CAKEUSDT]
+  picked: تدريب: n=1400 +1749.37$ PF1.41 win47% gross/t+1.47$ t4.9 DD168$ | اختبار: n=741 -136.39$ PF0.93 win42% gross/t+0.04$ t-0.7 DD247$ | جديدة: n=284 -55.91$ PF0.94 win42% gross/t+0.03$ t-0.4 DD182$
+  others: تدريب: n=5062 -2977.62$ PF0.83 win39% gross/t-0.35$ t-5.3 DD3095$ | اختبار: n=2815 -473.23$ PF0.94 win42% gross/t+0.07$ t-1.3 DD569$ | جديدة: n=1056 -376.67$ PF0.89 win42% gross/t-0.13$ t-1.1 DD644$
+coin-pick (train n>=8, PF>=1.5) -> 5 coins [EVAAUSDT,BOMEUSDT,SNXUSDT,PNUTUSDT,CAKEUSDT]
+  picked: تدريب: n=166 +508.56$ PF1.92 win51% gross/t+3.29$ t3.2 DD39$ | اختبار: n=127 +238.17$ PF1.71 win51% gross/t+2.10$ t1.9 DD35$ | جديدة: n=60 -4.16$ PF0.98 win38% gross/t+0.14$ t-0.1 DD44$
+  others: تدريب: n=6296 -1736.80$ PF0.92 win40% gross/t-0.04$ t-2.7 DD1913$ | اختبار: n=3429 -847.79$ PF0.91 win41% gross/t-0.01$ t-2.2 DD892$ | جديدة: n=1280 -428.42$ PF0.90 win42% gross/t-0.11$ t-1.2 DD721$
+## S15 Sweep+MSS V2 1h | ❌ (maker-entry ❌) | coins+all3 4/102
+تدريب: n=6462 -1228.24$ PF0.94 win41% gross/t+0.04$ t-1.8 DD1453$ | اختبار: n=3556 -609.62$ PF0.93 win42% gross/t+0.06$ t-1.5 DD666$ | جديدة: n=1340 -432.58$ PF0.90 win42% gross/t-0.10$ t-1.2 DD747$
+maker-entry: تدريب: n=6462 -711.50$ PF0.97 win41% gross/t+0.04$ t-1.1 DD1074$ | اختبار: n=3556 -325.19$ PF0.96 win42% gross/t+0.06$ t-0.8 DD452$ | جديدة: n=1340 -325.35$ PF0.93 win42% gross/t-0.10$ t-0.9 DD690$
+quarters 1/10: 2024Q3 n539 -223.05 (L-109.87/S-113.18) | 2024Q4 n1229 -307.48 (L-490.00/S+182.52) | 2025Q1 n1201 -70.25 (L-481.23/S+410.98) | 2025Q2 n1211 -730.55 (L-296.74/S-433.81) | 2025Q3 n1205 +13.54 (L+58.01/S-44.47) | 2025Q4 n1303 -80.38 (L-416.14/S+335.76) | 2026Q1 n1207 -139.73 (L-273.94/S+134.21) | 2026Q2 n1379 -111.81 (L-110.69/S-1.13) | 2026Q3 n1414 -102.90 (L+195.26/S-298.15) | 2026Q4 n670 -517.85 (L-314.53/S-203.31)
+
+coin-pick (train n>=8, PF>=1.2) -> 8 coins [DOGEUSDT,ONDOUSDT,TAOUSDT,LDOUSDT,TRUMPUSDT,EVAAUSDT,KAITOUSDT,WLFIUSDT]
+  picked: تدريب: n=937 +517.51$ PF1.31 win40% gross/t+0.76$ t3.3 DD54$ | اختبار: n=730 -332.67$ PF0.76 win33% gross/t-0.22$ t-2.5 DD377$ | جديدة: n=271 -52.15$ PF0.88 win34% gross/t+0.02$ t-0.8 DD95$
+  others: تدريب: n=13655 -2778.63$ PF0.89 win34% gross/t+0.01$ t-6.0 DD3043$ | اختبار: n=7956 -1777.69$ PF0.85 win34% gross/t-0.01$ t-6.0 DD1815$ | جديدة: n=3231 -676.86$ PF0.88 win36% gross/t+0.00$ t-3.0 DD950$
+coin-pick (train n>=8, PF>=1.5) -> 2 coins [EVAAUSDT,WLFIUSDT]
+  picked: تدريب: n=70 +129.46$ PF1.64 win44% gross/t+2.06$ t1.6 DD51$ | اختبار: n=197 -151.93$ PF0.73 win36% gross/t-0.56$ t-1.4 DD216$ | جديدة: n=73 -1.91$ PF0.99 win38% gross/t+0.19$ t-0.0 DD49$
+  others: تدريب: n=14522 -2390.58$ PF0.91 win35% gross/t+0.05$ t-5.0 DD2698$ | اختبار: n=8489 -1958.44$ PF0.84 win33% gross/t-0.01$ t-6.4 DD2014$ | جديدة: n=3429 -727.10$ PF0.87 win36% gross/t+0.00$ t-3.2 DD1000$
+## #13 Ichimoku 15m+1h | ❌ (maker-entry ❌) | coins+all3 1/102
+تدريب: n=14592 -2261.12$ PF0.91 win35% gross/t+0.06$ t-4.6 DD2566$ | اختبار: n=8686 -2110.36$ PF0.84 win33% gross/t-0.02$ t-6.5 DD2169$ | جديدة: n=3502 -729.01$ PF0.88 win36% gross/t+0.00$ t-3.1 DD1005$
+maker-entry: تدريب: n=14592 -1093.79$ PF0.96 win35% gross/t+0.06$ t-2.2 DD1751$ | اختبار: n=8686 -1415.53$ PF0.89 win33% gross/t-0.02$ t-4.3 DD1484$ | جديدة: n=3502 -448.86$ PF0.92 win36% gross/t+0.00$ t-1.9 DD760$
+quarters 1/10: 2024Q3 n1190 +20.02 (L-36.02/S+56.04) | 2024Q4 n2821 -306.28 (L-140.85/S-165.42) | 2025Q1 n2769 -684.09 (L-545.66/S-138.43) | 2025Q2 n2834 -438.67 (L-256.67/S-182.00) | 2025Q3 n2796 -738.69 (L-354.43/S-384.26) | 2025Q4 n2696 -305.83 (L-81.23/S-224.60) | 2026Q1 n2923 -517.76 (L-353.94/S-163.83) | 2026Q2 n3287 -821.36 (L-588.60/S-232.77) | 2026Q3 n3911 -1010.67 (L-216.59/S-794.09) | 2026Q4 n1553 -297.17 (L-336.94/S+39.78)
+
+coin-pick (train n>=8, PF>=1.2) -> 34 coins [BTCUSDT,ADAUSDT,SUIUSDT,WLDUSDT,FILUSDT,ATOMUSDT,SEIUSDT,ONDOUSDT,JUPUSDT,WIFUSDT,1000BONKUSDT,ICPUSDT,RENDERUSDT,STXUSDT,IMXUSDT,LDOUSDT,ZECUSDT,TRUMPUSDT,AKEUSDT,PUMPUSDT,SOPHUSDT,NOTUSDT,EIGENUSDT,STRKUSDT,ALGOUSDT,XTZUSDT,KASUSDT,1000FLOKIUSDT,MEMEUSDT,TURBOUSDT,VIRTUALUSDT,KAITOUSDT,ARUSDT,SUSHIUSDT]
+  picked: تدريب: n=1304 +3249.48$ PF2.02 win14% gross/t+2.77$ t4.3 DD245$ | اختبار: n=908 -437.84$ PF0.77 win9% gross/t-0.23$ t-1.7 DD556$ | جديدة: n=338 -137.21$ PF0.84 win8% gross/t-0.16$ t-0.6 DD264$
+  others: تدريب: n=3130 -3229.00$ PF0.57 win9% gross/t-0.78$ t-8.7 DD3365$ | اختبار: n=1950 -1386.52$ PF0.63 win7% gross/t-0.46$ t-3.8 DD1537$ | جديدة: n=698 -384.53$ PF0.74 win9% gross/t-0.30$ t-2.0 DD666$
+coin-pick (train n>=8, PF>=1.5) -> 23 coins [BTCUSDT,ADAUSDT,ATOMUSDT,SEIUSDT,ONDOUSDT,JUPUSDT,WIFUSDT,1000BONKUSDT,ICPUSDT,RENDERUSDT,STXUSDT,IMXUSDT,TRUMPUSDT,AKEUSDT,PUMPUSDT,STRKUSDT,ALGOUSDT,XTZUSDT,1000FLOKIUSDT,MEMEUSDT,TURBOUSDT,KAITOUSDT,SUSHIUSDT]
+  picked: تدريب: n=795 +2822.68$ PF2.58 win16% gross/t+3.84$ t4.4 DD184$ | اختبار: n=601 -449.35$ PF0.63 win8% gross/t-0.48$ t-3.0 DD466$ | جديدة: n=230 -4.76$ PF0.99 win10% gross/t+0.23$ t-0.0 DD179$
+  others: تدريب: n=3639 -2802.20$ PF0.68 win9% gross/t-0.52$ t-5.1 DD3079$ | اختبار: n=2257 -1375.01$ PF0.69 win8% gross/t-0.36$ t-3.3 DD1634$ | جديدة: n=806 -516.99$ PF0.70 win8% gross/t-0.39$ t-2.3 DD829$
+## #8 Lux Trendline+TRAMA+Chandelier | ❌ (maker-entry ❌) | coins+all3 2/102
+تدريب: n=4434 +20.48$ PF1.00 win10% gross/t+0.26$ t0.0 DD937$ | اختبار: n=2858 -1824.36$ PF0.68 win8% gross/t-0.38$ t-4.1 DD2079$ | جديدة: n=1036 -521.75$ PF0.77 win9% gross/t-0.25$ t-1.7 DD922$
+maker-entry: تدريب: n=4434 +375.19$ PF1.04 win10% gross/t+0.26$ t0.4 DD716$ | اختبار: n=2858 -1595.78$ PF0.71 win8% gross/t-0.38$ t-3.6 DD1894$ | جديدة: n=1036 -438.83$ PF0.80 win9% gross/t-0.25$ t-1.4 DD863$
+quarters 3/10: 2024Q3 n89 +251.04 (L+294.96/S-43.92) | 2024Q4 n930 -53.71 (L+490.51/S-544.22) | 2025Q1 n782 +194.54 (L-657.15/S+851.69) | 2025Q2 n862 -100.82 (L-25.43/S-75.39) | 2025Q3 n898 +212.33 (L+588.13/S-375.80) | 2025Q4 n1103 -809.35 (L-879.08/S+69.72) | 2026Q1 n948 -305.12 (L-535.34/S+230.22) | 2026Q2 n1158 -949.75 (L-433.99/S-515.76) | 2026Q3 n959 -165.62 (L+402.59/S-568.22) | 2026Q4 n599 -599.16 (L-532.62/S-66.54)
+
+coin-pick (train n>=8, PF>=1.2) -> 35 coins [BTCUSDT,ETHUSDT,SOLUSDT,DOGEUSDT,ADAUSDT,LINKUSDT,AVAXUSDT,SUIUSDT,WLDUSDT,DOTUSDT,UNIUSDT,AAVEUSDT,ETCUSDT,ATOMUSDT,TIAUSDT,SEIUSDT,WIFUSDT,1000BONKUSDT,TONUSDT,HBARUSDT,XLMUSDT,RENDERUSDT,IMXUSDT,CRVUSDT,RUNEUSDT,ZECUSDT,PUMPUSDT,ORDIUSDT,1000SATSUSDT,NOTUSDT,POPCATUSDT,ETHFIUSDT,EIGENUSDT,VIRTUALUSDT,XMRUSDT]
+  picked: تدريب: n=484 +3087.92$ PF1.97 win48% gross/t+6.63$ t5.8 DD281$ | اختبار: n=230 +118.78$ PF1.09 win40% gross/t+0.80$ t0.5 DD259$ | جديدة: n=75 +251.15$ PF1.54 win49% gross/t+3.62$ t1.5 DD166$
+  others: تدريب: n=559 -1060.05$ PF0.77 win35% gross/t-1.58$ t-2.5 DD1549$ | اختبار: n=342 +261.04$ PF1.12 win40% gross/t+0.91$ t0.8 DD307$ | جديدة: n=142 +464.22$ PF1.47 win45% gross/t+3.57$ t1.7 DD201$
+coin-pick (train n>=8, PF>=1.5) -> 21 coins [ETHUSDT,ADAUSDT,AVAXUSDT,SUIUSDT,WLDUSDT,DOTUSDT,ETCUSDT,ATOMUSDT,SEIUSDT,WIFUSDT,TONUSDT,HBARUSDT,XLMUSDT,RENDERUSDT,IMXUSDT,ZECUSDT,PUMPUSDT,POPCATUSDT,ETHFIUSDT,EIGENUSDT,VIRTUALUSDT]
+  picked: تدريب: n=283 +2598.93$ PF2.55 win54% gross/t+9.43$ t6.1 DD178$ | اختبار: n=132 +302.98$ PF1.43 win48% gross/t+2.62$ t1.7 DD169$ | جديدة: n=40 +17.06$ PF1.05 win35% gross/t+0.68$ t0.1 DD143$
+  others: تدريب: n=760 -571.06$ PF0.91 win36% gross/t-0.45$ t-1.1 DD1344$ | اختبار: n=440 +76.84$ PF1.03 win38% gross/t+0.34$ t0.2 DD387$ | جديدة: n=177 +698.31$ PF1.62 win49% gross/t+4.24$ t2.4 DD218$
+## ⭐ S15 V2 4h R2.5 h40 (coin-pick) | 🟡 (maker-entry 🟡) | coins+all3 20/102
+تدريب: n=1043 +2027.86$ PF1.26 win41% gross/t+2.23$ t2.9 DD660$ | اختبار: n=572 +379.82$ PF1.11 win40% gross/t+0.86$ t0.9 DD434$ | جديدة: n=217 +715.37$ PF1.49 win47% gross/t+3.58$ t2.2 DD270$
+maker-entry: تدريب: n=1043 +2111.26$ PF1.27 win41% gross/t+2.23$ t3.1 DD653$ | اختبار: n=572 +425.50$ PF1.12 win40% gross/t+0.86$ t1.0 DD430$ | جديدة: n=217 +732.73$ PF1.51 win47% gross/t+3.58$ t2.3 DD265$
+quarters 8/10: 2024Q3 n32 +273.19 (L+349.88/S-76.69) | 2024Q4 n207 +97.12 (L+235.51/S-138.39) | 2025Q1 n198 +667.77 (L-43.48/S+711.25) | 2025Q2 n215 +202.74 (L+138.84/S+63.89) | 2025Q3 n211 -86.99 (L+211.55/S-298.54) | 2025Q4 n223 +691.33 (L-23.99/S+715.33) | 2026Q1 n206 +268.05 (L-408.62/S+676.67) | 2026Q2 n217 -35.53 (L+43.27/S-78.80) | 2026Q3 n223 +894.50 (L+781.64/S+112.86) | 2026Q4 n100 +150.87 (L-308.57/S+459.44)
+
