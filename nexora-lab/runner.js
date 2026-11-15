@@ -116,9 +116,10 @@ function jobMulti(job, per, coins) {
       "maker-entry: " + E.PERIODS.map((p, i) => `${p}: ${sP(sm[i])}`).join(" | "),
       `quarters ${qs.filter(([, o]) => o.net > 0).length}/${qs.length}: ` + qs.map(([k, o]) => `${k} n${o.n} ${f2(o.net)} (L${f2(o.L)}/S${f2(o.S)})`).join(" | "), "");
   }
-  if (job.variants) {   // اختيار صادق: الأفضل بالتدريب بس، وبعدين منشوف اختباره وجديده
-    const ok = SUM.filter(x => x.s[0].n >= 100).sort((a, b) => b.s[0].usd - a.s[0].usd);
-    const okm = SUM.filter(x => x.sm[0].n >= 100).sort((a, b) => b.sm[0].usd - a.sm[0].usd);
+  if (job.variants || job.select) {   // اختيار صادق: الأفضل بالتدريب بس، وبعدين منشوف اختباره وجديده
+    const C = job.selectOnly ? SUM.filter(x => job.selectOnly.includes(x.name)) : SUM;
+    const ok = C.filter(x => x.s[0].n >= 100).sort((a, b) => b.s[0].usd - a.s[0].usd);
+    const okm = C.filter(x => x.sm[0].n >= 100).sort((a, b) => b.sm[0].usd - a.sm[0].usd);
     const show = (tag, x, k) => `${tag}: ${x.name} | ` + E.PERIODS.map((p, i) => `${p}: ${sP(x[k][i])}`).join(" | ");
     lines.unshift("# SELECTION (chosen on TRAIN only)", ok[0] ? show("best-train taker", ok[0], "s") : "none", okm[0] ? show("best-train maker", okm[0], "sm") : "none",
       "# all variants by train net (taker): " + ok.map(x => `${x.name} ${f2(x.s[0].usd)}/${f2(x.s[1].usd)}/${f2(x.s[2].usd)}`).join(" ; "), "");
@@ -171,13 +172,21 @@ function jobRolling(job, per, coins) {
   // نسخ معدّلة من استراتيجية موجودة (نفس الكود، إعدادات مختلفة)
   for (const t of todo) for (const v of (t.job.variants || [])) { const b = E.STRATS.find(s => s.name === v.base); if (b && !E.STRATS.find(s => s.name === v.name)) E.STRATS.push({ ...b, ...v, base: undefined }); }
   for (const t of todo) if (t.job.variants) t.job.strategies = [...(t.job.strategies || []), ...t.job.variants.map(v => v.name)];
+  for (const t of todo) if (t.job.pairs) t.job.strategies = [...new Set(t.job.pairs.flat())];
   const names = [...new Set(todo.flatMap(t => t.job.strategies))];
   const strats = E.STRATS.filter(s => names.includes(s.name));
   const missing = names.filter(n => !strats.find(s => s.name === n)); if (missing.length) console.log("unknown strategies:", missing);
   const t0 = Date.now();
   for (const { id, job, hash, rf } of todo) {   // كل فحص: بس عملاته واستراتيجياته (أسرع)
     const sub = await universe(job.coins, strats.filter(s => job.strategies.includes(s.name)), !!job.m5);
-    const body = job.type === "rolling" ? jobRolling(job, sub, job.coins) : jobMulti(job, sub, job.coins);
+    let body;
+    if (job.type === "confirm") {   // دمج: صفقة A بتنحسب بس إذا B فاتحة صفقة بنفس الاتجاه على نفس العملة لحظة الدخول
+      const names = [];
+      for (const [A, B] of job.pairs) { const nm = `${A} ✚ ${B}`; names.push(nm);
+        for (const sym of Object.keys(sub)) { const r = sub[sym].raw, bt = r[B] || [];
+          r[nm] = (r[A] || []).filter(a => bt.some(b => b.d === a.d && b.e <= a.e && a.e <= b.x)); } }
+      body = jobMulti({ ...job, strategies: [...new Set(job.pairs.flatMap(p => p))].concat(names), select: true, selectOnly: names }, sub, job.coins);
+    } else body = job.type === "rolling" ? jobRolling(job, sub, job.coins) : jobMulti(job, sub, job.coins);
     const head = `NEXORA LAB (GitHub) | ${id} | ${new Date().toISOString()} | hash=${hash} | engine=${engineHash} | coins ${Object.keys(sub).length} | slots ${job.slots || 10} | taker 0.05% maker 0.02% slip 0.01% | $${job.notional || 200}/trade | periods: train<${new Date(E.LAB_SPLIT).toISOString().slice(0,10)}, test<${new Date(E.LAB_END).toISOString().slice(0,10)}, fresh after\n`;
     fs.writeFileSync(rf, head + body + "\n"); console.log("wrote", rf);
     if (job.type !== "rolling" && LAST_SUM) {   // ملخص للمنصة: حكم كل استراتيجية

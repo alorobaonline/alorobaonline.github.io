@@ -1,0 +1,168 @@
+{
+ "type": "confirm",
+ "priority": 17,
+ "note": "Weak + weak: take strategy A's trade only while strategy B holds a same-direction position on the same coin (known at entry time). Choose on TRAIN only.",
+ "coins": [
+  "AKEUSDT",
+  "NEARUSDT",
+  "ZECUSDT",
+  "1000PEPEUSDT",
+  "AAVEUSDT",
+  "ADAUSDT",
+  "ETHUSDT",
+  "UNIUSDT",
+  "XRPUSDT",
+  "LINKUSDT",
+  "TRUMPUSDT",
+  "WLDUSDT",
+  "BNBUSDT",
+  "ENAUSDT",
+  "TAOUSDT",
+  "BTCUSDT",
+  "PUMPUSDT",
+  "INJUSDT",
+  "ASTERUSDT",
+  "DOGEUSDT",
+  "AVAXUSDT",
+  "FILUSDT",
+  "LTCUSDT",
+  "KAVAUSDT",
+  "SOLUSDT",
+  "SUIUSDT",
+  "SHELLUSDT",
+  "SOPHUSDT",
+  "HYPEUSDT",
+  "EVAAUSDT"
+ ],
+ "slots": 10,
+ "pairs": [
+  [
+   "S17 SSL+QQE+WAE 15m",
+   "S15 Sweep+MSS V2 4h"
+  ],
+  [
+   "S17 SSL+QQE+WAE 15m",
+   "⭐ S15 V2 4h R2.5 h40"
+  ],
+  [
+   "S17 SSL+QQE+WAE 15m",
+   "V42 4H SHORT b0"
+  ],
+  [
+   "S17 SSL+QQE+WAE 15m",
+   "COMBO V42 Short + Gann Long"
+  ],
+  [
+   "S15 Sweep+MSS V2 15m",
+   "S15 Sweep+MSS V2 4h"
+  ],
+  [
+   "S15 Sweep+MSS V2 15m",
+   "⭐ S15 V2 4h R2.5 h40"
+  ],
+  [
+   "S15 Sweep+MSS V2 15m",
+   "V42 4H SHORT b0"
+  ],
+  [
+   "S15 Sweep+MSS V2 15m",
+   "COMBO V42 Short + Gann Long"
+  ],
+  [
+   "S15 Sweep+MSS V2 1h",
+   "S15 Sweep+MSS V2 4h"
+  ],
+  [
+   "S15 Sweep+MSS V2 1h",
+   "⭐ S15 V2 4h R2.5 h40"
+  ],
+  [
+   "S15 Sweep+MSS V2 1h",
+   "V42 4H SHORT b0"
+  ],
+  [
+   "S15 Sweep+MSS V2 1h",
+   "COMBO V42 Short + Gann Long"
+  ],
+  [
+   "S15 Sweep+MSS V1 15m",
+   "S15 Sweep+MSS V2 4h"
+  ],
+  [
+   "S15 Sweep+MSS V1 15m",
+   "⭐ S15 V2 4h R2.5 h40"
+  ],
+  [
+   "S15 Sweep+MSS V1 15m",
+   "V42 4H SHORT b0"
+  ],
+  [
+   "S15 Sweep+MSS V1 15m",
+   "COMBO V42 Short + Gann Long"
+  ],
+  [
+   "#13 Ichimoku 15m+1h",
+   "S15 Sweep+MSS V2 4h"
+  ],
+  [
+   "#13 Ichimoku 15m+1h",
+   "⭐ S15 V2 4h R2.5 h40"
+  ],
+  [
+   "#13 Ichimoku 15m+1h",
+   "V42 4H SHORT b0"
+  ],
+  [
+   "#13 Ichimoku 15m+1h",
+   "COMBO V42 Short + Gann Long"
+  ],
+  [
+   "#8 Lux Trendline+TRAMA+Chandelier",
+   "S15 Sweep+MSS V2 4h"
+  ],
+  [
+   "#8 Lux Trendline+TRAMA+Chandelier",
+   "⭐ S15 V2 4h R2.5 h40"
+  ],
+  [
+   "#8 Lux Trendline+TRAMA+Chandelier",
+   "V42 4H SHORT b0"
+  ],
+  [
+   "#8 Lux Trendline+TRAMA+Chandelier",
+   "COMBO V42 Short + Gann Long"
+  ],
+  [
+   "V33 B3 TRAIL 15m",
+   "S15 Sweep+MSS V2 4h"
+  ],
+  [
+   "V33 B3 TRAIL 15m",
+   "⭐ S15 V2 4h R2.5 h40"
+  ],
+  [
+   "V33 B3 TRAIL 15m",
+   "V42 4H SHORT b0"
+  ],
+  [
+   "V33 B3 TRAIL 15m",
+   "COMBO V42 Short + Gann Long"
+  ],
+  [
+   "G-V46 1H Dual",
+   "S15 Sweep+MSS V2 4h"
+  ],
+  [
+   "G-V46 1H Dual",
+   "⭐ S15 V2 4h R2.5 h40"
+  ],
+  [
+   "G-V46 1H Dual",
+   "V42 4H SHORT b0"
+  ],
+  [
+   "G-V46 1H Dual",
+   "COMBO V42 Short + Gann Long"
+  ]
+ ]
+}
