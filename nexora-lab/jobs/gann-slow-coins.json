@@ -1,0 +1,43 @@
+{
+ "type": "multi",
+ "priority": 30,
+ "byCoin": true,
+ "note": "Gann slow lines, each coin on its own (no slot limit), top-30 coins. Same rules as gann-slow.",
+ "coins": [
+  "AKEUSDT",
+  "NEARUSDT",
+  "ZECUSDT",
+  "1000PEPEUSDT",
+  "AAVEUSDT",
+  "ADAUSDT",
+  "ETHUSDT",
+  "UNIUSDT",
+  "XRPUSDT",
+  "LINKUSDT",
+  "TRUMPUSDT",
+  "WLDUSDT",
+  "BNBUSDT",
+  "ENAUSDT",
+  "TAOUSDT",
+  "BTCUSDT",
+  "PUMPUSDT",
+  "INJUSDT",
+  "ASTERUSDT",
+  "DOGEUSDT",
+  "AVAXUSDT",
+  "FILUSDT",
+  "LTCUSDT",
+  "KAVAUSDT",
+  "SOLUSDT",
+  "SUIUSDT",
+  "SHELLUSDT",
+  "SOPHUSDT",
+  "HYPEUSDT",
+  "EVAAUSDT"
+ ],
+ "slots": 10,
+ "strategies": [
+  "Gann بطيء 8x1 ±1ATR شراء بس",
+  "Gann بطيء 8x1 ±1ATR"
+ ]
+}

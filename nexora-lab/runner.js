@@ -136,6 +136,19 @@ function jobMulti(job, per, coins) {
       E.PERIODS.map((p, i) => `${p}: ${sP(s[i])}`).join(" | "),
       "maker-entry: " + E.PERIODS.map((p, i) => `${p}: ${sP(sm[i])}`).join(" | "),
       `quarters ${qs.filter(([, o]) => o.net > 0).length}/${qs.length}: ` + qs.map(([k, o]) => `${k} n${o.n} ${f2(o.net)} (L${f2(o.L)}/S${f2(o.S)})`).join(" | "), "");
+    if (job.byCoin) {   // كل عملة لحال (بدون حد الـslots — العملة لوحدها)
+      const rows = Object.keys(per).map(sym => {
+        const tr = per[sym].raw[name].map(t => E.money(t, per[sym].D, P, per[sym].F, 0)), b = [[], [], []];
+        for (const t of tr) b[E.periodOf(t.eTs)].push(t);
+        const st = b.map((x, i) => E.statsOf(x, days[i], P.notional)), all = E.statsOf(tr, days[0] + days[1] + days[2], P.notional);
+        return { sym, st, all };
+      }).sort((a, z) => z.all.usd - a.all.usd);
+      const c = x => x.n ? `n${x.n} ${f2(x.usd)}$ PF${pfS(x.pf)} w${x.win.toFixed(0)}%` : "—";
+      lines.push(`### ${name} — كل عملة لحال (مرتبة حسب المجموع)`);
+      for (const r of rows) lines.push(`${r.sym.padEnd(14)} | المجموع ${c(r.all)} | تدريب ${c(r.st[0])} | اختبار ${c(r.st[1])} | جديدة ${c(r.st[2])}`);
+      const pos = rows.filter(r => r.all.usd > 0).length, p3 = rows.filter(r => r.st.every(x => x.n && x.usd > 0)).length;
+      lines.push(`رابحة بالمجموع: ${pos}/${rows.length} | رابحة بالفترات الثلاث: ${p3}/${rows.length}`, "");
+    }
   }
   if (job.variants || job.select) {   // اختيار صادق: الأفضل بالتدريب بس، وبعدين منشوف اختباره وجديده
     const C = job.selectOnly ? SUM.filter(x => job.selectOnly.includes(x.name)) : SUM;
