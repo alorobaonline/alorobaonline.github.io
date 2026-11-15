@@ -30,15 +30,25 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
 #status{margin-top:8px;font-size:13px}
 .tag{font-size:11px;padding:2px 6px;border-radius:6px;background:#2a2f3a}
 .tag.L{background:#123524;color:#7ee2a8}.tag.S{background:#3a1717;color:#f5a3a3}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid #2a2f3a;color:var(--mut);margin-inline-start:8px;vertical-align:middle}
+.live.on{color:#22c55e;border-color:#14532d}.live i{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
+.live.on i{animation:blink 1.6s infinite}@keyframes blink{50%{opacity:.25}}
+.acc{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.acc .card .v{font-family:ui-monospace,monospace}
+#toasts{position:fixed;bottom:14px;left:14px;display:flex;flex-direction:column;gap:8px;z-index:9;max-width:360px}
+.toast{background:#1f2937;border:1px solid #374151;border-radius:10px;padding:10px 12px;font-size:13px;box-shadow:0 6px 20px #0008;animation:in .3s}
+@keyframes in{from{transform:translateY(10px);opacity:0}}
 </style>
 </head>
 <body>
-<h1>🧪 NEXORA PAPER — BTCUSDT فيوتشرز</h1>
+<h1>🧪 NEXORA PAPER — BTCUSDT فيوتشرز <span id="live" class="live"><i></i><span>متوقف</span></span></h1>
 <div class="mut"><a href="lab.html" style="color:#a78bfa;font-weight:700">🔬 المختبر: افحص الاستراتيجيات من هون</a> · تداول وهمي على أسعار بايننس الحقيقية. كل ما تفتح الصفحة بتحسب كل الصفقات من تاريخ البداية لهلأ — ما في سيرفر، ولا بتحتاج تضل مفتوحة.</div>
 
 <div class="bar">
   <label>من تاريخ<input type="date" id="start"></label>
+  <label>رصيد البداية<input type="number" id="balance" value="10000" step="100"></label>
   <label>حجم الصفقة $<input type="number" id="notional" value="200" step="10"></label>
+  <label>الرافعة<input type="number" id="lev" value="20" step="1"></label>
   <label>Maker %<input type="number" id="maker" value="0.02" step="0.001"></label>
   <label>Taker %<input type="number" id="taker" value="0.05" step="0.001"></label>
   <label>سليبج Market %<input type="number" id="slip" value="0.01" step="0.01"></label>
@@ -50,8 +60,13 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
   <button class="sec" data-days="365">سنة</button>
 </div>
 <div id="status" class="mut"></div>
+<div id="toasts"></div>
 
 <div id="out" style="display:none">
+  <h2>💼 الحساب الوهمي <span class="mut" id="accNote"></span></h2>
+  <div class="acc" id="acc"></div>
+  <h2>📂 الصفقات المفتوحة هلأ <span class="mut">(بتتحدث مع السعر كل 5 ثواني)</span></h2>
+  <div class="wrap"><table id="openT"></table></div>
   <h2>المجموع <span class="mut" id="scope"></span></h2>
   <div class="cards" id="cards"></div>
   <h2>الصافي التراكمي</h2>
@@ -167,12 +182,12 @@ const STRATS = [
 ];
 
 function v33Entry(D, i, d, hi) {
-  const first = (i+1)*16, last = Math.min(first+16, hi*16);
+  const first = (i+1)*16, last = Math.min(first+16, D.o.length);
   for (let j = first; j < last; j++) {
     if (j < 3) continue;
     let bh = -Infinity, bl = Infinity;
     for (let x = j-3; x < j; x++) { bh = Math.max(bh, D.o[x], D.c[x]); bl = Math.min(bl, D.o[x], D.c[x]); }
-    if ((d === 1 && D.c[j] > bh) || (d === -1 && D.c[j] < bl)) return (j+1 < hi*16) ? j+1 : null;
+    if ((d === 1 && D.c[j] > bh) || (d === -1 && D.c[j] < bl)) return (j+1 < D.o.length) ? j+1 : null;
   }
   return null;
 }
@@ -211,16 +226,17 @@ function evaluate(D, inds, sp, startTs) {
   let lo = 0; while (lo < I.n && D.t0 + (lo+1)*m*M15 <= startTs) lo++;
   const hi = I.n, out = [];
   let nextAllowed = lo*m, cd4 = -1;
-  for (let i = Math.max(lo, 200); i < hi-1; i++) {
+  for (let i = Math.max(lo, 200); i < hi; i++) {   // آخر شمعة مكتملة كمان (الدخول على الشمعة 15m اللي بعدها)
     const d = sp.sig(I, i); if (!d) continue;
     if (sp.cd === "sig" && i < cd4) continue;
     let e;
     if (sp.entry === "conf15") { e = v33Entry(D, i, d, hi); if (e === null) continue; }
     else e = (i+1)*m;
-    if (e >= hi*m || e < nextAllowed) continue;
+    const nAll = D.o.length;
+    if (e >= nAll || e < nextAllowed) continue;
     if (sp.cd === "entry" && e < cd4*16) continue;
     const A = I.atr[i]; if (A === null || A <= 0) continue;
-    const r = trade(D, I16, sp, d, e, hi*m, A);
+    const r = trade(D, I16, sp, d, e, nAll, A);
     out.push({ name: sp.name, d, e, x: r.x, rawIn: D.o[e], rawOut: r.raw, why: r.why, open: r.open, stop: r.stop, target: r.target });
     nextAllowed = r.x + 1;
     if (r.why === "INIT_STOP" && sp.cd && !r.open) cd4 = Math.floor(r.x/16) + 3;
@@ -277,7 +293,7 @@ async function load15m(fromTs, status) {
   // شموع متواصلة من حد 4H، والفجوات بشمعة مسطّحة
   const keys = [...rows.keys()].sort((a, b) => a - b);
   const t0 = Math.ceil(keys[0] / H4) * H4;
-  let n = Math.floor((keys[keys.length-1] - t0)/M15) + 1; n -= n % 16;
+  const n = Math.floor((keys[keys.length-1] - t0)/M15) + 1;   // لآخر شمعة 15m مسكّرة
   const D = { t0, o: [], h: [], l: [], c: [] }; let prev = null;
   for (let i = 0; i < n; i++) {
     const v = rows.get(t0 + i*M15);
@@ -298,7 +314,7 @@ async function loadFunding(fromTs) {
 }
 
 // ===================== التشغيل والعرض =====================
-let RESULT = null, SEL = null, SORT = { k: "net", dir: -1 }, CACHE = null;
+let RESULT = null, SEL = null, SORT = { k: "net", dir: -1 }, CACHE = null, LIVE_PX = null, SEEN = null, LAST_PX_T = 0;
 
 function params(makerEntry) {
   const P = { notional: +$("notional").value, maker: +$("maker").value/100, taker: +$("taker").value/100, slip: +$("slip").value/100, makerEntry };
@@ -308,7 +324,7 @@ function params(makerEntry) {
 
 function recalc() {
   if (!CACHE) return;
-  const { D, funding, raw, startTs } = CACHE, last = D.c[D.c.length-1];
+  const { D, funding, raw, startTs } = CACHE, last = LIVE_PX || D.c[D.c.length-1];
   const P = params($("makerEntry").checked), PM = params(true), PT = params(false);
   RESULT = { trades: raw.map(t => money(t, D, P, funding, last)), last, startTs, P,
              makerNet: raw.map(t => money(t, D, PM, funding, last)).filter(t => !t.open).reduce((s, t) => s + t.net, 0),
@@ -317,8 +333,8 @@ function recalc() {
   render();
 }
 
-async function run() {
-  const st = m => $("status").textContent = m;
+async function run(silent) {
+  const st = m => { if (!silent) $("status").textContent = m; };
   try {
     $("run").disabled = true;
     const startTs = new Date($("start").value + "T00:00:00").getTime();
@@ -331,16 +347,35 @@ async function run() {
     const inds = { 1: makeInd(D, 1), 4: makeInd(D, 4), 16: makeInd(D, 16) };
     const raw = [];
     for (const sp of STRATS) for (const t of evaluate(D, inds, sp, startTs)) raw.push(t);
-    CACHE = { D, funding, raw, startTs };
+    CACHE = { D, funding, raw, startTs }; LIVE_PX = null;
     try { localStorage.setItem("nexora_start", $("start").value); } catch (e) {}
-    recalc();
-    st(`✅ آخر شمعة: ${dt(RESULT.upd)} | BTC ${RESULT.last.toLocaleString("en-US", { maximumFractionDigits: 1 })}`);
+    recalc(); announce();
+    $("status").textContent = `✅ آخر شمعة مسكّرة: ${dt(RESULT.upd)} — الفحص الجاي ${dt(RESULT.upd + M15)} | BTC ${RESULT.last.toLocaleString("en-US", { maximumFractionDigits: 1 })}`;
   } catch (e) {
     st("❌ " + e.message);
   } finally { $("run").disabled = false; }
 }
 
+function renderAccount() {
+  const { trades, P } = RESULT, B = +$("balance").value, lev = Math.max(1, +$("lev").value);
+  const closed = trades.filter(t => !t.open), open = trades.filter(t => t.open);
+  const realized = closed.reduce((s, t) => s + t.net, 0), unreal = open.reduce((s, t) => s + t.net, 0);
+  const margin = open.length * P.notional / lev, equity = B + realized + unreal, avail = B + realized - margin + Math.min(0, unreal);
+  const num = x => `<span class="num">${x.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+  $("accNote").textContent = `(${P.notional}$ للصفقة × ${lev}x = هامش ${(P.notional/lev).toFixed(2)}$)`;
+  $("acc").innerHTML = [
+    ["الرصيد المتاح", num(avail) + " USDT"], ["Equity", num(equity) + " USDT"],
+    ["الربح المحقق", usd(realized)], ["غير محقق (المفتوحة)", usd(unreal)],
+    ["الربح الكلي", usd(realized + unreal)], ["صفقات مفتوحة", `<span class="num">${open.length}</span>`],
+  ].map(([k, v]) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+  const px = RESULT.last;
+  $("openT").innerHTML = `<tr><th>الاستراتيجية</th><th>اتجاه</th><th>دخول</th><th>السعر هلأ</th><th>الوقف</th><th>الهدف</th><th>مفتوحة من</th><th>عمولة+تمويل</th><th>ربح/خسارة</th></tr>` +
+    (open.map(t => `<tr><td class="nm">${t.name}</td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><span class="num">${t.fillIn.toFixed(1)}</span></td><td><span class="num">${px.toFixed(1)}</span></td><td><span class="num neg">${t.stop.toFixed(1)}</span></td><td><span class="num pos">${t.target.toFixed(1)}</span></td><td>${((Date.now() - t.eTs)/36e5).toFixed(1)} س</td><td>${usd(t.fund - t.fee)}</td><td><b>${usd(t.net)}</b></td></tr>`).join("") ||
+     `<tr><td colspan="9" class="mut">ما في صفقات مفتوحة هلأ — الاستراتيجيات بتستنى إشارة.</td></tr>`);
+}
+
 function render() {
+  renderAccount();
   const { trades, P } = RESULT;
   const closed = trades.filter(t => !t.open), open = trades.filter(t => t.open);
   const sum = (a, k) => a.reduce((s, t) => s + t[k], 0);
@@ -396,14 +431,49 @@ function render() {
     `<tr><td colspan="10" class="mut">لسا ما في صفقات من هالتاريخ.</td></tr>`;
 }
 
+function toast(html) {
+  const d = document.createElement("div"); d.className = "toast"; d.innerHTML = html; $("toasts").prepend(d);
+  setTimeout(() => d.remove(), 15000);
+}
+
+function announce() {
+  // صفقات جديدة أو مسكّرة من آخر تحديث
+  const keys = new Map(RESULT.trades.map(t => [t.name + "|" + t.e, t]));
+  if (SEEN) {
+    for (const [k, t] of keys) {
+      const old = SEEN.get(k);
+      if (!old) toast(`📗 <b>فتح</b> ${t.name} — <span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span> @ <span class="num">${t.fillIn.toFixed(1)}</span>`);
+      else if (old.open && !t.open) toast(`${t.net > 0 ? "✅" : "❌"} <b>سكّر</b> ${t.name} — ${WHY[t.why]} — صافي ${usd(t.net)}`);
+    }
+  }
+  SEEN = new Map([...keys].map(([k, t]) => [k, { open: t.open }]));
+}
+
+let BUSY = false, LAST_TRY = 0;
+async function liveTick() {
+  if (!CACHE || BUSY) return;
+  const now = Date.now(), nextClose = RESULT.upd + M15 + 20000;
+  try {
+    if (now >= nextClose && now - LAST_TRY > 60000) {   // سكّرت شمعة جديدة: افحص الإشارات وافتح/سكّر
+      LAST_TRY = now; BUSY = true; await run(true); BUSY = false; return;
+    }
+    const r = await fetch(BASE + "/fapi/v1/ticker/price?symbol=BTCUSDT");
+    if (r.ok) { LIVE_PX = +(await r.json()).price; LAST_PX_T = now; recalc(); }
+  } catch (e) { BUSY = false; }
+  const on = Date.now() - LAST_PX_T < 20000;
+  $("live").className = "live" + (on ? " on" : "");
+  $("live").querySelector("span").textContent = on ? "LIVE" : "متوقف";
+}
+
 (function init() {
   let s = "2026-11-15";
   try { s = localStorage.getItem("nexora_start") || s; } catch (e) {}
   $("start").value = s;
-  $("run").onclick = run;
-  ["notional", "maker", "taker", "slip", "bnb", "makerEntry"].forEach(id => $(id).addEventListener("change", recalc));
+  $("run").onclick = () => { SEEN = null; run(); };
+  ["notional", "maker", "taker", "slip", "bnb", "makerEntry", "balance", "lev"].forEach(id => $(id).addEventListener("change", recalc));
+  setInterval(liveTick, 5000);
   document.querySelectorAll("button[data-days]").forEach(b => b.onclick = () => {
-    const d = new Date(Date.now() - (+b.dataset.days)*864e5); $("start").value = d.toISOString().slice(0, 10); run();
+    const d = new Date(Date.now() - (+b.dataset.days)*864e5); $("start").value = d.toISOString().slice(0, 10); SEEN = null; run();
   });
   run();
 })();

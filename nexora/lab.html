@@ -168,12 +168,12 @@ const STRATS = [
 ];
 
 function v33Entry(D, i, d, hi) {
-  const first = (i+1)*16, last = Math.min(first+16, hi*16);
+  const first = (i+1)*16, last = Math.min(first+16, D.o.length);
   for (let j = first; j < last; j++) {
     if (j < 3) continue;
     let bh = -Infinity, bl = Infinity;
     for (let x = j-3; x < j; x++) { bh = Math.max(bh, D.o[x], D.c[x]); bl = Math.min(bl, D.o[x], D.c[x]); }
-    if ((d === 1 && D.c[j] > bh) || (d === -1 && D.c[j] < bl)) return (j+1 < hi*16) ? j+1 : null;
+    if ((d === 1 && D.c[j] > bh) || (d === -1 && D.c[j] < bl)) return (j+1 < D.o.length) ? j+1 : null;
   }
   return null;
 }
@@ -212,16 +212,17 @@ function evaluate(D, inds, sp, startTs) {
   let lo = 0; while (lo < I.n && D.t0 + (lo+1)*m*M15 <= startTs) lo++;
   const hi = I.n, out = [];
   let nextAllowed = lo*m, cd4 = -1;
-  for (let i = Math.max(lo, 200); i < hi-1; i++) {
+  for (let i = Math.max(lo, 200); i < hi; i++) {   // آخر شمعة مكتملة كمان (الدخول على الشمعة 15m اللي بعدها)
     const d = sp.sig(I, i); if (!d) continue;
     if (sp.cd === "sig" && i < cd4) continue;
     let e;
     if (sp.entry === "conf15") { e = v33Entry(D, i, d, hi); if (e === null) continue; }
     else e = (i+1)*m;
-    if (e >= hi*m || e < nextAllowed) continue;
+    const nAll = D.o.length;
+    if (e >= nAll || e < nextAllowed) continue;
     if (sp.cd === "entry" && e < cd4*16) continue;
     const A = I.atr[i]; if (A === null || A <= 0) continue;
-    const r = trade(D, I16, sp, d, e, hi*m, A);
+    const r = trade(D, I16, sp, d, e, nAll, A);
     out.push({ name: sp.name, d, e, x: r.x, rawIn: D.o[e], rawOut: r.raw, why: r.why, open: r.open, stop: r.stop, target: r.target });
     nextAllowed = r.x + 1;
     if (r.why === "INIT_STOP" && sp.cd && !r.open) cd4 = Math.floor(r.x/16) + 3;
