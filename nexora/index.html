@@ -35,6 +35,15 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
 .live.on i{animation:blink 1.6s infinite}@keyframes blink{50%{opacity:.25}}
 .acc{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
 .acc .card .v{font-family:ui-monospace,monospace}
+.lv{display:grid;grid-template-columns:1fr;gap:8px}
+@media(min-width:900px){.lv{grid-template-columns:2fr 1fr}}
+.panel{background:var(--card);border-radius:12px;padding:10px}
+#chart15{width:100%;height:280px;display:block}
+.px{font-size:26px;font-weight:800;font-family:ui-monospace,monospace;direction:ltr;display:inline-block}
+.cd{font-family:ui-monospace,monospace;font-size:18px;direction:ltr;display:inline-block}
+.radar td{font-size:12.5px} .hot{color:#f59e0b;font-weight:700}
+#feed{max-height:230px;overflow:auto;font-size:12.5px} #feed div{padding:5px 2px;border-bottom:1px solid var(--line)}
+.up{color:var(--pos)} .dn{color:var(--neg)}
 #toasts{position:fixed;bottom:14px;left:14px;display:flex;flex-direction:column;gap:8px;z-index:9;max-width:360px}
 .toast{background:#1f2937;border:1px solid #374151;border-radius:10px;padding:10px 12px;font-size:13px;box-shadow:0 6px 20px #0008;animation:in .3s}
 @keyframes in{from{transform:translateY(10px);opacity:0}}
@@ -63,6 +72,23 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
 <div id="toasts"></div>
 
 <div id="out" style="display:none">
+  <h2>⚡ لايف</h2>
+  <div class="lv">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div><span class="mut">BTCUSDT</span> <span class="px" id="lpx">—</span> <span id="lchg" class="num mut"></span></div>
+        <div class="mut">الشمعة الجاية بتسكّر بعد <span class="cd" id="cd">--:--</span> <button class="sec" id="snd" style="padding:5px 10px;font-size:12px;margin-inline-start:6px">🔕 الصوت</button></div>
+      </div>
+      <canvas id="chart15"></canvas>
+      <div class="mut">آخر 30 ساعة (شموع 15 دقيقة). خطوط الصفقات المفتوحة: <span style="color:#e5e7eb">— دخول</span> · <span class="neg">— وقف</span> · <span class="pos">— هدف</span> · ▲ لونغ ▼ شورت</div>
+    </div>
+    <div class="panel">
+      <b>📜 الأحداث</b>
+      <div id="feed"><div class="mut">رح تطلع هون كل صفقة بتنفتح أو بتتسكّر وإنت فاتح الصفحة.</div></div>
+    </div>
+  </div>
+  <h2>📡 رادار الإشارات <span class="mut">(لو الشمعة سكّرت على السعر الحالي — بيتحدث كل 10 ثواني)</span></h2>
+  <div class="wrap"><table class="radar" id="radar"></table></div>
   <h2>💼 الحساب الوهمي <span class="mut" id="accNote"></span></h2>
   <div class="acc" id="acc"></div>
   <h2>📂 الصفقات المفتوحة هلأ <span class="mut">(بتتحدث مع السعر كل 5 ثواني)</span></h2>
@@ -375,7 +401,7 @@ function renderAccount() {
 }
 
 function render() {
-  renderAccount();
+  renderAccount(); setTimeout(() => { drawChart(); radar(); updateLiveHeader(); }, 0);
   const { trades, P } = RESULT;
   const closed = trades.filter(t => !t.open), open = trades.filter(t => t.open);
   const sum = (a, k) => a.reduce((s, t) => s + t[k], 0);
@@ -431,6 +457,132 @@ function render() {
     `<tr><td colspan="10" class="mut">لسا ما في صفقات من هالتاريخ.</td></tr>`;
 }
 
+// ===================== لايف: WebSocket + شارت + رادار + صوت =====================
+let FORMING = null, WS = null, SOUND = false, LAST_LIGHT = 0, LAST_RADAR = 0, AUDIO = null;
+const TFN = { 1: "15m", 4: "1h", 16: "4h" };
+
+function beep(up) {
+  if (!SOUND) return;
+  try {
+    AUDIO = AUDIO || new (window.AudioContext || window.webkitAudioContext)();
+    const o = AUDIO.createOscillator(), g = AUDIO.createGain(); o.connect(g); g.connect(AUDIO.destination);
+    o.frequency.value = up ? 880 : 440; g.gain.setValueAtTime(0.15, AUDIO.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, AUDIO.currentTime + 0.35); o.start(); o.stop(AUDIO.currentTime + 0.36);
+  } catch (e) {}
+}
+
+function feed(html) {
+  const f = $("feed"); if (f.firstElementChild && f.firstElementChild.classList.contains("mut")) f.innerHTML = "";
+  const d = document.createElement("div"); d.innerHTML = `<span class="mut num">${new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span> ` + html;
+  f.prepend(d);
+}
+
+function connectWS() {
+  try {
+    WS = new WebSocket("wss://fstream.binance.com/ws/btcusdt@kline_15m");
+    WS.onmessage = ev => {
+      const k = JSON.parse(ev.data).k; if (!k) return;
+      FORMING = { t: k.t, o: +k.o, h: +k.h, l: +k.l, c: +k.c, closed: k.x };
+      LIVE_PX = +k.c; LAST_PX_T = Date.now();
+      const now = Date.now();
+      if (now - LAST_LIGHT > 1000) { LAST_LIGHT = now; lightUpdate(); }
+    };
+    WS.onclose = () => setTimeout(connectWS, 5000);
+    WS.onerror = () => { try { WS.close(); } catch (e) {} };
+  } catch (e) {}
+}
+
+// تحديث خفيف: السعر + الحساب + المفتوحة + الشارت (بدون إعادة حساب كل الصفقات)
+function lightUpdate() {
+  if (!CACHE || !RESULT) return;
+  const { D, funding } = CACHE, P = RESULT.P, px = LIVE_PX || RESULT.last;
+  RESULT.trades = RESULT.trades.map(t => t.open ? money(t, D, P, funding, px) : t);
+  RESULT.last = px;
+  renderAccount(); drawChart(); updateLiveHeader();
+  if (Date.now() - LAST_RADAR > 10000) { LAST_RADAR = Date.now(); radar(); }
+}
+
+function updateLiveHeader() {
+  const px = LIVE_PX || (RESULT && RESULT.last);
+  if (px) {
+    $("lpx").textContent = px.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    if (FORMING) { const ch = (px/FORMING.o - 1)*100; $("lchg").textContent = (ch >= 0 ? "+" : "") + ch.toFixed(2) + "% بالشمعة"; $("lchg").className = "num " + (ch >= 0 ? "up" : "dn"); }
+  }
+  const nextClose = Math.floor(Date.now()/M15)*M15 + M15, left = Math.max(0, nextClose - Date.now());
+  $("cd").textContent = String(Math.floor(left/60000)).padStart(2, "0") + ":" + String(Math.floor(left/1000) % 60).padStart(2, "0");
+  const on = Date.now() - LAST_PX_T < 20000;
+  $("live").className = "live" + (on ? " on" : ""); $("live").querySelector("span").textContent = on ? "LIVE" : "متوقف";
+}
+
+function drawChart() {
+  if (!CACHE) return;
+  const cv = $("chart15"), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, Hh = cv.clientHeight;
+  if (!W) return;
+  cv.width = W*dpr; cv.height = Hh*dpr; const g = cv.getContext("2d"); g.scale(dpr, dpr); g.clearRect(0, 0, W, Hh);
+  g.direction = "ltr"; g.textAlign = "left";
+  const { D } = CACHE, N = 120, n = D.c.length, s0 = Math.max(0, n - N + 1);
+  const bars = []; for (let i = s0; i < n; i++) bars.push({ t: D.t0 + i*M15, o: D.o[i], h: D.h[i], l: D.l[i], c: D.c[i] });
+  if (FORMING && FORMING.t >= D.t0 + n*M15) bars.push(FORMING);
+  const open = RESULT.trades.filter(t => t.open);
+  let lo = Math.min(...bars.map(b => b.l)), hi = Math.max(...bars.map(b => b.h));
+  for (const t of open) { lo = Math.min(lo, t.stop, t.target, t.fillIn); hi = Math.max(hi, t.stop, t.target, t.fillIn); }
+  const pad = (hi - lo)*0.05 || 1; lo -= pad; hi += pad;
+  const R = 62, cw = (W - R)/bars.length, y = v => 8 + (Hh - 24)*(hi - v)/(hi - lo);
+  // شبكة وأسعار
+  g.font = "11px ui-monospace,monospace"; g.fillStyle = "#6b7280"; g.strokeStyle = "#1f2430"; g.lineWidth = 1;
+  for (let k = 0; k <= 4; k++) { const v = lo + (hi - lo)*k/4, yy = y(v); g.beginPath(); g.moveTo(0, yy); g.lineTo(W - R, yy); g.stroke(); g.fillText(v.toFixed(0), W - R + 6, yy + 4); }
+  // شموع
+  bars.forEach((b, i) => {
+    const x = i*cw + cw/2, up = b.c >= b.o; g.strokeStyle = g.fillStyle = up ? "#22c55e" : "#ef4444";
+    g.beginPath(); g.moveTo(x, y(b.h)); g.lineTo(x, y(b.l)); g.stroke();
+    const top = y(Math.max(b.o, b.c)), hgt = Math.max(1, Math.abs(y(b.o) - y(b.c)));
+    g.globalAlpha = b === FORMING ? 0.55 : 1; g.fillRect(x - cw*0.35, top, cw*0.7, hgt); g.globalAlpha = 1;
+  });
+  // خطوط الصفقات المفتوحة
+  const line = (v, col, dash, label) => { const yy = y(v); g.strokeStyle = col; g.setLineDash(dash); g.beginPath(); g.moveTo(0, yy); g.lineTo(W - R, yy); g.stroke(); g.setLineDash([]); g.fillStyle = col; g.fillText(label, 4, yy - 3); };
+  for (const t of open) { line(t.fillIn, "#e5e7eb", [4, 3], `${t.name} ${t.d === 1 ? "L" : "S"}`); line(t.stop, "#ef4444", [2, 3], "SL"); line(t.target, "#22c55e", [2, 3], "TP"); }
+  // علامات الدخول والخروج
+  const tx = ts => (ts - bars[0].t)/M15*cw + cw/2;
+  for (const t of RESULT.trades) {
+    for (const [ts, price, isIn] of [[t.eTs, t.fillIn, true], [t.open ? null : t.xTs - M15, t.fillOut, false]]) {
+      if (ts === null || ts < bars[0].t) continue;
+      const x = tx(ts), yy = y(price); g.fillStyle = isIn ? (t.d === 1 ? "#22c55e" : "#ef4444") : "#eab308";
+      g.beginPath();
+      if (isIn && t.d === 1) { g.moveTo(x, yy + 2); g.lineTo(x - 5, yy + 10); g.lineTo(x + 5, yy + 10); }
+      else if (isIn) { g.moveTo(x, yy - 2); g.lineTo(x - 5, yy - 10); g.lineTo(x + 5, yy - 10); }
+      else { g.arc(x, yy, 3.5, 0, 7); }
+      g.fill();
+    }
+  }
+  // خط السعر الحالي
+  const px = LIVE_PX || bars[bars.length-1].c, yy = y(px);
+  g.strokeStyle = "#60a5fa"; g.setLineDash([1, 2]); g.beginPath(); g.moveTo(0, yy); g.lineTo(W - R, yy); g.stroke(); g.setLineDash([]);
+  g.fillStyle = "#60a5fa"; g.fillRect(W - R + 2, yy - 8, R - 4, 16); g.fillStyle = "#081018"; g.fillText(px.toFixed(1), W - R + 5, yy + 4);
+}
+
+// رادار: لو الشمعة الحالية سكّرت هيك، مين بيعطي إشارة؟
+function radar() {
+  if (!CACHE) return;
+  const { D } = CACHE, n = D.c.length, px = LIVE_PX || D.c[n-1];
+  const f = FORMING && FORMING.t >= D.t0 + n*M15 ? FORMING : { o: px, h: px, l: px, c: px };
+  const ext = { t0: D.t0, o: D.o.concat([f.o]), h: D.h.concat([Math.max(f.h, px)]), l: D.l.concat([Math.min(f.l, px)]), c: D.c.concat([px]) };
+  const rows = [], now = Date.now();
+  for (const m of [1, 4, 16]) {
+    // كمّل الشمعة الحالية للفريم بشموع مسطّحة على السعر الحالي (بس للحساب)
+    const E = { t0: ext.t0, o: ext.o.slice(), h: ext.h.slice(), l: ext.l.slice(), c: ext.c.slice() };
+    while (E.c.length % m) { E.o.push(px); E.h.push(px); E.l.push(px); E.c.push(px); }
+    const I = makeInd(E, m), i = I.n - 1, span = m*M15, barEnd = D.t0 + Math.ceil((now - D.t0 + 1)/span)*span, left = Math.max(0, barEnd - now);
+    for (const sp of STRATS.filter(x => x.mult === m)) {
+      const d = sp.sig(I, i), busy = RESULT.trades.some(t => t.open && t.name === sp.name);
+      rows.push({ sp, d, busy, left, m });
+    }
+  }
+  rows.sort((a, b) => (!!b.d - !!a.d) || a.left - b.left);
+  const mm = x => `${Math.floor(x/3600000) ? Math.floor(x/3600000) + "س " : ""}${Math.max(1, Math.ceil(x/60000) % 60 || 60)}د`;
+  $("radar").innerHTML = `<tr><th>الاستراتيجية</th><th>الفريم</th><th>الشمعة بتسكّر بعد</th><th>لو سكّرت هلأ</th><th>حالتها</th></tr>` +
+    rows.map(r => `<tr><td class="nm">${r.sp.name}</td><td>${TFN[r.m]}</td><td><span class="num">${mm(r.left)}</span></td><td>${r.d ? `<span class="hot">🔥 ${r.d === 1 ? "LONG" : "SHORT"}</span>` : `<span class="mut">—</span>`}</td><td>${r.busy ? `<span class="tag ${"L"}">صفقة مفتوحة</span>` : (r.d ? (r.sp.entry === "conf15" ? "بتستنى تأكيد 15m بعد التسكير" : "رح تفتح إذا ضلت هيك") : '<span class="mut">بتستنى</span>')}</td></tr>`).join("");
+}
+
 function toast(html) {
   const d = document.createElement("div"); d.className = "toast"; d.innerHTML = html; $("toasts").prepend(d);
   setTimeout(() => d.remove(), 15000);
@@ -442,8 +594,8 @@ function announce() {
   if (SEEN) {
     for (const [k, t] of keys) {
       const old = SEEN.get(k);
-      if (!old) toast(`📗 <b>فتح</b> ${t.name} — <span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span> @ <span class="num">${t.fillIn.toFixed(1)}</span>`);
-      else if (old.open && !t.open) toast(`${t.net > 0 ? "✅" : "❌"} <b>سكّر</b> ${t.name} — ${WHY[t.why]} — صافي ${usd(t.net)}`);
+      if (!old) { const h = `📗 <b>فتح</b> ${t.name} — <span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span> @ <span class="num">${t.fillIn.toFixed(1)}</span>`; toast(h); feed(h); beep(true); }
+      else if (old.open && !t.open) { const h = `${t.net > 0 ? "✅" : "❌"} <b>سكّر</b> ${t.name} — ${WHY[t.why]} — صافي ${usd(t.net)}`; toast(h); feed(h); beep(t.net > 0); }
     }
   }
   SEEN = new Map([...keys].map(([k, t]) => [k, { open: t.open }]));
@@ -457,12 +609,12 @@ async function liveTick() {
     if (now >= nextClose && now - LAST_TRY > 60000) {   // سكّرت شمعة جديدة: افحص الإشارات وافتح/سكّر
       LAST_TRY = now; BUSY = true; await run(true); BUSY = false; return;
     }
-    const r = await fetch(BASE + "/fapi/v1/ticker/price?symbol=BTCUSDT");
-    if (r.ok) { LIVE_PX = +(await r.json()).price; LAST_PX_T = now; recalc(); }
+    if (now - LAST_PX_T > 8000) {   // إذا الـ WebSocket مقطوع: سعر عادي
+      const r = await fetch(BASE + "/fapi/v1/ticker/price?symbol=BTCUSDT");
+      if (r.ok) { LIVE_PX = +(await r.json()).price; LAST_PX_T = now; lightUpdate(); }
+    }
   } catch (e) { BUSY = false; }
-  const on = Date.now() - LAST_PX_T < 20000;
-  $("live").className = "live" + (on ? " on" : "");
-  $("live").querySelector("span").textContent = on ? "LIVE" : "متوقف";
+  updateLiveHeader();
 }
 
 (function init() {
@@ -472,6 +624,10 @@ async function liveTick() {
   $("run").onclick = () => { SEEN = null; run(); };
   ["notional", "maker", "taker", "slip", "bnb", "makerEntry", "balance", "lev"].forEach(id => $(id).addEventListener("change", recalc));
   setInterval(liveTick, 5000);
+  setInterval(updateLiveHeader, 1000);
+  connectWS();
+  $("snd").onclick = () => { SOUND = !SOUND; $("snd").textContent = SOUND ? "🔔 الصوت" : "🔕 الصوت"; if (SOUND) beep(true); };
+  window.addEventListener("resize", () => drawChart());
   document.querySelectorAll("button[data-days]").forEach(b => b.onclick = () => {
     const d = new Date(Date.now() - (+b.dataset.days)*864e5); $("start").value = d.toISOString().slice(0, 10); SEEN = null; run();
   });
