@@ -95,8 +95,9 @@ const Pmain = (job) => ({ notional: job.notional || 200, maker: 0.0002, taker: 0
 function flatOf(per, name, P, rank) { return Object.keys(per).flatMap(sym => per[sym].raw[name].map(t => ({ ...E.money(t, per[sym].D, P, per[sym].F, 0), sym, name, rank: rank[sym] }))); }
 
 // ---------- نوع 1: استراتيجيات على عدة عملات (تدريب/اختبار/جديدة + كل ربع) ----------
+let LAST_SUM = null;
 function jobMulti(job, per, coins) {
-  const SUM = [];
+  const SUM = []; LAST_SUM = SUM;
   const P = Pmain(job), rank = Object.fromEntries(coins.map((c, i) => [c, i])), now = Math.max(...Object.values(per).map(x => x.D.t0 + x.D.c.length*M15));
   const days = E.periodDays(now), lines = [];
   for (const name of job.strategies) {
@@ -109,7 +110,7 @@ function jobMulti(job, per, coins) {
     const PM = { ...P, makerEntry: true }, tm = E.portfolio(flatOf(per, name, PM, rank), job.slots || 10).taken, bm = [[], [], []];
     for (const t of tm) bm[E.periodOf(t.eTs)].push(t);
     const sm = bm.map((x, i) => E.statsOf(x, days[i], P.notional));
-    SUM.push({ name, s, sm, v: E.verdictOf(s), vm: E.verdictOf(sm) });
+    SUM.push({ name, s, sm, v: E.verdictOf(s), vm: E.verdictOf(sm), coins: coinsAll, nc: Object.keys(per).length, q: qs.length ? [qs.filter(([, o]) => o.net > 0).length, qs.length] : null });
     lines.push(`## ${name} | ${E.verdictOf(s)} (maker-entry ${E.verdictOf(sm)}) | coins+all3 ${coinsAll}/${Object.keys(per).length}`,
       E.PERIODS.map((p, i) => `${p}: ${sP(s[i])}`).join(" | "),
       "maker-entry: " + E.PERIODS.map((p, i) => `${p}: ${sP(sm[i])}`).join(" | "),
@@ -179,6 +180,13 @@ function jobRolling(job, per, coins) {
     const body = job.type === "rolling" ? jobRolling(job, sub, job.coins) : jobMulti(job, sub, job.coins);
     const head = `NEXORA LAB (GitHub) | ${id} | ${new Date().toISOString()} | hash=${hash} | engine=${engineHash} | coins ${Object.keys(sub).length} | slots ${job.slots || 10} | taker 0.05% maker 0.02% slip 0.01% | $${job.notional || 200}/trade | periods: train<${new Date(E.LAB_SPLIT).toISOString().slice(0,10)}, test<${new Date(E.LAB_END).toISOString().slice(0,10)}, fresh after\n`;
     fs.writeFileSync(rf, head + body + "\n"); console.log("wrote", rf);
+    if (job.type !== "rolling" && LAST_SUM) {   // ملخص للمنصة: حكم كل استراتيجية
+      const sf = path.join(resDir, "summary.json"); let sumj = {}; try { sumj = JSON.parse(fs.readFileSync(sf, "utf8")); } catch (e) {}
+      const pick = x => ({ n: x.n, usd: +x.usd.toFixed(2), pf: +Math.min(x.pf, 99).toFixed(3), t: +x.t.toFixed(2), gross: +x.gross.toFixed(3), avg: +x.avg.toFixed(4), dd: +x.dd.toFixed(1), win: +x.win.toFixed(1) });
+      for (const r of LAST_SUM) { sumj[r.name] = sumj[r.name] || {}; sumj[r.name][id] = { at: new Date().toISOString(), verdict: r.v, verdictMaker: r.vm, coinsAll3: r.coins, coins: r.nc, quarters: r.q, notional: job.notional || 200, train: pick(r.s[0]), test: pick(r.s[1]), fresh: pick(r.s[2]) }; }
+      fs.writeFileSync(sf, JSON.stringify(sumj));
+      if (process.env.CI) try { execSync(`git add "${sf}" && git commit -q -m "nexora-lab: summary" && (git pull --rebase -q || true) && git push -q`, { cwd: ROOT, stdio: "inherit" }); } catch (e) {}
+    }
     if (process.env.CI) try {   // نتيجة كل فحص بتنرفع أول ما تخلص
       execSync(`git add "${rf}" && git commit -q -m "nexora-lab: ${id}" && (git pull --rebase -q || true) && git push -q`, { cwd: ROOT, stdio: "inherit" });
     } catch (e) { console.log("push failed", e.message); }
