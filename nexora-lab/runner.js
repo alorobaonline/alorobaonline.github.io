@@ -171,7 +171,7 @@ function pushFiles(files, msg) {   // فحوصات متوازية: كل واحد
   for (let k = 0; k < 8; k++) { try { execSync("git pull --rebase -q && git push -q", { cwd: ROOT, stdio: "inherit" }); return; } catch (e) { try { execSync("git rebase --abort", { cwd: ROOT }); } catch (_) {} execSync(`sleep ${2 + k*3}`); } }
   console.log("push failed after retries");
 }
-(async () => {
+if (require.main === module) (async () => {
   const jobsDir = process.env.JOBS_DIR || path.join(__dirname, "jobs"), resDir = process.env.RES_DIR || path.join(__dirname, "results");
   const jobs = fs.readdirSync(jobsDir).filter(f => f.endsWith(".json"));
   const engineHash = crypto.createHash("sha1").update(grab("nexora/index.html", "engine")).digest("hex").slice(0, 8);
@@ -225,3 +225,5 @@ function pushFiles(files, msg) {   // فحوصات متوازية: كل واحد
   }
   console.log("done in", ((Date.now() - t0)/1000).toFixed(0), "s");
 })().catch(e => { console.error(e); process.exit(1); });
+
+module.exports = { klines, funding, E };

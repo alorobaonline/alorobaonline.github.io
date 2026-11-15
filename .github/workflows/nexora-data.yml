@@ -1,0 +1,42 @@
+name: nexora-data
+# كل يوم: بيانات جاهزة للمنصة على فرع nexora-data (بس فرع البيانات، ما بيلمس ملفات المتجر)
+on:
+  schedule:
+    - cron: "40 1 * * *"
+    - cron: "40 13 * * *"
+  push:
+    branches: [main]
+    paths: ["nexora-lab/publish_data.js", ".github/workflows/nexora-data.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: nexora-data
+  cancel-in-progress: true
+jobs:
+  data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nexora-data
+          key: nexora-data-pub-${{ github.run_id }}
+          restore-keys: |
+            nexora-data-pub-
+            nexora-data-
+      - name: build
+        run: OUT=/tmp/nexora-data node nexora-lab/publish_data.js
+      - name: publish (orphan branch, replaced every time)
+        run: |
+          cd /tmp/nexora-data
+          git init -q -b nexora-data
+          git config user.name "nexora-lab-bot"
+          git config user.email "nexora-lab-bot@users.noreply.github.com"
+          git add -A
+          git commit -q -m "nexora data $(date -u +%F_%H%M)"
+          git push -f -q "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" nexora-data

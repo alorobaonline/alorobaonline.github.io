@@ -1579,10 +1579,49 @@ async function fillKlines(sym, interval, step, width, st, fromTs, prog) {
   return added;
 }
 
+// ===== بيانات جاهزة من السيرفر (فرع nexora-data): تحميل سريع بدون حد طلبات بايننس، وبايننس بس لآخر ساعات =====
+const DATA_URL = "https://raw.githubusercontent.com/alorobaonline/alorobaonline.github.io/nexora-data/";
+let DMETA = null;
+async function dataMeta() {
+  if (DMETA) return DMETA;
+  try { const r = await fetch(DATA_URL + "meta.json?t=" + Math.floor(Date.now()/1800000)); DMETA = r.ok ? await r.json() : { coins: {} }; } catch (e) { DMETA = { coins: {} }; }
+  return DMETA;
+}
+async function gzText(url) {
+  const r = await fetch(url); if (!r.ok) return null;
+  if (typeof DecompressionStream === "undefined") return null;
+  return await new Response(r.body.pipeThrough(new DecompressionStream("gzip"))).text();
+}
+function mergeRows(st, T, V, width) {   // دمج مرتب بدون تكرار
+  if (!T.length) return 0;
+  if (!st.t.length) { st.t = T; st.v = V; return T.length; }
+  const t = [], v = []; let i = 0, j = 0, add = 0;
+  while (i < st.t.length || j < T.length) {
+    if (j >= T.length || (i < st.t.length && st.t[i] < T[j])) { t.push(st.t[i]); for (let q = 0; q < width; q++) v.push(st.v[width*i + q]); i++; }
+    else if (i >= st.t.length || T[j] < st.t[i]) { t.push(T[j]); for (let q = 0; q < width; q++) v.push(V[width*j + q]); j++; add++; }
+    else { t.push(st.t[i]); for (let q = 0; q < width; q++) v.push(st.v[width*i + q]); i++; j++; }
+  }
+  st.t = t; st.v = v; return add;
+}
+async function fromServer(sym, kind, st, fromTs, step, width) {
+  try {
+    const m = (await dataMeta()).coins[sym]; if (!m) return 0;
+    const first = kind === "k15" ? m.first15 : m.first5, last = kind === "k15" ? m.last15 : m.last5; if (!first) return 0;
+    const needOld = !st.t.length || st.t[0] > Math.max(fromTs, first) + step, needNew = !st.t.length || st.t[st.t.length-1] < last - 4*step;
+    if (!needOld && !needNew) return 0;
+    const txt = await gzText(DATA_URL + `${kind}_${sym}.csv.gz?t=${encodeURIComponent((await dataMeta()).updated || "")}`); if (!txt) return 0;
+    const T = [], V = [];
+    for (const line of txt.split("\n")) { if (!line) continue; const p = line.split(","); const ts = +p[0]; if (ts < fromTs) continue; T.push(ts); for (let q = 1; q <= width; q++) V.push(+p[q]); }
+    return mergeRows(st, T, V, width);
+  } catch (e) { return 0; }
+}
+
 async function loadCandles(sym, fromTs, prog) {
   let st = MEM[sym];
   if (!st) { const c = await idb.get("k_" + sym); st = c && c.t.length ? { t: Array.from(c.t), v: Array.from(c.v) } : { t: [], v: [] }; }
-  const added = await fillKlines(sym, "15m", M15, 4, st, fromTs, prog);
+  prog && prog("⚡ من السيرفر");
+  let added = await fromServer(sym, "k15", st, fromTs, M15, 4);
+  added += await fillKlines(sym, "15m", M15, 4, st, fromTs, prog);
   MEM[sym] = st;
   st.dirty = (st.dirty || 0) + added;
   if (added > 50 || (st.dirty && Date.now() - (st.saved || 0) > 600000)) { st.dirty = 0; st.saved = Date.now(); await idb.set("k_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) }); }
@@ -1608,7 +1647,8 @@ const MEM5 = {}, M5 = 300000;
 async function loadM5(sym, fromTs, prog) {
   let st = MEM5[sym];
   if (!st) { const c = await idb.get("m5_" + sym); st = c && c.t.length ? { t: Array.from(c.t), v: Array.from(c.v) } : { t: [], v: [] }; }
-  const added = await fillKlines(sym, "5m", M5, 5, st, fromTs, prog);
+  let added = await fromServer(sym, "k5", st, fromTs, M5, 5);
+  added += await fillKlines(sym, "5m", M5, 5, st, fromTs, prog);
   MEM5[sym] = st;
   st.dirty = (st.dirty || 0) + added;
   if (added > 50 || (st.dirty && Date.now() - (st.saved || 0) > 600000)) { st.dirty = 0; st.saved = Date.now(); await idb.set("m5_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) }); }
