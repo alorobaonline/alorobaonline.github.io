@@ -1549,6 +1549,7 @@ const STRATS = [
   ...S16.strats,
   ...S15.strats,
   { ...S15.strats.find(s => s.name === "S15 Sweep+MSS V2 4h"), name: "⭐ S15 V2 4h R2.5 h40", R: 2.5, hold: 40, sb: 0.25, src: "Replit #15 محسّنة (اختيار من التدريب)" },
+  { ...S15.strats.find(s => s.name === "S15 Sweep+MSS V2 4h"), name: "S15 V2 4h وقف متحرك 2ATR", R: 2.5, hold: 40, sb: 0.25, trailAtr: 2, trailFrom: 1, src: "⭐ S15 + وقف متحرك بعد 1R (للمراقبة جنب الأصلية)" },
   ...SEXT.strats,
   ...S5.strats,
   ...SSD.strats,
@@ -1988,9 +1989,9 @@ function renderAccount() {
 
 // ===================== حكم السيرفر + التصنيف + الفترة + دفتر القرارات =====================
 let SRV = null, PERIOD = 0, SHOW_OFF = false;
-const JOB_PREF = ["all-15m-plus", "scalping-5m", "sd", "v63", "top4", "s15-improve", "sd-relax", "s15-ema", "s15-user", "s17-improve", "combine"];
-const SRV_ALIAS = { "⭐ S15 V2 4h R2.5 h40": "S15V2-4h R2.5 h40 sb0.25", "SD 1H+5m تأكيد خلال ساعة": "SD confirm 12 bars" };
-const SRV_JOBS = ["all-15m-plus", "scalping-5m", "sd", "sd-relax", "v63", "top4", "s15-improve", "s15-ema", "s15-user", "s17-improve", "combine"];
+const JOB_PREF = ["all-15m-plus", "scalping-5m", "sd", "v63", "top4", "s15-improve", "sd-relax", "s15-ema", "s15-user", "s17-improve", "combine", "ts", "ts-5m", "s15-manage", "s15-risk"];
+const SRV_ALIAS = { "⭐ S15 V2 4h R2.5 h40": "S15V2-4h R2.5 h40 sb0.25", "S15 V2 4h وقف متحرك 2ATR": "S15* وقف متحرك 2ATR بعد 1R", "SD 1H+5m تأكيد خلال ساعة": "SD confirm 12 bars" };
+const SRV_JOBS = ["all-15m-plus", "scalping-5m", "sd", "sd-relax", "v63", "top4", "s15-improve", "s15-ema", "s15-user", "s17-improve", "combine", "ts", "ts-5m", "s15-manage", "s15-risk"];
 async function loadSrv() {   // كل فحص إله ملف ملخص لحاله (بيشتغلوا بالتوازي على السيرفر)
   const bust = Math.floor(Date.now()/600000), out = {};
   await Promise.all(SRV_JOBS.map(async id => { try { const r = await fetch(`../nexora-lab/results/summary/${id}.json?t=${bust}`); if (!r.ok) return;
