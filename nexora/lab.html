@@ -527,6 +527,14 @@ async function go() {
   const sync = () => { const m = $("mode").value === "multi"; ["stratL", "coinsL", "slotsL"].forEach(id => $(id).style.display = m ? "" : "none"); };
   $("mode").onchange = sync; sync();
   $("go").onclick = go;
+  // روابط جاهزة: #combo30 = COMBO على 30 عملة | #v43-30 = V43 على 30 عملة | #all = كل الاستراتيجيات على BTC
+  const H = location.hash.replace("#", "");
+  const preset = { "combo30": ["multi", "COMBO", 30], "v43-30": ["multi", "V43 1H SHORT b0", 30], "all": ["btc", null, 0] }[H];
+  if (preset) {
+    $("mode").value = preset[0];
+    if (preset[1]) { const k = STRATS.findIndex(s => s.name.startsWith(preset[1])); if (k >= 0) $("strat").value = k; $("coins").value = preset[2]; }
+    sync(); setTimeout(go, 300);
+  }
   $("copy").onclick = async () => {
     try { await navigator.clipboard.writeText($("txt").value); $("copy").textContent = "✅ انتسخت — الصقها بالمحادثة"; }
     catch (e) { $("txt").select(); document.execCommand && document.execCommand("copy"); $("copy").textContent = "✅ انتسخت (أو انسخ من المربع)"; }
