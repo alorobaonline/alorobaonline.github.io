@@ -1,0 +1,43 @@
+{
+ "type": "multi",
+ "m5": true,
+ "priority": 19,
+ "note": "ICT Turtle Soup (Flux Charts), default inputs (MSS 10, Wick, Dynamic, Risk Low 3.5xATR5, RR 0.9). Fills resolved on sub-candles, stop first. All 8 rows declared before the run; none chosen from results.",
+ "coins": [
+  "AKEUSDT",
+  "NEARUSDT",
+  "ZECUSDT",
+  "1000PEPEUSDT",
+  "AAVEUSDT",
+  "ADAUSDT",
+  "ETHUSDT",
+  "UNIUSDT",
+  "XRPUSDT",
+  "LINKUSDT",
+  "TRUMPUSDT",
+  "WLDUSDT",
+  "BNBUSDT",
+  "ENAUSDT",
+  "TAOUSDT",
+  "BTCUSDT",
+  "PUMPUSDT",
+  "INJUSDT",
+  "ASTERUSDT",
+  "DOGEUSDT",
+  "AVAXUSDT",
+  "FILUSDT",
+  "LTCUSDT",
+  "KAVAUSDT",
+  "SOLUSDT",
+  "SUIUSDT",
+  "SHELLUSDT",
+  "SOPHUSDT",
+  "HYPEUSDT",
+  "EVAAUSDT"
+ ],
+ "slots": 10,
+ "strategies": [
+  "TS Turtle Soup 5m (1H)",
+  "TS Adaptive 5m (1H)"
+ ]
+}
