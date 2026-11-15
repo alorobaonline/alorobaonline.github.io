@@ -1628,7 +1628,7 @@ async function topCoins(nc) {
 
 // ===================== التشغيل والعرض =====================
 let RESULT = null, SEL = null, SORT = { k: "net", dir: -1 }, CACHE = null, SEEN = null, LAST_PX_T = 0, COINS = null, CSYM = "BTCUSDT";
-const LIVE = {}, FORM = {};
+const LIVE = {}, FORM = {}, LIVE_T = {}; let LAST_POLL = 0;
 const pxOf = sym => LIVE[sym] || (CACHE && CACHE.bySym[sym] ? CACHE.bySym[sym].D.c[CACHE.bySym[sym].D.c.length-1] : null);
 
 function params(makerEntry) {
@@ -1776,7 +1776,7 @@ function renderAccount() {
     ["الربح الكلي", usd(realized + unreal)], ["صفقات مفتوحة", `<span class="num">${open.length}</span> <span class="mut">هامش ${margin.toFixed(0)}$</span>`],
   ].map(([k, v]) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
   $("openT").innerHTML = `<tr><th>الاستراتيجية</th><th>العملة</th><th>اتجاه</th><th>دخول</th><th>السعر هلأ</th><th>الوقف</th><th>الهدف</th><th>بدأت</th><th>مدتها</th><th>عمولة+تمويل</th><th>ربح/خسارة</th></tr>` +
-    (open.map(t => `<tr data-s="${t.sym}" style="cursor:pointer"><td class="nm">${t.name}</td><td><b>${cn(t.sym)}</b></td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><span class="num">${fp(t.fillIn)}</span></td><td><span class="num">${fp(t.fillOut)}</span></td><td><span class="num neg">${fp(t.stop)}</span></td><td><span class="num pos">${Number.isFinite(t.target) ? fp(t.target) : "إشارة خروج"}</span></td><td><span class="num">${dt(t.eTs)}</span></td><td>${dur(Date.now() - t.eTs)}</td><td>${usd(t.fund - t.fee)}</td><td><b>${usd(t.net)}</b></td></tr>`).join("") ||
+    (open.map(t => `<tr data-s="${t.sym}" style="cursor:pointer"><td class="nm">${t.name}</td><td><b>${cn(t.sym)}</b></td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><span class="num">${fp(t.fillIn)}</span></td><td><span class="num">${fp(t.fillOut)}</span>${LIVE_T[t.sym] > Date.now() - 30000 ? "" : ' <span title="السعر مش محدّث — آخر سعر معروف" style="color:#f59e0b">⏳</span>'}</td><td><span class="num neg">${fp(t.stop)}</span></td><td><span class="num pos">${Number.isFinite(t.target) ? fp(t.target) : "إشارة خروج"}</span></td><td><span class="num">${dt(t.eTs)}</span></td><td>${dur(Date.now() - t.eTs)}</td><td>${usd(t.fund - t.fee)}</td><td><b>${usd(t.net)}</b></td></tr>`).join("") ||
      `<tr><td colspan="11" class="mut">ما في صفقات مفتوحة هلأ — الاستراتيجيات بتستنى إشارة.</td></tr>`);
   $("openT").querySelectorAll("tr[data-s]").forEach(tr => tr.onclick = () => { CSYM = tr.dataset.s; fillCoinSel(); drawChart(); radar(); updateLiveHeader(); });
   // الشريط الثابت + التراجع
@@ -1985,7 +1985,7 @@ function connectWS() {
     WS.onmessage = ev => {
       const m = JSON.parse(ev.data), k = m.data && m.data.k; if (!k) return;
       FORM[k.s] = { t: k.t, o: +k.o, h: +k.h, l: +k.l, c: +k.c, closed: k.x };
-      LIVE[k.s] = +k.c; LAST_PX_T = Date.now();
+      LIVE[k.s] = +k.c; LIVE_T[k.s] = LAST_PX_T = Date.now();
       const now = Date.now();
       if (now - LAST_LIGHT > 1000) { LAST_LIGHT = now; lightUpdate(); }
     };
@@ -2109,8 +2109,18 @@ function announce() {
 }
 
 let BUSY = false, LAST_TRY = 0;
+async function pollPrices(force) {   // السعر الحي مستقل عن الحساب: إذا أي عملة سعرها أقدم من 15 ثانية، جيب أسعار الكل
+  const now = Date.now();
+  const stale = force || !COINS || COINS.some(s => !(LIVE_T[s] > now - 15000));
+  if (!stale || now - LAST_POLL < 5000) return;
+  LAST_POLL = now;
+  try { const r = await fetch(BASE + "/fapi/v1/ticker/price"); if (r.ok) { const set = new Set(COINS || []);
+    for (const x of await r.json()) if (set.has(x.symbol)) { LIVE[x.symbol] = +x.price; LIVE_T[x.symbol] = now; }
+    LAST_PX_T = now; lightUpdate(); } } catch (e) {}
+}
 async function liveTick() {
-  if (!CACHE || BUSY) return;
+  await pollPrices();
+  if (!CACHE || BUSY) { updateLiveHeader(); return; }
   const now = Date.now(), nextClose = RESULT.upd + M15 + 20000;
   try {
     if (now >= nextClose && now - LAST_TRY > 60000) {   // سكّرت شمعة 15 دقيقة: افحص كل الاستراتيجيات
@@ -2118,10 +2128,6 @@ async function liveTick() {
     }
     if (CACHE.upd5 && now >= CACHE.upd5 + M5 + 20000 && now - LAST_TRY > 60000) {   // شمعة 5 دقايق: بس السكالبينغ
       LAST_TRY = now; BUSY = true; await run(true, true); BUSY = false; return;
-    }
-    if (now - LAST_PX_T > 8000) {   // إذا الـ WebSocket مقطوع: أسعار عادية
-      const r = await fetch(BASE + "/fapi/v1/ticker/price");
-      if (r.ok) { const set = new Set(COINS); for (const x of await r.json()) if (set.has(x.symbol)) LIVE[x.symbol] = +x.price; LAST_PX_T = now; lightUpdate(); }
     }
   } catch (e) { BUSY = false; }
   updateLiveHeader();
