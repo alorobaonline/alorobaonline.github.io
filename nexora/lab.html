@@ -275,7 +275,7 @@ const S17 = (() => {
         }
       }
     }
-    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.e*m, x: D.o.length - 1, rawIn: pos.entry, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop: pos.stop, target: pos.target });
+    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.e*m, x: D.o.length - 1, rawIn: pos.entry, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop: pos.stop, target: pos.target, ...(pos.w ? { w: pos.w } : {}) });
     return out;
   }
   return { calc, sig, run, CFG };
@@ -520,6 +520,23 @@ const S16 = (() => {
   return { blank, step, armWaiting, runAll, CFG, PORTS, strats: [strat("16A-1h", "A 1h"), strat("16A-4h", "A 4h"), strat("16B-1h", "B 1h (CHoCH)"), strat("16B-4h", "B 4h (CHoCH)")] };
 })();
 
+// اتجاه البيتكوين (للفلتر): شموع 4 ساعات من بيانات BTC، EMA بفترة p على الـ4 ساعات. 1 فوق، -1 تحت، 0 مش معروف
+let BTC_REF = null;
+function setBtcRef(D) {
+  if (!D) { BTC_REF = null; return; }
+  const H4 = 14400000, C = [], T = []; let g0 = Math.ceil(D.t0/H4)*H4;
+  for (let t = g0; t + H4 <= D.t0 + D.c.length*900000; t += H4) { const i = (t + H4 - D.t0)/900000 - 1; C.push(D.c[i]); T.push(t + H4); }
+  BTC_REF = { C, T, ema: {} };
+}
+function btcTrend(ts, p) {   // ts = وقت إغلاق شمعة الإشارة
+  const B = BTC_REF; if (!B) return 0;
+  if (!B.ema[p]) { const out = new Array(B.C.length).fill(null); let e = null;
+    for (let k = p - 1; k < B.C.length; k++) { if (e === null) { e = 0; for (let j = 0; j < p; j++) e += B.C[j]; e /= p; } else e = B.C[k]*(2/(p+1)) + e*((p-1)/(p+1)); out[k] = e; }
+    B.ema[p] = out; }
+  let lo = 0, hi = B.T.length - 1, j = -1; while (lo <= hi) { const md = (lo + hi) >> 1; if (B.T[md] <= ts) { j = md; lo = md + 1; } else hi = md - 1; }
+  if (j < 0 || B.ema[p][j] === null) return 0;
+  return B.C[j] > B.ema[p][j] ? 1 : -1;
+}
 // ===================== Strategy 15: Liquidity Sweep + MSS (منقولة من sweep_rules.py + sweep_replay.py) =====================
 const S15 = (() => {
   function prepare(I) {
@@ -579,7 +596,7 @@ const S15 = (() => {
       let closedHere = false;
       if (pend) {
         const [hit] = pend, sign = hit.side, raw = I.O[k], stop = sp.sb === undefined ? hit.stopLoss : hit.base - sign*sp.sb*hit.atrk;
-        if ((raw - stop)*sign > 0 && stop > 0) pos = { d: sign, e: k, entry: raw, stop, stop0: stop, target: raw + sign*(sp.R || 2)*Math.abs(raw - stop) };
+        if ((raw - stop)*sign > 0 && stop > 0) pos = { d: sign, e: k, entry: raw, stop, stop0: stop, target: raw + sign*(sp.R || 2)*Math.abs(raw - stop), ...(sp.riskPct ? { w: Math.min(sp.wMax || 3, sp.riskPct/(100*Math.abs(raw - stop)/raw)) } : {}) };
         pend = null;
       }
       if (pos) {
@@ -590,7 +607,7 @@ const S15 = (() => {
         else if (s === 1 ? I.H[k] >= pos.target : I.L[k] <= pos.target) { raw = pos.target; why = "TARGET"; }
         else if (k - pos.e + 1 >= (sp.hold || 20)) { raw = I.C[k]; why = "TIME"; }
         if (raw !== null) { if (why === "INIT_STOP" && pos.moved) why = "TRAIL";
-          out.push({ name: sp.name, d: s, e: pos.e*m, x: k*m + m - 1, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: pos.target });
+          out.push({ name: sp.name, d: s, e: pos.e*m, x: k*m + m - 1, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: pos.target, ...(pos.w ? { w: pos.w } : {}) });
           pos = null; busy = k; closedHere = true; }
         else if (sp.be || sp.trailAtr) {   // تعديل الوقف بعد إغلاق الشمعة (بيطبق من الشمعة الجاية)
           const r0 = Math.abs(pos.entry - pos.stop0), fav = s === 1 ? I.H[k] : I.L[k];
@@ -602,12 +619,13 @@ const S15 = (() => {
           if (ns !== pos.stop) { pos.stop = ns; pos.moved = true; }
         }
       }
-      const h = hitsAt(P, I, k, sp.v2, sp.emaF);
+      let h = hitsAt(P, I, k, sp.v2, sp.emaF);
+      if (h.length && sp.btcF) h = h.filter(x => btcTrend(D.t0 + (k+1)*m*900000, sp.btcF) === x.side);
       if (!h.length) continue;
       const blocked = pos !== null || closedHere || k <= busy || k === n - 1 || D.t0 + (k+1)*m*900000 <= startTs || (k+1)*m >= D.o.length;
       if (!blocked) pend = [h[0], k];
     }
-    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.e*m, x: D.o.length - 1, rawIn: pos.entry, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop: pos.stop, target: pos.target });
+    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.e*m, x: D.o.length - 1, rawIn: pos.entry, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop: pos.stop, target: pos.target, ...(pos.w ? { w: pos.w } : {}) });
     return out;
   }
   const mk = (label, mult, v2) => ({ name: "S15 Sweep+MSS " + label, mult, v2, sig: sig(v2), run, sm: 0, tm: 0, hold: 20, trail: null, cd: null, entry: "imm", src: "Replit #15" });
@@ -1482,7 +1500,7 @@ function evaluate(D, inds, sp, startTs) {
 
 // العمولة والتمويل والصافي لكل صفقة
 function money(t, D, P, funding, lastPrice) {
-  const d = t.d, fillIn = P.makerEntry ? t.rawIn : t.rawIn*(1 + d*P.slip), qty = P.notional/fillIn;
+  const d = t.d, fillIn = P.makerEntry ? t.rawIn : t.rawIn*(1 + d*P.slip), qty = P.notional*(t.w || 1)/fillIn;
   const feeIn = qty*fillIn*(P.makerEntry ? P.maker : P.taker);
   const eTs = D.t0 + t.e*M15, xTs = D.t0 + (t.x+1)*M15;
   let fillOut, feeOut, gross;
@@ -1556,7 +1574,8 @@ function split3(raw, D, P, funding, now) {
 function portfolio(flat, slots) {
   flat.sort((a, b) => (a.eTs - b.eTs) || (a.rank - b.rank));
   const taken = []; let open = [];
-  for (const t of flat) { open = open.filter(x => x > t.eTs); if (open.length < slots) { taken.push(t); open.push(t.xTs); } }
+  const sp = flat.length ? STRATS.find(s => s.name === flat[0].name) : null, ms = sp && sp.maxSide;   // حد أقصى لصفقات نفس الاتجاه
+  for (const t of flat) { open = open.filter(x => x.x > t.eTs); if (open.length < slots && (!ms || open.filter(x => x.d === t.d).length < ms)) { taken.push(t); open.push({ x: t.xTs, d: t.d }); } }
   return { taken, skipped: flat.length - taken.length };
 }
 </script>

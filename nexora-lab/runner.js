@@ -85,6 +85,7 @@ function buildM5(rows, D) {   // شموع 5 دقايق (مع الفوليوم) �
 }
 async function universe(coins, strats, withM5) {
   const per = {};
+  if (strats.some(s => s.btcF)) { E.setBtcRef(buildD(await klines("BTCUSDT", "15m"))); console.log("BTC filter ref loaded"); }
   for (const sym of coins) {
     const rows = await klines(sym, "15m"), D = buildD(rows); if (!D) { console.log("skip", sym); continue; }
     if (withM5) D.m5 = buildM5(await klines(sym, "5m"), D);
