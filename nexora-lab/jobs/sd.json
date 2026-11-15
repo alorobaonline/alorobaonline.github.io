@@ -1,0 +1,41 @@
+{
+ "type": "multi",
+ "m5": true,
+ "priority": 8,
+ "coins": [
+  "AKEUSDT",
+  "NEARUSDT",
+  "ZECUSDT",
+  "1000PEPEUSDT",
+  "AAVEUSDT",
+  "ADAUSDT",
+  "ETHUSDT",
+  "UNIUSDT",
+  "XRPUSDT",
+  "LINKUSDT",
+  "TRUMPUSDT",
+  "WLDUSDT",
+  "BNBUSDT",
+  "ENAUSDT",
+  "TAOUSDT",
+  "BTCUSDT",
+  "PUMPUSDT",
+  "INJUSDT",
+  "ASTERUSDT",
+  "DOGEUSDT",
+  "AVAXUSDT",
+  "FILUSDT",
+  "LTCUSDT",
+  "KAVAUSDT",
+  "SOLUSDT",
+  "SUIUSDT",
+  "SHELLUSDT",
+  "SOPHUSDT",
+  "HYPEUSDT",
+  "EVAAUSDT"
+ ],
+ "slots": 10,
+ "strategies": [
+  "SD 1H+5m Supply/Demand"
+ ]
+}

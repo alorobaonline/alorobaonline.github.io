@@ -68,12 +68,21 @@ function buildD(rows) {
 const fixF = (F, D) => F.map(f => f.mark ? f : { ...f, mark: D.c[Math.min(D.c.length-1, Math.max(0, Math.floor((f.t - D.t0)/M15)))] });
 
 // ---------- تحميل كل العملات وحساب الصفقات الخام ----------
-async function universe(coins, strats) {
+function buildM5(rows, D) {   // شموع 5 دقايق (مع الفوليوم) على نفس بداية ونهاية الـ15 دقيقة
+  const n = D.c.length*3, M5 = 300000, m = { t0: D.t0, o: new Array(n), h: new Array(n), l: new Array(n), c: new Array(n), v: new Array(n) }; let prev = D.o[0];
+  for (let i = 0; i < n; i++) { const r = rows.get(D.t0 + i*M5);
+    if (r) { const o = +r[1], c = +r[4]; m.o[i] = o; m.h[i] = Math.max(+r[2], o, c); m.l[i] = Math.min(+r[3], o, c); m.c[i] = c; m.v[i] = +r[5]; prev = c; }
+    else { m.o[i] = m.h[i] = m.l[i] = m.c[i] = prev; m.v[i] = 0; } }
+  return m;
+}
+async function universe(coins, strats, withM5) {
   const per = {};
   for (const sym of coins) {
     const rows = await klines(sym, "15m"), D = buildD(rows); if (!D) { console.log("skip", sym); continue; }
+    if (withM5) D.m5 = buildM5(await klines(sym, "5m"), D);
     const F = fixF(await funding(sym), D), inds = { 1: E.makeInd(D, 1), 4: E.makeInd(D, 4), 16: E.makeInd(D, 16) };
     const raw = {}; for (const sp of strats) raw[sp.name] = E.evaluate(D, inds, sp, D.t0).filter(t => !t.open);
+    D.m5 = null;   // توفير ذاكرة
     per[sym] = { D, F, raw }; console.log(sym, D.c.length, "bars", new Date(D.t0 + D.c.length*M15).toISOString());
   }
   return per;
@@ -166,7 +175,7 @@ function jobRolling(job, per, coins) {
   const missing = names.filter(n => !strats.find(s => s.name === n)); if (missing.length) console.log("unknown strategies:", missing);
   const t0 = Date.now();
   for (const { id, job, hash, rf } of todo) {   // كل فحص: بس عملاته واستراتيجياته (أسرع)
-    const sub = await universe(job.coins, strats.filter(s => job.strategies.includes(s.name)));
+    const sub = await universe(job.coins, strats.filter(s => job.strategies.includes(s.name)), !!job.m5);
     const body = job.type === "rolling" ? jobRolling(job, sub, job.coins) : jobMulti(job, sub, job.coins);
     const head = `NEXORA LAB (GitHub) | ${id} | ${new Date().toISOString()} | hash=${hash} | engine=${engineHash} | coins ${Object.keys(sub).length} | slots ${job.slots || 10} | taker 0.05% maker 0.02% slip 0.01% | $${job.notional || 200}/trade | periods: train<${new Date(E.LAB_SPLIT).toISOString().slice(0,10)}, test<${new Date(E.LAB_END).toISOString().slice(0,10)}, fresh after\n`;
     fs.writeFileSync(rf, head + body + "\n"); console.log("wrote", rf);
