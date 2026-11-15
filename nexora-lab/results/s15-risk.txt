@@ -1,0 +1,4 @@
+NEXORA LAB ERROR | s15-risk | 2026-11-15T19:38:30.587Z
+TypeError: E.setBtcRef is not a function
+    at universe (/home/runner/work/alorobaonline.github.io/alorobaonline.github.io/nexora-lab/runner.js:88:37)
+    at async /home/runner/work/alorobaonline.github.io/alorobaonline.github.io/nexora-lab/runner.js:210:17
