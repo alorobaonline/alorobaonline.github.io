@@ -558,7 +558,18 @@ const S15 = (() => {
   }
   const memo = new WeakMap();
   const prep = I => { if (!memo.has(I)) memo.set(I, prepare(I)); return memo.get(I); };
-  const hitsAt = (P, I, k, v2) => (P.events.get(k) || []).filter(x => !v2 || (P.ema[k] !== null && (I.C[k] - P.ema[k])*x.side > 0));
+  const emaMemo = new WeakMap();
+  function emaOf(I, p) {   // EMA بنفس طريقة الأصل (أول قيمة = متوسط أول p إغلاق)
+    if (!emaMemo.has(I)) emaMemo.set(I, {}); const mm = emaMemo.get(I); if (mm[p]) return mm[p];
+    const out = new Array(I.n).fill(null); let e = null;
+    for (let k = p - 1; k < I.n; k++) { if (e === null) { e = 0; for (let j = 0; j < p; j++) e += I.C[j]; e /= p; } else e = I.C[k]*(2/(p+1)) + e*((p-1)/(p+1)); out[k] = e; }
+    return (mm[p] = out);
+  }
+  const okTrend = (P, I, k, side, f) => {   // f: قائمة فترات EMA؛ يكفي وحدة منهم توافق (افتراضي [200])
+    if (!f) return P.ema[k] !== null && (I.C[k] - P.ema[k])*side > 0;
+    return f.some(p => { const e = emaOf(I, p)[k]; return e !== null && (I.C[k] - e)*side > 0; });
+  };
+  const hitsAt = (P, I, k, v2, f) => (P.events.get(k) || []).filter(x => !v2 || okTrend(P, I, k, x.side, f));
   const sig = v2 => (I, i) => { const h = hitsAt(prep(I), I, i, v2); return h.length ? h[0].side : 0; };
   function run(D, inds, sp, startTs) {
     const m = sp.mult, I = inds[m], P = prep(I), out = [], n = I.n;
@@ -580,7 +591,7 @@ const S15 = (() => {
         if (raw !== null) { out.push({ name: sp.name, d: s, e: pos.e*m, x: k*m + m - 1, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: pos.target });
           pos = null; busy = k; closedHere = true; }
       }
-      const h = hitsAt(P, I, k, sp.v2);
+      const h = hitsAt(P, I, k, sp.v2, sp.emaF);
       if (!h.length) continue;
       const blocked = pos !== null || closedHere || k <= busy || k === n - 1 || D.t0 + (k+1)*m*900000 <= startTs || (k+1)*m >= D.o.length;
       if (!blocked) pend = [h[0], k];
