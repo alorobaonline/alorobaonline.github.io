@@ -689,6 +689,7 @@ const S15 = (() => {
   }
   const okTrend = (P, I, k, side, f) => {   // f: قائمة فترات EMA؛ يكفي وحدة منهم توافق (افتراضي [200])
     if (!f) return P.ema[k] !== null && (I.C[k] - P.ema[k])*side > 0;
+    if (f.all) return f.all.every(p => { const e = emaOf(I, p)[k]; return e !== null && (I.C[k] - e)*side > 0; });
     return f.some(p => { const e = emaOf(I, p)[k]; return e !== null && (I.C[k] - e)*side > 0; });
   };
   const hitsAt = (P, I, k, v2, f) => (P.events.get(k) || []).filter(x => !v2 || okTrend(P, I, k, x.side, f));
@@ -700,7 +701,7 @@ const S15 = (() => {
       let closedHere = false;
       if (pend) {
         const [hit] = pend, sign = hit.side, raw = I.O[k], stop = sp.sb === undefined ? hit.stopLoss : hit.base - sign*sp.sb*hit.atrk;
-        if ((raw - stop)*sign > 0 && stop > 0) pos = { d: sign, e: k, entry: raw, stop, target: raw + sign*(sp.R || 2)*Math.abs(raw - stop) };
+        if ((raw - stop)*sign > 0 && stop > 0) pos = { d: sign, e: k, entry: raw, stop, stop0: stop, target: raw + sign*(sp.R || 2)*Math.abs(raw - stop) };
         pend = null;
       }
       if (pos) {
@@ -710,8 +711,18 @@ const S15 = (() => {
         else if (s*(o - pos.target) >= 0) { raw = o; why = "TARGET"; }
         else if (s === 1 ? I.H[k] >= pos.target : I.L[k] <= pos.target) { raw = pos.target; why = "TARGET"; }
         else if (k - pos.e + 1 >= (sp.hold || 20)) { raw = I.C[k]; why = "TIME"; }
-        if (raw !== null) { out.push({ name: sp.name, d: s, e: pos.e*m, x: k*m + m - 1, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: pos.target });
+        if (raw !== null) { if (why === "INIT_STOP" && pos.moved) why = "TRAIL";
+          out.push({ name: sp.name, d: s, e: pos.e*m, x: k*m + m - 1, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: pos.target });
           pos = null; busy = k; closedHere = true; }
+        else if (sp.be || sp.trailAtr) {   // تعديل الوقف بعد إغلاق الشمعة (بيطبق من الشمعة الجاية)
+          const r0 = Math.abs(pos.entry - pos.stop0), fav = s === 1 ? I.H[k] : I.L[k];
+          pos.best = pos.best === undefined ? fav : (s === 1 ? Math.max(pos.best, fav) : Math.min(pos.best, fav));
+          const gain = s*(pos.best - pos.entry);
+          let ns = pos.stop;
+          if (sp.be && gain >= sp.be*r0) ns = s === 1 ? Math.max(ns, pos.entry) : Math.min(ns, pos.entry);
+          if (sp.trailAtr && gain >= (sp.trailFrom || 1)*r0 && P.atr[k] !== null) { const t = pos.best - s*sp.trailAtr*P.atr[k]; ns = s === 1 ? Math.max(ns, t) : Math.min(ns, t); }
+          if (ns !== pos.stop) { pos.stop = ns; pos.moved = true; }
+        }
       }
       const h = hitsAt(P, I, k, sp.v2, sp.emaF);
       if (!h.length) continue;
