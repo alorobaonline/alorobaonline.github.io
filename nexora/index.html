@@ -914,6 +914,7 @@ const $ = id => document.getElementById(id);
 const fmt = (x, k = 2) => (x >= 0 ? "+" : "") + x.toFixed(k);
 const usd = (x, cls = true) => `<span class="num ${cls ? (x > 0 ? "pos" : x < 0 ? "neg" : "") : ""}">${fmt(x)}$</span>`;
 const fee$ = x => `<span class="num neg">−${x.toFixed(2)}$</span>`;
+const dur = ms => { const m = Math.max(0, Math.floor(ms/60000)), d = Math.floor(m/1440), hh = Math.floor(m%1440/60), mm = m%60; return (d ? d + "ي " : "") + (d || hh ? hh + "س " : "") + mm + "د"; };
 const dt = ts => { const z = new Date(ts); return z.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit" }) + " " + z.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); };
 const WHY = { TARGET: "الهدف 🎯", INIT_STOP: "الوقف", TRAIL_STOP: "وقف متحرك", TIME: "انتهى الوقت", SSL_EXIT: "سهم خروج SSL", CHAND_EXIT: "انقلاب شاندلير 4س" };
 
@@ -1015,9 +1016,9 @@ function renderAccount() {
     ["الربح الكلي", usd(realized + unreal)], ["صفقات مفتوحة", `<span class="num">${open.length}</span>`],
   ].map(([k, v]) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
   const px = RESULT.last;
-  $("openT").innerHTML = `<tr><th>الاستراتيجية</th><th>اتجاه</th><th>دخول</th><th>السعر هلأ</th><th>الوقف</th><th>الهدف</th><th>مفتوحة من</th><th>عمولة+تمويل</th><th>ربح/خسارة</th></tr>` +
-    (open.map(t => `<tr><td class="nm">${t.name}</td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><span class="num">${t.fillIn.toFixed(1)}</span></td><td><span class="num">${px.toFixed(1)}</span></td><td><span class="num neg">${t.stop.toFixed(1)}</span></td><td><span class="num pos">${Number.isFinite(t.target) ? t.target.toFixed(1) : "إشارة خروج"}</span></td><td>${((Date.now() - t.eTs)/36e5).toFixed(1)} س</td><td>${usd(t.fund - t.fee)}</td><td><b>${usd(t.net)}</b></td></tr>`).join("") ||
-     `<tr><td colspan="9" class="mut">ما في صفقات مفتوحة هلأ — الاستراتيجيات بتستنى إشارة.</td></tr>`);
+  $("openT").innerHTML = `<tr><th>الاستراتيجية</th><th>العملة</th><th>اتجاه</th><th>دخول</th><th>السعر هلأ</th><th>الوقف</th><th>الهدف</th><th>بدأت</th><th>مدتها</th><th>عمولة+تمويل</th><th>ربح/خسارة</th></tr>` +
+    (open.map(t => `<tr><td class="nm">${t.name}</td><td><b>BTC/USDT</b></td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><span class="num">${t.fillIn.toFixed(1)}</span></td><td><span class="num">${px.toFixed(1)}</span></td><td><span class="num neg">${t.stop.toFixed(1)}</span></td><td><span class="num pos">${Number.isFinite(t.target) ? t.target.toFixed(1) : "إشارة خروج"}</span></td><td><span class="num">${dt(t.eTs)}</span></td><td>${dur(Date.now() - t.eTs)}</td><td>${usd(t.fund - t.fee)}</td><td><b>${usd(t.net)}</b></td></tr>`).join("") ||
+     `<tr><td colspan="11" class="mut">ما في صفقات مفتوحة هلأ — الاستراتيجيات بتستنى إشارة.</td></tr>`);
 }
 
 function render() {
