@@ -1,0 +1,6 @@
+NEXORA LAB (GitHub) | sd | 2026-11-15T10:20:03.973Z | hash=30cd0eddc6 | engine=9db139f3 | coins 30 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
+## SD 1H+5m Supply/Demand | ❌ (maker-entry ❌) | coins+all3 0/30
+تدريب: n=25 -38.59$ PF0.61 win28% gross/t-1.32$ t-1.0 DD58$ | اختبار: n=7 -1.93$ PF0.89 win29% gross/t-0.07$ t-0.1 DD13$ | جديدة: n=2 -5.55$ PF0.00 win0% gross/t-2.53$ t-9.7 DD6$
+maker-entry: تدريب: n=25 -36.59$ PF0.63 win28% gross/t-1.32$ t-1.0 DD57$ | اختبار: n=7 -1.37$ PF0.92 win29% gross/t-0.07$ t-0.1 DD13$ | جديدة: n=2 -5.39$ PF0.00 win0% gross/t-2.53$ t-9.4 DD5$
+quarters 3/9: 2024Q3 n2 -5.80 (L+0.00/S-5.80) | 2024Q4 n6 -27.06 (L-13.89/S-13.17) | 2025Q1 n2 +12.70 (L+7.72/S+4.98) | 2025Q2 n7 -34.21 (L-35.21/S+0.99) | 2025Q3 n6 +24.87 (L+29.66/S-4.79) | 2025Q4 n3 -13.13 (L-7.26/S-5.87) | 2026Q1 n3 -2.40 (L+4.40/S-6.80) | 2026Q2 n3 +4.54 (L-2.98/S+7.52) | 2026Q4 n2 -5.55 (L-2.49/S-3.06)
+
