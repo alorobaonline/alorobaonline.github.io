@@ -156,6 +156,7 @@ function jobRolling(job, per, coins) {
     todo.push({ id, job, hash, rf });
   }
   if (!todo.length) { console.log("nothing to do"); return; }
+  todo.sort((a, b) => (b.job.priority || 0) - (a.job.priority || 0));
   const coins = [...new Set(todo.flatMap(t => t.job.coins))];
   // نسخ معدّلة من استراتيجية موجودة (نفس الكود، إعدادات مختلفة)
   for (const t of todo) for (const v of (t.job.variants || [])) { const b = E.STRATS.find(s => s.name === v.base); if (b && !E.STRATS.find(s => s.name === v.name)) E.STRATS.push({ ...b, ...v, base: undefined }); }
@@ -163,12 +164,15 @@ function jobRolling(job, per, coins) {
   const names = [...new Set(todo.flatMap(t => t.job.strategies))];
   const strats = E.STRATS.filter(s => names.includes(s.name));
   const missing = names.filter(n => !strats.find(s => s.name === n)); if (missing.length) console.log("unknown strategies:", missing);
-  const t0 = Date.now(), per = await universe(coins, strats);
-  for (const { id, job, hash, rf } of todo) {
-    const sub = Object.fromEntries(Object.entries(per).filter(([s]) => job.coins.includes(s)));
+  const t0 = Date.now();
+  for (const { id, job, hash, rf } of todo) {   // كل فحص: بس عملاته واستراتيجياته (أسرع)
+    const sub = await universe(job.coins, strats.filter(s => job.strategies.includes(s.name)));
     const body = job.type === "rolling" ? jobRolling(job, sub, job.coins) : jobMulti(job, sub, job.coins);
     const head = `NEXORA LAB (GitHub) | ${id} | ${new Date().toISOString()} | hash=${hash} | engine=${engineHash} | coins ${Object.keys(sub).length} | slots ${job.slots || 10} | taker 0.05% maker 0.02% slip 0.01% | $${job.notional || 200}/trade | periods: train<${new Date(E.LAB_SPLIT).toISOString().slice(0,10)}, test<${new Date(E.LAB_END).toISOString().slice(0,10)}, fresh after\n`;
     fs.writeFileSync(rf, head + body + "\n"); console.log("wrote", rf);
+    if (process.env.CI) try {   // نتيجة كل فحص بتنرفع أول ما تخلص
+      execSync(`git add "${rf}" && git commit -q -m "nexora-lab: ${id}" && (git pull --rebase -q || true) && git push -q`, { cwd: ROOT, stdio: "inherit" });
+    } catch (e) { console.log("push failed", e.message); }
   }
   console.log("done in", ((Date.now() - t0)/1000).toFixed(0), "s");
 })().catch(e => { console.error(e); process.exit(1); });

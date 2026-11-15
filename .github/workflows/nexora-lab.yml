@@ -11,7 +11,7 @@ permissions:
   contents: write
 concurrency:
   group: nexora-lab
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -29,7 +29,10 @@ jobs:
       - name: probe binance archive
         run: curl -sS -o /dev/null -w "data.binance.vision %{http_code}\n" https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2025-01.zip
       - name: run jobs
-        run: node nexora-lab/runner.js
+        run: |
+          git config user.name "nexora-lab-bot"
+          git config user.email "nexora-lab-bot@users.noreply.github.com"
+          node nexora-lab/runner.js
       - name: commit results
         run: |
           git config user.name "nexora-lab-bot"
