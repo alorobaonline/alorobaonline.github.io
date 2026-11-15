@@ -1,0 +1,43 @@
+{
+ "type": "multi",
+ "priority": 32,
+ "byCoin": true,
+ "note": "Gann lines as decision zones (user's rules): 4 fans (big screen extremes with Fib-0.786 update + last alive top/bottom >=60 bars away), all 9 angles, 45deg=(900-bar range)/460; entry after 2 consecutive closes beyond a line (break) on 1h or 15m, stop 0.25 ATR behind the line, target = next fan line (or 2R), max 5 days. 2 rows declared before the run. Per-coin view, top 30.",
+ "coins": [
+  "AKEUSDT",
+  "NEARUSDT",
+  "ZECUSDT",
+  "1000PEPEUSDT",
+  "AAVEUSDT",
+  "ADAUSDT",
+  "ETHUSDT",
+  "UNIUSDT",
+  "XRPUSDT",
+  "LINKUSDT",
+  "TRUMPUSDT",
+  "WLDUSDT",
+  "BNBUSDT",
+  "ENAUSDT",
+  "TAOUSDT",
+  "BTCUSDT",
+  "PUMPUSDT",
+  "INJUSDT",
+  "ASTERUSDT",
+  "DOGEUSDT",
+  "AVAXUSDT",
+  "FILUSDT",
+  "LTCUSDT",
+  "KAVAUSDT",
+  "SOLUSDT",
+  "SUIUSDT",
+  "SHELLUSDT",
+  "SOPHUSDT",
+  "HYPEUSDT",
+  "EVAAUSDT"
+ ],
+ "slots": 10,
+ "strategies": [
+  "Gann قرار كسر ساعة",
+  "Gann قرار كسر 15د"
+ ]
+}
