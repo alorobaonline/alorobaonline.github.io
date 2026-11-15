@@ -360,15 +360,16 @@ const S17 = (() => {
       if (pend) {
         const p = pend; pend = null;
         const entry = I.O[i], sign = p.d;
-        if (sign * (entry - p.stop) > 0) pos = { d: p.d, e: i, entry, stop: p.stop };
+        if (sign * (entry - p.stop) > 0) pos = { d: p.d, e: i, entry, stop: p.stop, target: sp.tgtR ? entry + sign*sp.tgtR*Math.abs(entry - p.stop) : NaN };
       }
       if (pos) {
         const sign = pos.d, gap = sign === 1 ? I.O[i] <= pos.stop : I.O[i] >= pos.stop, rng = sign === 1 ? I.L[i] <= pos.stop : I.H[i] >= pos.stop;
         let raw = null, why = null;
         if (gap || rng) { raw = gap ? I.O[i] : pos.stop; why = "INIT_STOP"; }
+        else if (sp.tgtR && (sign === 1 ? I.H[i] >= pos.target : I.L[i] <= pos.target)) { raw = sign*(I.O[i] - pos.target) >= 0 ? I.O[i] : pos.target; why = "TARGET"; }
         else if ((sign === 1 ? X.arrowDn[i] : X.arrowUp[i]) && i >= pos.e) { raw = I.C[i]; why = "SSL_EXIT"; }
         if (raw !== null) {
-          out.push({ name: sp.name, d: pos.d, e: pos.e*m, x: i*m + m - 1, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: NaN });
+          out.push({ name: sp.name, d: pos.d, e: pos.e*m, x: i*m + m - 1, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: pos.target });
           pos = null; closedNow = true;
         }
       }
@@ -376,12 +377,14 @@ const S17 = (() => {
         const d = X.long[i] ? 1 : X.short[i] ? -1 : 0;
         if (d) {
           const ref = i - CFG.stopReferenceOffset;
-          const stop = d === 1 ? I.L[ref] * (1 - buf) : I.H[ref] * (1 + buf);
-          if ((i + 1) * m < D.o.length) pend = { d, stop };
+          let stop = d === 1 ? I.L[ref] * (1 - buf) : I.H[ref] * (1 + buf);
+          if (sp.atrStop && I.atr[i]) stop = I.C[i] - d*sp.atrStop*I.atr[i];   // نسخ محسّنة: وقف ATR
+          const trendOk = !sp.trend || (I.ema200[i] !== null && I.ema200[i] !== undefined && (d === 1 ? I.C[i] > I.ema200[i] : I.C[i] < I.ema200[i]));
+          if (trendOk && (i + 1) * m < D.o.length) pend = { d, stop };
         }
       }
     }
-    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.e*m, x: D.o.length - 1, rawIn: pos.entry, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop: pos.stop, target: NaN });
+    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.e*m, x: D.o.length - 1, rawIn: pos.entry, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop: pos.stop, target: pos.target });
     return out;
   }
   return { calc, sig, run, CFG };

@@ -1,0 +1,283 @@
+{
+ "type": "multi",
+ "priority": 18,
+ "note": "S17 improvement grid (timeframe x stop x trend filter x target). Rule fixed before running: choose by TRAIN only; accept only if train AND test profitable with PF>1.1 and fresh not losing.",
+ "coins": [
+  "AKEUSDT",
+  "NEARUSDT",
+  "ZECUSDT",
+  "1000PEPEUSDT",
+  "AAVEUSDT",
+  "ADAUSDT",
+  "ETHUSDT",
+  "UNIUSDT",
+  "XRPUSDT",
+  "LINKUSDT",
+  "TRUMPUSDT",
+  "WLDUSDT",
+  "BNBUSDT",
+  "ENAUSDT",
+  "TAOUSDT",
+  "BTCUSDT",
+  "PUMPUSDT",
+  "INJUSDT",
+  "ASTERUSDT",
+  "DOGEUSDT",
+  "AVAXUSDT",
+  "FILUSDT",
+  "LTCUSDT",
+  "KAVAUSDT",
+  "SOLUSDT",
+  "SUIUSDT",
+  "SHELLUSDT",
+  "SOPHUSDT",
+  "HYPEUSDT",
+  "EVAAUSDT"
+ ],
+ "slots": 10,
+ "strategies": [
+  "S17 SSL+QQE+WAE 15m"
+ ],
+ "variants": [
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 15m stop-bar all ssl",
+   "mult": 1
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 15m stop-bar all R2",
+   "mult": 1,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 15m stop-bar trend ssl",
+   "mult": 1,
+   "trend": true
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 15m stop-bar trend R2",
+   "mult": 1,
+   "trend": true,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 15m stop1.5 all ssl",
+   "mult": 1,
+   "atrStop": 1.5
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 15m stop1.5 all R2",
+   "mult": 1,
+   "atrStop": 1.5,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 15m stop1.5 trend ssl",
+   "mult": 1,
+   "atrStop": 1.5,
+   "trend": true
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 15m stop1.5 trend R2",
+   "mult": 1,
+   "atrStop": 1.5,
+   "trend": true,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 15m stop2.5 all ssl",
+   "mult": 1,
+   "atrStop": 2.5
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 15m stop2.5 all R2",
+   "mult": 1,
+   "atrStop": 2.5,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 15m stop2.5 trend ssl",
+   "mult": 1,
+   "atrStop": 2.5,
+   "trend": true
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 15m stop2.5 trend R2",
+   "mult": 1,
+   "atrStop": 2.5,
+   "trend": true,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 1h stop-bar all ssl",
+   "mult": 4
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 1h stop-bar all R2",
+   "mult": 4,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 1h stop-bar trend ssl",
+   "mult": 4,
+   "trend": true
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 1h stop-bar trend R2",
+   "mult": 4,
+   "trend": true,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 1h stop1.5 all ssl",
+   "mult": 4,
+   "atrStop": 1.5
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 1h stop1.5 all R2",
+   "mult": 4,
+   "atrStop": 1.5,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 1h stop1.5 trend ssl",
+   "mult": 4,
+   "atrStop": 1.5,
+   "trend": true
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 1h stop1.5 trend R2",
+   "mult": 4,
+   "atrStop": 1.5,
+   "trend": true,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 1h stop2.5 all ssl",
+   "mult": 4,
+   "atrStop": 2.5
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 1h stop2.5 all R2",
+   "mult": 4,
+   "atrStop": 2.5,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 1h stop2.5 trend ssl",
+   "mult": 4,
+   "atrStop": 2.5,
+   "trend": true
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 1h stop2.5 trend R2",
+   "mult": 4,
+   "atrStop": 2.5,
+   "trend": true,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 4h stop-bar all ssl",
+   "mult": 16
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 4h stop-bar all R2",
+   "mult": 16,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 4h stop-bar trend ssl",
+   "mult": 16,
+   "trend": true
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 4h stop-bar trend R2",
+   "mult": 16,
+   "trend": true,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 4h stop1.5 all ssl",
+   "mult": 16,
+   "atrStop": 1.5
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 4h stop1.5 all R2",
+   "mult": 16,
+   "atrStop": 1.5,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 4h stop1.5 trend ssl",
+   "mult": 16,
+   "atrStop": 1.5,
+   "trend": true
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 4h stop1.5 trend R2",
+   "mult": 16,
+   "atrStop": 1.5,
+   "trend": true,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 4h stop2.5 all ssl",
+   "mult": 16,
+   "atrStop": 2.5
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 4h stop2.5 all R2",
+   "mult": 16,
+   "atrStop": 2.5,
+   "tgtR": 2
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 4h stop2.5 trend ssl",
+   "mult": 16,
+   "atrStop": 2.5,
+   "trend": true
+  },
+  {
+   "base": "S17 SSL+QQE+WAE 15m",
+   "name": "S17 4h stop2.5 trend R2",
+   "mult": 16,
+   "atrStop": 2.5,
+   "trend": true,
+   "tgtR": 2
+  }
+ ]
+}
