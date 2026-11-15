@@ -517,6 +517,78 @@ const S16 = (() => {
   return { blank, step, armWaiting, runAll, CFG, PORTS, strats: [strat("16A-1h", "A 1h"), strat("16A-4h", "A 4h"), strat("16B-1h", "B 1h (CHoCH)"), strat("16B-4h", "B 4h (CHoCH)")] };
 })();
 
+// ===================== Strategy 15: Liquidity Sweep + MSS (منقولة من sweep_rules.py + sweep_replay.py) =====================
+const S15 = (() => {
+  function prepare(I) {
+    const n = I.n, atr = new Array(n).fill(null), ema = new Array(n).fill(null), events = new Map();
+    const tr = [0]; for (let k = 1; k < n; k++) tr.push(Math.max(I.H[k] - I.L[k], Math.abs(I.H[k] - I.C[k-1]), Math.abs(I.L[k] - I.C[k-1])));
+    let a = null, e = null;
+    for (let k = 0; k < n; k++) {
+      if (k >= 14) { if (a === null) { a = 0; for (let j = 1; j < 15; j++) a += tr[j]; a /= 14; } else a = (a*13 + tr[k]) / 14; atr[k] = a; }
+      if (k >= 199) { if (e === null) { e = 0; for (let j = 0; j < 200; j++) e += I.C[j]; e /= 200; } else e = I.C[k]*(2/201) + e*(199/201); ema[k] = e; }
+    }
+    for (const side of [1, -1]) {
+      let level = null, pending = null;
+      for (let k = 0; k < n; k++) {
+        if (level !== null && atr[k] !== null && k >= 3) {
+          const sweep = side === 1 ? (level - I.L[k] >= .1*atr[k] && I.C[k] > level) : (I.H[k] - level >= .1*atr[k] && I.C[k] < level);
+          if (sweep) {
+            const th = side === 1 ? Math.max(I.H[k-3], I.H[k-2], I.H[k-1]) : Math.min(I.L[k-3], I.L[k-2], I.L[k-1]);
+            pending = [k, th, level];
+          } else if (pending && (I.C[k] - pending[1])*side > 0 && k - pending[0] >= 1 && k - pending[0] <= 5) {
+            const s = pending[0], stop = side === 1 ? I.L[s] - .25*atr[k] : I.H[s] + .25*atr[k];
+            if (!events.has(k)) events.set(k, []);
+            events.get(k).push({ side, sweepIndex: s, stopLoss: stop });
+            pending = null;
+          }
+        }
+        if (pending && k - pending[0] > 5) pending = null;
+        const i = k - 3;
+        if (i >= 3) {
+          const arr = side === 1 ? I.L : I.H; let ok = true;
+          for (let j = i - 3; j <= k; j++) if (j !== i && !((arr[j] - arr[i])*side > 0)) { ok = false; break; }
+          if (ok) level = arr[i];
+        }
+      }
+    }
+    return { atr, ema, events };
+  }
+  const memo = new WeakMap();
+  const prep = I => { if (!memo.has(I)) memo.set(I, prepare(I)); return memo.get(I); };
+  const hitsAt = (P, I, k, v2) => (P.events.get(k) || []).filter(x => !v2 || (P.ema[k] !== null && (I.C[k] - P.ema[k])*x.side > 0));
+  const sig = v2 => (I, i) => { const h = hitsAt(prep(I), I, i, v2); return h.length ? h[0].side : 0; };
+  function run(D, inds, sp, startTs) {
+    const m = sp.mult, I = inds[m], P = prep(I), out = [], n = I.n;
+    let pos = null, pend = null, busy = -1;
+    for (let k = 0; k < n; k++) {
+      let closedHere = false;
+      if (pend) {
+        const [hit] = pend, sign = hit.side, raw = I.O[k], stop = hit.stopLoss;
+        if ((raw - stop)*sign > 0 && stop > 0) pos = { d: sign, e: k, entry: raw, stop, target: raw + sign*2*Math.abs(raw - stop) };
+        pend = null;
+      }
+      if (pos) {
+        const s = pos.d, o = I.O[k]; let raw = null, why = null;
+        if (s*(o - pos.stop) <= 0) { raw = o; why = "INIT_STOP"; }
+        else if (s === 1 ? I.L[k] <= pos.stop : I.H[k] >= pos.stop) { raw = pos.stop; why = "INIT_STOP"; }
+        else if (s*(o - pos.target) >= 0) { raw = o; why = "TARGET"; }
+        else if (s === 1 ? I.H[k] >= pos.target : I.L[k] <= pos.target) { raw = pos.target; why = "TARGET"; }
+        else if (k - pos.e + 1 >= 20) { raw = I.C[k]; why = "TIME"; }
+        if (raw !== null) { out.push({ name: sp.name, d: s, e: pos.e*m, x: k*m + m - 1, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: pos.target });
+          pos = null; busy = k; closedHere = true; }
+      }
+      const h = hitsAt(P, I, k, sp.v2);
+      if (!h.length) continue;
+      const blocked = pos !== null || closedHere || k <= busy || k === n - 1 || D.t0 + (k+1)*m*900000 <= startTs || (k+1)*m >= D.o.length;
+      if (!blocked) pend = [h[0], k];
+    }
+    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.e*m, x: D.o.length - 1, rawIn: pos.entry, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop: pos.stop, target: pos.target });
+    return out;
+  }
+  const mk = (label, mult, v2) => ({ name: "S15 Sweep+MSS " + label, mult, v2, sig: sig(v2), run, sm: 0, tm: 0, hold: 20, trail: null, cd: null, entry: "imm", src: "Replit #15" });
+  return { prepare, run, strats: [mk("V2 15m", 1, true), mk("V2 1h", 4, true), mk("V2 4h", 16, true), mk("V1 15m", 1, false)] };
+})();
+
 const S = (name, mult, sig, sm, tm, hold, trail = null, cd = null, entry = "imm") => ({ name, mult, sig, sm, tm, hold, trail, cd, entry });
 const V40 = (a, b) => ["v40", a, b];
 const STRATS = [
@@ -542,6 +614,7 @@ const STRATS = [
   S("G-V46 1H Dual", 4, sigDual(0.4), 1.5, 3, 144),
   { name: "S17 SSL+QQE+WAE 15m", mult: 1, sig: S17.sig, run: S17.run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Replit #17" },
   ...S16.strats,
+  ...S15.strats,
 ];
 
 function v33Entry(D, i, d, hi) {
