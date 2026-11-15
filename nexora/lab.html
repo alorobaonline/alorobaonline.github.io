@@ -996,7 +996,7 @@ const S5 = (() => {
     const store = D.s5ck, ck = store && store[sp.name];
     if (ck && ck.ver === VER && ck.t0 === B.t0 && ck.d0 === D.t0 && ck.startTs === startTs && ck.j < n && ck.j >= 200 &&
         ck.c === B.C[ck.j] && ck.o === B.O[ck.j]) {
-      out.push(...ck.out); pos = ck.pos && { ...ck.pos }; pend = ck.pend && { ...ck.pend }; j0 = ck.j;
+      for (const t of ck.out) out.push(t); pos = ck.pos && { ...ck.pos }; pend = ck.pend && { ...ck.pend }; j0 = ck.j;
     }
     for (let j = j0; j < n; j++) {
       if (store && j === n - 1) store[sp.name] = { ver: VER, t0: B.t0, d0: D.t0, startTs, j, c: B.C[j], o: B.O[j], out: out.slice(), pos: pos && { ...pos }, pend: pend && { ...pend } };

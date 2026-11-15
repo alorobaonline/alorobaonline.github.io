@@ -77,6 +77,7 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
 
 <div id="out" style="display:none">
   <h2>💼 الحساب الوهمي <span class="mut" id="accNote"></span> <button class="sec" onclick="document.getElementById('copyBoard').click()" style="padding:5px 10px;font-size:12px">📋 انسخ الملخص لـ Claude</button></h2>
+  <div id="sumBox" style="display:none;margin:8px 0"><div id="sumMsg" class="mut" style="margin-bottom:6px"></div><textarea id="sumTxt" readonly style="width:100%;height:180px;direction:ltr;text-align:left;background:#0b0e14;color:#e5e7eb;border:1px solid #333;border-radius:8px;font-family:ui-monospace,monospace;font-size:12px"></textarea></div>
   <div class="acc" id="acc"></div>
   <h2>📂 الصفقات المفتوحة هلأ <span class="mut">(بتتحدث مع السعر — اضغط على صفقة لتشوف شارت عملتها)</span></h2>
   <div class="wrap"><table id="openT"></table></div>
@@ -1040,7 +1041,7 @@ const S5 = (() => {
     const store = D.s5ck, ck = store && store[sp.name];
     if (ck && ck.ver === VER && ck.t0 === B.t0 && ck.d0 === D.t0 && ck.startTs === startTs && ck.j < n && ck.j >= 200 &&
         ck.c === B.C[ck.j] && ck.o === B.O[ck.j]) {
-      out.push(...ck.out); pos = ck.pos && { ...ck.pos }; pend = ck.pend && { ...ck.pend }; j0 = ck.j;
+      for (const t of ck.out) out.push(t); pos = ck.pos && { ...ck.pos }; pend = ck.pend && { ...ck.pend }; j0 = ck.j;
     }
     for (let j = j0; j < n; j++) {
       if (store && j === n - 1) store[sp.name] = { ver: VER, t0: B.t0, d0: D.t0, startTs, j, c: B.C[j], o: B.O[j], out: out.slice(), pos: pos && { ...pos }, pend: pend && { ...pend } };
@@ -1467,8 +1468,9 @@ function render() {
   const series = closed.filter(t => !SEL || t.name === SEL).sort((a, b) => a.xTs - b.xTs);
   let cum = 0; const pts = series.map(t => (cum += t.net));
   if (pts.length >= 2) {
-    const lo = Math.min(0, ...pts), hi = Math.max(0, ...pts), sp = (hi - lo) || 1;
-    const xy = pts.map((v, i) => `${(800*i/(pts.length-1)).toFixed(1)},${(180 - 170*(v-lo)/sp).toFixed(1)}`).join(" ");
+    let lo = 0, hi = 0; for (const v of pts) { if (v < lo) lo = v; if (v > hi) hi = v; } const sp = (hi - lo) || 1;
+    const stp = Math.max(1, Math.floor(pts.length/1500)), idx = []; for (let i = 0; i < pts.length; i += stp) idx.push(i); if (idx[idx.length-1] !== pts.length-1) idx.push(pts.length-1);
+    const xy = idx.map(i => `${(800*i/(pts.length-1)).toFixed(1)},${(180 - 170*(pts[i]-lo)/sp).toFixed(1)}`).join(" ");
     const z = 180 - 170*(0-lo)/sp;
     $("chart").innerHTML = `<svg class="chart" viewBox="0 0 800 190" preserveAspectRatio="none"><line x1="0" x2="800" y1="${z}" y2="${z}" stroke="#444" stroke-dasharray="5"/><polyline fill="none" stroke="${pts[pts.length-1] >= 0 ? "#22c55e" : "#ef4444"}" stroke-width="2" points="${xy}"/></svg><div class="mut">${SEL ? SEL : "كل الاستراتيجيات"} — ${pts.length} صفقة</div>`;
   } else $("chart").innerHTML = `<div class="mut">لسا ما في صفقات مسكّرة كفاية للرسم.</div>`;
@@ -1495,8 +1497,12 @@ function render() {
     const lines = rows.map(r => { const c = closed.filter(t => t.name === r.name), L = c.filter(t => t.d === 1), S = c.filter(t => t.d === -1);
       return `${r.name} | n=${r.n} (L${L.length}/S${S.length}) win${r.win.toFixed(0)}% PF${r.n ? (r.pf >= 99 ? "inf" : r.pf.toFixed(2)) : "-"} gross/t ${r.gpt.toFixed(3)}$ fee ${r.fee.toFixed(2)}$ fund ${r.fund.toFixed(2)}$ net ${r.net.toFixed(2)}$ (L ${sum(L, "net").toFixed(2)} / S ${sum(S, "net").toFixed(2)}) DD ${r.dd.toFixed(2)}$ open ${r.o ? r.o.n : 0}`; });
     const txt = head + "\n" + lines.join("\n");
-    const done = () => { $("copyBoard").textContent = "✅ انتسخ — الصقه بالمحادثة"; setTimeout(() => $("copyBoard").textContent = "📋 انسخ الملخص لـ Claude", 3000); };
-    (navigator.clipboard ? navigator.clipboard.writeText(txt).then(done, () => prompt("انسخ:", txt)) : prompt("انسخ:", txt));
+    const box = $("sumBox"); box.style.display = ""; const ta = $("sumTxt"); ta.value = txt; ta.focus(); ta.select();
+    let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+    const done = () => { $("sumMsg").textContent = "✅ انتسخ — روح على المحادثة والصقه (أو علّم النص تحت وانسخه)"; };
+    if (ok) done(); else if (navigator.clipboard) navigator.clipboard.writeText(txt).then(done, () => { $("sumMsg").textContent = "علّم النص تحت كله وانسخه"; });
+    else $("sumMsg").textContent = "علّم النص تحت كله وانسخه";
+    box.scrollIntoView({ behavior: "smooth", block: "center" });
   };
   $("board").querySelectorAll("th[data-k]").forEach(h => h.onclick = () => { const k = h.dataset.k; SORT = { k, dir: SORT.k === k ? -SORT.dir : -1 }; render(); });
   $("board").querySelectorAll("tr[data-n]").forEach(tr => tr.onclick = () => { SEL = SEL === tr.dataset.n ? null : tr.dataset.n; render(); });
