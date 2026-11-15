@@ -538,7 +538,7 @@ const S15 = (() => {
           } else if (pending && (I.C[k] - pending[1])*side > 0 && k - pending[0] >= 1 && k - pending[0] <= 5) {
             const s = pending[0], stop = side === 1 ? I.L[s] - .25*atr[k] : I.H[s] + .25*atr[k];
             if (!events.has(k)) events.set(k, []);
-            events.get(k).push({ side, sweepIndex: s, stopLoss: stop });
+            events.get(k).push({ side, sweepIndex: s, stopLoss: stop, base: side === 1 ? I.L[s] : I.H[s], atrk: atr[k] });
             pending = null;
           }
         }
@@ -563,8 +563,8 @@ const S15 = (() => {
     for (let k = 0; k < n; k++) {
       let closedHere = false;
       if (pend) {
-        const [hit] = pend, sign = hit.side, raw = I.O[k], stop = hit.stopLoss;
-        if ((raw - stop)*sign > 0 && stop > 0) pos = { d: sign, e: k, entry: raw, stop, target: raw + sign*2*Math.abs(raw - stop) };
+        const [hit] = pend, sign = hit.side, raw = I.O[k], stop = sp.sb === undefined ? hit.stopLoss : hit.base - sign*sp.sb*hit.atrk;
+        if ((raw - stop)*sign > 0 && stop > 0) pos = { d: sign, e: k, entry: raw, stop, target: raw + sign*(sp.R || 2)*Math.abs(raw - stop) };
         pend = null;
       }
       if (pos) {
@@ -573,7 +573,7 @@ const S15 = (() => {
         else if (s === 1 ? I.L[k] <= pos.stop : I.H[k] >= pos.stop) { raw = pos.stop; why = "INIT_STOP"; }
         else if (s*(o - pos.target) >= 0) { raw = o; why = "TARGET"; }
         else if (s === 1 ? I.H[k] >= pos.target : I.L[k] <= pos.target) { raw = pos.target; why = "TARGET"; }
-        else if (k - pos.e + 1 >= 20) { raw = I.C[k]; why = "TIME"; }
+        else if (k - pos.e + 1 >= (sp.hold || 20)) { raw = I.C[k]; why = "TIME"; }
         if (raw !== null) { out.push({ name: sp.name, d: s, e: pos.e*m, x: k*m + m - 1, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: pos.target });
           pos = null; busy = k; closedHere = true; }
       }

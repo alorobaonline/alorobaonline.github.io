@@ -87,6 +87,7 @@ function flatOf(per, name, P, rank) { return Object.keys(per).flatMap(sym => per
 
 // ---------- نوع 1: استراتيجيات على عدة عملات (تدريب/اختبار/جديدة + كل ربع) ----------
 function jobMulti(job, per, coins) {
+  const SUM = [];
   const P = Pmain(job), rank = Object.fromEntries(coins.map((c, i) => [c, i])), now = Math.max(...Object.values(per).map(x => x.D.t0 + x.D.c.length*M15));
   const days = E.periodDays(now), lines = [];
   for (const name of job.strategies) {
@@ -96,9 +97,21 @@ function jobMulti(job, per, coins) {
     const q = new Map(); for (const t of taken) { const d = new Date(t.eTs), k = `${d.getUTCFullYear()}Q${Math.floor(d.getUTCMonth()/3)+1}`; const o = q.get(k) || { n: 0, net: 0, L: 0, S: 0 }; o.n++; o.net += t.net; if (t.d === 1) o.L += t.net; else o.S += t.net; q.set(k, o); }
     const qs = [...q.entries()].sort();
     const coinsAll = Object.keys(per).filter(sym => { const raw = per[sym].raw[name]; const bb = [[], [], []]; for (const t of raw) { const m = E.money(t, per[sym].D, P, per[sym].F, 0); bb[E.periodOf(m.eTs)].push(m); } return bb.every(x => x.reduce((a, t) => a + t.net, 0) > 0); }).length;
-    lines.push(`## ${name} | ${E.verdictOf(s)} | coins+all3 ${coinsAll}/${Object.keys(per).length}`,
+    const PM = { ...P, makerEntry: true }, tm = E.portfolio(flatOf(per, name, PM, rank), job.slots || 10).taken, bm = [[], [], []];
+    for (const t of tm) bm[E.periodOf(t.eTs)].push(t);
+    const sm = bm.map((x, i) => E.statsOf(x, days[i], P.notional));
+    SUM.push({ name, s, sm, v: E.verdictOf(s), vm: E.verdictOf(sm) });
+    lines.push(`## ${name} | ${E.verdictOf(s)} (maker-entry ${E.verdictOf(sm)}) | coins+all3 ${coinsAll}/${Object.keys(per).length}`,
       E.PERIODS.map((p, i) => `${p}: ${sP(s[i])}`).join(" | "),
+      "maker-entry: " + E.PERIODS.map((p, i) => `${p}: ${sP(sm[i])}`).join(" | "),
       `quarters ${qs.filter(([, o]) => o.net > 0).length}/${qs.length}: ` + qs.map(([k, o]) => `${k} n${o.n} ${f2(o.net)} (L${f2(o.L)}/S${f2(o.S)})`).join(" | "), "");
+  }
+  if (job.variants) {   // اختيار صادق: الأفضل بالتدريب بس، وبعدين منشوف اختباره وجديده
+    const ok = SUM.filter(x => x.s[0].n >= 100).sort((a, b) => b.s[0].usd - a.s[0].usd);
+    const okm = SUM.filter(x => x.sm[0].n >= 100).sort((a, b) => b.sm[0].usd - a.sm[0].usd);
+    const show = (tag, x, k) => `${tag}: ${x.name} | ` + E.PERIODS.map((p, i) => `${p}: ${sP(x[k][i])}`).join(" | ");
+    lines.unshift("# SELECTION (chosen on TRAIN only)", ok[0] ? show("best-train taker", ok[0], "s") : "none", okm[0] ? show("best-train maker", okm[0], "sm") : "none",
+      "# all variants by train net (taker): " + ok.map(x => `${x.name} ${f2(x.s[0].usd)}/${f2(x.s[1].usd)}/${f2(x.s[2].usd)}`).join(" ; "), "");
   }
   return lines.join("\n");
 }
@@ -144,6 +157,9 @@ function jobRolling(job, per, coins) {
   }
   if (!todo.length) { console.log("nothing to do"); return; }
   const coins = [...new Set(todo.flatMap(t => t.job.coins))];
+  // نسخ معدّلة من استراتيجية موجودة (نفس الكود، إعدادات مختلفة)
+  for (const t of todo) for (const v of (t.job.variants || [])) { const b = E.STRATS.find(s => s.name === v.base); if (b && !E.STRATS.find(s => s.name === v.name)) E.STRATS.push({ ...b, ...v, base: undefined }); }
+  for (const t of todo) if (t.job.variants) t.job.strategies = [...(t.job.strategies || []), ...t.job.variants.map(v => v.name)];
   const names = [...new Set(todo.flatMap(t => t.job.strategies))];
   const strats = E.STRATS.filter(s => names.includes(s.name));
   const missing = names.filter(n => !strats.find(s => s.name === n)); if (missing.length) console.log("unknown strategies:", missing);
