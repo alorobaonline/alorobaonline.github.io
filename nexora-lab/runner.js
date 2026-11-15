@@ -9,7 +9,7 @@ const M15 = 900000, H4 = 16*M15, DAY = 864e5;
 const grab = (file, id) => { const h = fs.readFileSync(path.join(ROOT, file), "utf8"); const m = h.match(new RegExp(`<script id="${id}">([\\s\\S]*?)</script>`)); if (!m) throw new Error("no " + id); return m[1]; };
 const ctx = vm.createContext({ console, Math, Date, Map, Set, WeakMap, Array, Object, Number, String, JSON, Infinity, NaN, isFinite, parseFloat, Float64Array });
 vm.runInContext(grab("nexora/index.html", "engine") + "\n" + grab("nexora/lab.html", "lab") +
-  "\n;globalThis.E={STRATS,makeInd,evaluate,money,statsOf,verdictOf,periodOf,periodDays,split3,portfolio,costSet,LAB_START,LAB_END,LAB_SPLIT,PERIODS};", ctx);
+  "\n;globalThis.E={STRATS,setBtcRef,makeInd,evaluate,money,statsOf,verdictOf,periodOf,periodDays,split3,portfolio,costSet,LAB_START,LAB_END,LAB_SPLIT,PERIODS};", ctx);
 const E = ctx.E;
 
 // ---------- البيانات ----------
