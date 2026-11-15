@@ -50,12 +50,14 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
 </style>
 </head>
 <body>
-<h1>🧪 NEXORA PAPER — BTCUSDT فيوتشرز <span id="live" class="live"><i></i><span>متوقف</span></span></h1>
+<h1>🧪 NEXORA PAPER — أعلى 30 عملة فيوتشرز <span id="live" class="live"><i></i><span>متوقف</span></span></h1>
 <div class="mut"><a href="lab.html" style="color:#a78bfa;font-weight:700">🔬 المختبر: افحص الاستراتيجيات من هون</a> · تداول وهمي على أسعار بايننس الحقيقية. كل ما تفتح الصفحة بتحسب كل الصفقات من تاريخ البداية لهلأ — ما في سيرفر، ولا بتحتاج تضل مفتوحة.</div>
 
 <details id="settings"><summary style="cursor:pointer;margin-top:10px;color:#cfd3da">⚙️ الإعدادات والفترة (اضغط لتفتح)</summary>
 <div class="bar">
   <label>من تاريخ<input type="date" id="start"></label>
+  <label>عدد العملات<input type="number" id="ncoins" value="30" min="1" max="50" step="1"></label>
+  <label>أقصى صفقات مفتوحة (0 = بلا حد)<input type="number" id="maxOpen" value="0" min="0" step="1"></label>
   <label>رصيد البداية<input type="number" id="balance" value="10000" step="100"></label>
   <label>حجم الصفقة $<input type="number" id="notional" value="200" step="10"></label>
   <label>الرافعة<input type="number" id="lev" value="20" step="1"></label>
@@ -76,13 +78,13 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
 <div id="out" style="display:none">
   <h2>💼 الحساب الوهمي <span class="mut" id="accNote"></span></h2>
   <div class="acc" id="acc"></div>
-  <h2>📂 الصفقات المفتوحة هلأ <span class="mut">(بتتحدث مع السعر كل 5 ثواني)</span></h2>
+  <h2>📂 الصفقات المفتوحة هلأ <span class="mut">(بتتحدث مع السعر — اضغط على صفقة لتشوف شارت عملتها)</span></h2>
   <div class="wrap"><table id="openT"></table></div>
   <h2>⚡ لايف</h2>
   <div class="lv">
     <div class="panel">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-        <div><span class="mut">BTCUSDT</span> <span class="px" id="lpx">—</span> <span id="lchg" class="num mut"></span></div>
+        <div><select id="csel" style="font-weight:700"></select> <span class="px" id="lpx">—</span> <span id="lchg" class="num mut"></span></div>
         <div class="mut">الشمعة الجاية بتسكّر بعد <span class="cd" id="cd">--:--</span> <button class="sec" id="snd" style="padding:5px 10px;font-size:12px;margin-inline-start:6px">🔕 الصوت</button></div>
       </div>
       <canvas id="chart15"></canvas>
@@ -93,7 +95,7 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
       <div id="feed"><div class="mut">رح تطلع هون كل صفقة بتنفتح أو بتتسكّر وإنت فاتح الصفحة.</div></div>
     </div>
   </div>
-  <h2>📡 رادار الإشارات <span class="mut">(لو الشمعة سكّرت على السعر الحالي — بيتحدث كل 10 ثواني)</span></h2>
+  <h2>📡 رادار الإشارات <span class="mut">(للعملة المختارة فوق الشارت — لو الشمعة سكّرت على السعر الحالي، بيتحدث كل 10 ثواني)</span></h2>
   <div class="wrap"><table class="radar" id="radar"></table></div>
   <h2>المجموع <span class="mut" id="scope"></span></h2>
   <div class="cards" id="cards"></div>
@@ -908,60 +910,115 @@ function money(t, D, P, funding, lastPrice) {
 </script>
 
 <script>
-// ===================== جلب البيانات من بايننس =====================
+// ===================== جلب البيانات من بايننس (أعلى 30 عملة + كاش بالمتصفح) =====================
 const BASE = "https://fapi.binance.com";
 const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 const fmt = (x, k = 2) => (x >= 0 ? "+" : "") + x.toFixed(k);
 const usd = (x, cls = true) => `<span class="num ${cls ? (x > 0 ? "pos" : x < 0 ? "neg" : "") : ""}">${fmt(x)}$</span>`;
 const fee$ = x => `<span class="num neg">−${x.toFixed(2)}$</span>`;
+const fp = v => !Number.isFinite(v) ? "—" : v >= 1000 ? v.toFixed(1) : v >= 10 ? v.toFixed(2) : v >= 1 ? v.toFixed(3) : v.toPrecision(4);
+const cn = s => s.replace(/USDT$/, "") + "/USDT";
 const dur = ms => { const m = Math.max(0, Math.floor(ms/60000)), d = Math.floor(m/1440), hh = Math.floor(m%1440/60), mm = m%60; return (d ? d + "ي " : "") + (d || hh ? hh + "س " : "") + mm + "د"; };
 const dt = ts => { const z = new Date(ts); return z.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit" }) + " " + z.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); };
 const WHY = { TARGET: "الهدف 🎯", INIT_STOP: "الوقف", TRAIL_STOP: "وقف متحرك", TIME: "انتهى الوقت", SSL_EXIT: "سهم خروج SSL", CHAND_EXIT: "انقلاب شاندلير 4س" };
 
 async function getJSON(path, params) {
-  const url = BASE + path + "?" + new URLSearchParams(params);
-  for (let k = 0; k < 4; k++) {
-    try { const r = await fetch(url); if (r.ok) return await r.json(); if (r.status === 451) throw new Error("451"); }
-    catch (e) { if (String(e.message) === "451") throw new Error("بايننس حاظرة منطقتك (451)"); }
-    await new Promise(z => setTimeout(z, 1500*(k+1)));
+  const url = BASE + path + (params ? "?" + new URLSearchParams(params) : "");
+  for (let k = 0; k < 6; k++) {
+    try {
+      const r = await fetch(url);
+      if (r.ok) return await r.json();
+      if (r.status === 451) throw new Error("STOP:بايننس حاظرة منطقتك (451)");
+      if (r.status === 429 || r.status === 418) { $("status").textContent = "⏳ بايننس طلبت استراحة (حد الطلبات)… بستنى 30 ثانية"; await sleep(30000); continue; }
+    } catch (e) { if (String(e.message).startsWith("STOP:")) throw new Error(e.message.slice(5)); }
+    await sleep(1500*(k+1));
   }
   throw new Error("ما قدرت أوصل لبايننس. تأكد من النت.");
 }
 
-async function load15m(fromTs, status) {
-  const rows = new Map(); let t = fromTs; const now = Date.now();
-  while (t < now) {
-    const r = await getJSON("/fapi/v1/klines", { symbol: "BTCUSDT", interval: "15m", startTime: t, limit: 1500 });
-    if (!r.length) break;
-    for (const k of r) if (k[6] < now) rows.set(k[0], [+k[1], +k[2], +k[3], +k[4]]);
-    t = r[r.length-1][0] + M15;
-    status(`⬇️ بحمّل الأسعار… ${new Date(r[r.length-1][0]).toISOString().slice(0, 10)}`);
+const idb = (() => {
+  let dbp = null;
+  const open = () => dbp || (dbp = new Promise((res, rej) => {
+    const q = indexedDB.open("nexora_paper", 1);
+    q.onupgradeneeded = () => q.result.createObjectStore("kv");
+    q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+  }));
+  const guard = (pr, v) => Promise.race([pr, new Promise(r => setTimeout(() => r(v), 4000))]);
+  async function rawGet(k) { try { const db = await open(); return await new Promise(r => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => r(q.result); q.onerror = () => r(undefined); }); } catch (e) { return undefined; } }
+  async function rawSet(k, v) { try { const db = await open(); await new Promise(r => { const tx = db.transaction("kv", "readwrite"); tx.objectStore("kv").put(v, k); tx.oncomplete = r; tx.onerror = r; }); } catch (e) {} }
+  return { get: k => guard(rawGet(k), undefined), set: (k, v) => guard(rawSet(k, v), undefined) };
+})();
+
+// الشموع: من الذاكرة ← من كاش المتصفح ← من بايننس (بس الناقص)
+const MEM = {};
+async function loadCandles(sym, fromTs, prog) {
+  const now = Date.now();
+  let st = MEM[sym];
+  if (!st) {
+    const c = await idb.get("k_" + sym);
+    st = c && c.t.length && c.t[0] <= fromTs + 7*864e5 ? { t: Array.from(c.t), v: Array.from(c.v) } : { t: [], v: [] };
   }
+  let t = st.t.length ? st.t[st.t.length-1] + M15 : fromTs, added = 0;
+  while (t < now - M15) {
+    const r = await getJSON("/fapi/v1/klines", { symbol: sym, interval: "15m", startTime: t, limit: 1000 });
+    if (!r.length) break;
+    for (const k of r) if (k[6] < now && (!st.t.length || k[0] > st.t[st.t.length-1])) { st.t.push(k[0]); st.v.push(+k[1], +k[2], +k[3], +k[4]); added++; }
+    t = r[r.length-1][0] + M15;
+    prog && prog(new Date(r[r.length-1][0]).toISOString().slice(0, 10));
+    if (r.length < 1000) break;
+    await sleep(350);
+  }
+  MEM[sym] = st;
+  if (added > 50) await idb.set("k_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) });
+  else if (added) st.dirty = (st.dirty || 0) + added;
+  if (st.dirty > 40) { st.dirty = 0; idb.set("k_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) }); }
+  if (!st.t.length) return null;
   // شموع متواصلة من حد 4H، والفجوات بشمعة مسطّحة
-  const keys = [...rows.keys()].sort((a, b) => a - b);
-  const t0 = Math.ceil(keys[0] / H4) * H4;
-  const n = Math.floor((keys[keys.length-1] - t0)/M15) + 1;   // لآخر شمعة 15m مسكّرة
-  const D = { t0, o: [], h: [], l: [], c: [] }; let prev = null;
+  let a = 0; while (a < st.t.length && st.t[a] < fromTs) a++;
+  if (a >= st.t.length) a = 0;
+  const t0 = Math.ceil(st.t[a] / H4) * H4, last = st.t[st.t.length-1];
+  const n = Math.floor((last - t0)/M15) + 1;
+  if (n < 16*60) return null;
+  const D = { t0, o: [], h: [], l: [], c: [] }; let p = a, prev = null;
   for (let i = 0; i < n; i++) {
-    const v = rows.get(t0 + i*M15);
-    if (v) { D.o.push(v[0]); D.h.push(Math.max(v[1], v[0], v[3])); D.l.push(Math.min(v[2], v[0], v[3])); D.c.push(v[3]); prev = v[3]; }
-    else { const p = prev ?? rows.get(keys.find(x => x > t0 + i*M15))[0]; D.o.push(p); D.h.push(p); D.l.push(p); D.c.push(p); }
+    const ts = t0 + i*M15; while (p < st.t.length && st.t[p] < ts) p++;
+    if (p < st.t.length && st.t[p] === ts) { const o = st.v[4*p], hh = st.v[4*p+1], l = st.v[4*p+2], c = st.v[4*p+3];
+      D.o.push(o); D.h.push(Math.max(hh, o, c)); D.l.push(Math.min(l, o, c)); D.c.push(c); prev = c; }
+    else { const q = prev ?? st.v[4*Math.min(p, st.t.length-1)]; D.o.push(q); D.h.push(q); D.l.push(q); D.c.push(q); }
   }
   return D;
 }
 
-async function loadFunding(fromTs) {
-  const out = []; let t = fromTs;
-  for (let g = 0; g < 50; g++) {
-    const r = await getJSON("/fapi/v1/fundingRate", { symbol: "BTCUSDT", startTime: t, limit: 1000 });
-    for (const f of r) out.push({ t: f.fundingTime, rate: +f.fundingRate, mark: +(f.markPrice || 0) });
+const FMEM = {};
+async function loadFunding(sym, fromTs, D) {
+  let out = FMEM[sym] || (await idb.get("f_" + sym)) || [];
+  if (out.length && out[0].t > fromTs + 864e5) out = [];
+  let t = out.length ? out[out.length-1].t + 1 : fromTs, added = 0;
+  if (!FMEM[sym] || Date.now() - t > 8*3600e3) for (let g = 0; g < 30; g++) {
+    const r = await getJSON("/fapi/v1/fundingRate", { symbol: sym, startTime: t, limit: 1000 });
+    for (const f of r) { out.push({ t: f.fundingTime, rate: +f.fundingRate, mark: +(f.markPrice || 0) }); added++; }
     if (r.length < 1000) break; t = r[r.length-1].fundingTime + 1;
   }
-  return out;
+  FMEM[sym] = out;
+  if (added) idb.set("f_" + sym, out);
+  return out.filter(f => f.t >= fromTs).map(f => f.mark ? f : { ...f, mark: D.c[Math.min(D.c.length-1, Math.max(0, Math.floor((f.t - D.t0)/M15)))] });
+}
+
+async function topCoins(nc) {
+  const info = await getJSON("/fapi/v1/exchangeInfo");
+  const ok = new Set(info.symbols.filter(s => s.contractType === "PERPETUAL" && s.status === "TRADING" && s.quoteAsset === "USDT").map(s => s.symbol));
+  const STABLE = new Set(["USDCUSDT", "FDUSDUSDT", "TUSDUSDT", "USDPUSDT", "DAIUSDT", "BUSDUSDT", "EURUSDT", "USDEUSDT", "XUSDUSDT", "RLUSDUSDT"]);
+  const tk = await getJSON("/fapi/v1/ticker/24hr");
+  const list = tk.filter(t => ok.has(t.symbol) && !STABLE.has(t.symbol)).sort((a, b) => +b.quoteVolume - +a.quoteVolume).slice(0, nc).map(t => t.symbol);
+  if (!list.includes("BTCUSDT")) list[list.length-1] = "BTCUSDT";
+  return list;
 }
 
 // ===================== التشغيل والعرض =====================
-let RESULT = null, SEL = null, SORT = { k: "net", dir: -1 }, CACHE = null, LIVE_PX = null, SEEN = null, LAST_PX_T = 0;
+let RESULT = null, SEL = null, SORT = { k: "net", dir: -1 }, CACHE = null, SEEN = null, LAST_PX_T = 0, COINS = null, CSYM = "BTCUSDT";
+const LIVE = {}, FORM = {};
+const pxOf = sym => LIVE[sym] || (CACHE && CACHE.bySym[sym] ? CACHE.bySym[sym].D.c[CACHE.bySym[sym].D.c.length-1] : null);
 
 function params(makerEntry) {
   const P = { notional: +$("notional").value, maker: +$("maker").value/100, taker: +$("taker").value/100, slip: +$("slip").value/100, makerEntry };
@@ -969,14 +1026,25 @@ function params(makerEntry) {
   return P;
 }
 
+// حد أقصى للصفقات المفتوحة بنفس الوقت (0 = بلا حد): الأسبق بالدخول بياخد المكان
+function capTrades(raw) {
+  const cap = Math.max(0, Math.floor(+$("maxOpen").value || 0));
+  if (!cap) return raw;
+  const s = raw.slice().sort((a, b) => a.eTs - b.eTs || a.name.localeCompare(b.name)), act = [], out = [];
+  for (const t of s) {
+    for (let q = act.length - 1; q >= 0; q--) if (act[q] <= t.eTs) act.splice(q, 1);
+    if (act.length >= cap) continue;
+    act.push(t.open ? Infinity : t.xTs); out.push(t);
+  }
+  return out;
+}
+
 function recalc() {
   if (!CACHE) return;
-  const { D, funding, raw, startTs } = CACHE, last = LIVE_PX || D.c[D.c.length-1];
   const P = params($("makerEntry").checked), PM = params(true), PT = params(false);
-  RESULT = { trades: raw.map(t => money(t, D, P, funding, last)), last, startTs, P,
-             makerNet: raw.map(t => money(t, D, PM, funding, last)).filter(t => !t.open).reduce((s, t) => s + t.net, 0),
-             takerNet: raw.map(t => money(t, D, PT, funding, last)).filter(t => !t.open).reduce((s, t) => s + t.net, 0),
-             upd: D.t0 + D.c.length*M15 };
+  const all = (Q) => CACHE.coins.flatMap(c => c.raw.map(t => ({ ...money(t, c.D, Q, c.funding, pxOf(c.sym)), sym: c.sym })));
+  const net = Q => capTrades(all(Q)).filter(t => !t.open).reduce((s, t) => s + t.net, 0);
+  RESULT = { trades: capTrades(all(P)), startTs: CACHE.startTs, P, makerNet: net(PM), takerNet: net(PT), upd: CACHE.upd };
   render();
 }
 
@@ -986,39 +1054,57 @@ async function run(silent) {
     $("run").disabled = true;
     const startTs = new Date($("start").value + "T00:00:00").getTime();
     const warm = 260*24*3600e3;   // سخونة المؤشرات (1500 شمعة 4H)
-    const D = await load15m(Math.floor((startTs - warm)/H4)*H4, st);
-    st("⏳ بجيب التمويل (Funding)…");
-    const funding = await loadFunding(startTs);
-    st("⚙️ بحسب الاستراتيجيات…");
-    await new Promise(z => setTimeout(z, 30));
-    const inds = { 1: makeInd(D, 1), 4: makeInd(D, 4), 16: makeInd(D, 16) };
-    const raw = [];
-    for (const sp of STRATS) for (const t of evaluate(D, inds, sp, startTs)) raw.push(t);
-    CACHE = { D, funding, raw, startTs }; LIVE_PX = null;
-    try { localStorage.setItem("nexora_start", $("start").value); } catch (e) {}
+    const fromTs = Math.floor((startTs - warm)/H4)*H4;
+    const nc = Math.min(50, Math.max(1, +$("ncoins").value || 30));
+    if (!COINS || COINS.length !== nc) { st("🔎 بجيب أعلى العملات حسب حجم التداول…"); COINS = await topCoins(nc); fillCoinSel(); connectWS(); }
+    const coins = [], done = { n: 0 };
+    // تحميل: 3 عملات بنفس الوقت عشان ما نتعدى حد بايننس
+    const queue = COINS.slice();
+    const worker = async () => { while (queue.length) { const sym = queue.shift();
+      try { const D = await loadCandles(sym, fromTs, d => st(`⬇️ ${done.n}/${COINS.length} — ${cn(sym)} ${d}`));
+        if (D) { const funding = await loadFunding(sym, startTs, D); coins.push({ sym, D, funding }); } } catch (e) { if (String(e.message).includes("451")) throw e; }
+      done.n++; st(`⬇️ حمّلت ${done.n}/${COINS.length} عملة…`); } };
+    await Promise.all([worker(), worker(), worker()]);
+    coins.sort((a, b) => COINS.indexOf(a.sym) - COINS.indexOf(b.sym));
+    let k = 0;
+    for (const c of coins) {
+      st(`⚙️ بحسب الاستراتيجيات… ${++k}/${coins.length} (${cn(c.sym)})`);
+      await sleep(5);
+      const inds = { 1: makeInd(c.D, 1), 4: makeInd(c.D, 4), 16: makeInd(c.D, 16) };
+      c.raw = []; for (const sp of STRATS) for (const t of evaluate(c.D, inds, sp, startTs)) c.raw.push(t);
+    }
+    const upd = Math.max(...coins.map(c => c.D.t0 + c.D.c.length*M15));
+    CACHE = { coins, bySym: Object.fromEntries(coins.map(c => [c.sym, c])), startTs, upd };
+    try { localStorage.setItem("nexora_start", $("start").value); localStorage.setItem("nexora_nc", String(nc)); } catch (e) {}
     recalc(); announce();
-    $("status").textContent = `✅ آخر شمعة مسكّرة: ${dt(RESULT.upd)} — الفحص الجاي ${dt(RESULT.upd + M15)} | BTC ${RESULT.last.toLocaleString("en-US", { maximumFractionDigits: 1 })}`;
+    const b = pxOf("BTCUSDT");
+    $("status").textContent = `✅ ${coins.length} عملة — آخر شمعة مسكّرة: ${dt(RESULT.upd)} — الفحص الجاي ${dt(RESULT.upd + M15)}${b ? " | BTC " + b.toLocaleString("en-US", { maximumFractionDigits: 1 }) : ""}`;
   } catch (e) {
     st("❌ " + e.message);
   } finally { $("run").disabled = false; }
 }
 
+function fillCoinSel() {
+  const s = $("csel"); if (!COINS.includes(CSYM)) CSYM = COINS[0];
+  s.innerHTML = COINS.map(x => `<option value="${x}" ${x === CSYM ? "selected" : ""}>${cn(x)}</option>`).join("");
+}
+
 function renderAccount() {
   const { trades, P } = RESULT, B = +$("balance").value, lev = Math.max(1, +$("lev").value);
-  const closed = trades.filter(t => !t.open), open = trades.filter(t => t.open);
+  const closed = trades.filter(t => !t.open), open = trades.filter(t => t.open).sort((a, b) => b.eTs - a.eTs);
   const realized = closed.reduce((s, t) => s + t.net, 0), unreal = open.reduce((s, t) => s + t.net, 0);
   const margin = open.length * P.notional / lev, equity = B + realized + unreal, avail = B + realized - margin + Math.min(0, unreal);
   const num = x => `<span class="num">${x.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
-  $("accNote").textContent = `(${P.notional}$ للصفقة × ${lev}x = هامش ${(P.notional/lev).toFixed(2)}$)`;
+  $("accNote").textContent = `(${P.notional}$ للصفقة × ${lev}x = هامش ${(P.notional/lev).toFixed(2)}$ — ${CACHE.coins.length} عملة)`;
   $("acc").innerHTML = [
     ["الرصيد المتاح", num(avail) + " USDT"], ["Equity", num(equity) + " USDT"],
     ["الربح المحقق", usd(realized)], ["غير محقق (المفتوحة)", usd(unreal)],
-    ["الربح الكلي", usd(realized + unreal)], ["صفقات مفتوحة", `<span class="num">${open.length}</span>`],
+    ["الربح الكلي", usd(realized + unreal)], ["صفقات مفتوحة", `<span class="num">${open.length}</span> <span class="mut">هامش ${margin.toFixed(0)}$</span>`],
   ].map(([k, v]) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
-  const px = RESULT.last;
   $("openT").innerHTML = `<tr><th>الاستراتيجية</th><th>العملة</th><th>اتجاه</th><th>دخول</th><th>السعر هلأ</th><th>الوقف</th><th>الهدف</th><th>بدأت</th><th>مدتها</th><th>عمولة+تمويل</th><th>ربح/خسارة</th></tr>` +
-    (open.map(t => `<tr><td class="nm">${t.name}</td><td><b>BTC/USDT</b></td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><span class="num">${t.fillIn.toFixed(1)}</span></td><td><span class="num">${px.toFixed(1)}</span></td><td><span class="num neg">${t.stop.toFixed(1)}</span></td><td><span class="num pos">${Number.isFinite(t.target) ? t.target.toFixed(1) : "إشارة خروج"}</span></td><td><span class="num">${dt(t.eTs)}</span></td><td>${dur(Date.now() - t.eTs)}</td><td>${usd(t.fund - t.fee)}</td><td><b>${usd(t.net)}</b></td></tr>`).join("") ||
+    (open.map(t => `<tr data-s="${t.sym}" style="cursor:pointer"><td class="nm">${t.name}</td><td><b>${cn(t.sym)}</b></td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><span class="num">${fp(t.fillIn)}</span></td><td><span class="num">${fp(t.fillOut)}</span></td><td><span class="num neg">${fp(t.stop)}</span></td><td><span class="num pos">${Number.isFinite(t.target) ? fp(t.target) : "إشارة خروج"}</span></td><td><span class="num">${dt(t.eTs)}</span></td><td>${dur(Date.now() - t.eTs)}</td><td>${usd(t.fund - t.fee)}</td><td><b>${usd(t.net)}</b></td></tr>`).join("") ||
      `<tr><td colspan="11" class="mut">ما في صفقات مفتوحة هلأ — الاستراتيجيات بتستنى إشارة.</td></tr>`);
+  $("openT").querySelectorAll("tr[data-s]").forEach(tr => tr.onclick = () => { CSYM = tr.dataset.s; fillCoinSel(); drawChart(); radar(); updateLiveHeader(); });
 }
 
 function render() {
@@ -1053,7 +1139,7 @@ function render() {
 
   // الترتيب
   const rows = STRATS.map(sp => {
-    const c = closed.filter(t => t.name === sp.name).sort((a, b) => a.xTs - b.xTs), o = open.find(t => t.name === sp.name);
+    const c = closed.filter(t => t.name === sp.name).sort((a, b) => a.xTs - b.xTs), os = open.filter(t => t.name === sp.name), o = os.length ? { n: os.length, net: sum(os, "net") } : null;
     let eq = 0, peak = 0, dd = 0, st = 0, mx = 0, gp = 0, gl = 0;
     for (const t of c) { eq += t.net; peak = Math.max(peak, eq); dd = Math.max(dd, peak - eq);
       st = t.net <= 0 ? st + 1 : 0; mx = Math.max(mx, st); if (t.net > 0) gp += t.net; else gl -= t.net; }
@@ -1066,20 +1152,20 @@ function render() {
   const th = (k, t) => `<th data-k="${k}">${t}${SORT.k === k ? (SORT.dir < 0 ? " ▼" : " ▲") : ""}</th>`;
   const eatTxt = r => r.n === 0 ? "—" : (r.eat >= 999 ? `<span class="neg">خسران قبلها</span>` : `<span class="num ${r.eat >= 100 ? "neg" : r.eat >= 50 ? "" : "pos"}">${r.eat.toFixed(0)}%</span>`);
   $("board").innerHTML = `<tr><th>#</th>${th("name", "الاستراتيجية")}${th("n", "صفقات")}${th("win", "ربح%")}${th("pf", "PF")}${th("gpt", "قبل العمولة/صفقة")}${th("eat", "العمولة أكلت")}${th("gross", "إجمالي")}${th("fee", "عمولة")}${th("fund", "تمويل")}${th("net", "صافي")}${th("avg", "صافي/صفقة")}${th("dd", "أسوأ تراجع")}${th("mx", "خسائر ورا بعض")}<th>مفتوحة هلأ</th></tr>` +
-    rows.map((r, k) => `<tr data-n="${r.name}" class="${SEL === r.name ? "sel" : ""}"><td>${k+1}</td><td class="nm">${r.name}</td><td>${r.n}</td><td>${r.win.toFixed(0)}%</td><td><span class="num">${r.n ? (r.pf >= 99 ? "∞" : r.pf.toFixed(2)) : "—"}</span></td><td>${usd(r.gpt)}</td><td>${eatTxt(r)}</td><td>${usd(r.gross)}</td><td>${fee$(r.fee)}</td><td>${usd(r.fund)}</td><td><b>${usd(r.net)}</b></td><td>${usd(r.avg)}</td><td><span class="num neg">${r.dd ? "−" + r.dd.toFixed(2) + "$" : "—"}</span></td><td>${r.mx}</td><td>${r.o ? `<span class="tag ${r.o.d === 1 ? "L" : "S"}">${r.o.d === 1 ? "LONG" : "SHORT"}</span> ${usd(r.o.net)}` : "—"}</td></tr>`).join("");
+    rows.map((r, k) => `<tr data-n="${r.name}" class="${SEL === r.name ? "sel" : ""}"><td>${k+1}</td><td class="nm">${r.name}</td><td>${r.n}</td><td>${r.win.toFixed(0)}%</td><td><span class="num">${r.n ? (r.pf >= 99 ? "∞" : r.pf.toFixed(2)) : "—"}</span></td><td>${usd(r.gpt)}</td><td>${eatTxt(r)}</td><td>${usd(r.gross)}</td><td>${fee$(r.fee)}</td><td>${usd(r.fund)}</td><td><b>${usd(r.net)}</b></td><td>${usd(r.avg)}</td><td><span class="num neg">${r.dd ? "−" + r.dd.toFixed(2) + "$" : "—"}</span></td><td>${r.mx}</td><td>${r.o ? `<span class="num">${r.o.n}</span> ${usd(r.o.net)}` : "—"}</td></tr>`).join("");
   $("board").querySelectorAll("th[data-k]").forEach(h => h.onclick = () => { const k = h.dataset.k; SORT = { k, dir: SORT.k === k ? -SORT.dir : -1 }; render(); });
   $("board").querySelectorAll("tr[data-n]").forEach(tr => tr.onclick = () => { SEL = SEL === tr.dataset.n ? null : tr.dataset.n; render(); });
 
   // الصفقات
   const list = trades.filter(t => !SEL || t.name === SEL).sort((a, b) => (b.open - a.open) || (b.xTs - a.xTs));
   $("tscope").textContent = SEL ? `— ${SEL} (اضغط عليها مرة تانية لترجع للكل)` : "— كل الاستراتيجيات";
-  $("trades").innerHTML = `<tr><th>دخول</th><th>خروج</th><th>الاستراتيجية</th><th>اتجاه</th><th>سعر الدخول → الخروج</th><th>السبب</th><th>إجمالي</th><th>عمولة</th><th>تمويل</th><th>صافي</th></tr>` +
-    list.slice(0, 400).map(t => `<tr><td>${dt(t.eTs)}</td><td>${t.open ? "<b>مفتوحة</b>" : dt(t.xTs)}</td><td class="nm">${t.name}</td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><span class="num">${t.fillIn.toFixed(1)} → ${t.fillOut.toFixed(1)}</span></td><td>${t.open ? `وقف ${t.stop.toFixed(1)} / هدف ${Number.isFinite(t.target) ? t.target.toFixed(1) : "إشارة خروج"}` : (WHY[t.why] || t.why)}</td><td>${usd(t.gross)}</td><td>${fee$(t.fee)}</td><td>${usd(t.fund)}</td><td><b>${usd(t.net)}</b></td></tr>`).join("") ||
-    `<tr><td colspan="10" class="mut">لسا ما في صفقات من هالتاريخ.</td></tr>`;
+  $("trades").innerHTML = `<tr><th>دخول</th><th>خروج</th><th>الاستراتيجية</th><th>العملة</th><th>اتجاه</th><th>سعر الدخول → الخروج</th><th>السبب</th><th>إجمالي</th><th>عمولة</th><th>تمويل</th><th>صافي</th></tr>` +
+    list.slice(0, 400).map(t => `<tr><td>${dt(t.eTs)}</td><td>${t.open ? "<b>مفتوحة</b>" : dt(t.xTs)}</td><td class="nm">${t.name}</td><td>${cn(t.sym)}</td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><span class="num">${fp(t.fillIn)} → ${fp(t.fillOut)}</span></td><td>${t.open ? `وقف ${fp(t.stop)} / هدف ${Number.isFinite(t.target) ? fp(t.target) : "إشارة خروج"}` : (WHY[t.why] || t.why)}</td><td>${usd(t.gross)}</td><td>${fee$(t.fee)}</td><td>${usd(t.fund)}</td><td><b>${usd(t.net)}</b></td></tr>`).join("") ||
+    `<tr><td colspan="11" class="mut">لسا ما في صفقات من هالتاريخ.</td></tr>`;
 }
 
 // ===================== لايف: WebSocket + شارت + رادار + صوت =====================
-let FORMING = null, WS = null, SOUND = false, LAST_LIGHT = 0, LAST_RADAR = 0, AUDIO = null;
+let WS = null, SOUND = false, LAST_LIGHT = 0, LAST_RADAR = 0, AUDIO = null, WS_KEY = "";
 const TFN = { 1: "15m", 4: "1h", 16: "4h" };
 
 function beep(up) {
@@ -1099,12 +1185,16 @@ function feed(html) {
 }
 
 function connectWS() {
+  if (!COINS) return;
+  const key = COINS.join(","); if (WS && WS_KEY === key && WS.readyState <= 1) return;
+  try { if (WS) { WS.onclose = null; WS.close(); } } catch (e) {}
+  WS_KEY = key;
   try {
-    WS = new WebSocket("wss://fstream.binance.com/ws/btcusdt@kline_15m");
+    WS = new WebSocket("wss://fstream.binance.com/stream?streams=" + COINS.map(s => s.toLowerCase() + "@kline_15m").join("/"));
     WS.onmessage = ev => {
-      const k = JSON.parse(ev.data).k; if (!k) return;
-      FORMING = { t: k.t, o: +k.o, h: +k.h, l: +k.l, c: +k.c, closed: k.x };
-      LIVE_PX = +k.c; LAST_PX_T = Date.now();
+      const m = JSON.parse(ev.data), k = m.data && m.data.k; if (!k) return;
+      FORM[k.s] = { t: k.t, o: +k.o, h: +k.h, l: +k.l, c: +k.c, closed: k.x };
+      LIVE[k.s] = +k.c; LAST_PX_T = Date.now();
       const now = Date.now();
       if (now - LAST_LIGHT > 1000) { LAST_LIGHT = now; lightUpdate(); }
     };
@@ -1116,18 +1206,18 @@ function connectWS() {
 // تحديث خفيف: السعر + الحساب + المفتوحة + الشارت (بدون إعادة حساب كل الصفقات)
 function lightUpdate() {
   if (!CACHE || !RESULT) return;
-  const { D, funding } = CACHE, P = RESULT.P, px = LIVE_PX || RESULT.last;
-  RESULT.trades = RESULT.trades.map(t => t.open ? money(t, D, P, funding, px) : t);
-  RESULT.last = px;
+  const P = RESULT.P;
+  RESULT.trades = RESULT.trades.map(t => { if (!t.open) return t; const c = CACHE.bySym[t.sym]; return { ...money(t, c.D, P, c.funding, pxOf(t.sym)), sym: t.sym }; });
   renderAccount(); drawChart(); updateLiveHeader();
   if (Date.now() - LAST_RADAR > 10000) { LAST_RADAR = Date.now(); radar(); }
 }
 
 function updateLiveHeader() {
-  const px = LIVE_PX || (RESULT && RESULT.last);
+  const px = pxOf(CSYM), F = FORM[CSYM];
   if (px) {
-    $("lpx").textContent = px.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-    if (FORMING) { const ch = (px/FORMING.o - 1)*100; $("lchg").textContent = (ch >= 0 ? "+" : "") + ch.toFixed(2) + "% بالشمعة"; $("lchg").className = "num " + (ch >= 0 ? "up" : "dn"); }
+    $("lpx").textContent = fp(px);
+    if (F) { const ch = (px/F.o - 1)*100; $("lchg").textContent = (ch >= 0 ? "+" : "") + ch.toFixed(2) + "% بالشمعة"; $("lchg").className = "num " + (ch >= 0 ? "up" : "dn"); }
+    else $("lchg").textContent = "";
   }
   const nextClose = Math.floor(Date.now()/M15)*M15 + M15, left = Math.max(0, nextClose - Date.now());
   $("cd").textContent = String(Math.floor(left/60000)).padStart(2, "0") + ":" + String(Math.floor(left/1000) % 60).padStart(2, "0");
@@ -1136,35 +1226,31 @@ function updateLiveHeader() {
 }
 
 function drawChart() {
-  if (!CACHE) return;
+  if (!CACHE || !CACHE.bySym[CSYM]) return;
   const cv = $("chart15"), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, Hh = cv.clientHeight;
   if (!W) return;
   cv.width = W*dpr; cv.height = Hh*dpr; const g = cv.getContext("2d"); g.scale(dpr, dpr); g.clearRect(0, 0, W, Hh);
   g.direction = "ltr"; g.textAlign = "left";
-  const { D } = CACHE, N = 120, n = D.c.length, s0 = Math.max(0, n - N + 1);
+  const { D } = CACHE.bySym[CSYM], N = 120, n = D.c.length, s0 = Math.max(0, n - N + 1), FORMING = FORM[CSYM];
   const bars = []; for (let i = s0; i < n; i++) bars.push({ t: D.t0 + i*M15, o: D.o[i], h: D.h[i], l: D.l[i], c: D.c[i] });
   if (FORMING && FORMING.t >= D.t0 + n*M15) bars.push(FORMING);
-  const open = RESULT.trades.filter(t => t.open);
+  const mine = RESULT.trades.filter(t => t.sym === CSYM), open = mine.filter(t => t.open);
   let lo = Math.min(...bars.map(b => b.l)), hi = Math.max(...bars.map(b => b.h));
   for (const t of open) for (const v of [t.stop, t.target, t.fillIn]) if (Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
   const pad = (hi - lo)*0.05 || 1; lo -= pad; hi += pad;
-  const R = 62, cw = (W - R)/bars.length, y = v => 8 + (Hh - 24)*(hi - v)/(hi - lo);
-  // شبكة وأسعار
+  const R = 70, cw = (W - R)/bars.length, y = v => 8 + (Hh - 24)*(hi - v)/(hi - lo);
   g.font = "11px ui-monospace,monospace"; g.fillStyle = "#6b7280"; g.strokeStyle = "#1f2430"; g.lineWidth = 1;
-  for (let k = 0; k <= 4; k++) { const v = lo + (hi - lo)*k/4, yy = y(v); g.beginPath(); g.moveTo(0, yy); g.lineTo(W - R, yy); g.stroke(); g.fillText(v.toFixed(0), W - R + 6, yy + 4); }
-  // شموع
+  for (let k = 0; k <= 4; k++) { const v = lo + (hi - lo)*k/4, yy = y(v); g.beginPath(); g.moveTo(0, yy); g.lineTo(W - R, yy); g.stroke(); g.fillText(fp(v), W - R + 6, yy + 4); }
   bars.forEach((b, i) => {
     const x = i*cw + cw/2, up = b.c >= b.o; g.strokeStyle = g.fillStyle = up ? "#22c55e" : "#ef4444";
     g.beginPath(); g.moveTo(x, y(b.h)); g.lineTo(x, y(b.l)); g.stroke();
     const top = y(Math.max(b.o, b.c)), hgt = Math.max(1, Math.abs(y(b.o) - y(b.c)));
     g.globalAlpha = b === FORMING ? 0.55 : 1; g.fillRect(x - cw*0.35, top, cw*0.7, hgt); g.globalAlpha = 1;
   });
-  // خطوط الصفقات المفتوحة
   const line = (v, col, dash, label) => { const yy = y(v); g.strokeStyle = col; g.setLineDash(dash); g.beginPath(); g.moveTo(0, yy); g.lineTo(W - R, yy); g.stroke(); g.setLineDash([]); g.fillStyle = col; g.fillText(label, 4, yy - 3); };
   for (const t of open) { line(t.fillIn, "#e5e7eb", [4, 3], `${t.name} ${t.d === 1 ? "L" : "S"}`); if (Number.isFinite(t.stop)) line(t.stop, "#ef4444", [2, 3], "SL"); if (Number.isFinite(t.target)) line(t.target, "#22c55e", [2, 3], "TP"); }
-  // علامات الدخول والخروج
   const tx = ts => (ts - bars[0].t)/M15*cw + cw/2;
-  for (const t of RESULT.trades) {
+  for (const t of mine) {
     for (const [ts, price, isIn] of [[t.eTs, t.fillIn, true], [t.open ? null : t.xTs - M15, t.fillOut, false]]) {
       if (ts === null || ts < bars[0].t) continue;
       const x = tx(ts), yy = y(price); g.fillStyle = isIn ? (t.d === 1 ? "#22c55e" : "#ef4444") : "#eab308";
@@ -1175,26 +1261,24 @@ function drawChart() {
       g.fill();
     }
   }
-  // خط السعر الحالي
-  const px = LIVE_PX || bars[bars.length-1].c, yy = y(px);
+  const px = pxOf(CSYM) || bars[bars.length-1].c, yy = y(px);
   g.strokeStyle = "#60a5fa"; g.setLineDash([1, 2]); g.beginPath(); g.moveTo(0, yy); g.lineTo(W - R, yy); g.stroke(); g.setLineDash([]);
-  g.fillStyle = "#60a5fa"; g.fillRect(W - R + 2, yy - 8, R - 4, 16); g.fillStyle = "#081018"; g.fillText(px.toFixed(1), W - R + 5, yy + 4);
+  g.fillStyle = "#60a5fa"; g.fillRect(W - R + 2, yy - 8, R - 4, 16); g.fillStyle = "#081018"; g.fillText(fp(px), W - R + 5, yy + 4);
 }
 
-// رادار: لو الشمعة الحالية سكّرت هيك، مين بيعطي إشارة؟
+// رادار: لو الشمعة الحالية سكّرت هيك، مين بيعطي إشارة؟ (للعملة المختارة)
 function radar() {
-  if (!CACHE) return;
-  const { D } = CACHE, n = D.c.length, px = LIVE_PX || D.c[n-1];
-  const f = FORMING && FORMING.t >= D.t0 + n*M15 ? FORMING : { o: px, h: px, l: px, c: px };
+  if (!CACHE || !CACHE.bySym[CSYM]) return;
+  const { D } = CACHE.bySym[CSYM], n = D.c.length, px = pxOf(CSYM), F = FORM[CSYM];
+  const f = F && F.t >= D.t0 + n*M15 ? F : { o: px, h: px, l: px, c: px };
   const ext = { t0: D.t0, o: D.o.concat([f.o]), h: D.h.concat([Math.max(f.h, px)]), l: D.l.concat([Math.min(f.l, px)]), c: D.c.concat([px]) };
   const rows = [], now = Date.now();
   for (const m of [1, 4, 16]) {
-    // كمّل الشمعة الحالية للفريم بشموع مسطّحة على السعر الحالي (بس للحساب)
     const E = { t0: ext.t0, o: ext.o.slice(), h: ext.h.slice(), l: ext.l.slice(), c: ext.c.slice() };
     while (E.c.length % m) { E.o.push(px); E.h.push(px); E.l.push(px); E.c.push(px); }
     const I = makeInd(E, m), i = I.n - 1, span = m*M15, barEnd = D.t0 + Math.ceil((now - D.t0 + 1)/span)*span, left = Math.max(0, barEnd - now);
     for (const sp of STRATS.filter(x => x.mult === m)) {
-      const d = sp.sig(I, i), ot = RESULT.trades.find(t => t.open && t.name === sp.name), A = I.atr[i];
+      const d = sp.sig(I, i), ot = RESULT.trades.find(t => t.open && t.name === sp.name && t.sym === CSYM), A = I.atr[i];
       let entry = null, stop = null, target = null;
       if (ot) { entry = ot.fillIn; stop = ot.stop; target = ot.target; }
       else if (d) {
@@ -1208,9 +1292,9 @@ function radar() {
   }
   rows.sort((a, b) => (!!b.d - !!a.d) || a.left - b.left);
   const mm = x => `${Math.floor(x/3600000) ? Math.floor(x/3600000) + "س " : ""}${Math.max(1, Math.ceil(x/60000) % 60 || 60)}د`;
-  const f1 = v => v === null || v === undefined ? '<span class="mut">—</span>' : Number.isFinite(v) ? `<span class="num">${v.toFixed(1)}</span>` : '<span class="mut">إشارة خروج</span>';
+  const f1 = v => v === null || v === undefined ? '<span class="mut">—</span>' : Number.isFinite(v) ? `<span class="num">${fp(v)}</span>` : '<span class="mut">إشارة خروج</span>';
   $("radar").innerHTML = `<tr><th>الاستراتيجية</th><th>العملة</th><th>الفريم</th><th>الشمعة بتسكّر بعد</th><th>لو سكّرت هلأ</th><th>سعر الدخول</th><th>الوقف</th><th>الهدف</th><th>حالتها</th></tr>` +
-    rows.map(r => `<tr><td class="nm">${r.sp.name}</td><td>BTCUSDT</td><td>${TFN[r.m]}</td><td><span class="num">${mm(r.left)}</span></td>` +
+    rows.map(r => `<tr><td class="nm">${r.sp.name}</td><td>${cn(CSYM)}</td><td>${TFN[r.m]}</td><td><span class="num">${mm(r.left)}</span></td>` +
       `<td>${r.ot ? `<span class="tag ${r.ot.d === 1 ? "L" : "S"}">${r.ot.d === 1 ? "LONG" : "SHORT"}</span>` : r.d ? `<span class="hot">🔥 ${r.d === 1 ? "LONG" : "SHORT"}</span>` : `<span class="mut">—</span>`}</td>` +
       `<td>${r.entry !== null ? (r.ot ? f1(r.entry) : "≈ " + f1(r.entry)) : f1(null)}</td><td class="neg">${f1(r.stop)}</td><td class="pos">${f1(r.target)}</td>` +
       `<td>${r.busy ? `<span class="tag L">صفقة مفتوحة ${usd(r.ot.net)}</span>` : (r.d ? (r.sp.entry === "conf15" ? "بتستنى تأكيد 15m بعد التسكير" : "رح تفتح إذا ضلت هيك") : '<span class="mut">بتستنى</span>')}</td></tr>`).join("");
@@ -1222,13 +1306,12 @@ function toast(html) {
 }
 
 function announce() {
-  // صفقات جديدة أو مسكّرة من آخر تحديث
-  const keys = new Map(RESULT.trades.map(t => [t.name + "|" + t.e, t]));
+  const keys = new Map(RESULT.trades.map(t => [t.name + "|" + t.sym + "|" + t.eTs, t]));
   if (SEEN) {
     for (const [k, t] of keys) {
       const old = SEEN.get(k);
-      if (!old) { const h = `📗 <b>فتح</b> ${t.name} — <span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span> @ <span class="num">${t.fillIn.toFixed(1)}</span>`; toast(h); feed(h); beep(true); }
-      else if (old.open && !t.open) { const h = `${t.net > 0 ? "✅" : "❌"} <b>سكّر</b> ${t.name} — ${WHY[t.why]} — صافي ${usd(t.net)}`; toast(h); feed(h); beep(t.net > 0); }
+      if (!old) { const h = `📗 <b>فتح</b> ${t.name} — <b>${cn(t.sym)}</b> <span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span> @ <span class="num">${fp(t.fillIn)}</span>`; toast(h); feed(h); beep(true); }
+      else if (old.open && !t.open) { const h = `${t.net > 0 ? "✅" : "❌"} <b>سكّر</b> ${t.name} — <b>${cn(t.sym)}</b> — ${WHY[t.why] || t.why} — صافي ${usd(t.net)}`; toast(h); feed(h); beep(t.net > 0); }
     }
   }
   SEEN = new Map([...keys].map(([k, t]) => [k, { open: t.open }]));
@@ -1242,9 +1325,9 @@ async function liveTick() {
     if (now >= nextClose && now - LAST_TRY > 60000) {   // سكّرت شمعة جديدة: افحص الإشارات وافتح/سكّر
       LAST_TRY = now; BUSY = true; await run(true); BUSY = false; return;
     }
-    if (now - LAST_PX_T > 8000) {   // إذا الـ WebSocket مقطوع: سعر عادي
-      const r = await fetch(BASE + "/fapi/v1/ticker/price?symbol=BTCUSDT");
-      if (r.ok) { LIVE_PX = +(await r.json()).price; LAST_PX_T = now; lightUpdate(); }
+    if (now - LAST_PX_T > 8000) {   // إذا الـ WebSocket مقطوع: أسعار عادية
+      const r = await fetch(BASE + "/fapi/v1/ticker/price");
+      if (r.ok) { const set = new Set(COINS); for (const x of await r.json()) if (set.has(x.symbol)) LIVE[x.symbol] = +x.price; LAST_PX_T = now; lightUpdate(); }
     }
   } catch (e) { BUSY = false; }
   updateLiveHeader();
@@ -1252,13 +1335,13 @@ async function liveTick() {
 
 (function init() {
   let s = "2026-11-15";
-  try { s = localStorage.getItem("nexora_start") || s; } catch (e) {}
+  try { s = localStorage.getItem("nexora_start") || s; $("ncoins").value = localStorage.getItem("nexora_nc") || 30; } catch (e) {}
   $("start").value = s;
   $("run").onclick = () => { SEEN = null; run(); };
-  ["notional", "maker", "taker", "slip", "bnb", "makerEntry", "balance", "lev"].forEach(id => $(id).addEventListener("change", recalc));
+  ["notional", "maker", "taker", "slip", "bnb", "makerEntry", "balance", "lev", "maxOpen"].forEach(id => $(id).addEventListener("change", recalc));
+  $("csel").onchange = () => { CSYM = $("csel").value; drawChart(); radar(); updateLiveHeader(); };
   setInterval(liveTick, 5000);
   setInterval(updateLiveHeader, 1000);
-  connectWS();
   $("snd").onclick = () => { SOUND = !SOUND; $("snd").textContent = SOUND ? "🔔 الصوت" : "🔕 الصوت"; if (SOUND) beep(true); };
   window.addEventListener("resize", () => drawChart());
   document.querySelectorAll("button[data-days]").forEach(b => b.onclick = () => {
