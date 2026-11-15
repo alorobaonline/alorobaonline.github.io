@@ -1116,6 +1116,7 @@ const STRATS = [
   { name: "S17 SSL+QQE+WAE 15m", mult: 1, sig: S17.sig, run: S17.run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Replit #17" },
   ...S16.strats,
   ...S15.strats,
+  { ...S15.strats.find(s => s.name === "S15 Sweep+MSS V2 4h"), name: "⭐ S15 V2 4h R2.5 h40", R: 2.5, hold: 40, sb: 0.25, src: "Replit #15 محسّنة (اختيار من التدريب)" },
   ...SEXT.strats,
   ...S5.strats,
 ];
