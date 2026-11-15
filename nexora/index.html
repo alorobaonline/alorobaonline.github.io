@@ -43,6 +43,7 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
   <label>Taker %<input type="number" id="taker" value="0.05" step="0.001"></label>
   <label>سليبج Market %<input type="number" id="slip" value="0.01" step="0.01"></label>
   <label>خصم BNB 10%<input type="checkbox" id="bnb"></label>
+  <label>دخول Maker<input type="checkbox" id="makerEntry"></label>
   <button id="run">احسب</button>
   <button class="sec" data-days="30">آخر 30 يوم</button>
   <button class="sec" data-days="90">90 يوم</button>
@@ -59,7 +60,7 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
   <div class="wrap"><table id="board"></table></div>
   <h2>الصفقات <span class="mut" id="tscope"></span></h2>
   <div class="wrap" style="max-height:520px"><table id="trades"></table></div>
-  <p class="mut">العمولة: الدخول والوقف والوقت Taker مع سليبج، الهدف Maker. التمويل (Funding) الحقيقي من بايننس. الحساب: صافي = إجمالي − عمولة + تمويل.</p>
+  <p class="mut"><b>قبل العمولة/صفقة</b> = متوسط ربح الصفقة لو ما في عمولة. <b>العمولة أكلت</b> = كم % من هالربح راح عمولة (فوق 100% يعني العمولة قلبت الربح خسارة). <b>دخول Maker</b> = لو الدخول بأمر Limit بدل Market.<br>العمولة: الدخول (Taker إلا إذا اخترت Maker) والوقف والوقت Taker مع سليبج، الهدف Maker. التمويل (Funding) الحقيقي من بايننس. الحساب: صافي = إجمالي − عمولة + تمويل.</p>
 </div>
 
 <script id="engine">
@@ -138,6 +139,8 @@ const sigDual = bm => (I, i) => {
   if (I.BHI[i] === maxR(I.BHI, i-2, i+1) && I.C[i] < I.O[i] && I.C[i] < I.ema50[i]) return -1;
   return 0;
 };
+// دمج: SHORT من V42 (تحت EMA200) و LONG من Gann 3/.4 (فوق EMA200) — ما بيتعارضوا لأن شرط EMA200 عكس بعض
+const sigCombo = () => { const sh = sigShort(0), lg = sigGann43(3, 0.4); return (I, i) => sh(I, i) || lg(I, i); };
 const S = (name, mult, sig, sm, tm, hold, trail = null, cd = null, entry = "imm") => ({ name, mult, sig, sm, tm, hold, trail, cd, entry });
 const V40 = (a, b) => ["v40", a, b];
 const STRATS = [
@@ -159,6 +162,7 @@ const STRATS = [
   S("G-V44 Gann ADX20", 16, sigGann44(20), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
   S("G-V44 Gann ADX25", 16, sigGann44(25), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
   S("G-V45 1H Dual", 4, sigDual(0.2), 1.2, 2.5, 96),
+  S("COMBO V42 Short + Gann Long", 16, sigCombo(), 1.5, 3, 288, V40(1.5, 1.25), "sig"),
   S("G-V46 1H Dual", 4, sigDual(0.4), 1.5, 3, 144),
 ];
 
@@ -226,8 +230,8 @@ function evaluate(D, inds, sp, startTs) {
 
 // العمولة والتمويل والصافي لكل صفقة
 function money(t, D, P, funding, lastPrice) {
-  const d = t.d, fillIn = t.rawIn*(1 + d*P.slip), qty = P.notional/fillIn;
-  const feeIn = qty*fillIn*P.taker;
+  const d = t.d, fillIn = P.makerEntry ? t.rawIn : t.rawIn*(1 + d*P.slip), qty = P.notional/fillIn;
+  const feeIn = qty*fillIn*(P.makerEntry ? P.maker : P.taker);
   const eTs = D.t0 + t.e*M15, xTs = D.t0 + (t.x+1)*M15;
   let fillOut, feeOut, gross;
   if (t.open) { fillOut = lastPrice; feeOut = 0; }
@@ -294,15 +298,30 @@ async function loadFunding(fromTs) {
 }
 
 // ===================== التشغيل والعرض =====================
-let RESULT = null, SEL = null, SORT = { k: "net", dir: -1 };
+let RESULT = null, SEL = null, SORT = { k: "net", dir: -1 }, CACHE = null;
+
+function params(makerEntry) {
+  const P = { notional: +$("notional").value, maker: +$("maker").value/100, taker: +$("taker").value/100, slip: +$("slip").value/100, makerEntry };
+  if ($("bnb").checked) { P.maker *= 0.9; P.taker *= 0.9; }
+  return P;
+}
+
+function recalc() {
+  if (!CACHE) return;
+  const { D, funding, raw, startTs } = CACHE, last = D.c[D.c.length-1];
+  const P = params($("makerEntry").checked), PM = params(true), PT = params(false);
+  RESULT = { trades: raw.map(t => money(t, D, P, funding, last)), last, startTs, P,
+             makerNet: raw.map(t => money(t, D, PM, funding, last)).filter(t => !t.open).reduce((s, t) => s + t.net, 0),
+             takerNet: raw.map(t => money(t, D, PT, funding, last)).filter(t => !t.open).reduce((s, t) => s + t.net, 0),
+             upd: D.t0 + D.c.length*M15 };
+  render();
+}
 
 async function run() {
   const st = m => $("status").textContent = m;
   try {
     $("run").disabled = true;
     const startTs = new Date($("start").value + "T00:00:00").getTime();
-    const P = { notional: +$("notional").value, maker: +$("maker").value/100, taker: +$("taker").value/100, slip: +$("slip").value/100 };
-    if ($("bnb").checked) { P.maker *= 0.9; P.taker *= 0.9; }
     const warm = 260*24*3600e3;   // سخونة المؤشرات (1500 شمعة 4H)
     const D = await load15m(Math.floor((startTs - warm)/H4)*H4, st);
     st("⏳ بجيب التمويل (Funding)…");
@@ -310,13 +329,12 @@ async function run() {
     st("⚙️ بحسب الاستراتيجيات…");
     await new Promise(z => setTimeout(z, 30));
     const inds = { 1: makeInd(D, 1), 4: makeInd(D, 4), 16: makeInd(D, 16) };
-    const last = D.c[D.c.length-1];
-    const trades = [];
-    for (const sp of STRATS) for (const t of evaluate(D, inds, sp, startTs)) trades.push(money(t, D, P, funding, last));
-    RESULT = { trades, last, startTs, P, upd: D.t0 + D.c.length*M15 };
+    const raw = [];
+    for (const sp of STRATS) for (const t of evaluate(D, inds, sp, startTs)) raw.push(t);
+    CACHE = { D, funding, raw, startTs };
     try { localStorage.setItem("nexora_start", $("start").value); } catch (e) {}
-    render();
-    st(`✅ آخر شمعة: ${dt(RESULT.upd)} | BTC ${last.toLocaleString("en-US", { maximumFractionDigits: 1 })}`);
+    recalc();
+    st(`✅ آخر شمعة: ${dt(RESULT.upd)} | BTC ${RESULT.last.toLocaleString("en-US", { maximumFractionDigits: 1 })}`);
   } catch (e) {
     st("❌ " + e.message);
   } finally { $("run").disabled = false; }
@@ -337,6 +355,8 @@ function render() {
     ["تمويل", usd(sum(closed, "fund"))],
     ["الصافي", usd(sum(closed, "net"))],
     ["مفتوحة هلأ", `<span class="num">${open.length}</span> ${open.length ? usd(sum(open, "net")) : ""}`],
+    ["العمولة أكلت", sum(closed, "gross") > 0 ? `<span class="num">${(100*sum(closed, "fee")/sum(closed, "gross")).toFixed(0)}%</span><div class="mut">من الربح قبل العمولة</div>` : `<span class="neg">خسران قبلها</span>`],
+    ["لو الدخول كله Maker", `${usd(RESULT.makerNet)}<div class="mut">بتوفّر <span class="num">${(RESULT.makerNet - RESULT.takerNet).toFixed(2)}$</span> عن Taker</div>`],
   ].map(([k, v]) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
 
   // رسم الصافي التراكمي (كل الاستراتيجيات أو المختارة)
@@ -351,14 +371,20 @@ function render() {
 
   // الترتيب
   const rows = STRATS.map(sp => {
-    const c = closed.filter(t => t.name === sp.name), o = open.find(t => t.name === sp.name);
+    const c = closed.filter(t => t.name === sp.name).sort((a, b) => a.xTs - b.xTs), o = open.find(t => t.name === sp.name);
+    let eq = 0, peak = 0, dd = 0, st = 0, mx = 0, gp = 0, gl = 0;
+    for (const t of c) { eq += t.net; peak = Math.max(peak, eq); dd = Math.max(dd, peak - eq);
+      st = t.net <= 0 ? st + 1 : 0; mx = Math.max(mx, st); if (t.net > 0) gp += t.net; else gl -= t.net; }
+    const gross = sum(c, "gross"), fee = sum(c, "fee");
     return { name: sp.name, n: c.length, win: c.length ? 100*c.filter(t => t.net > 0).length/c.length : 0,
-      gross: sum(c, "gross"), fee: sum(c, "fee"), fund: sum(c, "fund"), net: sum(c, "net"), o };
+      pf: gl ? gp/gl : (gp ? 99 : 0), gpt: c.length ? gross/c.length : 0, eat: gross > 0 ? 100*fee/gross : 999,
+      avg: c.length ? sum(c, "net")/c.length : 0, dd, mx, gross, fee, fund: sum(c, "fund"), net: sum(c, "net"), o };
   });
   rows.sort((a, b) => SORT.dir*((a[SORT.k] > b[SORT.k]) - (a[SORT.k] < b[SORT.k])) || (b.net - a.net));
   const th = (k, t) => `<th data-k="${k}">${t}${SORT.k === k ? (SORT.dir < 0 ? " ▼" : " ▲") : ""}</th>`;
-  $("board").innerHTML = `<tr><th>#</th>${th("name", "الاستراتيجية")}${th("n", "صفقات")}${th("win", "ربح%")}${th("gross", "إجمالي")}${th("fee", "عمولة")}${th("fund", "تمويل")}${th("net", "صافي")}<th>مفتوحة هلأ</th></tr>` +
-    rows.map((r, k) => `<tr data-n="${r.name}" class="${SEL === r.name ? "sel" : ""}"><td>${k+1}</td><td class="nm">${r.name}</td><td>${r.n}</td><td>${r.win.toFixed(0)}%</td><td>${usd(r.gross)}</td><td>${fee$(r.fee)}</td><td>${usd(r.fund)}</td><td><b>${usd(r.net)}</b></td><td>${r.o ? `<span class="tag ${r.o.d === 1 ? "L" : "S"}">${r.o.d === 1 ? "LONG" : "SHORT"}</span> ${usd(r.o.net)}` : "—"}</td></tr>`).join("");
+  const eatTxt = r => r.n === 0 ? "—" : (r.eat >= 999 ? `<span class="neg">خسران قبلها</span>` : `<span class="num ${r.eat >= 100 ? "neg" : r.eat >= 50 ? "" : "pos"}">${r.eat.toFixed(0)}%</span>`);
+  $("board").innerHTML = `<tr><th>#</th>${th("name", "الاستراتيجية")}${th("n", "صفقات")}${th("win", "ربح%")}${th("pf", "PF")}${th("gpt", "قبل العمولة/صفقة")}${th("eat", "العمولة أكلت")}${th("gross", "إجمالي")}${th("fee", "عمولة")}${th("fund", "تمويل")}${th("net", "صافي")}${th("avg", "صافي/صفقة")}${th("dd", "أسوأ تراجع")}${th("mx", "خسائر ورا بعض")}<th>مفتوحة هلأ</th></tr>` +
+    rows.map((r, k) => `<tr data-n="${r.name}" class="${SEL === r.name ? "sel" : ""}"><td>${k+1}</td><td class="nm">${r.name}</td><td>${r.n}</td><td>${r.win.toFixed(0)}%</td><td><span class="num">${r.n ? (r.pf >= 99 ? "∞" : r.pf.toFixed(2)) : "—"}</span></td><td>${usd(r.gpt)}</td><td>${eatTxt(r)}</td><td>${usd(r.gross)}</td><td>${fee$(r.fee)}</td><td>${usd(r.fund)}</td><td><b>${usd(r.net)}</b></td><td>${usd(r.avg)}</td><td><span class="num neg">${r.dd ? "−" + r.dd.toFixed(2) + "$" : "—"}</span></td><td>${r.mx}</td><td>${r.o ? `<span class="tag ${r.o.d === 1 ? "L" : "S"}">${r.o.d === 1 ? "LONG" : "SHORT"}</span> ${usd(r.o.net)}` : "—"}</td></tr>`).join("");
   $("board").querySelectorAll("th[data-k]").forEach(h => h.onclick = () => { const k = h.dataset.k; SORT = { k, dir: SORT.k === k ? -SORT.dir : -1 }; render(); });
   $("board").querySelectorAll("tr[data-n]").forEach(tr => tr.onclick = () => { SEL = SEL === tr.dataset.n ? null : tr.dataset.n; render(); });
 
@@ -375,6 +401,7 @@ function render() {
   try { s = localStorage.getItem("nexora_start") || s; } catch (e) {}
   $("start").value = s;
   $("run").onclick = run;
+  ["notional", "maker", "taker", "slip", "bnb", "makerEntry"].forEach(id => $(id).addEventListener("change", recalc));
   document.querySelectorAll("button[data-days]").forEach(b => b.onclick = () => {
     const d = new Date(Date.now() - (+b.dataset.days)*864e5); $("start").value = d.toISOString().slice(0, 10); run();
   });
