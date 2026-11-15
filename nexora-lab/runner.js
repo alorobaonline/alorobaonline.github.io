@@ -197,7 +197,7 @@ function pushFiles(files, msg) {   // فحوصات متوازية: كل واحد
   const strats = E.STRATS.filter(s => names.includes(s.name));
   const missing = names.filter(n => !strats.find(s => s.name === n)); if (missing.length) console.log("unknown strategies:", missing);
   const t0 = Date.now();
-  for (const { id, job, hash, rf } of todo) {   // كل فحص: بس عملاته واستراتيجياته (أسرع)
+  for (const { id, job, hash, rf } of todo) try {   // كل فحص: بس عملاته واستراتيجياته (أسرع)
     const sub = await universe(job.coins, strats.filter(s => job.strategies.includes(s.name)), !!job.m5);
     let body;
     if (job.type === "confirm") {   // دمج: صفقة A بتنحسب بس إذا B فاتحة صفقة بنفس الاتجاه على نفس العملة لحظة الدخول
@@ -218,6 +218,10 @@ function pushFiles(files, msg) {   // فحوصات متوازية: كل واحد
       if (process.env.CI) pushFiles([sf], "summary " + id);
     }
     if (process.env.CI) pushFiles([rf], id);   // نتيجة كل فحص بتنرفع أول ما تخلص
+  
+  } catch (err) {   // اكتب الخطأ بملف النتيجة عشان نشوفه
+    console.error(err); fs.writeFileSync(rf, `NEXORA LAB ERROR | ${id} | ${new Date().toISOString()}\n${err && err.stack || err}\n`);
+    if (process.env.CI) pushFiles([rf], "error " + id);
   }
   console.log("done in", ((Date.now() - t0)/1000).toFixed(0), "s");
 })().catch(e => { console.error(e); process.exit(1); });
