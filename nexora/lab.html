@@ -64,7 +64,7 @@ textarea{width:100%;height:120px;background:#0f1115;color:var(--mut);border:1px 
   <textarea id="txt" readonly></textarea>
 </div>
 
-<script id="engine">
+
 // ===================== NEXORA ENGINE (نفس منطق الفحص بالضبط) =====================
 const M15 = 900000, H4 = 16 * M15;
 
@@ -589,6 +589,172 @@ const S15 = (() => {
   return { prepare, run, strats: [mk("V2 15m", 1, true), mk("V2 1h", 4, true), mk("V2 4h", 16, true), mk("V1 15m", 1, false)] };
 })();
 
+// Replit #13 Ichimoku Cloud Trend (15m + 1h) and #8 LuxAlgo-style Trendline + TRAMA + Chandelier (15m + 4h).
+// Port of extended_rules.py / extended_indicators.py / backtesting.replay (300-bar rolling windows, next-open entry).
+const SEXT = (() => {
+  const M15 = 900000;
+  function agg(D, m) {
+    const n = Math.floor(D.o.length / m), O = [], H = [], L = [], C = [];
+    for (let k = 0; k < n; k++) {
+      let hi = -Infinity, lo = Infinity;
+      for (let j = k*m; j < (k+1)*m; j++) { if (D.h[j] > hi) hi = D.h[j]; if (D.l[j] < lo) lo = D.l[j]; }
+      O.push(D.o[k*m]); H.push(hi); L.push(lo); C.push(D.c[(k+1)*m - 1]);
+    }
+    return { O, H, L, C, n };
+  }
+  function ichi(B) {
+    const n = B.n, mid = (i, p) => { if (i+1 < p) return null; let hi = -Infinity, lo = Infinity; for (let j = i-p+1; j <= i; j++) { if (B.H[j] > hi) hi = B.H[j]; if (B.L[j] < lo) lo = B.L[j]; } return (hi + lo) / 2; };
+    const t = [], k = [], pa = [], pb = [];
+    for (let i = 0; i < n; i++) { t.push(mid(i, 9)); k.push(mid(i, 26)); pb.push(mid(i, 52)); pa.push(t[i] !== null && k[i] !== null ? (t[i] + k[i]) / 2 : null); }
+    const ca = i => i >= 26 ? pa[i-26] : null, cb = i => i >= 26 ? pb[i-26] : null;
+    return { t, k, ca, cb };
+  }
+  // analyze()-style Wilder ATR14 / RSI14 on the window [s..e]
+  function winAtrRsi(B, s, e) {
+    let a = null, cnt = 0, sum = 0;
+    for (let i = s+1; i <= e; i++) {
+      const tr = Math.max(B.H[i] - B.L[i], Math.abs(B.H[i] - B.C[i-1]), Math.abs(B.L[i] - B.C[i-1]));
+      if (a === null) { sum += tr; cnt++; if (cnt === 14) a = sum / 14; } else a = (a*13 + tr) / 14;
+    }
+    let g = null, l = null, gs = 0, ls = 0; cnt = 0;
+    for (let i = s+1; i <= e; i++) {
+      const d = B.C[i] - B.C[i-1], up = Math.max(d, 0), dn = Math.max(-d, 0);
+      if (g === null) { gs += up; ls += dn; cnt++; if (cnt === 14) { g = gs / 14; l = ls / 14; } } else { g = (g*13 + up) / 14; l = (l*13 + dn) / 14; }
+    }
+    const r = g === null ? null : (g === 0 && l === 0 ? 50 : l === 0 ? 100 : 100 - 100 / (1 + g / l));
+    return { atr: a, rsi: r };
+  }
+  function chandelierLast(B, s, e, period = 22, mult = 3) {
+    let a = null, cnt = 0, sum = 0, ls = null, ss = null, dir = 1, last = null;
+    for (let i = s; i <= e; i++) {
+      if (i > s) { const tr = Math.max(B.H[i] - B.L[i], Math.abs(B.H[i] - B.C[i-1]), Math.abs(B.L[i] - B.C[i-1]));
+        if (a === null) { sum += tr; cnt++; if (cnt === period) a = sum / period; } else a = (a*(period-1) + tr) / period; }
+      if (a === null) { last = null; continue; }
+      let hi = -Infinity, lo = Infinity; for (let j = i-period+1; j <= i; j++) { if (B.H[j] > hi) hi = B.H[j]; if (B.L[j] < lo) lo = B.L[j]; }
+      const rl = hi - mult*a, rs = lo + mult*a;
+      if (ls !== null) {
+        if (B.C[i] > ss) dir = 1; else if (B.C[i] < ls) dir = -1;
+        ls = B.C[i-1] > ls ? Math.max(rl, ls) : rl;
+        ss = B.C[i-1] < ss ? Math.min(rs, ss) : rs;
+      } else { ls = rl; ss = rs; }
+      last = { dir, ls, ss };
+    }
+    return last;
+  }
+  function prepare(D) {
+    const B = { O: D.o, H: D.h, L: D.l, C: D.c, n: D.o.length };
+    D = { o: B.O, h: B.H, l: B.L, c: B.C };
+    const H1 = agg(D, 4), H4 = agg(D, 16), n = B.n;
+    const I15 = ichi(B), I1 = ichi(H1);
+    // stochastic 14,3,3 (local)
+    const raw = new Array(n).fill(null), sk = new Array(n).fill(null), sd = new Array(n).fill(null);
+    for (let i = 13; i < n; i++) { let hi = -Infinity, lo = Infinity; for (let j = i-13; j <= i; j++) { if (B.H[j] > hi) hi = B.H[j]; if (B.L[j] < lo) lo = B.L[j]; } raw[i] = hi > lo ? 100*(B.C[i] - lo)/(hi - lo) : 50; }
+    for (let i = 15; i < n; i++) sk[i] = (raw[i] + raw[i-1] + raw[i-2]) / 3;
+    for (let i = 17; i < n; i++) sd[i] = (sk[i] + sk[i-1] + sk[i-2]) / 3;
+    // TRAMA new-extreme flags (absolute; valid inside window when window index >= 99)
+    const flag = new Array(n).fill(0);
+    for (let i = 99; i < n; i++) { let hi = -Infinity, lo = Infinity; for (let j = i-99; j < i; j++) { if (B.H[j] > hi) hi = B.H[j]; if (B.L[j] < lo) lo = B.L[j]; } flag[i] = (B.H[i] > hi || B.L[i] < lo) ? 1 : 0; }
+    const fcs = [0]; for (let i = 0; i < n; i++) fcs.push(fcs[i] + flag[i]);
+    // confirmed pivots width 2 (absolute)
+    const ph = [], pl = [];
+    for (let i = 2; i < n-2; i++) {
+      let up = true, dn = true;
+      for (const j of [i-2, i-1, i+1, i+2]) { if (!(B.H[i] > B.H[j])) up = false; if (!(B.L[i] < B.L[j])) dn = false; }
+      if (up) ph.push(i); if (dn) pl.push(i);
+    }
+    const chMemo = new Map();
+    const ch4 = N4 => { if (!chMemo.has(N4)) chMemo.set(N4, N4 >= 200 ? chandelierLast(H4, Math.max(0, N4-300), N4-1) : null); return chMemo.get(N4); };
+    return { B, H1, H4, I15, I1, sk, sd, flag, fcs, ph, pl, ch4 };
+  }
+  function trama(P, s, e) {
+    const L = e - s + 1; if (L - 1 < 197) return null;
+    const B = P.B; let v = 0; for (let j = s; j < s+99; j++) v += B.C[j]; v /= 99;
+    for (let i = 197; i < L; i++) { const a = s+i; const m = (P.fcs[a+1] - P.fcs[a-98]) / 99; v += m*m*(B.C[a] - v); }
+    return v;
+  }
+  function lastTwo(piv, s, k) { // pivots with window index>=2 and confirmed before bar k opens
+    let b = -1; for (let q = piv.length-1; q >= 0; q--) { if (piv[q] <= k-3) { b = q; break; } }
+    if (b < 1 || piv[b-1] < s+2) return null; return [piv[b-1], piv[b]];
+  }
+  function lineBreaks(P, s, k) {
+    const B = P.B, out = { up: false, down: false };
+    const r = lastTwo(P.ph, s, k);
+    if (r) { const [a, b] = r; if (-(B.H[b] - B.H[a]) > 0) { const sl = (B.H[b] - B.H[a]) / (b - a);
+      out.up = B.C[k-1] <= B.H[b] + sl*(k-1-b) && B.C[k] > B.H[b] + sl*(k-b); } }
+    const u = lastTwo(P.pl, s, k);
+    if (u) { const [a, b] = u; if (B.L[b] - B.L[a] > 0) { const sl = (B.L[b] - B.L[a]) / (b - a);
+      out.down = B.C[k-1] >= B.L[b] + sl*(k-1-b) && B.C[k] < B.L[b] + sl*(k-b); } }
+    return out;
+  }
+  function decide(P, id, k) {
+    const B = P.B; if (k < 200) return null;
+    const s = Math.max(0, k-299);
+    if (id === "ichi") {
+      const h = Math.floor((k+1)/4) - 1; if (h + 1 < 200) return null;
+      const I = P.I15, J = P.I1;
+      const vals = [I.t[k], I.k[k], I.ca(k), I.cb(k), I.t[k-1], I.k[k-1], I.ca(k-1), I.cb(k-1), J.t[h], J.k[h], J.ca(h), J.cb(h)];
+      if (vals.some(v => v === null) || k < 26 || h < 26) return null;
+      const c = B.C[k], hp = P.H1.C[h], hmax = Math.max(J.ca(h), J.cb(h)), hmin = Math.min(J.ca(h), J.cb(h));
+      const buy = I.t[k-1] <= I.k[k-1] && I.t[k] > I.k[k] && c > Math.max(I.ca(k), I.cb(k)) && I.ca(k) >= I.cb(k) && c > B.H[k-26] && hp > hmax && J.t[h] > J.k[h];
+      const sell = I.t[k-1] >= I.k[k-1] && I.t[k] < I.k[k] && c < Math.min(I.ca(k), I.cb(k)) && I.ca(k) <= I.cb(k) && c < B.L[k-26] && hp < hmin && J.t[h] < J.k[h];
+      if (buy === sell) return null;
+      const ar = winAtrRsi(B, s, k); if (ar.atr === null || ar.rsi === null) return null;
+      return { d: buy ? 1 : -1, atr: ar.atr };
+    }
+    // lux
+    const N4 = Math.floor((k+1)/16); if (N4 < 200) return null;
+    const ch = P.ch4(N4); if (!ch) return null;
+    const t = trama(P, s, k); if (t === null || P.sk[k] === null || P.sd[k] === null) return null;
+    const c = B.C[k];
+    const pre1 = c > t && P.sk[k] >= P.sd[k] && ch.dir === 1, pre2 = c < t && P.sk[k] <= P.sd[k] && ch.dir === -1;
+    if (!pre1 && !pre2) return null;
+    const ln = lineBreaks(P, s, k);
+    if (!(pre1 && ln.up) && !(pre2 && ln.down)) return null;
+    const ar = winAtrRsi(B, s, k); if (ar.atr === null || ar.rsi === null) return null;
+    const buy = pre1 && ln.up && ar.rsi > 50, sell = pre2 && ln.down && ar.rsi < 50;
+    if (buy === sell) return null;
+    return { d: buy ? 1 : -1, atr: ar.atr, N4 };
+  }
+  const memo = new WeakMap();
+  const prep = D => { if (!memo.has(D)) memo.set(D, prepare(D)); return memo.get(D); };
+  function run(D, inds, sp, startTs) {
+    const P = prep(D), B = P.B, n = B.n, out = [], id = sp.ext;
+    let pos = null, pend = null, pendExit = false;
+    for (let k = 0; k < n; k++) {
+      if (pos && pendExit) {
+        const gap = pos.d*(B.O[k] - pos.stop) <= 0;
+        out.push({ name: sp.name, d: pos.d, e: pos.e, x: k, rawIn: pos.entry, rawOut: B.O[k], why: gap ? "INIT_STOP" : "CHAND_EXIT", open: false, stop: pos.stop, target: NaN });
+        pos = null;
+      }
+      pendExit = false;
+      if (pend) {
+        const e = B.O[k], dist = 1.5*pend.atr, stop = e - pend.d*dist, target = e + pend.d*2*dist;
+        if (Math.min(stop, target) > 0) pos = { d: pend.d, e: k, entry: e, stop, target, N4: pend.N4 };
+        pend = null;
+      }
+      if (pos) {
+        const s = pos.d, o = B.O[k]; let raw = null, why = null;
+        if (s*(o - pos.stop) <= 0) { raw = o; why = "INIT_STOP"; }
+        else if (id === "ichi" && s*(o - pos.target) >= 0) { raw = pos.target; why = "TARGET"; }
+        else if (s === 1 ? B.L[k] <= pos.stop : B.H[k] >= pos.stop) { raw = pos.stop; why = "INIT_STOP"; }
+        else if (id === "ichi" && (s === 1 ? B.H[k] >= pos.target : B.L[k] <= pos.target)) { raw = pos.target; why = "TARGET"; }
+        if (raw !== null) { out.push({ name: sp.name, d: s, e: pos.e, x: k, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: id === "ichi" ? pos.target : NaN }); pos = null; }
+        else if (id === "lux") { const N4 = Math.floor((k+1)/16); if (N4 > pos.N4) { const ch = P.ch4(N4); if (ch && ch.dir === -pos.d) pendExit = true; } }
+      }
+      const sig = decide(P, id, k);
+      if (!sig || pos || k === n-1 || D.t0 + (k+1)*M15 <= startTs) continue;
+      if (id === "lux") sig.N4 = Math.floor((k+1)/16);
+      pend = sig;
+    }
+    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.e, x: n-1, rawIn: pos.entry, rawOut: B.C[n-1], why: "TIME", open: true, stop: pos.stop, target: id === "ichi" ? pos.target : NaN });
+    return out;
+  }
+  const memoI = new WeakMap();
+  const sigOf = id => (I, i) => { if (!memoI.has(I)) memoI.set(I, prepare({ o: I.O, h: I.H, l: I.L, c: I.C })); const r = decide(memoI.get(I), id, i); return r ? r.d : 0; };
+  const mk = (name, ext) => ({ name, mult: 1, ext, sig: sigOf(ext), run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: ext === "ichi" ? "Replit #13" : "Replit #8" });
+  return { prepare, run, decide, strats: [mk("#13 Ichimoku 15m+1h", "ichi"), mk("#8 Lux Trendline+TRAMA+Chandelier", "lux")] };
+})();
+
 const S = (name, mult, sig, sm, tm, hold, trail = null, cd = null, entry = "imm") => ({ name, mult, sig, sm, tm, hold, trail, cd, entry });
 const V40 = (a, b) => ["v40", a, b];
 const STRATS = [
@@ -615,6 +781,7 @@ const STRATS = [
   { name: "S17 SSL+QQE+WAE 15m", mult: 1, sig: S17.sig, run: S17.run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Replit #17" },
   ...S16.strats,
   ...S15.strats,
+  ...SEXT.strats,
 ];
 
 function v33Entry(D, i, d, hi) {
@@ -696,7 +863,7 @@ function money(t, D, P, funding, lastPrice) {
   const fee = feeIn + feeOut;
   return { ...t, eTs, xTs, fillIn, fillOut, qty, gross, fee, fund, net: gross - fee + fund };
 }
-</script>
+
 
 <script id="lab">
 // ===================== حسابات المختبر (صافية، بدون واجهة) =====================
