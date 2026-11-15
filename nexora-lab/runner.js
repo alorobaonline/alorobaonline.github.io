@@ -13,23 +13,31 @@ vm.runInContext(grab("nexora/index.html", "engine") + "\n" + grab("nexora/lab.ht
 const E = ctx.E;
 
 // ---------- البيانات ----------
-async function dl(url, file) {
+async function dl(url, file, noRetry404 = false) {
   if (fs.existsSync(file)) return true;
+  if (fs.existsSync(file + ".404")) return false;   // ملف مش موجود بالأرشيف (عملة لسا ما نزلت وقتها) — لا تعيد تسأل
   for (let k = 0; k < 4; k++) {
-    try { const r = await fetch(url); if (r.status === 404) return false; if (r.ok) { fs.writeFileSync(file, Buffer.from(await r.arrayBuffer())); return true; } } catch (e) {}
+    try { const r = await fetch(url); if (r.status === 404) { if (noRetry404) fs.writeFileSync(file + ".404", ""); return false; } if (r.ok) { fs.writeFileSync(file, Buffer.from(await r.arrayBuffer())); return true; } } catch (e) {}
     await new Promise(z => setTimeout(z, 1500*(k+1)));
   }
   throw new Error("download failed " + url);
 }
 function readZipCsv(file) { return execSync(`unzip -p "${file}"`, { maxBuffer: 1 << 30 }).toString().split("\n").filter(l => l && /^\d/.test(l)).map(l => l.split(",")); }
 function months(from, to) { const out = []; const d = new Date(from); d.setUTCDate(1); d.setUTCHours(0, 0, 0, 0); while (d.getTime() < to) { out.push(d.toISOString().slice(0, 7)); d.setUTCMonth(d.getUTCMonth() + 1); } return out; }
-async function klines(sym, iv) {
+async function klines(sym, iv, fromTs = null) {
   const now = Date.now(), thisMonth = new Date().toISOString().slice(0, 7), rows = new Map();
+  const lastMonth = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
   const dir = path.join(DATA, iv, sym); fs.mkdirSync(dir, { recursive: true });
-  for (const m of months(E.LAB_START - 40*DAY, now)) {
+  for (const m of months(fromTs !== null ? fromTs : E.LAB_START - 40*DAY, now)) {
     if (m === thisMonth) continue;
     const f = path.join(dir, `${m}.zip`);
-    let ok = await dl(`https://data.binance.vision/data/futures/um/monthly/klines/${sym}/${iv}/${sym}-${iv}-${m}.zip`, f);
+    let ok = await dl(`https://data.binance.vision/data/futures/um/monthly/klines/${sym}/${iv}/${sym}-${iv}-${m}.zip`, f, m < lastMonth);
+    if (!ok && m < lastMonth) {   // شهر قديم مش بالأرشيف = العملة كانت لسا مش نازلة: بس أيام آخر الشهر (يمكن نزلت فيه)
+      for (let d = 20; d <= 31; d++) { const ds = `${m}-${String(d).padStart(2, "0")}`; if (new Date(ds + "T00:00:00Z").toISOString().slice(0, 7) !== m) break;
+        const fd = path.join(dir, `${ds}.zip`);
+        if (await dl(`https://data.binance.vision/data/futures/um/daily/klines/${sym}/${iv}/${sym}-${iv}-${ds}.zip`, fd, true)) for (const r of readZipCsv(fd)) rows.set(+r[0], r); }
+      continue;
+    }
     if (!ok) {   // الشهر الماضي ممكن لسا ما انرفع: خذه يوم يوم
       const [y, mo] = m.split("-").map(Number), days = new Date(Date.UTC(y, mo, 0)).getUTCDate();
       for (let d = 1; d <= days; d++) { const ds = `${m}-${String(d).padStart(2, "0")}`, fd = path.join(dir, `${ds}.zip`);
