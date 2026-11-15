@@ -1813,10 +1813,14 @@ function renderAccount() {
 
 // ===================== حكم السيرفر + التصنيف + الفترة + دفتر القرارات =====================
 let SRV = null, PERIOD = 0, SHOW_OFF = false;
-const JOB_PREF = ["all-15m-plus", "scalping-5m", "sd", "v63", "top4", "s15-improve"];
-const SRV_ALIAS = { "⭐ S15 V2 4h R2.5 h40": "S15V2-4h R2.5 h40 sb0.25" };
-async function loadSrv() {
-  try { const r = await fetch("../nexora-lab/results/summary.json?t=" + Math.floor(Date.now()/600000)); if (r.ok) { SRV = await r.json(); if (RESULT) render(); } } catch (e) {}
+const JOB_PREF = ["all-15m-plus", "scalping-5m", "sd", "v63", "top4", "s15-improve", "sd-relax", "s15-ema", "s15-user", "s17-improve", "combine"];
+const SRV_ALIAS = { "⭐ S15 V2 4h R2.5 h40": "S15V2-4h R2.5 h40 sb0.25", "SD 1H+5m تأكيد خلال ساعة": "SD confirm 12 bars" };
+const SRV_JOBS = ["all-15m-plus", "scalping-5m", "sd", "sd-relax", "v63", "top4", "s15-improve", "s15-ema", "s15-user", "s17-improve", "combine"];
+async function loadSrv() {   // كل فحص إله ملف ملخص لحاله (بيشتغلوا بالتوازي على السيرفر)
+  const bust = Math.floor(Date.now()/600000), out = {};
+  await Promise.all(SRV_JOBS.map(async id => { try { const r = await fetch(`../nexora-lab/results/summary/${id}.json?t=${bust}`); if (!r.ok) return;
+    const j = await r.json(); for (const [name, e] of Object.entries(j)) (out[name] = out[name] || {})[id] = e; } catch (e) {} }));
+  if (Object.keys(out).length) { SRV = out; if (RESULT) render(); }
 }
 function srvOf(name) {
   if (!SRV) return null; const e = SRV[SRV_ALIAS[name] || name]; if (!e) return null;

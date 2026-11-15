@@ -154,6 +154,11 @@ function jobRolling(job, per, coins) {
   return out.join("\n");
 }
 
+function pushFiles(files, msg) {   // فحوصات متوازية: كل واحد بيرفع ملفاته، ومع إعادة محاولة
+  try { execSync(`git add ${files.map(f => `"${f}"`).join(" ")} && git commit -q -m "nexora-lab: ${msg}"`, { cwd: ROOT, stdio: "inherit" }); } catch (e) { return; }
+  for (let k = 0; k < 8; k++) { try { execSync("git pull --rebase -q && git push -q", { cwd: ROOT, stdio: "inherit" }); return; } catch (e) { try { execSync("git rebase --abort", { cwd: ROOT }); } catch (_) {} execSync(`sleep ${2 + k*3}`); } }
+  console.log("push failed after retries");
+}
 (async () => {
   const jobsDir = process.env.JOBS_DIR || path.join(__dirname, "jobs"), resDir = process.env.RES_DIR || path.join(__dirname, "results");
   const jobs = fs.readdirSync(jobsDir).filter(f => f.endsWith(".json"));
@@ -166,6 +171,8 @@ function jobRolling(job, per, coins) {
     if (old.includes(`hash=${hash}`) && !process.env.FORCE) continue;
     todo.push({ id, job, hash, rf });
   }
+  if (process.env.LIST) { fs.writeFileSync(process.env.LIST, JSON.stringify(todo.sort((a, b) => (b.job.priority || 0) - (a.job.priority || 0)).map(t => t.id))); console.log("todo:", todo.map(t => t.id).join(",")); return; }
+  if (process.env.ONLY) { const keep = process.env.ONLY.split(","); todo.splice(0, todo.length, ...todo.filter(t => keep.includes(t.id))); }
   if (!todo.length) { console.log("nothing to do"); return; }
   todo.sort((a, b) => (b.job.priority || 0) - (a.job.priority || 0));
   const coins = [...new Set(todo.flatMap(t => t.job.coins))];
@@ -190,15 +197,14 @@ function jobRolling(job, per, coins) {
     const head = `NEXORA LAB (GitHub) | ${id} | ${new Date().toISOString()} | hash=${hash} | engine=${engineHash} | coins ${Object.keys(sub).length} | slots ${job.slots || 10} | taker 0.05% maker 0.02% slip 0.01% | $${job.notional || 200}/trade | periods: train<${new Date(E.LAB_SPLIT).toISOString().slice(0,10)}, test<${new Date(E.LAB_END).toISOString().slice(0,10)}, fresh after\n`;
     fs.writeFileSync(rf, head + body + "\n"); console.log("wrote", rf);
     if (job.type !== "rolling" && LAST_SUM) {   // ملخص للمنصة: حكم كل استراتيجية
-      const sf = path.join(resDir, "summary.json"); let sumj = {}; try { sumj = JSON.parse(fs.readFileSync(sf, "utf8")); } catch (e) {}
+      const sdir = path.join(resDir, "summary"); fs.mkdirSync(sdir, { recursive: true });
+      const sf = path.join(sdir, id + ".json"), sumj = {};
       const pick = x => ({ n: x.n, usd: +x.usd.toFixed(2), pf: +Math.min(x.pf, 99).toFixed(3), t: +x.t.toFixed(2), gross: +x.gross.toFixed(3), avg: +x.avg.toFixed(4), dd: +x.dd.toFixed(1), win: +x.win.toFixed(1) });
-      for (const r of LAST_SUM) { sumj[r.name] = sumj[r.name] || {}; sumj[r.name][id] = { at: new Date().toISOString(), verdict: r.v, verdictMaker: r.vm, coinsAll3: r.coins, coins: r.nc, quarters: r.q, notional: job.notional || 200, train: pick(r.s[0]), test: pick(r.s[1]), fresh: pick(r.s[2]) }; }
+      for (const r of LAST_SUM) sumj[r.name] = { at: new Date().toISOString(), verdict: r.v, verdictMaker: r.vm, coinsAll3: r.coins, coins: r.nc, quarters: r.q, notional: job.notional || 200, train: pick(r.s[0]), test: pick(r.s[1]), fresh: pick(r.s[2]) };
       fs.writeFileSync(sf, JSON.stringify(sumj));
-      if (process.env.CI) try { execSync(`git add "${sf}" && git commit -q -m "nexora-lab: summary" && (git pull --rebase -q || true) && git push -q`, { cwd: ROOT, stdio: "inherit" }); } catch (e) {}
+      if (process.env.CI) pushFiles([sf], "summary " + id);
     }
-    if (process.env.CI) try {   // نتيجة كل فحص بتنرفع أول ما تخلص
-      execSync(`git add "${rf}" && git commit -q -m "nexora-lab: ${id}" && (git pull --rebase -q || true) && git push -q`, { cwd: ROOT, stdio: "inherit" });
-    } catch (e) { console.log("push failed", e.message); }
+    if (process.env.CI) pushFiles([rf], id);   // نتيجة كل فحص بتنرفع أول ما تخلص
   }
   console.log("done in", ((Date.now() - t0)/1000).toFixed(0), "s");
 })().catch(e => { console.error(e); process.exit(1); });
