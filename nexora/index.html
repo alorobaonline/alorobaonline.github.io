@@ -47,12 +47,50 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
 #toasts{position:fixed;bottom:14px;left:14px;display:flex;flex-direction:column;gap:8px;z-index:9;max-width:360px}
 .toast{background:#1f2937;border:1px solid #374151;border-radius:10px;padding:10px 12px;font-size:13px;box-shadow:0 6px 20px #0008;animation:in .3s}
 @keyframes in{from{transform:translateY(10px);opacity:0}}
+
+@import url("https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap");
+:root{--bg:#0d1016;--card:#151922;--card2:#1b202b;--line:#232836;--txt:#e6e8ec;--mut:#8a93a3;--pos:#34d399;--neg:#f87171;--acc:#7aa7ff;--gold:#f5c451}
+body{font-family:"Tajawal",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;padding:0 12px 40px}
+.num,.px,.cd,.acc .card .v,td{font-variant-numeric:tabular-nums}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(13,16,22,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin:0 -12px;padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.topbar .brand{font-weight:800;font-size:16px;letter-spacing:.3px}
+.topbar .kv{font-size:12px;color:var(--mut)} .topbar .kv b{font-size:15px;color:var(--txt);font-family:ui-monospace,monospace;direction:ltr;unicode-bidi:isolate}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin:10px 0 4px;padding-bottom:2px}
+.tabs button{background:var(--card);color:var(--mut);border:1px solid var(--line);font-weight:600;white-space:nowrap;padding:8px 12px}
+.tabs button.on{background:#22304d;color:#fff;border-color:#34497a}
+section.tab{display:none} section.tab.on{display:block}
+.pill{display:inline-block;font-size:11.5px;padding:2px 7px;border-radius:999px;background:#232a37;color:var(--mut);white-space:nowrap}
+.pill.g{background:#10301f;color:#6ee7a8}.pill.y{background:#3a3110;color:#f5d36b}.pill.r{background:#3a1515;color:#fca5a5}.pill.b{background:#14284a;color:#9cc2ff}
+tr.grp td{background:#11151d;text-align:right;font-weight:700;color:#cfd3da;cursor:pointer}
+.meter{height:10px;background:#232836;border-radius:6px;overflow:hidden;position:relative}
+.meter i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#f59e0b,#ef4444);border-radius:6px}
+.feebar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:#232836}
+.feebar span{display:block;height:100%}
+.periods{display:flex;gap:6px;margin:6px 0 8px;flex-wrap:wrap}
+.periods button{padding:6px 10px;font-size:12.5px}
+.periods button.on{background:var(--acc);color:#081018}
+.jrow{background:var(--card);border-radius:10px;padding:8px 10px;margin:6px 0;font-size:13px}
+.modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:50}
+.modal.on{display:flex}.modal .box{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:14px;width:min(420px,92vw)}
+.modal select,.modal textarea{width:100%;background:#0d1016;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px;font-family:inherit;font-size:14px;margin:6px 0}
 </style>
 </head>
 <body>
-<h1>🧪 NEXORA PAPER — حتى 150 عملة فيوتشرز — FAST CACHE <span id="live" class="live"><i></i><span>متوقف</span></span></h1>
-<div class="mut"><a href="lab.html" style="color:#a78bfa;font-weight:700">🔬 المختبر: افحص الاستراتيجيات من هون</a> · تداول وهمي على أسعار بايننس الحقيقية. كل ما تفتح الصفحة بتحسب كل الصفقات من تاريخ البداية لهلأ — ما في سيرفر، ولا بتحتاج تضل مفتوحة.</div>
-
+<div class="topbar">
+  <span class="brand">🧪 NEXORA</span><span id="live" class="live"><i></i><span>متوقف</span></span>
+  <span class="kv">Equity <b id="tbEq">—</b></span>
+  <span class="kv">اليوم <b id="tbDay">—</b></span>
+  <span class="kv">مفتوحة <b id="tbOpen">—</b></span>
+  <span class="kv">تحت القمة <b id="tbDD">—</b></span>
+  <span class="kv" style="margin-inline-start:auto"><a href="lab.html" style="color:#a78bfa;font-weight:700;text-decoration:none">🔬 المختبر</a></span>
+</div>
+<nav class="tabs" id="tabs">
+  <button data-t="acc" class="on">💼 الحساب</button>
+  <button data-t="open">📂 المفتوحة</button>
+  <button data-t="strats">📊 الاستراتيجيات</button>
+  <button data-t="live">⚡ لايف</button>
+  <button data-t="journal">📓 دفتر القرارات</button>
+</nav>
 <details id="settings"><summary style="cursor:pointer;margin-top:10px;color:#cfd3da">⚙️ الإعدادات والفترة (اضغط لتفتح)</summary>
 <div class="bar">
   <label>من تاريخ<input type="date" id="start"></label>
@@ -72,16 +110,37 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
   <button class="sec" data-days="365">سنة</button>
 </div>
 </details>
-<div id="status" class="mut"></div><div class="mut" style="margin-top:5px">⚡ FAST CACHE: يخزن الشموع الجديدة فوراً، ويتجنب تنزيل شموع لم تُغلق بعد، ويعرض مدة الفحص. أول تحميل لـ150 عملة وفترة طويلة قد يظل بطيئاً بسبب Binance وحساب الاستراتيجيات.</div>
+<div id="status" class="mut"></div>
 <div id="toasts"></div>
-
 <div id="out" style="display:none">
+<section class="tab on" data-t="acc">
   <h2>💼 الحساب الوهمي <span class="mut" id="accNote"></span> <button class="sec" onclick="document.getElementById('copyBoard').click()" style="padding:5px 10px;font-size:12px">📋 انسخ الملخص لـ Claude</button></h2>
   <div id="sumBox" style="display:none;margin:8px 0"><div id="sumMsg" class="mut" style="margin-bottom:6px"></div><textarea id="sumTxt" readonly style="width:100%;height:180px;direction:ltr;text-align:left;background:#0b0e14;color:#e5e7eb;border:1px solid #333;border-radius:8px;font-family:ui-monospace,monospace;font-size:12px"></textarea></div>
   <div class="acc" id="acc"></div>
+  <h2>📉 التراجع <span class="mut">(قديش إنت تحت أعلى رصيد وصلتله — مقارنة بأسوأ تراجع صار بالفترة)</span></h2>
+  <div class="panel" id="ddBox"></div>
+  <h2>المجموع <span class="mut" id="scope"></span></h2>
+  <div class="periods" id="periodsA"></div>
+  <div class="cards" id="cards"></div>
+  <h2>💸 الربح قبل العمولة مقابل العمولة</h2>
+  <div class="panel" id="feeBox"></div>
+  <h2>الصافي التراكمي</h2>
+  <div id="chart"></div>
+</section>
+<section class="tab" data-t="open">
   <h2>📂 الصفقات المفتوحة هلأ <span class="mut">(بتتحدث مع السعر — اضغط على صفقة لتشوف شارت عملتها)</span></h2>
   <div class="wrap"><table id="openT"></table></div>
-  <h2>⚡ لايف</h2>
+</section>
+<section class="tab" data-t="strats">
+  <h2>📊 الاستراتيجيات <span class="mut">(⭐ مرشحة · 🧪 تحت التجربة · 💤 ما فيها أفضلية — التصنيف من فحص السيرفر على سنتين، وإنت بتقدر تغيّره بـ ✎)</span> <button class="sec" id="copyBoard" style="padding:5px 10px;font-size:12px">📋 انسخ الملخص لـ Claude</button></h2>
+  <div class="periods" id="periodsS"></div>
+  <div class="mut" id="srvNote" style="margin-bottom:6px"></div>
+  <div class="wrap"><table id="board"></table></div>
+  <h2>الصفقات <span class="mut" id="tscope"></span></h2>
+  <div class="wrap" style="max-height:520px"><table id="trades"></table></div>
+  <p class="mut"><b>حكم السيرفر</b> = نتيجة الفحص على بيانات بايننس الحقيقية من 8/2024: ✅ ربحت بالتدريب والاختبار بدليل قوي · 🟡 ربحت بس الدليل ضعيف · ❌ خسرت. <b>لايف مقابل الفحص</b> = هل صفقاتها على المنصة ماشية زي ما توقع الفحص (بدري للحكم قبل 20 صفقة).<br><b>قبل العمولة/صفقة</b> = متوسط ربح الصفقة لو ما في عمولة. <b>العمولة أكلت</b> = كم % من هالربح راح عمولة. العمولة: الدخول Taker (إلا إذا اخترت Maker) والوقف Taker مع سليبج، الهدف Maker. التمويل الحقيقي من بايننس.</p>
+</section>
+<section class="tab" data-t="live">
   <div class="lv">
     <div class="panel">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -96,18 +155,23 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
       <div id="feed"><div class="mut">رح تطلع هون كل صفقة بتنفتح أو بتتسكّر وإنت فاتح الصفحة.</div></div>
     </div>
   </div>
-  <h2>📡 رادار الإشارات <span class="mut">(للعملة المختارة فوق الشارت — لو الشمعة سكّرت على السعر الحالي، بيتحدث كل 10 ثواني. استراتيجيات الـ5 دقايق مش بالرادار، بس صفقاتها بتطلع عادي)</span></h2>
+  <h2>📡 رادار الإشارات <span class="mut">(للعملة المختارة — لو الشمعة سكّرت على السعر الحالي. استراتيجيات الـ5 دقايق وV63 مش بالرادار، بس صفقاتها بتطلع عادي)</span></h2>
   <div class="wrap"><table class="radar" id="radar"></table></div>
-  <h2>المجموع <span class="mut" id="scope"></span></h2>
-  <div class="cards" id="cards"></div>
-  <h2>الصافي التراكمي</h2>
-  <div id="chart"></div>
-  <h2>الترتيب <span class="mut">(اضغط على استراتيجية لتشوف صفقاتها بس)</span> <button class="sec" id="copyBoard" style="padding:5px 10px;font-size:12px">📋 انسخ الملخص لـ Claude</button></h2>
-  <div class="wrap"><table id="board"></table></div>
-  <h2>الصفقات <span class="mut" id="tscope"></span></h2>
-  <div class="wrap" style="max-height:520px"><table id="trades"></table></div>
-  <p class="mut"><b>قبل العمولة/صفقة</b> = متوسط ربح الصفقة لو ما في عمولة. <b>العمولة أكلت</b> = كم % من هالربح راح عمولة (فوق 100% يعني العمولة قلبت الربح خسارة). <b>دخول Maker</b> = لو الدخول بأمر Limit بدل Market.<br>العمولة: الدخول (Taker إلا إذا اخترت Maker) والوقف والوقت Taker مع سليبج، الهدف Maker. التمويل (Funding) الحقيقي من بايننس. الحساب: صافي = إجمالي − عمولة + تمويل.</p>
+</section>
+<section class="tab" data-t="journal">
+  <h2>📓 دفتر القرارات <span class="mut">(كل ما تغيّر تصنيف استراتيجية اكتب ليش — بعد شهر بترجع بتشوف قراراتك كانت مبنية على أرقام ولا على شعور)</span></h2>
+  <div id="journal"></div>
+</section>
 </div>
+<div class="modal" id="jModal"><div class="box">
+  <b id="jTitle"></b>
+  <div class="mut" id="jInfo" style="margin:6px 0"></div>
+  <label class="mut">التصنيف</label>
+  <select id="jCat"><option value="">تلقائي (حسب السيرفر)</option><option value="star">⭐ مرشحة للحقيقي</option><option value="test">🧪 تحت التجربة</option><option value="off">💤 ما فيها أفضلية</option></select>
+  <label class="mut">ليش؟ (بتنحفظ بالدفتر)</label>
+  <textarea id="jNote" rows="3" placeholder="مثلاً: ربحت 3 شهور ورا بعض، بس الفحص بيقول ❌ — بستنى"></textarea>
+  <div style="display:flex;gap:8px;justify-content:flex-end"><button class="sec" id="jCancel">إلغاء</button><button id="jSave">احفظ</button></div>
+</div></div>
 
 <script id="engine">
 // ===================== NEXORA ENGINE (نفس منطق الفحص بالضبط) =====================
@@ -1712,15 +1776,91 @@ function renderAccount() {
     (open.map(t => `<tr data-s="${t.sym}" style="cursor:pointer"><td class="nm">${t.name}</td><td><b>${cn(t.sym)}</b></td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><span class="num">${fp(t.fillIn)}</span></td><td><span class="num">${fp(t.fillOut)}</span></td><td><span class="num neg">${fp(t.stop)}</span></td><td><span class="num pos">${Number.isFinite(t.target) ? fp(t.target) : "إشارة خروج"}</span></td><td><span class="num">${dt(t.eTs)}</span></td><td>${dur(Date.now() - t.eTs)}</td><td>${usd(t.fund - t.fee)}</td><td><b>${usd(t.net)}</b></td></tr>`).join("") ||
      `<tr><td colspan="11" class="mut">ما في صفقات مفتوحة هلأ — الاستراتيجيات بتستنى إشارة.</td></tr>`);
   $("openT").querySelectorAll("tr[data-s]").forEach(tr => tr.onclick = () => { CSYM = tr.dataset.s; fillCoinSel(); drawChart(); radar(); updateLiveHeader(); });
+  // الشريط الثابت + التراجع
+  { const cs = closed.slice().sort((x, y) => x.xTs - y.xTs); let eq = B, peak = B, worst = 0;
+    for (const t of cs) { eq += t.net; if (eq > peak) peak = eq; worst = Math.max(worst, peak - eq); }
+    const nowEq = equity, pk = Math.max(peak, nowEq), cur = Math.max(0, pk - nowEq);
+    const day0 = new Date(); day0.setHours(0, 0, 0, 0);
+    const today = closed.filter(t => t.xTs >= day0.getTime()).reduce((s, t) => s + t.net, 0) + unreal;
+    const f2s = x => (x >= 0 ? "+" : "") + x.toFixed(2) + "$";
+    $("tbEq").textContent = nowEq.toLocaleString("en-US", { maximumFractionDigits: 2 }); $("tbDay").textContent = f2s(today); $("tbDay").style.color = today >= 0 ? "var(--pos)" : "var(--neg)";
+    $("tbOpen").textContent = open.length; $("tbDD").textContent = cur ? "−" + cur.toFixed(2) + "$" : "0";
+    const ratio = worst ? Math.min(1, cur/worst) : 0;
+    $("ddBox").innerHTML = `<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px"><span>هلأ تحت أعلى رصيد بـ <b class="num neg">${cur.toFixed(2)}$</b></span><span class="mut">أسوأ تراجع صار من البداية: <b class="num">${worst.toFixed(2)}$</b></span></div>
+      <div class="meter"><i style="width:${(100*ratio).toFixed(1)}%"></i></div>
+      <div class="mut" style="margin-top:6px">${!cur ? "🟢 إنت على أعلى رصيد." : ratio < 0.5 ? "🟢 التراجع الحالي أقل من نص أسوأ تراجع صار — طبيعي." : ratio < 1 ? "🟡 قريب من أسوأ تراجع صار — راقب، بس لسا ضمن اللي صار قبل." : "🔴 أعمق من أي تراجع صار قبل — هون لازم توقف وتراجع الاستراتيجيات."}</div>`; }
+}
+
+// ===================== حكم السيرفر + التصنيف + الفترة + دفتر القرارات =====================
+let SRV = null, PERIOD = 0, SHOW_OFF = false;
+const JOB_PREF = ["all-15m-plus", "scalping-5m", "sd", "v63", "top4", "s15-improve"];
+const SRV_ALIAS = { "⭐ S15 V2 4h R2.5 h40": "S15V2-4h R2.5 h40 sb0.25" };
+async function loadSrv() {
+  try { const r = await fetch("../nexora-lab/results/summary.json?t=" + Math.floor(Date.now()/600000)); if (r.ok) { SRV = await r.json(); if (RESULT) render(); } } catch (e) {}
+}
+function srvOf(name) {
+  if (!SRV) return null; const e = SRV[SRV_ALIAS[name] || name]; if (!e) return null;
+  for (const j of JOB_PREF) if (e[j]) return { job: j, ...e[j] };
+  const k = Object.keys(e)[0]; return k ? { job: k, ...e[k] } : null;
+}
+const JKEY = "nexora_journal";
+const jLoad = () => { try { return JSON.parse(localStorage.getItem(JKEY) || "{\"cat\":{},\"log\":[]}"); } catch (e) { return { cat: {}, log: [] }; } };
+const jSaveAll = j => { try { localStorage.setItem(JKEY, JSON.stringify(j)); } catch (e) {} };
+function autoCat(s) {
+  if (!s) return "test";
+  if (s.verdict === "✅") return "star";
+  if (s.verdict.startsWith("🟡") && s.train.pf >= 1.1 && s.test.pf >= 1.1 && s.test.n >= 50 && s.fresh.usd >= 0) return "star";
+  if (s.verdict === "❌") return "off";
+  return "test";
+}
+function catOf(name) { const j = jLoad(); return j.cat[name] || autoCat(srvOf(name)); }
+const CAT = { star: ["⭐", "مرشحة للحقيقي"], test: ["🧪", "تحت التجربة"], off: ["💤", "ما فيها أفضلية"] };
+// هل اللايف ماشي زي الفحص؟ (متوسط الصفقة لايف مقارنة بفترات الاختبار+الجديدة)
+function liveVsTest(name, closed, P) {
+  const s = srvOf(name); if (!s) return { txt: '<span class="pill">ما في فحص</span>' };
+  const n = closed.length; if (n < 20) return { txt: `<span class="pill">بدري (${n}/20)</span>` };
+  const nn = s.test.n + s.fresh.n; if (!nn) return { txt: '<span class="pill">—</span>' };
+  const scale = P.notional / (s.notional || 200), exp = (s.test.usd + s.fresh.usd)/nn*scale;
+  const mean = closed.reduce((a, t) => a + t.net, 0)/n; let v = 0; for (const t of closed) v += (t.net - mean)**2;
+  const sd = Math.sqrt(v/Math.max(1, n - 1)) || 1e-9, z = (mean - exp)/(sd/Math.sqrt(n));
+  const lab = z < -2 ? ['r', '🔻 أسوأ من الفحص'] : z < -1 ? ['y', '↘ أضعف شوي'] : z > 2 ? ['g', '🔺 أحسن من الفحص'] : ['b', '✔ حسب المتوقع'];
+  return { txt: `<span class="pill ${lab[0]}" title="لايف ${mean.toFixed(2)}$/صفقة مقابل فحص ${exp.toFixed(2)}$/صفقة">${lab[1]}</span>` };
+}
+function periodBtns(id) {
+  const el = $(id); if (!el) return;
+  el.innerHTML = [[0, "كل الفترة"], [30, "آخر 30 يوم"], [7, "آخر 7 أيام"]].map(([d, t]) => `<button class="sec ${PERIOD === d ? "on" : ""}" data-d="${d}">${t}</button>`).join("") +
+    `<span class="mut" style="align-self:center">${PERIOD ? "⚠️ فترة قصيرة بتخدع — الحكم الحقيقي على كل الفترة وعلى فحص السيرفر" : ""}</span>`;
+  el.querySelectorAll("button").forEach(b => b.onclick = () => { PERIOD = +b.dataset.d; render(); });
+}
+function openJournal(name) {
+  const s = srvOf(name), j = jLoad();
+  $("jTitle").textContent = name;
+  $("jInfo").innerHTML = s ? `حكم السيرفر ${s.verdict} — اختبار: ${s.test.n} صفقة ${usd(s.test.usd)} PF ${s.test.pf} · جديدة: ${usd(s.fresh.usd)} · التصنيف التلقائي ${CAT[autoCat(s)][0]}` : "ما في فحص سيرفر لهالاستراتيجية لسا.";
+  $("jCat").value = j.cat[name] || ""; $("jNote").value = "";
+  $("jModal").classList.add("on");
+  $("jCancel").onclick = () => $("jModal").classList.remove("on");
+  $("jSave").onclick = () => {
+    const jj = jLoad(), v = $("jCat").value, before = jj.cat[name] || "";
+    if (v) jj.cat[name] = v; else delete jj.cat[name];
+    jj.log.unshift({ t: Date.now(), name, from: before || "auto", to: v || "auto", note: $("jNote").value.trim() });
+    jSaveAll(jj); $("jModal").classList.remove("on"); render();
+  };
+}
+function renderJournal() {
+  const j = jLoad();
+  $("journal").innerHTML = j.log.length ? j.log.map(e => `<div class="jrow"><span class="mut num">${dt(e.t)}</span> — <b>${e.name}</b>: ${e.from === "auto" ? "تلقائي" : CAT[e.from][0]} ← ${e.to === "auto" ? "تلقائي" : CAT[e.to][0] + " " + CAT[e.to][1]}${e.note ? `<div style="margin-top:4px">${e.note.replace(/</g, "&lt;")}</div>` : ""}</div>`).join("")
+    : '<div class="mut">لسا ما في قرارات. من تبويب الاستراتيجيات اضغط ✎ جنب أي استراتيجية.</div>';
 }
 
 function render() {
   renderAccount(); setTimeout(() => { drawChart(); radar(); updateLiveHeader(); }, 0);
   const { trades, P } = RESULT;
-  const closed = trades.filter(t => !t.open), open = trades.filter(t => t.open);
+  const since = PERIOD ? Date.now() - PERIOD*864e5 : -Infinity;
+  const closedAll = trades.filter(t => !t.open), closed = closedAll.filter(t => t.xTs >= since), open = trades.filter(t => t.open);
   const sum = (a, k) => a.reduce((s, t) => s + t[k], 0);
   $("out").style.display = "";
-  $("scope").textContent = `(من ${$("start").value} — صفقة ${P.notional}$ — Maker ${(P.maker*100).toFixed(3)}% / Taker ${(P.taker*100).toFixed(3)}%)`;
+  periodBtns("periodsA"); periodBtns("periodsS");
+  $("scope").textContent = `(${PERIOD ? "آخر " + PERIOD + " يوم" : "من " + $("start").value} — صفقة ${P.notional}$ — Maker ${(P.maker*100).toFixed(3)}% / Taker ${(P.taker*100).toFixed(3)}%)`;
   const wins = closed.filter(t => t.net > 0).length;
   $("cards").innerHTML = [
     ["صفقات مسكّرة", `<span class="num">${closed.length}</span>`],
@@ -1730,11 +1870,17 @@ function render() {
     ["تمويل", usd(sum(closed, "fund"))],
     ["الصافي", usd(sum(closed, "net"))],
     ["مفتوحة هلأ", `<span class="num">${open.length}</span> ${open.length ? usd(sum(open, "net")) : ""}`],
-    ["العمولة أكلت", sum(closed, "gross") > 0 ? `<span class="num">${(100*sum(closed, "fee")/sum(closed, "gross")).toFixed(0)}%</span><div class="mut">من الربح قبل العمولة</div>` : `<span class="neg">خسران قبلها</span>`],
-    ["لو الدخول كله Maker", `${usd(RESULT.makerNet)}<div class="mut">بتوفّر <span class="num">${(RESULT.makerNet - RESULT.takerNet).toFixed(2)}$</span> عن Taker</div>`],
+    ["لو الدخول كله Maker", `${usd(RESULT.makerNet)}<div class="mut">بتوفّر <span class="num">${(RESULT.makerNet - RESULT.takerNet).toFixed(2)}$</span> عن Taker (كل الفترة)</div>`],
   ].map(([k, v]) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
 
-  // رسم الصافي التراكمي (كل الاستراتيجيات أو المختارة)
+  // بار العمولة: الربح قبل العمولة مقابل العمولة
+  { const g = sum(closed, "gross"), f = sum(closed, "fee"), fu = sum(closed, "fund"), net = g - f + fu, mx = Math.max(Math.abs(g), f, 1);
+    const w = x => (100*Math.abs(x)/mx).toFixed(1) + "%";
+    $("feeBox").innerHTML = `<div class="mut" style="margin-bottom:4px">الربح قبل العمولة ${usd(g)}</div><div class="feebar"><span style="width:${w(g)};background:${g >= 0 ? "#34d399" : "#f87171"}"></span></div>
+      <div class="mut" style="margin:8px 0 4px">العمولة ${fee$(f)}</div><div class="feebar"><span style="width:${w(f)};background:#f59e0b"></span></div>
+      <div style="margin-top:8px">${g > 0 ? (f >= g ? `⚠️ العمولة <b>${(f/g).toFixed(1)}×</b> الربح قبل العمولة — العمولة قلبت الربح لخسارة` : `العمولة أكلت <b>${(100*f/g).toFixed(0)}%</b> من الربح`) : "خسران حتى قبل العمولة"} — الصافي ${usd(net)}</div>`; }
+
+  // الصافي التراكمي
   const series = closed.filter(t => !SEL || t.name === SEL).sort((a, b) => a.xTs - b.xTs);
   let cum = 0; const pts = series.map(t => (cum += t.net));
   if (pts.length >= 2) {
@@ -1742,47 +1888,68 @@ function render() {
     const stp = Math.max(1, Math.floor(pts.length/1500)), idx = []; for (let i = 0; i < pts.length; i += stp) idx.push(i); if (idx[idx.length-1] !== pts.length-1) idx.push(pts.length-1);
     const xy = idx.map(i => `${(800*i/(pts.length-1)).toFixed(1)},${(180 - 170*(pts[i]-lo)/sp).toFixed(1)}`).join(" ");
     const z = 180 - 170*(0-lo)/sp;
-    $("chart").innerHTML = `<svg class="chart" viewBox="0 0 800 190" preserveAspectRatio="none"><line x1="0" x2="800" y1="${z}" y2="${z}" stroke="#444" stroke-dasharray="5"/><polyline fill="none" stroke="${pts[pts.length-1] >= 0 ? "#22c55e" : "#ef4444"}" stroke-width="2" points="${xy}"/></svg><div class="mut">${SEL ? SEL : "كل الاستراتيجيات"} — ${pts.length} صفقة</div>`;
+    $("chart").innerHTML = `<svg class="chart" viewBox="0 0 800 190" preserveAspectRatio="none"><line x1="0" x2="800" y1="${z}" y2="${z}" stroke="#444" stroke-dasharray="5"/><polyline fill="none" stroke="${pts[pts.length-1] >= 0 ? "#34d399" : "#f87171"}" stroke-width="2" points="${xy}"/></svg><div class="mut">${SEL ? SEL : "كل الاستراتيجيات"} — ${pts.length} صفقة</div>`;
   } else $("chart").innerHTML = `<div class="mut">لسا ما في صفقات مسكّرة كفاية للرسم.</div>`;
 
-  // الترتيب
+  // الترتيب، مقسوم فئات
   const rows = STRATS.map(sp => {
     const c = closed.filter(t => t.name === sp.name).sort((a, b) => a.xTs - b.xTs), os = open.filter(t => t.name === sp.name), o = os.length ? { n: os.length, net: sum(os, "net") } : null;
     let eq = 0, peak = 0, dd = 0, st = 0, mx = 0, gp = 0, gl = 0;
     for (const t of c) { eq += t.net; peak = Math.max(peak, eq); dd = Math.max(dd, peak - eq);
       st = t.net <= 0 ? st + 1 : 0; mx = Math.max(mx, st); if (t.net > 0) gp += t.net; else gl -= t.net; }
-    const gross = sum(c, "gross"), fee = sum(c, "fee");
+    const gross = sum(c, "gross"), fee = sum(c, "fee"), s = srvOf(sp.name);
     return { name: sp.name, n: c.length, win: c.length ? 100*c.filter(t => t.net > 0).length/c.length : 0,
       pf: gl ? gp/gl : (gp ? 99 : 0), gpt: c.length ? gross/c.length : 0, eat: gross > 0 ? 100*fee/gross : 999,
-      avg: c.length ? sum(c, "net")/c.length : 0, dd, mx, gross, fee, fund: sum(c, "fund"), net: sum(c, "net"), o };
+      avg: c.length ? sum(c, "net")/c.length : 0, dd, mx, gross, fee, fund: sum(c, "fund"), net: sum(c, "net"), o,
+      cat: catOf(sp.name), s, lv: liveVsTest(sp.name, closedAll.filter(t => t.name === sp.name), P) };
   });
   rows.sort((a, b) => SORT.dir*((a[SORT.k] > b[SORT.k]) - (a[SORT.k] < b[SORT.k])) || (b.net - a.net));
   const th = (k, t) => `<th data-k="${k}">${t}${SORT.k === k ? (SORT.dir < 0 ? " ▼" : " ▲") : ""}</th>`;
   const eatTxt = r => r.n === 0 ? "—" : (r.eat >= 999 ? `<span class="neg">خسران قبلها</span>` : `<span class="num ${r.eat >= 100 ? "neg" : r.eat >= 50 ? "" : "pos"}">${r.eat.toFixed(0)}%</span>`);
-  $("board").innerHTML = `<tr><th>#</th>${th("name", "الاستراتيجية")}${th("n", "صفقات")}${th("win", "ربح%")}${th("pf", "PF")}${th("gpt", "قبل العمولة/صفقة")}${th("eat", "العمولة أكلت")}${th("gross", "إجمالي")}${th("fee", "عمولة")}${th("fund", "تمويل")}${th("net", "صافي")}${th("avg", "صافي/صفقة")}${th("dd", "أسوأ تراجع")}${th("mx", "خسائر ورا بعض")}<th>مفتوحة هلأ</th></tr>` +
-    rows.map((r, k) => `<tr data-n="${r.name}" class="${SEL === r.name ? "sel" : ""}"><td>${k+1}</td><td class="nm">${r.name}</td><td>${r.n}</td><td>${r.win.toFixed(0)}%</td><td><span class="num">${r.n ? (r.pf >= 99 ? "∞" : r.pf.toFixed(2)) : "—"}</span></td><td>${usd(r.gpt)}</td><td>${eatTxt(r)}</td><td>${usd(r.gross)}</td><td>${fee$(r.fee)}</td><td>${usd(r.fund)}</td><td><b>${usd(r.net)}</b></td><td>${usd(r.avg)}</td><td><span class="num neg">${r.dd ? "−" + r.dd.toFixed(2) + "$" : "—"}</span></td><td>${r.mx}</td><td>${r.o ? `<span class="num">${r.o.n}</span> ${usd(r.o.net)}` : "—"}</td></tr>`).join("");
+  const srvTxt = s => !s ? '<span class="pill">لسا</span>' : `<span class="pill ${s.verdict === "✅" ? "g" : s.verdict.startsWith("🟡") ? "y" : s.verdict === "❌" ? "r" : ""}" title="تدريب ${s.train.usd}$ PF${s.train.pf} · اختبار ${s.test.usd}$ PF${s.test.pf} · جديدة ${s.fresh.usd}$ PF${s.fresh.pf} — ${s.coins} عملة (${s.job})">${s.verdict} PF ${s.test.pf}</span>`;
+  const rowHtml = (r, k) => `<tr data-n="${r.name}" class="${SEL === r.name ? "sel" : ""}"><td>${k}</td><td class="nm">${r.name.startsWith("⭐") ? "" : CAT[r.cat][0] + " "}${r.name} <span class="ed" data-e="${r.name}" style="cursor:pointer;color:#7aa7ff">✎</span></td><td>${srvTxt(r.s)}</td><td>${r.lv.txt}</td><td>${r.n}</td><td>${r.win.toFixed(0)}%</td><td><span class="num">${r.n ? (r.pf >= 99 ? "∞" : r.pf.toFixed(2)) : "—"}</span></td><td>${usd(r.gpt)}</td><td>${eatTxt(r)}</td><td>${fee$(r.fee)}</td><td><b>${usd(r.net)}</b></td><td>${usd(r.avg)}</td><td><span class="num neg">${r.dd ? "−" + r.dd.toFixed(2) + "$" : "—"}</span>${r.s && r.s.test.dd ? `<div class="mut">فحص −${(r.s.test.dd*P.notional/(r.s.notional||200)).toFixed(0)}$</div>` : ""}</td><td>${r.mx}</td><td>${r.o ? `<span class="num">${r.o.n}</span> ${usd(r.o.net)}` : "—"}</td></tr>`;
+  let html = `<tr><th>#</th>${th("name", "الاستراتيجية")}<th>حكم السيرفر</th><th>لايف مقابل الفحص</th>${th("n", "صفقات")}${th("win", "ربح%")}${th("pf", "PF")}${th("gpt", "قبل العمولة/صفقة")}${th("eat", "العمولة أكلت")}${th("fee", "عمولة")}${th("net", "صافي")}${th("avg", "صافي/صفقة")}${th("dd", "أسوأ تراجع")}${th("mx", "خسائر ورا بعض")}<th>مفتوحة</th></tr>`;
+  let k = 0;
+  for (const cat of ["star", "test", "off"]) {
+    const g = rows.filter(r => r.cat === cat); if (!g.length) continue;
+    const gnet = g.reduce((a, r) => a + r.net, 0), hide = cat === "off" && !SHOW_OFF;
+    html += `<tr class="grp" data-g="${cat}"><td colspan="15">${CAT[cat][0]} ${CAT[cat][1]} — ${g.length} استراتيجية — صافي ${usd(gnet)} ${cat === "off" ? (hide ? "▸ (اضغط لتفتح)" : "▾") : ""}</td></tr>`;
+    if (!hide) html += g.map(r => rowHtml(r, ++k)).join("");
+  }
+  $("board").innerHTML = html;
+  $("srvNote").innerHTML = SRV ? `حكم السيرفر محدّث من نتائج GitHub (${Object.keys(SRV).length} استراتيجية مفحوصة).` : "⏳ بجيب نتائج فحص السيرفر…";
+  $("board").querySelectorAll("tr.grp").forEach(tr => tr.onclick = () => { if (tr.dataset.g === "off") { SHOW_OFF = !SHOW_OFF; render(); } });
+  $("board").querySelectorAll(".ed").forEach(e => e.onclick = ev => { ev.stopPropagation(); openJournal(e.dataset.e); });
   $("copyBoard").onclick = () => {
     const days = ((Date.now() - RESULT.startTs)/864e5).toFixed(1);
-    const head = `NEXORA PAPER | from ${$("start").value} (${days}d) | coins ${CACHE.coins.length} | notional ${P.notional}$ | maker ${(P.maker*100).toFixed(3)}% taker ${(P.taker*100).toFixed(3)}% slip ${(P.slip*100).toFixed(3)}% | makerEntry ${P.makerEntry} | cap ${$("maxOpen").value}`;
+    const head = `NEXORA PAPER | from ${$("start").value} (${days}d)${PERIOD ? " | view last " + PERIOD + "d" : ""} | coins ${CACHE.coins.length} | notional ${P.notional}$ | maker ${(P.maker*100).toFixed(3)}% taker ${(P.taker*100).toFixed(3)}% slip ${(P.slip*100).toFixed(3)}% | makerEntry ${P.makerEntry} | cap ${$("maxOpen").value}`;
     const lines = rows.map(r => { const c = closed.filter(t => t.name === r.name), L = c.filter(t => t.d === 1), S = c.filter(t => t.d === -1);
-      return `${r.name} | n=${r.n} (L${L.length}/S${S.length}) win${r.win.toFixed(0)}% PF${r.n ? (r.pf >= 99 ? "inf" : r.pf.toFixed(2)) : "-"} gross/t ${r.gpt.toFixed(3)}$ fee ${r.fee.toFixed(2)}$ fund ${r.fund.toFixed(2)}$ net ${r.net.toFixed(2)}$ (L ${sum(L, "net").toFixed(2)} / S ${sum(S, "net").toFixed(2)}) DD ${r.dd.toFixed(2)}$ open ${r.o ? r.o.n : 0}`; });
+      return `${CAT[r.cat][0]} ${r.name} | srv ${r.s ? r.s.verdict + " testPF" + r.s.test.pf : "-"} | n=${r.n} (L${L.length}/S${S.length}) win${r.win.toFixed(0)}% PF${r.n ? (r.pf >= 99 ? "inf" : r.pf.toFixed(2)) : "-"} gross/t ${r.gpt.toFixed(3)}$ fee ${r.fee.toFixed(2)}$ fund ${r.fund.toFixed(2)}$ net ${r.net.toFixed(2)}$ (L ${sum(L, "net").toFixed(2)} / S ${sum(S, "net").toFixed(2)}) DD ${r.dd.toFixed(2)}$ open ${r.o ? r.o.n : 0}`; });
     const txt = head + "\n" + lines.join("\n");
     const box = $("sumBox"); box.style.display = ""; const ta = $("sumTxt"); ta.value = txt; ta.focus(); ta.select();
     let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
     const done = () => { $("sumMsg").textContent = "✅ انتسخ — روح على المحادثة والصقه (أو علّم النص تحت وانسخه)"; };
     if (ok) done(); else if (navigator.clipboard) navigator.clipboard.writeText(txt).then(done, () => { $("sumMsg").textContent = "علّم النص تحت كله وانسخه"; });
     else $("sumMsg").textContent = "علّم النص تحت كله وانسخه";
-    box.scrollIntoView({ behavior: "smooth", block: "center" });
+    showTab("acc"); box.scrollIntoView({ behavior: "smooth", block: "center" });
   };
   $("board").querySelectorAll("th[data-k]").forEach(h => h.onclick = () => { const k = h.dataset.k; SORT = { k, dir: SORT.k === k ? -SORT.dir : -1 }; render(); });
   $("board").querySelectorAll("tr[data-n]").forEach(tr => tr.onclick = () => { SEL = SEL === tr.dataset.n ? null : tr.dataset.n; render(); });
 
   // الصفقات
-  const list = trades.filter(t => !SEL || t.name === SEL).sort((a, b) => (b.open - a.open) || (b.xTs - a.xTs));
+  const list = trades.filter(t => (!SEL || t.name === SEL) && (t.open || t.xTs >= since)).sort((a, b) => (b.open - a.open) || (b.xTs - a.xTs));
   $("tscope").textContent = SEL ? `— ${SEL} (اضغط عليها مرة تانية لترجع للكل)` : "— كل الاستراتيجيات";
   $("trades").innerHTML = `<tr><th>دخول</th><th>خروج</th><th>الاستراتيجية</th><th>العملة</th><th>اتجاه</th><th>سعر الدخول → الخروج</th><th>السبب</th><th>إجمالي</th><th>عمولة</th><th>تمويل</th><th>صافي</th></tr>` +
     list.slice(0, 400).map(t => `<tr><td>${dt(t.eTs)}</td><td>${t.open ? "<b>مفتوحة</b>" : dt(t.xTs)}</td><td class="nm">${t.name}</td><td>${cn(t.sym)}</td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><span class="num">${fp(t.fillIn)} → ${fp(t.fillOut)}</span></td><td>${t.open ? `وقف ${fp(t.stop)} / هدف ${Number.isFinite(t.target) ? fp(t.target) : "إشارة خروج"}` : (WHY[t.why] || t.why)}</td><td>${usd(t.gross)}</td><td>${fee$(t.fee)}</td><td>${usd(t.fund)}</td><td><b>${usd(t.net)}</b></td></tr>`).join("") ||
     `<tr><td colspan="11" class="mut">لسا ما في صفقات من هالتاريخ.</td></tr>`;
+  renderJournal();
+}
+
+function showTab(t) {
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
+  document.querySelectorAll("section.tab").forEach(s => s.classList.toggle("on", s.dataset.t === t));
+  try { localStorage.setItem("nexora_tab", t); } catch (e) {}
+  if (t === "live") setTimeout(() => { drawChart(); radar(); }, 0);
 }
 
 // ===================== لايف: WebSocket + شارت + رادار + صوت =====================
@@ -1962,6 +2129,9 @@ async function liveTick() {
   try { s = localStorage.getItem("nexora_start") || s; $("ncoins").value = localStorage.getItem("nexora_nc") || 30; } catch (e) {}
   $("start").value = s;
   $("run").onclick = () => { SEEN = null; run(); };
+  document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showTab(b.dataset.t));
+  try { const t0 = localStorage.getItem("nexora_tab"); if (t0) showTab(t0); } catch (e) {}
+  loadSrv(); setInterval(loadSrv, 30*60000);
   ["notional", "maker", "taker", "slip", "bnb", "makerEntry", "balance", "lev", "maxOpen"].forEach(id => $(id).addEventListener("change", recalc));
   $("csel").onchange = () => { CSYM = $("csel").value; drawChart(); radar(); updateLiveHeader(); };
   setInterval(liveTick, 5000);
