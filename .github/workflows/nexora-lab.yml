@@ -3,7 +3,7 @@ name: nexora-lab
 on:
   push:
     branches: [main]
-    paths: ["nexora-lab/jobs/**", "nexora-lab/runner.js", "nexora/index.html", "nexora/lab.html"]
+    paths: ["nexora-lab/jobs/**", "nexora-lab/runner.js"]
   schedule:
     - cron: "17 3 * * *"
   workflow_dispatch:
@@ -11,7 +11,7 @@ permissions:
   contents: write
 concurrency:
   group: nexora-lab
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   run:
     runs-on: ubuntu-latest

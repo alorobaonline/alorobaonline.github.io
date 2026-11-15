@@ -1521,7 +1521,7 @@ async function run(silent, only5) {
     const fromTs = Math.floor((startTs - warm)/H4)*H4;
     const nc = Math.min(150, Math.max(1, +$("ncoins").value || 30));
     const startedAt = performance.now();
-    if (!silent && CACHE && CACHE.startTs === startTs && CACHE.coins.length === nc && CACHE.upd >= Math.floor(Date.now()/M15)*M15) { recalc(); st("⚡ النتائج من الذاكرة — بدون تنزيل جديد"); return; }
+    if (!silent && CACHE && !CACHE.coins[0].D.stub && CACHE.startTs === startTs && CACHE.coins.length === nc && CACHE.upd >= Math.floor(Date.now()/M15)*M15) { recalc(); st("⚡ النتائج من الذاكرة — بدون تنزيل جديد"); return; }
     if (!COINS || COINS.length !== nc) { st("🔎 بجيب أعلى العملات حسب حجم التداول…"); COINS = await topCoins(nc); fillCoinSel(); connectWS(); }
     const coins = [], done = { n: 0 }, failed = [];
     // تحميل: 3 عملات بنفس الوقت عشان ما نتعدى حد بايننس
@@ -1533,19 +1533,8 @@ async function run(silent, only5) {
       done.n++; st(`⬇️ حمّلت ${done.n}/${COINS.length} عملة…`); } };
     await Promise.all(Array.from({length: Math.min(6, COINS.length)}, () => worker()));
     coins.sort((a, b) => COINS.indexOf(a.sym) - COINS.indexOf(b.sym));
-    let k = 0;
-    for (const c of coins) {
-      st(`⚙️ بحسب الاستراتيجيات… ${++k}/${coins.length} (${cn(c.sym)})`);
-      await sleep(5);
-      const prev = only5 && CACHE && CACHE.startTs === startTs ? CACHE.bySym[c.sym] : null;
-      if (prev) {   // شمعة 5 دقايق بس: باقي الاستراتيجيات ما تغيّر عندها إشي
-        c.raw = prev.raw.filter(t => !M5N.has(t.name));
-        for (const sp of STRATS) if (sp.m5) for (const t of evaluate(c.D, null, sp, startTs)) c.raw.push(t);
-      } else {
-        const inds = { 1: makeInd(c.D, 1), 4: makeInd(c.D, 4), 16: makeInd(c.D, 16) };
-        c.raw = []; for (const sp of STRATS) for (const t of evaluate(c.D, inds, sp, startTs)) c.raw.push(t);
-      }
-    }
+    const okSnap = only5 && CACHE && CACHE.startTs === startTs;
+    await computeAll(coins, startTs, c => okSnap && CACHE.bySym[c.sym] && !CACHE.bySym[c.sym].D.stub ? CACHE.bySym[c.sym] : null, st);
     for (const c of coins) idb.set("ck_" + c.sym, CK[c.sym]);   // نقطة الاستكمال لاستراتيجيات الـ5 دقايق
     if (!coins.length) throw new Error("لم تُحمّل أي عملة؛ تحقق من الاتصال ببايننس");
     const upd = Math.max(...coins.map(c => c.D.t0 + c.D.c.length*M15));
@@ -1553,11 +1542,71 @@ async function run(silent, only5) {
     CACHE = { coins, bySym: Object.fromEntries(coins.map(c => [c.sym, c])), startTs, upd, upd5 };
     try { localStorage.setItem("nexora_start", $("start").value); localStorage.setItem("nexora_nc", String(nc)); } catch (e) {}
     recalc(); announce();
+    if (!only5) saveSnap(nc);
     const b = pxOf("BTCUSDT");
     $("status").textContent = `✅ ${coins.length}/${nc} عملة خلال ${((performance.now()-startedAt)/1000).toFixed(1)} ثانية${failed.length ? " | أخطاء: " + failed.length : ""} — آخر شمعة مسكّرة: ${dt(RESULT.upd)} — الفحص الجاي ${dt(RESULT.upd + M15)}${b ? " | BTC " + b.toLocaleString("en-US", { maximumFractionDigits: 1 }) : ""}`;
   } catch (e) {
     st("❌ " + e.message);
   } finally { $("run").disabled = false; }
+}
+
+// ===================== صاروخ: حساب متوازي (Web Workers) + حفظ آخر نتيجة =====================
+let POOL = null;
+const ENGINE_SRC = () => document.getElementById("engine").textContent;
+const ENGINE_VER = (() => { let x = 5381; const s = document.getElementById("engine").textContent; for (let i = 0; i < s.length; i++) x = ((x << 5) + x + s.charCodeAt(i)) | 0; return "e" + (x >>> 0).toString(36); })();
+function pool() {
+  if (POOL) return POOL;
+  try {
+    const src = ENGINE_SRC() + `
+;onmessage = e => { const { id, D, startTs, only5 } = e.data;
+  try { const raw = []; let inds = null;
+    for (const sp of STRATS) { if (only5 && !sp.m5) continue;
+      if (!sp.m5 && !inds) inds = { 1: makeInd(D, 1), 4: makeInd(D, 4), 16: makeInd(D, 16) };
+      for (const t of evaluate(D, inds, sp, startTs)) raw.push(t); }
+    postMessage({ id, raw, ck: D.s5ck });
+  } catch (err) { postMessage({ id, err: String((err && err.message) || err) }); } };`;
+    const url = URL.createObjectURL(new Blob([src], { type: "text/javascript" }));
+    const n = Math.max(1, Math.min(6, (navigator.hardwareConcurrency || 2) - 1));
+    POOL = Array.from({ length: n }, () => new Worker(url));
+  } catch (e) { POOL = []; }
+  return POOL;
+}
+function computeOne(c, startTs, prev) {   // نفس الحساب بدون Workers (احتياط)
+  if (prev) { c.raw = prev.raw.filter(t => !M5N.has(t.name)); for (const sp of STRATS) if (sp.m5) for (const t of evaluate(c.D, null, sp, startTs)) c.raw.push(t); }
+  else { const inds = { 1: makeInd(c.D, 1), 4: makeInd(c.D, 4), 16: makeInd(c.D, 16) }; c.raw = []; for (const sp of STRATS) for (const t of evaluate(c.D, inds, sp, startTs)) c.raw.push(t); }
+}
+async function computeAll(coins, startTs, prevOf, st) {
+  const P = pool(); let done = 0;
+  const tick = () => st(`⚙️ بحسب الاستراتيجيات… ${done}/${coins.length}${P.length ? ` (${P.length} معالجات مع بعض)` : ""}`);
+  tick();
+  if (!P.length) { for (const c of coins) { computeOne(c, startTs, prevOf(c)); done++; tick(); await sleep(5); } return; }
+  const queue = coins.slice();
+  await Promise.all(P.map(w => (async () => {
+    while (queue.length) {
+      const c = queue.shift(), prev = prevOf(c);
+      const D = { t0: c.D.t0, o: c.D.o, h: c.D.h, l: c.D.l, c: c.D.c, m5: c.D.m5, s5ck: c.D.s5ck };
+      const res = await new Promise(r => { w.onmessage = ev => r(ev.data); w.onerror = ev => r({ err: ev.message || "worker" }); w.postMessage({ id: c.sym, D, startTs, only5: !!prev }); });
+      if (res.err) { computeOne(c, startTs, prev); }
+      else { c.raw = prev ? prev.raw.filter(t => !M5N.has(t.name)).concat(res.raw) : res.raw; if (res.ck) { CK[c.sym] = res.ck; c.D.s5ck = res.ck; } }
+      done++; tick();
+    }
+  })()));
+}
+let SNAP_T = 0;
+function saveSnap(nc) {
+  if (Date.now() - SNAP_T < 600000) return; SNAP_T = Date.now();
+  idb.set("snap", { ver: ENGINE_VER, startTs: CACHE.startTs, nc, upd: CACHE.upd, upd5: CACHE.upd5, coins: CACHE.coins.map(c => ({ sym: c.sym, t0: c.D.t0, last: c.D.c[c.D.c.length-1], raw: c.raw, funding: c.funding })) });
+}
+async function loadSnap() {   // افتح فوراً على آخر نتيجة محفوظة، وبعدين حدّث بالخلفية
+  try {
+    const s = await idb.get("snap"), startTs = new Date($("start").value + "T00:00:00").getTime(), nc = Math.min(150, Math.max(1, +$("ncoins").value || 30));
+    if (!s || s.ver !== ENGINE_VER || s.startTs !== startTs || s.nc !== nc || !s.coins.length) return false;
+    const coins = s.coins.map(c => ({ sym: c.sym, raw: c.raw, funding: c.funding, D: { stub: true, t0: c.t0, o: [], h: [], l: [], c: [c.last] } }));
+    CACHE = { coins, bySym: Object.fromEntries(coins.map(c => [c.sym, c])), startTs, upd: s.upd, upd5: s.upd5 };
+    COINS = coins.map(c => c.sym); fillCoinSel(); connectWS();
+    recalc(); $("status").textContent = `⚡ فتحت على آخر نتيجة محفوظة (${dt(s.upd)}) — عم بحدّث بالخلفية…`;
+    return true;
+  } catch (e) { return false; }
 }
 
 function fillCoinSel() {
@@ -1716,7 +1765,7 @@ function updateLiveHeader() {
 }
 
 function drawChart() {
-  if (!CACHE || !CACHE.bySym[CSYM]) return;
+  if (!CACHE || !CACHE.bySym[CSYM] || CACHE.bySym[CSYM].D.stub) return;
   const cv = $("chart15"), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, Hh = cv.clientHeight;
   if (!W) return;
   cv.width = W*dpr; cv.height = Hh*dpr; const g = cv.getContext("2d"); g.scale(dpr, dpr); g.clearRect(0, 0, W, Hh);
@@ -1758,7 +1807,7 @@ function drawChart() {
 
 // رادار: لو الشمعة الحالية سكّرت هيك، مين بيعطي إشارة؟ (للعملة المختارة)
 function radar() {
-  if (!CACHE || !CACHE.bySym[CSYM]) return;
+  if (!CACHE || !CACHE.bySym[CSYM] || CACHE.bySym[CSYM].D.stub) return;
   const { D } = CACHE.bySym[CSYM], n = D.c.length, px = pxOf(CSYM), F = FORM[CSYM];
   const f = F && F.t >= D.t0 + n*M15 ? F : { o: px, h: px, l: px, c: px };
   const ext = { t0: D.t0, o: D.o.concat([f.o]), h: D.h.concat([Math.max(f.h, px)]), l: D.l.concat([Math.min(f.l, px)]), c: D.c.concat([px]) };
@@ -1840,7 +1889,7 @@ async function liveTick() {
   document.querySelectorAll("button[data-days]").forEach(b => b.onclick = () => {
     const d = new Date(Date.now() - (+b.dataset.days)*864e5); $("start").value = d.toISOString().slice(0, 10); SEEN = null; run();
   });
-  run();
+  (async () => { if (await loadSnap()) { BUSY = true; try { await run(true); } finally { BUSY = false; } } else run(); })();
 })();
 </script>
 </body>
