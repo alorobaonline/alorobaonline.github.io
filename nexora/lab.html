@@ -759,7 +759,7 @@ const SEXT = (() => {
 // #9-#12, #14 (extended_rules.evaluate_extended). Port of backtesting.replay on a 5m base:
 // 300-bar rolling windows, entry on next 5m open, ATR 1.5 stop / 2R target, stop-first protective exits.
 const S5 = (() => {
-  const M5 = 300000, M15 = 900000;
+  const M5 = 300000, M15 = 900000, VER = 1;
   const LEG = { volumeRatio: 1.5, rsiLow: 30, rsiHigh: 70, levelToleranceAtr: 0.25, wickRatio: 0.4, stopAtr: 1.5, rewardRisk: 2, minScore: 50 };
   const EXT = { ...LEG, volumeRatio: 1.2, minScore: 0 };
 
@@ -991,8 +991,15 @@ const S5 = (() => {
     const HT = { "15m": P.S15, "1h": P.S1h, "4h": P.S4h };
     const modes = sp.id === "mtf" ? [["15m", "4h"], ["5m", "1h"]] : [[sp.tf || "5m", sp.htf || null]];
     const toE = ts => (ts - D.t0)/M15;
-    let pos = null, pend = null;
-    for (let j = 0; j < n; j++) {
+    let pos = null, pend = null, j0 = 0;
+    // استكمال من آخر نقطة محفوظة (نفس النتيجة بالضبط، بس أسرع)
+    const store = D.s5ck, ck = store && store[sp.name];
+    if (ck && ck.ver === VER && ck.t0 === B.t0 && ck.d0 === D.t0 && ck.startTs === startTs && ck.j < n && ck.j >= 200 &&
+        ck.c === B.C[ck.j] && ck.o === B.O[ck.j]) {
+      out.push(...ck.out); pos = ck.pos && { ...ck.pos }; pend = ck.pend && { ...ck.pend }; j0 = ck.j;
+    }
+    for (let j = j0; j < n; j++) {
+      if (store && j === n - 1) store[sp.name] = { ver: VER, t0: B.t0, d0: D.t0, startTs, j, c: B.C[j], o: B.O[j], out: out.slice(), pos: pos && { ...pos }, pend: pend && { ...pend } };
       if (pend) { const e = B.O[j], dist = R.stopAtr*pend.atr, stop = e - pend.d*dist, target = e + pend.d*dist*R.rewardRisk;
         if (Math.min(stop, target) > 0) pos = { d: pend.d, j, entry: e, stop, target }; pend = null; }
       if (pos) {

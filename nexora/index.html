@@ -803,7 +803,7 @@ const SEXT = (() => {
 // #9-#12, #14 (extended_rules.evaluate_extended). Port of backtesting.replay on a 5m base:
 // 300-bar rolling windows, entry on next 5m open, ATR 1.5 stop / 2R target, stop-first protective exits.
 const S5 = (() => {
-  const M5 = 300000, M15 = 900000;
+  const M5 = 300000, M15 = 900000, VER = 1;
   const LEG = { volumeRatio: 1.5, rsiLow: 30, rsiHigh: 70, levelToleranceAtr: 0.25, wickRatio: 0.4, stopAtr: 1.5, rewardRisk: 2, minScore: 50 };
   const EXT = { ...LEG, volumeRatio: 1.2, minScore: 0 };
 
@@ -1035,8 +1035,15 @@ const S5 = (() => {
     const HT = { "15m": P.S15, "1h": P.S1h, "4h": P.S4h };
     const modes = sp.id === "mtf" ? [["15m", "4h"], ["5m", "1h"]] : [[sp.tf || "5m", sp.htf || null]];
     const toE = ts => (ts - D.t0)/M15;
-    let pos = null, pend = null;
-    for (let j = 0; j < n; j++) {
+    let pos = null, pend = null, j0 = 0;
+    // استكمال من آخر نقطة محفوظة (نفس النتيجة بالضبط، بس أسرع)
+    const store = D.s5ck, ck = store && store[sp.name];
+    if (ck && ck.ver === VER && ck.t0 === B.t0 && ck.d0 === D.t0 && ck.startTs === startTs && ck.j < n && ck.j >= 200 &&
+        ck.c === B.C[ck.j] && ck.o === B.O[ck.j]) {
+      out.push(...ck.out); pos = ck.pos && { ...ck.pos }; pend = ck.pend && { ...ck.pend }; j0 = ck.j;
+    }
+    for (let j = j0; j < n; j++) {
+      if (store && j === n - 1) store[sp.name] = { ver: VER, t0: B.t0, d0: D.t0, startTs, j, c: B.C[j], o: B.O[j], out: out.slice(), pos: pos && { ...pos }, pend: pend && { ...pend } };
       if (pend) { const e = B.O[j], dist = R.stopAtr*pend.atr, stop = e - pend.d*dist, target = e + pend.d*dist*R.rewardRisk;
         if (Math.min(stop, target) > 0) pos = { d: pend.d, j, entry: e, stop, target }; pend = null; }
       if (pos) {
@@ -1236,27 +1243,33 @@ const idb = (() => {
 
 // الشموع: من الذاكرة ← من كاش المتصفح ← من بايننس (بس الناقص)
 const MEM = {};
+// يكمّل الشموع الناقصة: القديمة (لو رجعت تاريخ البداية لورا) والجديدة، بدون ما يعيد تحميل الموجود
+let LAST_REQ = 0;
+async function paced() { const w = LAST_REQ + 150 - Date.now(); LAST_REQ = Math.max(Date.now(), LAST_REQ + 150); if (w > 0) await sleep(w); }
+async function fillKlines(sym, interval, step, width, st, fromTs, prog) {
+  const now = Date.now(); let added = 0;
+  const grab = async (from, until) => { const T = [], V = []; let t = from;
+    while (t < until) { await paced();
+      const r = await getJSON("/fapi/v1/klines", { symbol: sym, interval, startTime: t, limit: 1000 });
+      if (!r.length) break;
+      for (const k of r) if (k[6] < now && k[0] < until) { T.push(k[0]); for (let q = 1; q <= width; q++) V.push(+k[q]); }
+      t = r[r.length-1][0] + step; prog && prog(new Date(r[r.length-1][0]).toISOString().slice(0, 10));
+      if (r.length < 1000) break; }
+    return [T, V]; };
+  if (st.t.length && st.t[0] > fromTs + step) {   // ناقص من الأول
+    const [T, V] = await grab(fromTs, st.t[0]); st.t = T.concat(st.t); st.v = V.concat(st.v); added += T.length; }
+  const [T, V] = await grab(st.t.length ? st.t[st.t.length-1] + step : fromTs, Infinity);
+  for (let i = 0; i < T.length; i++) if (!st.t.length || T[i] > st.t[st.t.length-1]) { st.t.push(T[i]); for (let q = 0; q < width; q++) st.v.push(V[width*i+q]); added++; }
+  return added;
+}
+
 async function loadCandles(sym, fromTs, prog) {
-  const now = Date.now();
   let st = MEM[sym];
-  if (!st) {
-    const c = await idb.get("k_" + sym);
-    st = c && c.t.length && c.t[0] <= fromTs + 7*864e5 ? { t: Array.from(c.t), v: Array.from(c.v) } : { t: [], v: [] };
-  }
-  let t = st.t.length ? st.t[st.t.length-1] + M15 : fromTs, added = 0;
-  while (t < now - M15) {
-    const r = await getJSON("/fapi/v1/klines", { symbol: sym, interval: "15m", startTime: t, limit: 1000 });
-    if (!r.length) break;
-    for (const k of r) if (k[6] < now && (!st.t.length || k[0] > st.t[st.t.length-1])) { st.t.push(k[0]); st.v.push(+k[1], +k[2], +k[3], +k[4]); added++; }
-    t = r[r.length-1][0] + M15;
-    prog && prog(new Date(r[r.length-1][0]).toISOString().slice(0, 10));
-    if (r.length < 1000) break;
-    await sleep(350);
-  }
+  if (!st) { const c = await idb.get("k_" + sym); st = c && c.t.length ? { t: Array.from(c.t), v: Array.from(c.v) } : { t: [], v: [] }; }
+  const added = await fillKlines(sym, "15m", M15, 4, st, fromTs, prog);
   MEM[sym] = st;
-  if (added > 50) await idb.set("k_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) });
-  else if (added) st.dirty = (st.dirty || 0) + added;
-  if (st.dirty > 40) { st.dirty = 0; idb.set("k_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) }); }
+  st.dirty = (st.dirty || 0) + added;
+  if (st.dirty > 40) { st.dirty = 0; await idb.set("k_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) }); }
   if (!st.t.length) return null;
   // شموع متواصلة من حد 4H، والفجوات بشمعة مسطّحة
   let a = 0; while (a < st.t.length && st.t[a] < fromTs) a++;
@@ -1276,22 +1289,13 @@ async function loadCandles(sym, fromTs, prog) {
 
 // شموع 5 دقايق مع الفوليوم (لاستراتيجيات السكالبينغ)
 const MEM5 = {}, M5 = 300000;
-async function loadM5(sym, fromTs) {
-  const now = Date.now();
+async function loadM5(sym, fromTs, prog) {
   let st = MEM5[sym];
-  if (!st) { const c = await idb.get("m5_" + sym); st = c && c.t.length && c.t[0] <= fromTs + 864e5 ? { t: Array.from(c.t), v: Array.from(c.v) } : { t: [], v: [] }; }
-  let t = st.t.length ? st.t[st.t.length-1] + M5 : fromTs, added = 0;
-  while (t < now - M5) {
-    const r = await getJSON("/fapi/v1/klines", { symbol: sym, interval: "5m", startTime: t, limit: 1000 });
-    if (!r.length) break;
-    for (const k of r) if (k[6] < now && (!st.t.length || k[0] > st.t[st.t.length-1])) { st.t.push(k[0]); st.v.push(+k[1], +k[2], +k[3], +k[4], +k[5]); added++; }
-    t = r[r.length-1][0] + M5;
-    if (r.length < 1000) break;
-    await sleep(350);
-  }
+  if (!st) { const c = await idb.get("m5_" + sym); st = c && c.t.length ? { t: Array.from(c.t), v: Array.from(c.v) } : { t: [], v: [] }; }
+  const added = await fillKlines(sym, "5m", M5, 5, st, fromTs, prog);
   MEM5[sym] = st;
   st.dirty = (st.dirty || 0) + added;
-  if (st.dirty > 30) { st.dirty = 0; idb.set("m5_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) }); }
+  if (st.dirty > 30) { st.dirty = 0; await idb.set("m5_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) }); }
   let a = 0; while (a < st.t.length && st.t[a] < fromTs) a++;
   if (a >= st.t.length) return null;
   const t0 = Math.ceil(st.t[a] / M15) * M15, n = Math.floor((st.t[st.t.length-1] - t0)/M5) + 1;
@@ -1309,7 +1313,12 @@ async function loadM5(sym, fromTs) {
 const FMEM = {};
 async function loadFunding(sym, fromTs, D) {
   let out = FMEM[sym] || (await idb.get("f_" + sym)) || [];
-  if (out.length && out[0].t > fromTs + 864e5) out = [];
+  if (out.length && out[0].t > fromTs + 864e5) {   // ناقص من الأول: جيب القديم بس
+    const pre = []; let t = fromTs;
+    for (let g = 0; g < 30; g++) { await paced(); const r = await getJSON("/fapi/v1/fundingRate", { symbol: sym, startTime: t, limit: 1000 });
+      for (const f of r) if (f.fundingTime < out[0].t) pre.push({ t: f.fundingTime, rate: +f.fundingRate, mark: +(f.markPrice || 0) });
+      if (r.length < 1000 || r[r.length-1].fundingTime >= out[0].t) break; t = r[r.length-1].fundingTime + 1; }
+    out = pre.concat(out); FMEM[sym] = null; idb.set("f_" + sym, out); }
   let t = out.length ? out[out.length-1].t + 1 : fromTs, added = 0;
   if (!FMEM[sym] || Date.now() - t > 8*3600e3) for (let g = 0; g < 30; g++) {
     const r = await getJSON("/fapi/v1/fundingRate", { symbol: sym, startTime: t, limit: 1000 });
@@ -1364,6 +1373,7 @@ function recalc() {
   render();
 }
 
+const CK = {};
 const M5N = new Set(STRATS.filter(s => s.m5).map(s => s.name));
 async function run(silent, only5) {
   const st = m => { if (!silent) $("status").textContent = m; };
@@ -1379,10 +1389,10 @@ async function run(silent, only5) {
     const queue = COINS.slice();
     const worker = async () => { while (queue.length) { const sym = queue.shift();
       try { const D = await loadCandles(sym, fromTs, d => st(`⬇️ ${done.n}/${COINS.length} — ${cn(sym)} ${d}`));
-        if (D) { D.m5 = await loadM5(sym, Math.floor((startTs - 2*864e5)/H4)*H4);
+        if (D) { if (!CK[sym]) CK[sym] = (await idb.get("ck_" + sym)) || {}; D.s5ck = CK[sym]; D.m5 = await loadM5(sym, Math.floor((startTs - 2*864e5)/H4)*H4, d => st(`⬇️ ${done.n}/${COINS.length} — ${cn(sym)} 5m ${d}`));
           const funding = await loadFunding(sym, startTs, D); coins.push({ sym, D, funding }); } } catch (e) { if (String(e.message).includes("451")) throw e; }
       done.n++; st(`⬇️ حمّلت ${done.n}/${COINS.length} عملة…`); } };
-    await Promise.all([worker(), worker(), worker()]);
+    await Promise.all([worker(), worker(), worker(), worker()]);
     coins.sort((a, b) => COINS.indexOf(a.sym) - COINS.indexOf(b.sym));
     let k = 0;
     for (const c of coins) {
@@ -1397,6 +1407,7 @@ async function run(silent, only5) {
         c.raw = []; for (const sp of STRATS) for (const t of evaluate(c.D, inds, sp, startTs)) c.raw.push(t);
       }
     }
+    for (const c of coins) idb.set("ck_" + c.sym, CK[c.sym]);   // نقطة الاستكمال لاستراتيجيات الـ5 دقايق
     const upd = Math.max(...coins.map(c => c.D.t0 + c.D.c.length*M15));
     const upd5 = Math.max(...coins.map(c => c.D.m5 ? c.D.m5.t0 + c.D.m5.c.length*M5 : 0));
     CACHE = { coins, bySym: Object.fromEntries(coins.map(c => [c.sym, c])), startTs, upd, upd5 };
