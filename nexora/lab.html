@@ -1053,7 +1053,7 @@ const S5 = (() => {
 // structural stop/target kept as levels, stop-first exits, one position at a time per coin.
 const SSD = (() => {
   const M5 = 300000, H1 = 3600000, M15 = 900000, VER = 1;
-  const CFG = { left: 2, right: 2, atrP: 14, disp: 0.8, search: 6, maxAge: 72, sb: 0.20, rej: 0.25, R: 2.0, minR: 1.5, W1: 300, W5: 1200 };
+  const CFG = { left: 2, right: 2, atrP: 14, disp: 0.8, search: 6, maxAge: 72, sb: 0.20, rej: 0.25, R: 2.0, minR: 1.5, W1: 300, W5: 1200, confirmBars: 0 };
   // pivots: left non-strict, right strict (rightmost of equal swings)
   function pivots(A, isHigh, left, right) {
     const out = [];
@@ -1121,7 +1121,7 @@ const SSD = (() => {
     for (j = Math.max(0, j); j < P.n5; j++) if (m.l[j] <= z.hi && m.h[j] >= z.lo) { r = j; break; }
     P.touch.set(key, r); return r;
   }
-  function decide(P, j) {
+  function decide(P, j, used) {
     const cfg = P.cfg, m = P.m5, s5 = Math.max(0, j - cfg.W5 + 1);
     if (j - s5 + 1 < Math.max(60, cfg.atrP + cfg.left + cfg.right + 5)) return null;
     const cutoff = m.t0 + (j+1)*M5, e = Math.floor((cutoff - P.h1.t0)/H1) - 1; if (e < 0 || e >= P.h1.n) return null;
@@ -1134,7 +1134,13 @@ const SSD = (() => {
     for (const z of st.zones) {
       if (z.kind !== want) continue;
       if (m.t0 + s5*M5 > z.avail) continue;
-      if (firstTouch(P, z) !== j) continue;
+      const ft = firstTouch(P, z), zk = z.kind + z.bos + ":" + z.lo + ":" + z.hi;
+      if (!cfg.confirmBars) { if (ft !== j) continue; }
+      else {   // نسخة مخففة: التأكيد خلال confirmBars شمعة بعد أول لمسة، بشرط ما تسكّر شمعة ورا المنطقة قبلها، ومرة وحدة لكل منطقة
+        if (!(ft <= j && j <= ft + cfg.confirmBars) || (used && used.has(zk))) continue;
+        let broke = false; for (let k = ft; k < j; k++) if (bull ? m.c[k] < z.lo : m.c[k] > z.hi) { broke = true; break; }
+        if (broke) continue;
+      }
       let stop, target, risk, rr;
       if (bull) { if (!(c > o && c > level && c > z.hi && body >= cfg.rej*atr5)) continue;
         stop = z.lo - cfg.sb*atr5; risk = c - stop; if (risk <= 0) continue; target = c + cfg.R*risk;
@@ -1145,7 +1151,7 @@ const SSD = (() => {
         for (const y of st.zones) if (y.kind === "DEMAND" && y.hi < c) target = Math.max(target, y.hi);
         rr = (c - target)/risk; }
       if (rr < cfg.minR) continue;
-      return { d: bull ? 1 : -1, stop, target, ref: c };
+      return { d: bull ? 1 : -1, stop, target, ref: c, zk };
     }
     return null;
   }
@@ -1156,12 +1162,12 @@ const SSD = (() => {
     if (!memo.has(D)) memo.set(D, new Map()); const mm = memo.get(D), key = JSON.stringify(cfg);
     if (!mm.has(key)) mm.set(key, prepare(D, cfg)); const P = mm.get(key);
     const B = P.m5, n = P.n5, out = [], toE = ts => (ts - D.t0)/M15;
-    let pos = null, pend = null, j0 = 0;
+    let pos = null, pend = null, j0 = 0; const used = new Set();
     const store = D.s5ck, ck = store && store[sp.name];
     if (ck && ck.ver === VER && ck.t0 === B.t0 && ck.d0 === D.t0 && ck.startTs === startTs && ck.j < n && ck.c === B.c[ck.j] && ck.o === B.o[ck.j]) {
-      for (const t of ck.out) out.push(t); pos = ck.pos && { ...ck.pos }; pend = ck.pend && { ...ck.pend }; j0 = ck.j; }
+      for (const t of ck.out) out.push(t); pos = ck.pos && { ...ck.pos }; pend = ck.pend && { ...ck.pend }; j0 = ck.j; for (const u of (ck.used || [])) used.add(u); }
     for (let j = j0; j < n; j++) {
-      if (store && j === n - 1) store[sp.name] = { ver: VER, t0: B.t0, d0: D.t0, startTs, j, c: B.c[j], o: B.o[j], out: out.slice(), pos: pos && { ...pos }, pend: pend && { ...pend } };
+      if (store && j === n - 1) store[sp.name] = { ver: VER, t0: B.t0, d0: D.t0, startTs, j, c: B.c[j], o: B.o[j], out: out.slice(), pos: pos && { ...pos }, pend: pend && { ...pend }, used: [...used] };
       if (pend) { const e = B.o[j]; if ((e - pend.stop)*pend.d > 0 && (pend.target - e)*pend.d > 0) pos = { d: pend.d, j, entry: e, stop: pend.stop, target: pend.target }; pend = null; }
       if (pos) {
         const s = pos.d, o = B.o[j]; let raw = null, why = null;
@@ -1172,15 +1178,15 @@ const SSD = (() => {
         if (raw !== null) { out.push({ name: sp.name, d: s, e: toE(B.t0 + pos.j*M5), x: toE(B.t0 + (j+1)*M5) - 1, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: pos.target }); pos = null; }
       }
       if (pos || j === n - 1 || B.t0 + (j+1)*M5 <= startTs) continue;
-      const sig = decide(P, j); if (sig) pend = sig;
+      const sig = decide(P, j, used); if (sig) { pend = sig; if (cfg.confirmBars) used.add(sig.zk); }
     }
     if (pos) out.push({ name: sp.name, d: pos.d, e: toE(B.t0 + pos.j*M5), x: D.o.length - 1, rawIn: pos.entry, rawOut: B.c[n-1], why: "TIME", open: true, stop: pos.stop, target: pos.target });
     return out;
   }
   const strat = { name: "SD 1H+5m Supply/Demand", mult: 0, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "استراتيجيتك (1H/5m S&D)", m5: true };
-  return { run, decide, prepare, h1State, firstTouch, pivots, lastLE, smaAtr, CFG, strats: [strat] };
+  const relaxed = { ...strat, name: "SD 1H+5m تأكيد خلال ساعة", cfg: { confirmBars: 12 }, src: "استراتيجيتك — تأكيد مخفف (12 شمعة 5د)" };
+  return { run, decide, prepare, h1State, firstTouch, pivots, lastLE, smaAtr, CFG, strats: [strat, relaxed] };
 })();
-
 // NEXORA V63 (volume breakout from a tight 20-bar range, 1H EMA50>150>200 trend, ADX>=20, smart-volume).
 // Port of nexora_v63_strategy.py. Indicators run on the whole 15m history (causal). Replay: entry on the next
 // 15m open, stop/target levels from the signal (target 2R), stop-first exits, one position per coin.
