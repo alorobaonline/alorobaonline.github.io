@@ -83,7 +83,16 @@ const GDEC = (() => {
     return out;
   }
   const mk = (name, tf, bounce) => ({ name, tf, bounce, mult: tf, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "خطوط جان كمناطق قرار (طريقة المستخدم)" });
-  return { run, strats: [
+  const anchorsOf = I => { if (!memo.has(I)) memo.set(I, anchors(I)); return memo.get(I); };
+  function near(I, k, side, mode) {
+    const a = anchorsOf(I)[k]; if (!a) return mode === "none";
+    const { A, u, atr } = a, c = I.C[k];
+    const list = mode === "slow" ? [side === 1 ? A[1] : A[0]] : A, sp = mode === "slow" ? [1/8, 1/4, 1/3, 1/2] : SP;
+    let hit = false;
+    for (const [ai, ap, dir] of list) for (const s of sp) { const v = ap + dir*u*s*(k - ai); if (Math.abs(c - v) <= 0.5*atr) hit = true; }
+    return mode === "none" ? !hit : hit;
+  }
+  return { run, near, anchorsOf, strats: [
     mk("Gann قرار كسر ساعة", 4, false),
     mk("Gann قرار كسر 15د", 1, false),
   ] };
