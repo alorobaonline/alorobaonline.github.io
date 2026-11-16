@@ -2396,7 +2396,7 @@ const WAVE = (() => {   // Wave Rider v1 — منسوخة حرفياً من كو
   function run(D, inds, sp, startTs) {
     const m = sp.mult, I = inds[m]; if (!I || I.n < 40) return [];
     const O = I.O, H = I.H, L = I.L, C = I.C, A = I.atr, n = I.n, V = vol(D, m, n); if (!V) return [];
-    const F = emaP(C, 9), S = emaP(C, 21), out = [], TA = sp.trailAtr || 0.5;
+    const F = emaP(C, 9), S = emaP(C, 21), out = [], TA = sp.trailAtr || 0.5, ACT = sp.act || 1.0, VM = sp.volMult || 1.5, SN = sp.stopN || 3, SB = sp.stopBuf ?? 0.2;
     const VA = V.map((_, i) => { if (i < 19) return null; let s = 0; for (let j = i - 19; j <= i; j++) s += V[j]; return s/20; });
     let pos = null, stopLevel = null, entryPrice = null, hh = null;
     for (let k = 21; k < n; k++) {
@@ -2412,19 +2412,20 @@ const WAVE = (() => {   // Wave Rider v1 — منسوخة حرفياً من كو
         const d = pos.d, prevStop = stopLevel;
         hh = d === 1 ? Math.max(hh, H[k]) : Math.min(hh, L[k]);
         const risk = d*(entryPrice - prevStop);
-        if (d*(hh - entryPrice) >= 1.0*risk) { if (d*(entryPrice - stopLevel) > 0) { stopLevel = entryPrice; pos.moved = true; } }
-        if (d*(hh - entryPrice) >= 1.0*risk && A[k] !== null) { const t = hh - d*TA*A[k]; if (d*(t - stopLevel) > 0) { stopLevel = t; pos.moved = true; } }
+        if (d*(hh - entryPrice) >= ACT*risk) { if (d*(entryPrice - stopLevel) > 0) { stopLevel = entryPrice; pos.moved = true; } }
+        if (d*(hh - entryPrice) >= ACT*risk && A[k] !== null) { const t = hh - d*TA*A[k]; if (d*(t - stopLevel) > 0) { stopLevel = t; pos.moved = true; } }
         pos.armed = stopLevel;
         continue;
       }
       if (k >= n - 1 || F[k] === null || S[k] === null || VA[k] === null || A[k] === null) continue;
       if (D.t0 + (k + 1)*m*900000 < startTs) continue;
-      const movePct = (C[k] - C[k-3]) / C[k-3] * 100, spike = V[k] > VA[k]*1.5;
+      const movePct = (C[k] - C[k-3]) / C[k-3] * 100, spike = V[k] > VA[k]*VM;
       let d = 0;
       if (F[k] > S[k] && spike && movePct >= 2.0) d = 1;
       else if (sp.short && F[k] < S[k] && spike && movePct <= -2.0) d = -1;
       if (!d) continue;
-      const st = d === 1 ? Math.min(L[k], L[k-1], L[k-2]) - 0.2*A[k] : Math.max(H[k], H[k-1], H[k-2]) + 0.2*A[k], riskAmount = d*(C[k] - st);
+      let lo = Infinity, hi = -Infinity; for (let j = k - SN + 1; j <= k; j++) { lo = Math.min(lo, L[j]); hi = Math.max(hi, H[j]); }
+      const st = d === 1 ? lo - SB*A[k] : hi + SB*A[k], riskAmount = d*(C[k] - st);
       if (!(riskAmount > 0)) continue;
       stopLevel = st; entryPrice = C[k]; hh = d === 1 ? H[k] : L[k];
       // الحجم: 1% من رأس المال (10,000$) ÷ مسافة الوقف — الأساس 1,000$ (10%)، بحد أقصى كل رأس المال؛ fixed = 1,000$ ثابت
@@ -2441,7 +2442,8 @@ const WAVE = (() => {   // Wave Rider v1 — منسوخة حرفياً من كو
     mk("WAVE 15m متحرك 3ATR", 1, { trailAtr: 3 }), mk("WAVE ساعة متحرك 3ATR", 4, { trailAtr: 3 }),
     mk("WAVE 4h (كما هي)", 16),
     mk("WAVE 15m حجم ثابت", 1, { fixed: true }), mk("WAVE ساعة حجم ثابت", 4, { fixed: true }),
-    mk("WAVE 15m لونج+شورت", 1, { short: true }), mk("WAVE ساعة لونج+شورت", 4, { short: true })] };
+    mk("WAVE 15m لونج+شورت", 1, { short: true }), mk("WAVE ساعة لونج+شورت", 4, { short: true }),
+    mk("WAVE v2 4h (كما هي)", 16, { volMult: 1.2, act: 1.5, trailAtr: 2.5, stopN: 7, stopBuf: 0.5 })] };
 })();
 
 
