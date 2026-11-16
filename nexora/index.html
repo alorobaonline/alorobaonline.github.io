@@ -3644,8 +3644,34 @@ function feed(html) {
   f.prepend(d);
 }
 
+// بث أسعار لحظي من Bybit (ثانية بثانية) — شغال دايماً جنب بايننس، لأنه بث بايننس أحياناً بيكون ساكت أو محظور
+let BWS = null, BWS_KEY = "", BWS_PING = null, BWS_LAST = 0;
+function connectBybitWS() {
+  if (!COINS) return;
+  const key = COINS.join(","); if (BWS && BWS_KEY === key && BWS.readyState <= 1) return;
+  try { if (BWS) { BWS.onclose = null; BWS.close(); } } catch (e) {}
+  clearInterval(BWS_PING); BWS_KEY = key;
+  try {
+    BWS = new WebSocket("wss://stream.bybit.com/v5/public/linear");
+    BWS.onopen = () => {
+      for (let i = 0; i < COINS.length; i += 10) BWS.send(JSON.stringify({ op: "subscribe", args: COINS.slice(i, i + 10).map(x => "tickers." + x) }));
+      BWS_PING = setInterval(() => { try { BWS.send(JSON.stringify({ op: "ping" })); } catch (e) {} }, 20000);
+    };
+    BWS.onmessage = ev => {
+      let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+      const d = m.data; if (!m.topic || !d || d.lastPrice === undefined) return;
+      const sym = m.topic.slice(8), px = +d.lastPrice; if (!(px > 0)) return;
+      const now = Date.now(); BWS_LAST = now;
+      if (!(WS_LAST && now - WS_LAST < 5000)) { LIVE[sym] = px; LIVE_T[sym] = LAST_PX_T = now; }   // بايننس ساكت → Bybit هو السعر الحي
+      if (now - LAST_LIGHT > 1000) { LAST_LIGHT = now; lightUpdate(); }
+    };
+    BWS.onclose = () => { clearInterval(BWS_PING); setTimeout(connectBybitWS, 3000); };
+    BWS.onerror = () => { try { BWS.close(); } catch (e) {} };
+  } catch (e) {}
+}
 function connectWS() {
   if (!COINS) return;
+  connectBybitWS();
   const key = COINS.join(","); if (WS && WS_KEY === key && WS.readyState <= 1) return;
   try { if (WS) { WS.onclose = null; WS.close(); } } catch (e) {}
   WS_KEY = key;
