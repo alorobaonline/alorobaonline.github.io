@@ -91,6 +91,7 @@ tr.grp td{background:#11151d;text-align:right;font-weight:700;color:#cfd3da;curs
   <button data-t="coins">🪙 العملات</button>
   <button data-t="live">⚡ لايف</button>
   <button data-t="journal">📓 دفتر القرارات</button>
+  <button data-t="real">🎯 خطة حقيقي</button>
 </nav>
 <details id="settings"><summary style="cursor:pointer;margin-top:10px;color:#cfd3da">⚙️ الإعدادات والفترة (اضغط لتفتح)</summary>
 <div class="bar">
@@ -170,6 +171,18 @@ tr.grp td{background:#11151d;text-align:right;font-weight:700;color:#cfd3da;curs
   </div>
   <h2>📡 رادار الإشارات <span class="mut">(للعملة المختارة — لو الشمعة سكّرت على السعر الحالي. استراتيجيات الـ5 دقايق وV63 وTurtle Soup ومروحة جان مش بالرادار، بس صفقاتها بتطلع عادي)</span></h2>
   <div class="wrap"><table class="radar" id="radar"></table></div>
+</section>
+<section class="tab" data-t="real">
+  <h2>🎯 خطة التداول الحقيقي — ⭐ S15 V2 4h بس <span class="mut">(المنصة ما بتفتح ولا صفقة — إنت بتفتح بإيدك)</span></h2>
+  <div id="realClock" class="card" style="font-size:15px"></div>
+  <h3 style="margin-top:14px">✅ إشارات مؤكدة — ادخل على افتتاح الشمعة</h3>
+  <div id="realConf"></div>
+  <h3 style="margin-top:14px">⏳ صفقات محتملة — صار سحب سيولة، وناطرين كسر الهيكل</h3>
+  <div class="mut" style="margin-bottom:6px">الصفقة بتفتح <b>إذا سكّرت شمعة 4 ساعات</b> ورا سعر الشرط قبل آخر موعد (إلا إذا نفس الشمعة عملت سحب جديد). الدخول على افتتاح الشمعة اللي بعدها. الوقف والهدف تقريبيين (بيتحددوا بالـATR لحظة الإغلاق).</div>
+  <div id="realPend"></div>
+  <h3 style="margin-top:14px">🛑 قاعدة التوقف (حطها قبل ما تبلّش)</h3>
+  <div class="bar"><label>تاريخ بداية التداول الحقيقي<input type="date" id="realStart"></label></div>
+  <div id="realKill"></div>
 </section>
 <section class="tab" data-t="journal">
   <h2>📓 دفتر القرارات <span class="mut">(كل ما تغيّر تصنيف استراتيجية اكتب ليش — بعد شهر بترجع بتشوف قراراتك كانت مبنية على أرقام ولا على شعور)</span></h2>
@@ -734,6 +747,32 @@ const S15 = (() => {
     return f.some(p => { const e = emaOf(I, p)[k]; return e !== null && (I.C[k] - e)*side > 0; });
   };
   const hitsAt = (P, I, k, v2, f) => (P.events.get(k) || []).filter(x => !v2 || okTrend(P, I, k, x.side, f));
+  // للمراقبة الحية: نفس منطق prepare، بس بيرجّع السحب المعلّق (لسا ما صار كسر هيكل) لحد الشمعة kLast (مسكّرة)
+  function watch(I, kLast) {
+    const P = prep(I), out = {};
+    for (const side of [1, -1]) {
+      let level = null, pending = null;
+      for (let k = 0; k <= kLast; k++) {
+        if (level !== null && P.atr[k] !== null && k >= 3) {
+          const sweep = side === 1 ? (level - I.L[k] >= .1*P.atr[k] && I.C[k] > level) : (I.H[k] - level >= .1*P.atr[k] && I.C[k] < level);
+          if (sweep) {
+            const th = side === 1 ? Math.max(I.H[k-3], I.H[k-2], I.H[k-1]) : Math.min(I.L[k-3], I.L[k-2], I.L[k-1]);
+            pending = [k, th, level];
+          } else if (pending && (I.C[k] - pending[1])*side > 0 && k - pending[0] >= 1 && k - pending[0] <= 5) pending = null;
+        }
+        if (pending && k - pending[0] > 5) pending = null;
+        const i = k - 3;
+        if (i >= 3) {
+          const arr = side === 1 ? I.L : I.H; let ok = true;
+          for (let j = i - 3; j <= k; j++) if (j !== i && !((arr[j] - arr[i])*side > 0)) { ok = false; break; }
+          if (ok) level = arr[i];
+        }
+      }
+      // السحب لسا صالح للشمعة الجاية kLast+1 (لازم يكون الكسر خلال 1..5 شموع من السحب)
+      if (pending && kLast + 1 - pending[0] <= 5) out[side] = { s: pending[0], th: pending[1], level: pending[2], base: side === 1 ? I.L[pending[0]] : I.H[pending[0]], left: 5 - (kLast + 1 - pending[0]) + 1 };
+    }
+    return { pend: out, atr: P.atr[kLast], ema: P.ema[kLast] };
+  }
   const sig = v2 => (I, i) => { const h = hitsAt(prep(I), I, i, v2); return h.length ? h[0].side : 0; };
   function run(D, inds, sp, startTs) {
     const m = sp.mult, I = inds[m], P = prep(I), out = [], n = I.n;
@@ -784,7 +823,7 @@ const S15 = (() => {
     return out;
   }
   const mk = (label, mult, v2) => ({ name: "S15 Sweep+MSS " + label, mult, v2, sig: sig(v2), run, sm: 0, tm: 0, hold: 20, trail: null, cd: null, entry: "imm", src: "Replit #15" });
-  return { prepare, run, strats: [mk("V2 15m", 1, true), mk("V2 1h", 4, true), mk("V2 4h", 16, true), mk("V1 15m", 1, false)] };
+  return { prepare, run, watch, strats: [mk("V2 15m", 1, true), mk("V2 1h", 4, true), mk("V2 4h", 16, true), mk("V1 15m", 1, false)] };
 })();
 
 // Replit #13 Ichimoku Cloud Trend (15m + 1h) and #8 LuxAlgo-style Trendline + TRAMA + Chandelier (15m + 4h).
@@ -2552,6 +2591,7 @@ function recalc() {
   const net = Q => capTrades(all(Q)).filter(t => !t.open).reduce((s, t) => s + t.net, 0);
   RESULT = { trades: capTrades(all(P)), startTs: CACHE.startTs, P, makerNet: net(PM), takerNet: net(PT), upd: CACHE.upd };
   render();
+  try { if (document.querySelector('section.tab.on[data-t="real"]')) renderReal(); } catch (e) { console.warn(e); }
 }
 
 const CK = {};
@@ -2882,11 +2922,57 @@ function renderCoins(trades, P) {
     rows.map(r => `<tr><td class="nm">${CAT[catOf(r.n)][0]} ${r.n}</td><td>${r.k} <span class="mut">(${r.L}/${r.S})</span></td><td>${r.k ? Math.round(100*r.w/r.k) : 0}%</td><td><span class="num">${r.k ? (r.pf >= 99 ? "∞" : r.pf.toFixed(2)) : "—"}</span></td><td><b>${usd(r.net)}</b></td><td>${r.last ? dt(r.last.xTs) + " " + (WHY[r.last.why] || r.last.why) + " " + usd(r.last.net) : "—"}</td><td>${r.o ? `<span class="tag ${r.o.d === 1 ? "L" : "S"}">${r.o.d === 1 ? "LONG" : "SHORT"}</span> من ${dt(r.o.eTs)} @ <span class="num">${fp(r.o.fillIn)}</span> ${usd(r.o.net)}` : "—"}</td></tr>`).join("");
 }
 
+// ===================== 🎯 خطة التداول الحقيقي (⭐ S15 بس) =====================
+const STAR = "⭐ S15 V2 4h R2.5 h40", IND16 = new WeakMap();
+const ind16 = D => { if (!IND16.has(D) || IND16.get(D).len !== D.c.length) IND16.set(D, { len: D.c.length, I: makeInd(D, 16) }); return IND16.get(D).I; };
+const tm = ts => new Date(ts).toLocaleString("en-GB", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+const left = ms => { const m = Math.max(0, Math.round(ms/60000)); return m >= 60 ? `${Math.floor(m/60)}س ${m%60}د` : `${m}د`; };
+function renderReal() {
+  if (!$("realClock") || !CACHE) return;
+  const P = RESULT ? RESULT.P : params($("makerEntry").checked), H4ms = 4*3600e3, now = Date.now(), next = Math.ceil(now/H4ms)*H4ms;
+  $("realClock").innerHTML = `⏰ إغلاق شمعة الـ4 ساعات الجاية: <b>${tm(next)}</b> — بعد <b>${left(next - now)}</b> <span class="mut">(الإشارات بتتأكد بس عند الإغلاق؛ الصفقة على 200$ = حجم الصفقة بالإعدادات: ${P.notional}$)</span>`;
+  // إشارات مؤكدة: صفقات ⭐ مفتوحة بدأت بآخر 8 ساعات
+  const conf = (RESULT ? RESULT.trades : []).filter(t => t.name === STAR && t.open && now - t.eTs < 8*3600e3);
+  $("realConf").innerHTML = conf.length ? `<table><tr><th>العملة</th><th>الاتجاه</th><th>الدخول</th><th>الوقف</th><th>الهدف (2.5R)</th><th>المخاطرة</th><th>بدأت</th></tr>${conf.map(t => {
+    const r = Math.abs(t.rawIn - t.stop)/t.rawIn;
+    return `<tr><td><b>${cn(t.sym)}</b></td><td>${t.d === 1 ? "🟢 شراء" : "🔴 بيع"}</td><td>${fp(t.rawIn)}</td><td>${fp(t.stop)}</td><td>${fp(t.target)}</td><td>${(r*100).toFixed(2)}% = ${(P.notional*r).toFixed(2)}$</td><td>${tm(t.eTs)}</td></tr>`; }).join("")}</table>` : `<div class="mut">ما في إشارة مؤكدة هلأ.</div>`;
+  // صفقات محتملة
+  const rows = []; let loading = 0;
+  for (const c of CACHE.coins) {
+    if (c.D.stub || c.D.o.length < 16*260) { loading++; continue; }
+    const I = ind16(c.D), kLast = I.n - 1,   // makeInd بيحسب بس شموع الـ4 ساعات الكاملة
+       w = S15.watch(I, kLast), px = pxOf(c.sym);
+    for (const side of [1, -1]) {
+      const p = w.pend[side]; if (!p || w.ema === null || w.atr === null) continue;
+      const trig = side === 1 ? Math.max(p.th, w.ema) : Math.min(p.th, w.ema), stop = p.base - side*0.25*w.atr, R = Math.abs(trig - stop);
+      if (!(side*(trig - stop) > 0)) continue;
+      const lastClose = c.D.t0 + (p.s + 6)*H4ms, firstClose = c.D.t0 + (kLast + 2)*H4ms;
+      rows.push({ sym: c.sym, side, trig, stop, tgt: trig + side*2.5*R, px, dist: px ? side*(trig - px)/px*100 : null, risk: P.notional*R/trig, lastClose, firstClose, emaGate: trig === w.ema, left: p.left });
+    }
+  }
+  rows.sort((a, b) => (a.dist ?? 99) - (b.dist ?? 99));
+  $("realPend").innerHTML = (loading ? `<div class="mut">⏳ ${loading} عملة لسا بيانات الـ4 ساعات تبعها عم تتحمّل…</div>` : "") + (rows.length ? `<table><tr><th>العملة</th><th>الاتجاه</th><th>الشرط: إغلاق 4 ساعات</th><th>السعر هلأ</th><th>باقي للشرط</th><th>الوقف ≈</th><th>الهدف ≈</th><th>المخاطرة ≈</th><th>أول إغلاق ممكن</th><th>آخر موعد</th></tr>${rows.map(r => {
+    const ready = r.dist !== null && r.dist <= 0;
+    return `<tr${ready ? ' style="background:#14321f"' : ""}><td><b>${cn(r.sym)}</b></td><td>${r.side === 1 ? "🟢 شراء" : "🔴 بيع"}</td><td>${r.side === 1 ? "فوق" : "تحت"} <b>${fp(r.trig)}</b>${r.emaGate ? ' <span class="mut">(EMA200)</span>' : ""}</td><td>${r.px ? fp(r.px) : "—"}</td><td>${r.dist === null ? "—" : ready ? "✅ محقق هلأ — ناطر الإغلاق" : r.dist.toFixed(2) + "%"}</td><td>${fp(r.stop)}</td><td>${fp(r.tgt)}</td><td>${(r.risk).toFixed(2)}$</td><td>${tm(r.firstClose)}</td><td>${tm(r.lastClose)} <span class="mut">(${r.left} شموع)</span></td></tr>`; }).join("")}</table>` : `<div class="mut">ما في صفقات محتملة هلأ على العملات المحمّلة.</div>`);
+  // قاعدة التوقف
+  const st = $("realStart").value, s0 = st ? new Date(st + "T00:00:00").getTime() : null;
+  const sc = P.notional/200, ddTest = 434*sc, ddLim = 1.5*ddTest;
+  if (!s0) { $("realKill").innerHTML = `<div class="mut">حط تاريخ البداية، وبحسبلك صفقات ⭐ من يومها (الورقية بالمنصة = نفس إشاراتك إذا التزمت فيها).</div>`; return; }
+  const cl = (RESULT ? RESULT.trades : []).filter(t => t.name === STAR && !t.open && t.eTs >= s0).sort((a, b) => a.xTs - b.xTs);
+  let gp = 0, gl = 0, eq = 0, pk = 0, dd = 0; for (const t of cl) { if (t.net > 0) gp += t.net; else gl -= t.net; eq += t.net; pk = Math.max(pk, eq); dd = Math.max(dd, pk - eq); }
+  const pf = gl ? gp/gl : (gp ? 99 : 0), n = cl.length;
+  const stopPF = n >= 100 && pf < 0.9, stopDD = dd > ddLim;
+  $("realKill").innerHTML = `<table><tr><th>الصفقات من البداية</th><th>الصافي</th><th>PF</th><th>أقصى تراجع</th><th>الحكم</th></tr><tr><td>${n}</td><td>${usd(eq)}</td><td>${n ? (pf >= 99 ? "∞" : pf.toFixed(2)) : "—"}</td><td>−${dd.toFixed(2)}$ <span class="mut">(حد التوقف ${ddLim.toFixed(0)}$)</span></td><td>${stopPF || stopDD ? "🛑 <b>وقّف وراجع</b> — " + (stopDD ? "التراجع أكبر من 1.5× أكبر تراجع بالفحص" : "بعد 100 صفقة PF تحت 0.9") : n < 100 ? `🟢 كمّل — ${100 - n} صفقة لأول حكم على الـPF` : "🟢 كمّل"}</td></tr></table>
+  <div class="mut" style="margin-top:6px">القاعدة (متفق عليها قبل): وقّف إذا <b>بعد 100 صفقة PF تحت 0.9</b>، أو إذا <b>التراجع تعدّى 1.5× أكبر تراجع بالفحص</b> (434$ على 200$ للصفقة → ${ddTest.toFixed(0)}$ على حجمك). المتوقع من الفحص: PF تقريباً 1.1–1.5، وفترات ضعيفة ممكن تطول لـ8 شهور.</div>`;
+}
+setInterval(() => { if (document.querySelector('section.tab.on[data-t="real"]')) renderReal(); }, 30000);
+
 function showTab(t) {
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
   document.querySelectorAll("section.tab").forEach(s => s.classList.toggle("on", s.dataset.t === t));
   try { localStorage.setItem("nexora_tab", t); } catch (e) {}
   if (t === "live") setTimeout(() => { drawChart(); radar(); }, 0);
+  if (t === "real") setTimeout(renderReal, 0);
 }
 
 // ===================== لايف: WebSocket + شارت + رادار + صوت =====================
@@ -3074,6 +3160,8 @@ async function liveTick() {
   $("run").onclick = () => { SEEN = null; run(); };
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showTab(b.dataset.t));
   ["cAllCats", "cSort"].forEach(id => $(id).addEventListener("change", () => RESULT && renderCoins(RESULT.trades, RESULT.P)));
+  try { $("realStart").value = localStorage.getItem("nexora_real_start") || ""; } catch (e) {}
+  $("realStart").addEventListener("change", () => { try { localStorage.setItem("nexora_real_start", $("realStart").value); } catch (e) {} renderReal(); });
   try { const t0 = localStorage.getItem("nexora_tab"); if (t0) showTab(t0); } catch (e) {}
   loadSrv(); setInterval(loadSrv, 30*60000);
   ["notional", "maker", "taker", "slip", "bnb", "makerEntry", "balance", "lev", "maxOpen"].forEach(id => $(id).addEventListener("change", recalc));

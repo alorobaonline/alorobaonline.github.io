@@ -85,6 +85,32 @@ const S15 = (() => {
     return f.some(p => { const e = emaOf(I, p)[k]; return e !== null && (I.C[k] - e)*side > 0; });
   };
   const hitsAt = (P, I, k, v2, f) => (P.events.get(k) || []).filter(x => !v2 || okTrend(P, I, k, x.side, f));
+  // للمراقبة الحية: نفس منطق prepare، بس بيرجّع السحب المعلّق (لسا ما صار كسر هيكل) لحد الشمعة kLast (مسكّرة)
+  function watch(I, kLast) {
+    const P = prep(I), out = {};
+    for (const side of [1, -1]) {
+      let level = null, pending = null;
+      for (let k = 0; k <= kLast; k++) {
+        if (level !== null && P.atr[k] !== null && k >= 3) {
+          const sweep = side === 1 ? (level - I.L[k] >= .1*P.atr[k] && I.C[k] > level) : (I.H[k] - level >= .1*P.atr[k] && I.C[k] < level);
+          if (sweep) {
+            const th = side === 1 ? Math.max(I.H[k-3], I.H[k-2], I.H[k-1]) : Math.min(I.L[k-3], I.L[k-2], I.L[k-1]);
+            pending = [k, th, level];
+          } else if (pending && (I.C[k] - pending[1])*side > 0 && k - pending[0] >= 1 && k - pending[0] <= 5) pending = null;
+        }
+        if (pending && k - pending[0] > 5) pending = null;
+        const i = k - 3;
+        if (i >= 3) {
+          const arr = side === 1 ? I.L : I.H; let ok = true;
+          for (let j = i - 3; j <= k; j++) if (j !== i && !((arr[j] - arr[i])*side > 0)) { ok = false; break; }
+          if (ok) level = arr[i];
+        }
+      }
+      // السحب لسا صالح للشمعة الجاية kLast+1 (لازم يكون الكسر خلال 1..5 شموع من السحب)
+      if (pending && kLast + 1 - pending[0] <= 5) out[side] = { s: pending[0], th: pending[1], level: pending[2], base: side === 1 ? I.L[pending[0]] : I.H[pending[0]], left: 5 - (kLast + 1 - pending[0]) + 1 };
+    }
+    return { pend: out, atr: P.atr[kLast], ema: P.ema[kLast] };
+  }
   const sig = v2 => (I, i) => { const h = hitsAt(prep(I), I, i, v2); return h.length ? h[0].side : 0; };
   function run(D, inds, sp, startTs) {
     const m = sp.mult, I = inds[m], P = prep(I), out = [], n = I.n;
@@ -135,5 +161,5 @@ const S15 = (() => {
     return out;
   }
   const mk = (label, mult, v2) => ({ name: "S15 Sweep+MSS " + label, mult, v2, sig: sig(v2), run, sm: 0, tm: 0, hold: 20, trail: null, cd: null, entry: "imm", src: "Replit #15" });
-  return { prepare, run, strats: [mk("V2 15m", 1, true), mk("V2 1h", 4, true), mk("V2 4h", 16, true), mk("V1 15m", 1, false)] };
+  return { prepare, run, watch, strats: [mk("V2 15m", 1, true), mk("V2 1h", 4, true), mk("V2 4h", 16, true), mk("V1 15m", 1, false)] };
 })();
