@@ -2400,7 +2400,9 @@ async function getJSON(path, params) {
       const r = await fetch(url);
       if (r.ok) return await r.json();
       if (r.status === 451) throw new Error("STOP:بايننس حاظرة منطقتك (451)");
-      if (r.status === 429 || r.status === 418) { $("status").textContent = "⏳ بايننس طلبت استراحة (حد الطلبات)… بستنى 30 ثانية"; await sleep(30000); continue; }
+      if (r.status === 429 || r.status === 418) {   // بايننس بتحدد قديش نستنى (Retry-After)؛ 418 = حظر مؤقت لأنه ما استنينا
+        const ra = Math.max(30, Math.min(900, +(r.headers.get("Retry-After") || 0) || (r.status === 418 ? 120 : 30)));
+        $("status").textContent = `⏳ بايننس طلبت استراحة (حد الطلبات)… بستنى ${ra} ثانية — النتائج المحفوظة ظاهرة`; await sleep(ra*1000); continue; }
     } catch (e) { if (String(e.message).startsWith("STOP:")) throw new Error(e.message.slice(5)); }
     await sleep(1500*(k+1));
   }
@@ -2533,6 +2535,9 @@ async function loadM5(sym, fromTs, prog) {
 const FMEM = {};
 async function loadFunding(sym, fromTs, D) {
   let out = FMEM[sym] || (await idb.get("f_" + sym)) || [];
+  if (!out.length) {   // أول مرة: التمويل من بيانات السيرفر الجاهزة (بدون طلبات بايننس)
+    try { const r = await fetch(DATA_URL + "f_" + sym + ".json"); if (r.ok) out = (await r.json()).map(([t, rate]) => ({ t, rate, mark: 0 })); } catch (e) {}
+  }
   if (out.length && out[0].t > fromTs + 864e5) {   // ناقص من الأول: جيب القديم بس
     const pre = []; let t = fromTs;
     for (let g = 0; g < 30; g++) { await paced(); const r = await getJSON("/fapi/v1/fundingRate", { symbol: sym, startTime: t, limit: 1000 });
@@ -2540,13 +2545,13 @@ async function loadFunding(sym, fromTs, D) {
       if (r.length < 1000 || r[r.length-1].fundingTime >= out[0].t) break; t = r[r.length-1].fundingTime + 1; }
     out = pre.concat(out); FMEM[sym] = null; idb.set("f_" + sym, out); }
   let t = out.length ? out[out.length-1].t + 1 : fromTs, added = 0;
-  if (!FMEM[sym] || Date.now() - t > 8*3600e3) for (let g = 0; g < 30; g++) {
-    const r = await getJSON("/fapi/v1/fundingRate", { symbol: sym, startTime: t, limit: 1000 });
+  if (Date.now() - t > 8*3600e3 + 600000) for (let g = 0; g < 30; g++) {   // التمويل كل 8 ساعات: ما في داعي نسأل قبل
+    await paced(); const r = await getJSON("/fapi/v1/fundingRate", { symbol: sym, startTime: t, limit: 1000 });
     for (const f of r) { out.push({ t: f.fundingTime, rate: +f.fundingRate, mark: +(f.markPrice || 0) }); added++; }
     if (r.length < 1000) break; t = r[r.length-1].fundingTime + 1;
   }
   FMEM[sym] = out;
-  if (added) idb.set("f_" + sym, out);
+  if (added || !FMEM.saved?.[sym]) { idb.set("f_" + sym, out); (FMEM.saved = FMEM.saved || {})[sym] = 1; }
   return out.filter(f => f.t >= fromTs).map(f => f.mark ? f : { ...f, mark: D.c[Math.min(D.c.length-1, Math.max(0, Math.floor((f.t - D.t0)/M15)))] });
 }
 
@@ -2684,11 +2689,12 @@ function saveSnap(nc) {
 async function loadSnap() {   // افتح فوراً على آخر نتيجة محفوظة، وبعدين حدّث بالخلفية
   try {
     const s = await idb.get("snap"), startTs = new Date($("start").value + "T00:00:00").getTime(), nc = Math.min(150, Math.max(1, +$("ncoins").value || 30));
-    if (!s || s.ver !== ENGINE_VER || s.startTs !== startTs || s.nc !== nc || !s.coins.length) return false;
-    const coins = s.coins.map(c => ({ sym: c.sym, raw: c.raw, funding: c.funding, D: { stub: true, t0: c.t0, o: [], h: [], l: [], c: [c.last] } }));
+    if (!s || s.startTs !== startTs || s.nc !== nc || !s.coins.length) return false;
+    const known = new Set(STRATS.map(x => x.name)), oldVer = s.ver !== ENGINE_VER;   // نسخة محرك أقدم؟ منعرضها لحد ما يخلص الحساب الجديد
+    const coins = s.coins.map(c => ({ sym: c.sym, raw: c.raw.filter(t => known.has(t.name)), funding: c.funding, D: { stub: true, t0: c.t0, o: [], h: [], l: [], c: [c.last] } }));
     CACHE = { coins, bySym: Object.fromEntries(coins.map(c => [c.sym, c])), startTs, upd: s.upd, upd5: s.upd5 };
     COINS = coins.map(c => c.sym); fillCoinSel(); connectWS();
-    recalc(); $("status").textContent = `⚡ فتحت على آخر نتيجة محفوظة (${dt(s.upd)}) — عم بحدّث بالخلفية…`;
+    recalc(); $("status").textContent = `⚡ فتحت على آخر نتيجة محفوظة (${dt(s.upd)})${oldVer ? " — من نسخة أقدم للمنصة" : ""} — عم بحدّث بالخلفية…`;
     return true;
   } catch (e) { return false; }
 }
