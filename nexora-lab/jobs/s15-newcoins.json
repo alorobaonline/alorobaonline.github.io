@@ -244,5 +244,6 @@
   ],
   "limit": 120,
   "seed": "nexora-oos-1"
- }
+ },
+ "retry": 1
 }
