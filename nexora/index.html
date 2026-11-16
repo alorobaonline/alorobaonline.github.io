@@ -2656,6 +2656,43 @@ const WAVE = (() => {   // Wave Rider v1 — منسوخة حرفياً من كو
 
 const S = (name, mult, sig, sm, tm, hold, trail = null, cd = null, entry = "imm") => ({ name, mult, sig, sm, tm, hold, trail, cd, entry });
 const V40 = (a, b) => ["v40", a, b];
+
+// ===== هدف ثابت % لكل الاستراتيجيات (طلب 16/11): نفس دخولات الاستراتيجية، بس الخروج على +tp% أو وقف stopPct% (أو وقفها الأصلي) =====
+// ملاحظة: بعد ما الصفقة تطلع بكير، ما منحسب دخولات جديدة كانت ممكن تصير بنفس الفترة (أحفظ = صفقات أقل)
+const TPWRAP_MEMO = new WeakMap();
+function tpWrap(baseName, tp, stopPct, label) {
+  const name = `${baseName} | ${label}`;
+  const run = (D, inds, sp, startTs) => {
+    const base = STRATS_ALL.find(x => x.name === baseName); if (!base) return [];
+    if (!TPWRAP_MEMO.has(D)) TPWRAP_MEMO.set(D, new Map());
+    const M = TPWRAP_MEMO.get(D), key = baseName + "|" + startTs;
+    if (!M.has(key)) M.set(key, evaluate(D, inds, base, startTs));
+    const src = M.get(key), n = D.o.length, out = [];
+    const groups = new Map(); for (const t of src) { const k = t.e + "|" + t.d; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(t); }
+    for (const legs of groups.values()) {
+      const t = legs.find(x => !x.part) || legs[0], d = t.d, e0 = t.rawIn, wAll = legs.reduce((a, x) => a + (x.w || 1), 0) / (legs.length > 1 ? 1 : 1);
+      const tgt = e0*(1 + d*tp);
+      // t.stop ممكن يكون الوقف المتحرك الأخير (معلومة من المستقبل) — ما منستعمله: "وقف أصلي" = خروج الاستراتيجية الأصلي متل ما هو
+      const stop = stopPct ? e0*(1 - d*stopPct) : null;
+      const xMin = Math.min(...legs.map(x => x.x)), last = t.open ? n - 1 : xMin;
+      let px = null, why = null, xi = null;
+      for (let j = t.e; j <= last && j < n; j++) {
+        if (stop !== null && j > t.e && d*(D.o[j] - stop) <= 0) { px = D.o[j]; why = "STOP"; xi = j; break; }
+        if (j > t.e && d*(D.o[j] - tgt) >= 0) { px = D.o[j]; why = "TGT_GAP"; xi = j; break; }
+        if (stop !== null && (d === 1 ? D.l[j] <= stop : D.h[j] >= stop)) { px = stop; why = "STOP"; xi = j; break; }   // الوقف أول (الأسوأ)
+        if (j === xMin && !t.open) break;                                                             // الخروج الأصلي بنفس الشمعة: خليه
+        if (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt) { px = tgt; why = "TARGET"; xi = j; break; }
+      }
+      const w = legs.length > 1 ? legs.reduce((a, x) => a + (x.w || 1), 0) : (t.w || 1);
+      if (px !== null) out.push({ name, d, e: t.e, x: xi, rawIn: e0, rawOut: px, why, open: false, stop, target: tgt, ...(w !== 1 ? { w } : {}) });
+      else for (const x of legs) out.push({ ...x, name, target: tgt });
+    }
+    return out;
+  };
+  return { name, mult: (STRATS_ALL.find(x => x.name === baseName) || {}).mult || 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "TP 1.2% wrap" };
+}
+const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
+  "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة"];
 const STRATS_ALL = [
   S("V33 B3 TRAIL فوري", 16, sigV33(3), 1.5, 2.25, 96, "v33trail"),
   S("V33 B3 TRAIL 15m", 16, sigV33(3), 1.5, 2.25, 96, "v33trail", null, "conf15"),
@@ -2701,6 +2738,8 @@ const STRATS_ALL = [
   ...IT1226.strats,
   ...WAVE.strats,
 ];
+for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% وقف 0.6%"), tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), tpWrap(b, 0.012, null, "هدف 1.2% وقف أصلي"));
+
 // نسخ فحص (جان، Turtle Soup...): بتشتغل بمختبر السيرفر بس — المنصة بالمتصفح ما بتحسبها (أسرع، وما بتلوّث الحساب)
 const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جان (فكرة المستخدم)", "تقاطع مراوح جان (فكرة المستخدم)", "تقاطع مراوح جان v2 (طريقة المستخدم)",
   "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)", "London Breakout", "12/26-IT (AbdulRahimShama)", "Wave Rider v1"]);

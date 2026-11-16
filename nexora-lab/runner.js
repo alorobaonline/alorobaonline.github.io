@@ -98,6 +98,7 @@ async function universe(coins, strats, withM5) {
     if (withM5) D.m5 = buildM5(await klines(sym, "5m"), D);
     const F = fixF(await funding(sym), D), inds = { 1: E.makeInd(D, 1), 4: E.makeInd(D, 4), 16: E.makeInd(D, 16) };
     for (const sp of strats) if (sp.mult && !inds[sp.mult]) inds[sp.mult] = E.makeInd(D, sp.mult);
+    D.sym = sym;   // لاستراتيجيات محصورة بعملات معينة
     D.fund = F;   // للاستراتيجيات اللي بتستعمل التمويل كفلتر (بس التمويل اللي صار قبل وقت الإشارة)   // فريمات تانية (6 ساعات = 24، 8 ساعات = 32)
     const raw = {}; for (const sp of strats) raw[sp.name] = E.evaluate(D, inds, sp, D.t0).filter(t => !t.open);
     D.m5 = null;   // توفير ذاكرة
