@@ -582,7 +582,7 @@ const S15 = (() => {
           } else if (pending && (I.C[k] - pending[1])*side > 0 && k - pending[0] >= 1 && k - pending[0] <= 5) {
             const s = pending[0], stop = side === 1 ? I.L[s] - .25*atr[k] : I.H[s] + .25*atr[k];
             if (!events.has(k)) events.set(k, []);
-            events.get(k).push({ side, sweepIndex: s, stopLoss: stop, base: side === 1 ? I.L[s] : I.H[s], atrk: atr[k] });
+            events.get(k).push({ side, sweepIndex: s, stopLoss: stop, base: side === 1 ? I.L[s] : I.H[s], atrk: atr[k], depth: side === 1 ? (pending[2] - I.L[s])/atr[k] : (I.H[s] - pending[2])/atr[k] });
             pending = null;
           }
         }
@@ -639,6 +639,12 @@ const S15 = (() => {
     return { pend: out, atr: P.atr[kLast], ema: P.ema[kLast] };
   }
   const sig = v2 => (I, i) => { const h = hitsAt(prep(I), I, i, v2); return h.length ? h[0].side : 0; };
+  // آخر تمويل معروف لحد وقت ts (D.fund من المختبر: [{t, rate}] مرتبة)
+  function fundAt(D, ts) { const F = D.fund; if (!F || !F.length) return null; let lo = 0, hi = F.length - 1, r = -1;
+    while (lo <= hi) { const mid = (lo + hi) >> 1; if (F[mid].t <= ts) { r = mid; lo = mid + 1; } else hi = mid - 1; } return r < 0 || ts - F[r].t > 864e5 ? null : F[r].rate; }   // تمويل قديم (أكتر من يوم) = ما في معلومة
+  const fundOk = (sp, r, side) => { if (r === null || !sp.fundF) return true; const f = sp.fundF;
+    if (f.mode === "crowd") return side === 1 ? r < f.x : r > -f.x;          // تجنّب الجهة المزدحمة لما التمويل متطرف
+    return side === 1 ? r <= f.base : r >= 0; };                             // "strict": لونج بس لما التمويل مش فوق الأساس، شورت بس لما مش سالب
   function run(D, inds, sp, startTs) {
     const m = sp.mult, I = inds[m], P = prep(I), out = [], n = I.n;
     let pos = null, pend = null, busy = -1;
@@ -652,7 +658,7 @@ const S15 = (() => {
           if (sign*(I.O[k] - lvl) <= 0) raw = I.O[k]; else if (sign === 1 ? I.L[k] <= lvl : I.H[k] >= lvl) raw = lvl; else raw = null;
         }
         if (raw === null) { pend = null; } else {
-        if ((raw - stop)*sign > 0 && stop > 0 && !(sp.maxRisk && Math.abs(raw - stop)/raw > sp.maxRisk)) pos = { d: sign, e: k, entry: raw, stop, stop0: stop, target: raw + sign*(sp.R || 2)*Math.abs(raw - stop), ...(sp.riskPct ? { w: Math.min(sp.wMax || 3, sp.riskPct/(100*Math.abs(raw - stop)/raw)) } : {}) };
+        if ((raw - stop)*sign > 0 && stop > 0 && !(sp.maxRisk && Math.abs(raw - stop)/raw > sp.maxRisk)) pos = { d: sign, e: k, entry: raw, stop, stop0: stop, target: raw + sign*(sp.R || 2)*Math.abs(raw - stop), score: sp.rankBy === "depth" ? -(hit.depth || 0) : Math.abs(raw - stop)/raw, ...(sp.riskPct ? { w: Math.min(sp.wMax || 3, sp.riskPct/(100*Math.abs(raw - stop)/raw)) } : {}) };
         pend = null;
         }
       }
@@ -660,12 +666,22 @@ const S15 = (() => {
         const s = pos.d, o = I.O[k]; let raw = null, why = null;
         if (s*(o - pos.stop) <= 0) { raw = o; why = "INIT_STOP"; }
         else if (s === 1 ? I.L[k] <= pos.stop : I.H[k] >= pos.stop) { raw = pos.stop; why = "INIT_STOP"; }
-        else if (s*(o - pos.target) >= 0) { raw = o; why = "TARGET"; }
-        else if (s === 1 ? I.H[k] >= pos.target : I.L[k] <= pos.target) { raw = pos.target; why = "TARGET"; }
-        else if (k - pos.e + 1 >= (sp.hold || 20)) { raw = I.C[k]; why = "TIME"; }
+        if (raw === null && sp.partial && !pos.half) {   // جني نص الصفقة على partial×R (أمر ليمت = Maker)
+          const p1 = pos.entry + s*sp.partial*Math.abs(pos.entry - pos.stop0);
+          let px1 = null; if (s*(o - p1) >= 0) px1 = o; else if (s === 1 ? I.H[k] >= p1 : I.L[k] <= p1) px1 = p1;
+          if (px1 !== null) { pos.half = true; out.push({ name: sp.name, d: s, e: pos.e*m, x: k*m + m - 1, rawIn: pos.entry, rawOut: px1, why: "TARGET", open: false, stop: pos.stop, target: p1, w: (pos.w || 1)/2, score: pos.score, part: true });
+            if (sp.partialBE) pos.beNext = true; }
+        }
+        if (raw === null) {
+          if (s*(o - pos.target) >= 0) { raw = o; why = "TARGET"; }
+          else if (s === 1 ? I.H[k] >= pos.target : I.L[k] <= pos.target) { raw = pos.target; why = "TARGET"; }
+          else if (k - pos.e + 1 >= (sp.hold || 20)) { raw = I.C[k]; why = "TIME"; }
+        }
         if (raw !== null) { if (why === "INIT_STOP" && pos.moved) why = "TRAIL";
-          out.push({ name: sp.name, d: s, e: pos.e*m, x: k*m + m - 1, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: pos.target, ...(pos.w ? { w: pos.w } : {}) });
+          const wq = pos.half ? (pos.w || 1)/2 : pos.w;
+          out.push({ name: sp.name, d: s, e: pos.e*m, x: k*m + m - 1, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: pos.target, score: pos.score, ...(wq ? { w: wq } : {}) });
           pos = null; busy = k; closedHere = true; }
+        else if (pos.beNext) { pos.beNext = false; const ns = s === 1 ? Math.max(pos.stop, pos.entry) : Math.min(pos.stop, pos.entry); if (ns !== pos.stop) { pos.stop = ns; pos.moved = true; } }
         else if (sp.be || sp.trailAtr) {   // تعديل الوقف بعد إغلاق الشمعة (بيطبق من الشمعة الجاية)
           const r0 = Math.abs(pos.entry - pos.stop0), fav = s === 1 ? I.H[k] : I.L[k];
           pos.best = pos.best === undefined ? fav : (s === 1 ? Math.max(pos.best, fav) : Math.min(pos.best, fav));
@@ -678,13 +694,15 @@ const S15 = (() => {
       }
       let h = hitsAt(P, I, k, sp.v2, sp.emaF);
       if (h.length && sp.btcF) h = h.filter(x => btcTrend(D.t0 + (k+1)*m*900000, sp.btcF) === x.side);
+      if (h.length && sp.coinEma) { const e = emaOf(I, sp.coinEma)[k]; if (e !== null) h = h.filter(x => (I.C[k] - e)*x.side > 0); }   // اتجاه العملة نفسها (لما المتوسط لسا مش جاهز = بدون فلتر)
+      if (h.length && sp.fundF) { const r = fundAt(D, D.t0 + (k+1)*m*900000); h = h.filter(x => fundOk(sp, r, x.side)); }
       if (h.length && sp.gannF && m === 16) h = h.filter(x => GDEC.near(I, k, x.side, sp.gannF));
       if (h.length && sp.fibT && m === 16) { const w = fibTimeWin(I, k, sp.fibT.set || "A"); if (sp.fibT.inside ? !w : w) h = []; }
       if (!h.length) continue;
       const blocked = pos !== null || closedHere || k <= busy || k === n - 1 || D.t0 + (k+1)*m*900000 <= startTs || (k+1)*m >= D.o.length;
       if (!blocked) pend = [h[0], k];
     }
-    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.e*m, x: D.o.length - 1, rawIn: pos.entry, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop: pos.stop, target: pos.target, ...(pos.w ? { w: pos.w } : {}) });
+    if (pos) { const wq = pos.half ? (pos.w || 1)/2 : pos.w; out.push({ name: sp.name, d: pos.d, e: pos.e*m, x: D.o.length - 1, rawIn: pos.entry, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop: pos.stop, target: pos.target, ...(wq ? { w: wq } : {}) }); }
     return out;
   }
   const mk = (label, mult, v2) => ({ name: "S15 Sweep+MSS " + label, mult, v2, sig: sig(v2), run, sm: 0, tm: 0, hold: 20, trail: null, cd: null, entry: "imm", src: "Replit #15" });
@@ -2460,10 +2478,14 @@ function split3(raw, D, P, funding, now) {
 
 // محفظة: أقصى slots صفقات مفتوحة مع بعض
 function portfolio(flat, slots) {
-  flat.sort((a, b) => (a.eTs - b.eTs) || (a.rank - b.rank));
-  const taken = []; let open = [];
   const sp = flat.length ? STRATS.find(s => s.name === flat[0].name) : null, ms = sp && sp.maxSide;   // حد أقصى لصفقات نفس الاتجاه
-  for (const t of flat) { open = open.filter(x => x.x > t.eTs); if (open.length < slots && (!ms || open.filter(x => x.d === t.d).length < ms)) { taken.push(t); open.push({ x: t.xTs, d: t.d }); } }
+  const byScore = sp && sp.rankBy;   // لما تيجي إشارات مع بعض: الأحسن أول (score أصغر = أحسن)
+  flat.sort((a, b) => (a.eTs - b.eTs) || (byScore ? (a.score ?? 0) - (b.score ?? 0) : 0) || (a.rank - b.rank) || ((a.part ? 1 : 0) - (b.part ? 1 : 0)));
+  const taken = []; let open = []; const took = new Set();   // نص الصفقة اللي انجنى (part) بيمشي مع صفقته الأم، ما بياخد مكان لحاله
+  for (const t of flat) {
+    const key = t.sym + "|" + t.eTs;
+    if (t.part) { if (took.has(key)) taken.push(t); continue; }
+    open = open.filter(x => x.x > t.eTs); if (open.length < slots && (!ms || open.filter(x => x.d === t.d).length < ms)) { taken.push(t); open.push({ x: t.xTs, d: t.d }); took.add(key); } }
   return { taken, skipped: flat.length - taken.length };
 }
 </script>
