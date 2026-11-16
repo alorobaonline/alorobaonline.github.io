@@ -1,0 +1,23 @@
+{
+ "type": "multi",
+ "priority": 55,
+ "note": "Wave Rider v1 EXACTLY as written (user's rule: no additions, no star comparison): long only, EMA9>EMA21, volume > 1.5x SMA20, +2% over last 3 bars, stop under 3-bar low -0.2ATR, BE + 0.5ATR trail after 1R (risk = entry - stop[1] as in the code), stop order active from the bar after entry, size = 1% risk of 10,000$ capital (capped at full capital). Author's timeframes 15m and 1h, author's 10 coins.",
+ "coins": [
+  "BTCUSDT",
+  "ETHUSDT",
+  "SOLUSDT",
+  "BNBUSDT",
+  "XRPUSDT",
+  "ADAUSDT",
+  "AVAXUSDT",
+  "LINKUSDT",
+  "DOTUSDT",
+  "MATICUSDT"
+ ],
+ "slots": 10,
+ "notional": 1000,
+ "strategies": [
+  "WAVE 15m (كما هي)",
+  "WAVE ساعة (كما هي)"
+ ]
+}

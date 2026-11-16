@@ -2385,6 +2385,56 @@ const IT1226 = (() => {   // 12/26-IT (AbdulRahimShama): تقاطع EMA12/26 + M
   ] };
 })();
 
+const WAVE = (() => {   // Wave Rider v1 — منسوخة حرفياً من كود Pine: EMA9>EMA21 + فوليوم > 1.5×SMA20 + طلوع ≥2% بآخر 3 شموع؛ وقف تحت قاع 3 شموع −0.2ATR؛ بعد 1R تعادل + وقف متحرك 0.5ATR؛ حجم = 1% مخاطرة
+  const emaP = (x, p) => { const o = new Array(x.length).fill(null); if (x.length < p) return o; let e = 0; for (let j = 0; j < p; j++) e += x[j]; e /= p; o[p-1] = e;
+    for (let i = p; i < x.length; i++) { e = x[i]*(2/(p+1)) + e*(1 - 2/(p+1)); o[i] = e; } return o; };
+  const memo = new WeakMap();
+  function vol(D, m, n) {   // فوليوم الشمعة الكبيرة = مجموع الـ15 دقيقة
+    if (!D.v) return null; if (!memo.has(D)) memo.set(D, {}); const M = memo.get(D); if (M[m]) return M[m];
+    const v = new Array(n).fill(0); for (let i = 0; i < n; i++) { let s = 0; for (let j = i*m; j < (i+1)*m; j++) s += D.v[j] || 0; v[i] = s; } return (M[m] = v);
+  }
+  function run(D, inds, sp, startTs) {
+    const m = sp.mult, I = inds[m]; if (!I || I.n < 40) return [];
+    const O = I.O, H = I.H, L = I.L, C = I.C, A = I.atr, n = I.n, V = vol(D, m, n); if (!V) return [];
+    const F = emaP(C, 9), S = emaP(C, 21), out = [];
+    const VA = V.map((_, i) => { if (i < 19) return null; let s = 0; for (let j = i - 19; j <= i; j++) s += V[j]; return s/20; });
+    let pos = null, stopLevel = null, entryPrice = null, hh = null;
+    for (let k = 21; k < n; k++) {
+      if (pos) {
+        // أمر الوقف (strategy.exit) بيكون شغال من الشمعة اللي بعد شمعة الدخول، بسعر الوقف المحسوب على إغلاق الشمعة اللي قبل
+        if (pos.armed) {
+          let px = null; if (O[k] <= pos.armed) px = O[k]; else if (L[k] <= pos.armed) px = pos.armed;
+          if (px !== null) { out.push({ name: sp.name, d: 1, e: pos.k*m, x: k*m + m - 1, rawIn: pos.e, rawOut: px, why: pos.moved ? "TRAIL" : "INIT_STOP", open: false, stop: pos.armed, target: 0, w: pos.w }); pos = null; }
+        }
+      }
+      if (pos) {
+        // إغلاق الشمعة: تحديث أعلى قمة والوقف (risk = entryPrice − stopLevel[1] متل الأصل)
+        const prevStop = stopLevel;
+        hh = Math.max(hh, H[k]);
+        const risk = entryPrice - prevStop;
+        if (hh - entryPrice >= 1.0*risk) { if (entryPrice > stopLevel) { stopLevel = entryPrice; pos.moved = true; } }
+        if (hh - entryPrice >= 1.0*risk && A[k] !== null) { const t = hh - 0.5*A[k]; if (t > stopLevel) { stopLevel = t; pos.moved = true; } }
+        pos.armed = stopLevel;
+        continue;
+      }
+      if (k >= n - 1 || F[k] === null || S[k] === null || VA[k] === null || A[k] === null) continue;
+      if (D.t0 + (k + 1)*m*900000 < startTs) continue;
+      const movePct = (C[k] - C[k-3]) / C[k-3] * 100;
+      if (!(F[k] > S[k] && V[k] > VA[k]*1.5 && movePct >= 2.0)) continue;
+      const st = Math.min(L[k], L[k-1], L[k-2]) - 0.2*A[k], riskAmount = C[k] - st;
+      if (!(riskAmount > 0)) continue;
+      stopLevel = st; entryPrice = C[k]; hh = H[k];
+      // الحجم: 1% من رأس المال (10,000$) ÷ مسافة الوقف — الأساس 1,000$ (10%)، بحد أقصى كل رأس المال
+      const w = Math.min(10, 0.1 / (riskAmount / C[k]));
+      pos = { k: k + 1, e: O[k+1], w, armed: null, moved: false };
+    }
+    if (pos) out.push({ name: sp.name, d: 1, e: pos.k*m, x: D.o.length - 1, rawIn: pos.e, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop: pos.armed || stopLevel, target: 0, w: pos.w });
+    return out;
+  }
+  const mk = (name, mult) => ({ name, mult, needVol: true, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Wave Rider v1" });
+  return { run, strats: [mk("WAVE 15m (كما هي)", 1), mk("WAVE ساعة (كما هي)", 4)] };
+})();
+
 
 
 
@@ -2439,10 +2489,11 @@ const STRATS_ALL = [
   ...EMAPB.strats,
   ...LBO.strats,
   ...IT1226.strats,
+  ...WAVE.strats,
 ];
 // نسخ فحص (جان، Turtle Soup...): بتشتغل بمختبر السيرفر بس — المنصة بالمتصفح ما بتحسبها (أسرع، وما بتلوّث الحساب)
 const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جان (فكرة المستخدم)", "تقاطع مراوح جان (فكرة المستخدم)", "تقاطع مراوح جان v2 (طريقة المستخدم)",
-  "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)", "London Breakout", "12/26-IT (AbdulRahimShama)"]);
+  "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)", "London Breakout", "12/26-IT (AbdulRahimShama)", "Wave Rider v1"]);
 // المنصة (المتصفح): بس الـ8 اللي إلهم فرصة حسب المختبر (⭐ + 🧪) — الباقي انشال من المنصة (طلب المستخدم 16/11)
 const PLATFORM_KEEP = new Set(["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR",
   "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)", "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier",
