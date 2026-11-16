@@ -176,6 +176,7 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
 </section>
 <section class="tab" data-t="open">
   <h2>📂 الصفقات المفتوحة هلأ <span class="mut">(بتتحدث مع السعر — اضغط على صفقة لتشوف شارت عملتها)</span></h2>
+  <div class="periods" id="openF" style="margin:0 0 8px"></div>
   <div class="wrap"><table id="openT"></table></div>
 </section>
 <section class="tab" data-t="strats">
@@ -3168,9 +3169,15 @@ function renderAccount() {
     ["الربح المحقق", usd(realized)], ["غير محقق (المفتوحة)", usd(unreal)],
     ["الربح الكلي", usd(realized + unreal)], ["صفقات مفتوحة", `<span class="num">${open.length}</span> <span class="mut">هامش ${margin.toFixed(0)}$</span>`],
   ].map(([k, v]) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+  let OPENF = "today"; try { OPENF = localStorage.getItem("nexora_openf") || "today"; } catch (e) {}
+  const midnight = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); })();
+  const openToday = open.filter(t => t.eTs >= midnight), openAll = open;
+  { const open = OPENF === "today" ? openToday : openAll;   // الجدول بس — الحساب فوق بيضل على كل المفتوحة
+  $("openF").innerHTML = `<button class="${OPENF === "today" ? "on" : ""}" data-f="today">اللي انفتحت اليوم (${openToday.length})</button><button class="${OPENF === "all" ? "on" : ""}" data-f="all">كل المفتوحة (${openAll.length})</button>`;
+  $("openF").querySelectorAll("button").forEach(b => b.onclick = () => { try { localStorage.setItem("nexora_openf", b.dataset.f); } catch (e) {} renderAccount(); });
   $("openT").innerHTML = `<tr><th>الاستراتيجية</th><th>العملة</th><th>اتجاه</th><th>دخول</th><th>السعر هلأ</th><th>الوقف</th><th>الهدف</th><th>بدأت</th><th>مدتها</th><th>عمولة+تمويل</th><th>ربح/خسارة</th></tr>` +
     (open.map(t => `<tr data-s="${t.sym}" style="cursor:pointer"><td class="nm">${t.name}</td><td><b>${cn(t.sym)}</b></td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><span class="num">${fp(t.fillIn)}</span></td><td><span class="num">${fp(t.fillOut)}</span>${LIVE_T[t.sym] > Date.now() - 30000 ? "" : ' <span title="السعر مش محدّث — آخر سعر معروف" style="color:#f59e0b">⏳</span>'}</td><td><span class="num neg">${fp(t.stop)}</span></td><td><span class="num pos">${Number.isFinite(t.target) ? fp(t.target) : "إشارة خروج"}</span></td><td><span class="num">${dt(t.eTs)}</span></td><td>${dur(Date.now() - t.eTs)}</td><td>${usd(t.fund - t.fee)}</td><td><b>${usd(t.net)}</b></td></tr>`).join("") ||
-     `<tr><td colspan="11" class="mut">ما في صفقات مفتوحة هلأ — الاستراتيجيات بتستنى إشارة.</td></tr>`);
+     `<tr><td colspan="11" class="mut">${OPENF === "today" && openAll.length ? `ما انفتحت ولا صفقة اليوم لهلأ — في ${openAll.length} صفقة مفتوحة من أيام قبل (اكبس «كل المفتوحة»).` : "ما في صفقات مفتوحة هلأ — الاستراتيجيات بتستنى إشارة."}</td></tr>`); }
   $("openT").querySelectorAll("tr[data-s]").forEach(tr => tr.onclick = () => { CSYM = tr.dataset.s; fillCoinSel(); drawChart(); radar(); updateLiveHeader(); });
   // الشريط الثابت + التراجع
   { const cs = closed.slice().sort((x, y) => x.xTs - y.xTs); let eq = B, peak = B, worst = 0;
