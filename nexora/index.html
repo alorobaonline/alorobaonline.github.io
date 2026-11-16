@@ -1022,9 +1022,10 @@ const SEXT = (() => {
     const P = prep(D), B = P.B, n = B.n, out = [], id = sp.ext;
     let pos = null, pend = null, pendExit = false;
     for (let k = 0; k < n; k++) {
+      const W = p => (p.half ? { w: 0.5 } : {});   // بعد جني النص: الباقي نص الحجم
       if (pos && pendExit) {
         const gap = pos.d*(B.O[k] - pos.stop) <= 0;
-        out.push({ name: sp.name, d: pos.d, e: pos.e, x: k, rawIn: pos.entry, rawOut: B.O[k], why: gap ? "INIT_STOP" : "CHAND_EXIT", open: false, stop: pos.stop, target: NaN });
+        out.push({ name: sp.name, d: pos.d, e: pos.e, x: k, rawIn: pos.entry, rawOut: B.O[k], why: gap ? "INIT_STOP" : "CHAND_EXIT", open: false, stop: pos.stop, target: NaN, ...W(pos) });
         pos = null;
       }
       pendExit = false;
@@ -1035,19 +1036,31 @@ const SEXT = (() => {
       }
       if (pos) {
         const s = pos.d, o = B.O[k]; let raw = null, why = null;
+        const tp = id === "lux" && sp.tpPct ? pos.entry*(1 + s*sp.tpPct) : null;   // هدف ثابت % (تجربة)
         if (s*(o - pos.stop) <= 0) { raw = o; why = "INIT_STOP"; }
         else if (id === "ichi" && s*(o - pos.target) >= 0) { raw = pos.target; why = "TARGET"; }
+        else if (tp !== null && k !== pos.e && s*(o - tp) >= 0) { raw = o; why = "TGT_GAP"; }
         else if (s === 1 ? B.L[k] <= pos.stop : B.H[k] >= pos.stop) { raw = pos.stop; why = "INIT_STOP"; }
         else if (id === "ichi" && (s === 1 ? B.H[k] >= pos.target : B.L[k] <= pos.target)) { raw = pos.target; why = "TARGET"; }
-        if (raw !== null) { out.push({ name: sp.name, d: s, e: pos.e, x: k, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: id === "ichi" ? pos.target : NaN }); pos = null; }
-        else if (id === "lux") { const N4 = Math.floor((k+1)/16); if (N4 > pos.N4) { const ch = P.ch4(N4); if (ch && ch.dir === -pos.d) pendExit = true; } }
+        else if (tp !== null && (s === 1 ? B.H[k] >= tp : B.L[k] <= tp)) { raw = tp; why = "TARGET"; }
+        if (raw === null && id === "lux" && sp.partialPct && !pos.half) {   // جني نص الصفقة على partialPct (ليمت = Maker)
+          const p1 = pos.entry*(1 + s*sp.partialPct);
+          if (s === 1 ? B.H[k] >= p1 : B.L[k] <= p1) { pos.half = true;
+            out.push({ name: sp.name, d: s, e: pos.e, x: k, rawIn: pos.entry, rawOut: p1, why: "TARGET", open: false, stop: pos.stop, target: p1, w: 0.5, part: true });
+            if (sp.partialBE) pos.beNext = true; }
+        }
+        if (raw !== null) { out.push({ name: sp.name, d: s, e: pos.e, x: k, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: id === "ichi" ? pos.target : NaN, ...W(pos) }); pos = null; }
+        else {
+          if (pos.beNext) { pos.beNext = false; pos.stop = s === 1 ? Math.max(pos.stop, pos.entry) : Math.min(pos.stop, pos.entry); }
+          if (id === "lux") { const N4 = Math.floor((k+1)/16); if (N4 > pos.N4) { const ch = P.ch4(N4); if (ch && ch.dir === -pos.d) pendExit = true; } }
+        }
       }
       const sig = decide(P, id, k);
       if (!sig || pos || k === n-1 || D.t0 + (k+1)*M15 <= startTs) continue;
       if (id === "lux") sig.N4 = Math.floor((k+1)/16);
       pend = sig;
     }
-    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.e, x: n-1, rawIn: pos.entry, rawOut: B.C[n-1], why: "TIME", open: true, stop: pos.stop, target: id === "ichi" ? pos.target : NaN });
+    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.e, x: n-1, rawIn: pos.entry, rawOut: B.C[n-1], why: "TIME", open: true, stop: pos.stop, target: id === "ichi" ? pos.target : NaN, ...(pos.half ? { w: 0.5 } : {}) });
     return out;
   }
   const memoI = new WeakMap();
