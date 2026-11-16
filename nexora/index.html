@@ -124,7 +124,7 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
 <div class="topbar">
   <span class="logo">N</span><span class="brand">NEXORA</span><span id="live" class="live"><i></i><span>متوقف</span></span>
   <span class="kv">Equity <b id="tbEq">—</b></span>
-  <span class="kv">اليوم <b id="tbDay">—</b></span>
+  <span class="kv">ربح المفتوحة <b id="tbDay">—</b></span>
   <span class="kv">مفتوحة <b id="tbOpen">—</b></span>
   <span class="kv">تحت القمة <b id="tbDD">—</b></span>
   <span class="kv" style="margin-inline-start:auto"><a href="lab.html" style="color:#a78bfa;font-weight:700;text-decoration:none">🔬 المختبر</a></span>
@@ -2971,7 +2971,7 @@ function renderAccount() {
     const day0 = new Date(); day0.setHours(0, 0, 0, 0);
     const today = closed.filter(t => t.xTs >= day0.getTime()).reduce((s, t) => s + t.net, 0) + unreal;
     const f2s = x => (x >= 0 ? "+" : "") + x.toFixed(2) + "$";
-    $("tbEq").textContent = nowEq.toLocaleString("en-US", { maximumFractionDigits: 2 }); $("tbDay").textContent = f2s(today); $("tbDay").style.color = today >= 0 ? "var(--pos)" : "var(--neg)";
+    $("tbEq").textContent = nowEq.toLocaleString("en-US", { maximumFractionDigits: 2 }); $("tbDay").textContent = f2s(unreal); $("tbDay").style.color = unreal >= 0 ? "var(--pos)" : "var(--neg)";
     $("tbOpen").textContent = open.length; $("tbDD").textContent = cur ? "−" + cur.toFixed(2) + "$" : "0";
     const ratio = worst ? Math.min(1, cur/worst) : 0;
     $("ddBox").innerHTML = `<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px"><span>هلأ تحت أعلى رصيد بـ <b class="num neg">${cur.toFixed(2)}$</b></span><span class="mut">أسوأ تراجع صار من البداية: <b class="num">${worst.toFixed(2)}$</b></span></div>
