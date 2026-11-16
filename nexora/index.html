@@ -141,7 +141,7 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
 <details id="settings"><summary style="cursor:pointer;margin-top:10px;color:#cfd3da">⚙️ الإعدادات والفترة (اضغط لتفتح)</summary>
 <div class="bar">
   <label>من تاريخ<input type="date" id="start"></label>
-  <label>عدد العملات<input type="number" id="ncoins" value="30" min="1" max="150" step="1"></label>
+  <label>عدد العملات<input type="number" id="ncoins" value="102" min="1" max="150" step="1"></label>
   <label>أقصى صفقات مفتوحة (0 = بلا حد)<input type="number" id="maxOpen" value="0" min="0" step="1"></label>
   <label>رصيد البداية<input type="number" id="balance" value="10000" step="100"></label>
   <label>حجم الصفقة $<input type="number" id="notional" value="200" step="10"></label>
@@ -2995,6 +2995,7 @@ async function loadFunding(sym, fromTs, D) {
 }
 
 async function topCoins(nc) {   // قائمة العملات محفوظة: ما بنسأل بايننس عنها إلا كل 6 ساعات (ولو حاظرة منستعمل المحفوظة)
+  if (nc >= 100) return DEFAULT_TOP.slice(0, nc);   // 100+ = نفس الـ102 عملة تبع المختبر (كلها ببيانات السيرفر)
   let cached = null; try { cached = JSON.parse(localStorage.getItem("nexora_top") || "null"); } catch (e) {}
   if (cached && cached.list.length >= nc && Date.now() - cached.at < 6*3600e3) return cached.list.slice(0, nc);
   try { const list = await topCoinsLive(Math.max(nc, 60)); try { localStorage.setItem("nexora_top", JSON.stringify({ at: Date.now(), list })); } catch (e) {} return list.slice(0, nc); }
@@ -3058,7 +3059,7 @@ async function run(silent, only5) {
     const startTs = new Date($("start").value + "T00:00:00").getTime();
     const warm = 260*24*3600e3;   // فترة الإحماء الأصلية محفوظة دون تغيير
     const fromTs = Math.floor((startTs - warm)/H4)*H4;
-    const nc = Math.min(150, Math.max(1, +$("ncoins").value || 30));
+    const nc = Math.min(150, Math.max(1, +$("ncoins").value || 102));
     const startedAt = performance.now();
     if (!silent && CACHE && !CACHE.coins[0].D.stub && CACHE.startTs === startTs && CACHE.coins.length === nc && CACHE.upd >= Math.floor(Date.now()/M15)*M15) { recalc(); st("⚡ النتائج من الذاكرة — بدون تنزيل جديد"); return; }
     if (!COINS || COINS.length !== nc) { st("🔎 بجيب أعلى العملات حسب حجم التداول…"); COINS = await topCoins(nc); fillCoinSel(); connectWS(); }
@@ -3139,7 +3140,7 @@ function saveSnap(nc) {
 }
 async function loadSnap() {   // افتح فوراً على آخر نتيجة محفوظة، وبعدين حدّث بالخلفية
   try {
-    const s = await idb.get("snap"), startTs = new Date($("start").value + "T00:00:00").getTime(), nc = Math.min(150, Math.max(1, +$("ncoins").value || 30));
+    const s = await idb.get("snap"), startTs = new Date($("start").value + "T00:00:00").getTime(), nc = Math.min(150, Math.max(1, +$("ncoins").value || 102));
     if (!s || s.startTs !== startTs || s.nc !== nc || !s.coins.length) return false;
     const known = new Set(STRATS.map(x => x.name)), oldVer = s.ver !== ENGINE_VER;   // نسخة محرك أقدم؟ منعرضها لحد ما يخلص الحساب الجديد
     const coins = s.coins.map(c => ({ sym: c.sym, raw: c.raw.filter(t => known.has(t.name)), funding: c.funding, D: { stub: true, t0: c.t0, o: [], h: [], l: [], c: [c.last] } }));
@@ -3663,7 +3664,7 @@ async function liveTick() {
 
 (function init() {
   let s = "2026-11-15";
-  try { s = localStorage.getItem("nexora_start") || s; $("ncoins").value = localStorage.getItem("nexora_nc") || 30; } catch (e) {}
+  try { s = localStorage.getItem("nexora_start") || s; $("ncoins").value = localStorage.getItem("nexora_nc102") ? (localStorage.getItem("nexora_nc") || 102) : 102; localStorage.setItem("nexora_nc102", "1"); } catch (e) {}   // 16/11: المنصة كلها على 102 عملة (نفس عملات المختبر)
   $("start").value = s;
   $("run").onclick = () => { SEEN = null; run(); };
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showTab(b.dataset.t));
