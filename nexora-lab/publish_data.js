@@ -12,7 +12,7 @@ const D15 = +(process.env.D15 || 420), D5 = +(process.env.D5 || 120);
     try {
       const r15 = [...(await klines(sym, "15m", from15 - 31*DAY)).values()].filter(r => +r[0] >= from15).sort((a, b) => a[0] - b[0]);
       if (!r15.length) { console.log("skip", sym); return; }
-      fs.writeFileSync(path.join(OUT, `k15_${sym}.csv.gz`), zlib.gzipSync(r15.map(r => [r[0], r[1], r[2], r[3], r[4]].join(",")).join("\n"), { level: 9 }));
+      fs.writeFileSync(path.join(OUT, `k15_${sym}.csv.gz`), zlib.gzipSync(r15.map(r => [r[0], r[1], r[2], r[3], r[4], r[5]].join(","))   /* + فوليوم */.join("\n"), { level: 9 }));
       const r5 = [...(await klines(sym, "5m", from5 - 31*DAY)).values()].filter(r => +r[0] >= from5).sort((a, b) => a[0] - b[0]);
       fs.writeFileSync(path.join(OUT, `k5_${sym}.csv.gz`), zlib.gzipSync(r5.map(r => [r[0], r[1], r[2], r[3], r[4], r[5]].join(",")).join("\n"), { level: 9 }));
       const f = (await funding(sym)).filter(x => x.t >= from15).map(x => [x.t, x.rate]);

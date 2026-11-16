@@ -2395,6 +2395,7 @@ const WAVE = (() => {   // Wave Rider v1 — منسوخة حرفياً من كو
   }
   function run(D, inds, sp, startTs) {
     const m = sp.mult, I = inds[m]; if (!I || I.n < 40) return [];
+    if (sp.coins && D.sym && !sp.coins.includes(D.sym)) return [];   // بس على العملات المختارة
     const O = I.O, H = I.H, L = I.L, C = I.C, A = I.atr, n = I.n, V = vol(D, m, n); if (!V) return [];
     const F = emaP(C, 9), S = emaP(C, 21), out = [], TA = sp.trailAtr || 0.5, ACT = sp.act || 1.0, VM = sp.volMult || 1.5, SN = sp.stopN || 3, SB = sp.stopBuf ?? 0.2;
     const VA = V.map((_, i) => { if (i < 19) return null; let s = 0; for (let j = i - 19; j <= i; j++) s += V[j]; return s/20; });
@@ -2443,7 +2444,10 @@ const WAVE = (() => {   // Wave Rider v1 — منسوخة حرفياً من كو
     mk("WAVE 4h (كما هي)", 16),
     mk("WAVE 15m حجم ثابت", 1, { fixed: true }), mk("WAVE ساعة حجم ثابت", 4, { fixed: true }),
     mk("WAVE 15m لونج+شورت", 1, { short: true }), mk("WAVE ساعة لونج+شورت", 4, { short: true }),
-    mk("WAVE v2 4h (كما هي)", 16, { volMult: 1.2, act: 1.5, trailAtr: 2.5, stopN: 7, stopBuf: 0.5 })] };
+    mk("WAVE v2 4h (كما هي)", 16, { volMult: 1.2, act: 1.5, trailAtr: 2.5, stopN: 7, stopBuf: 0.5 }),
+    // للمنصة: v2 بس على العملات اللي انختارت من التدريب (PF ≥ 1.2 على 102 عملة) — تحت المراقبة
+    mk("WAVE v2 4h عملات مختارة", 16, { volMult: 1.2, act: 1.5, trailAtr: 2.5, stopN: 7, stopBuf: 0.5,
+      coins: ["ADAUSDT", "TRXUSDT", "UNIUSDT", "HBARUSDT", "XLMUSDT", "ZECUSDT", "TRUMPUSDT", "TURBOUSDT", "KAITOUSDT", "IPUSDT", "CAKEUSDT"] })] };
 })();
 
 
@@ -2508,7 +2512,7 @@ const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جا�
 // المنصة (المتصفح): بس الـ8 اللي إلهم فرصة حسب المختبر (⭐ + 🧪) — الباقي انشال من المنصة (طلب المستخدم 16/11)
 const PLATFORM_KEEP = new Set(["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR",
   "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)", "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier",
-  "IT1226 يومي لونج+شورت"]);   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
+  "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة"]);   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {

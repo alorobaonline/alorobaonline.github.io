@@ -2576,6 +2576,7 @@ const WAVE = (() => {   // Wave Rider v1 — منسوخة حرفياً من كو
   }
   function run(D, inds, sp, startTs) {
     const m = sp.mult, I = inds[m]; if (!I || I.n < 40) return [];
+    if (sp.coins && D.sym && !sp.coins.includes(D.sym)) return [];   // بس على العملات المختارة
     const O = I.O, H = I.H, L = I.L, C = I.C, A = I.atr, n = I.n, V = vol(D, m, n); if (!V) return [];
     const F = emaP(C, 9), S = emaP(C, 21), out = [], TA = sp.trailAtr || 0.5, ACT = sp.act || 1.0, VM = sp.volMult || 1.5, SN = sp.stopN || 3, SB = sp.stopBuf ?? 0.2;
     const VA = V.map((_, i) => { if (i < 19) return null; let s = 0; for (let j = i - 19; j <= i; j++) s += V[j]; return s/20; });
@@ -2624,7 +2625,10 @@ const WAVE = (() => {   // Wave Rider v1 — منسوخة حرفياً من كو
     mk("WAVE 4h (كما هي)", 16),
     mk("WAVE 15m حجم ثابت", 1, { fixed: true }), mk("WAVE ساعة حجم ثابت", 4, { fixed: true }),
     mk("WAVE 15m لونج+شورت", 1, { short: true }), mk("WAVE ساعة لونج+شورت", 4, { short: true }),
-    mk("WAVE v2 4h (كما هي)", 16, { volMult: 1.2, act: 1.5, trailAtr: 2.5, stopN: 7, stopBuf: 0.5 })] };
+    mk("WAVE v2 4h (كما هي)", 16, { volMult: 1.2, act: 1.5, trailAtr: 2.5, stopN: 7, stopBuf: 0.5 }),
+    // للمنصة: v2 بس على العملات اللي انختارت من التدريب (PF ≥ 1.2 على 102 عملة) — تحت المراقبة
+    mk("WAVE v2 4h عملات مختارة", 16, { volMult: 1.2, act: 1.5, trailAtr: 2.5, stopN: 7, stopBuf: 0.5,
+      coins: ["ADAUSDT", "TRXUSDT", "UNIUSDT", "HBARUSDT", "XLMUSDT", "ZECUSDT", "TRUMPUSDT", "TURBOUSDT", "KAITOUSDT", "IPUSDT", "CAKEUSDT"] })] };
 })();
 
 
@@ -2689,7 +2693,7 @@ const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جا�
 // المنصة (المتصفح): بس الـ8 اللي إلهم فرصة حسب المختبر (⭐ + 🧪) — الباقي انشال من المنصة (طلب المستخدم 16/11)
 const PLATFORM_KEEP = new Set(["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR",
   "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)", "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier",
-  "IT1226 يومي لونج+شورت"]);   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
+  "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة"]);   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
@@ -2899,20 +2903,20 @@ async function fromServer(sym, kind, st, fromTs, step, width) {
     if (!needOld && !needNew) return 0;
     const txt = await gzText(DATA_URL + `${kind}_${sym}.csv.gz?t=${encodeURIComponent((await dataMeta()).updated || "")}`); if (!txt) return 0;
     const T = [], V = [];
-    for (const line of txt.split("\n")) { if (!line) continue; const p = line.split(","); const ts = +p[0]; if (ts < fromTs) continue; T.push(ts); for (let q = 1; q <= width; q++) V.push(+p[q]); }
+    for (const line of txt.split("\n")) { if (!line) continue; const p = line.split(","); const ts = +p[0]; if (ts < fromTs) continue; T.push(ts); for (let q = 1; q <= width; q++) { const x = +p[q]; V.push(Number.isFinite(x) ? x : 0); } }   // ملف قديم بلا فوليوم = 0
     return mergeRows(st, T, V, width);
   } catch (e) { return 0; }
 }
 
 async function loadCandles(sym, fromTs, prog) {
   let st = MEM[sym];
-  if (!st) { const c = await idb.get("k_" + sym); st = c && c.t.length ? { t: Array.from(c.t), v: Array.from(c.v) } : { t: [], v: [] }; }
+  if (!st) { const c = await idb.get("kv_" + sym); st = c && c.t.length ? { t: Array.from(c.t), v: Array.from(c.v) } : { t: [], v: [] }; }   // kv_ = شموع مع فوليوم (5 قيم لكل شمعة)
   prog && prog("⚡ من السيرفر");
-  let added = await fromServer(sym, "k15", st, fromTs, M15, 4);
-  added += await fillKlines(sym, "15m", M15, 4, st, fromTs, prog);
+  let added = await fromServer(sym, "k15", st, fromTs, M15, 5);
+  added += await fillKlines(sym, "15m", M15, 5, st, fromTs, prog);
   MEM[sym] = st;
   st.dirty = (st.dirty || 0) + added;
-  if (added > 50 || (st.dirty && Date.now() - (st.saved || 0) > 600000)) { st.dirty = 0; st.saved = Date.now(); await idb.set("k_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) }); }
+  if (added > 50 || (st.dirty && Date.now() - (st.saved || 0) > 600000)) { st.dirty = 0; st.saved = Date.now(); await idb.set("kv_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) }); }
   if (!st.t.length) return null;
   // شموع متواصلة من حد 4H، والفجوات بشمعة مسطّحة
   let a = 0; while (a < st.t.length && st.t[a] < fromTs) a++;
@@ -2920,12 +2924,12 @@ async function loadCandles(sym, fromTs, prog) {
   const t0 = Math.ceil(st.t[a] / H4) * H4, last = st.t[st.t.length-1];
   const n = Math.floor((last - t0)/M15) + 1;
   if (n < 16*60) return null;
-  const D = { t0, o: [], h: [], l: [], c: [] }; let p = a, prev = null;
+  const D = { t0, sym, o: [], h: [], l: [], c: [], v: [] }; let p = a, prev = null;
   for (let i = 0; i < n; i++) {
     const ts = t0 + i*M15; while (p < st.t.length && st.t[p] < ts) p++;
-    if (p < st.t.length && st.t[p] === ts) { const o = st.v[4*p], hh = st.v[4*p+1], l = st.v[4*p+2], c = st.v[4*p+3];
-      D.o.push(o); D.h.push(Math.max(hh, o, c)); D.l.push(Math.min(l, o, c)); D.c.push(c); prev = c; }
-    else { const q = prev ?? st.v[4*Math.min(p, st.t.length-1)]; D.o.push(q); D.h.push(q); D.l.push(q); D.c.push(q); }
+    if (p < st.t.length && st.t[p] === ts) { const o = st.v[5*p], hh = st.v[5*p+1], l = st.v[5*p+2], c = st.v[5*p+3];
+      D.o.push(o); D.h.push(Math.max(hh, o, c)); D.l.push(Math.min(l, o, c)); D.c.push(c); D.v.push(st.v[5*p+4] || 0); prev = c; }
+    else { const q = prev ?? st.v[5*Math.min(p, st.t.length-1)]; D.o.push(q); D.h.push(q); D.l.push(q); D.c.push(q); D.v.push(0); }
   }
   return D;
 }
@@ -3488,7 +3492,7 @@ function connectWS() {
       FORM[k.s] = { t: k.t, o: +k.o, h: +k.h, l: +k.l, c: +k.c, closed: k.x };
       if (k.x) {   // شمعة 15 دقيقة سكّرت: منضيفها مباشرة لمخزن الشموع → التحديث الجاي ما بيحتاج ولا طلب لبايننس
         const st = MEM[k.s];
-        if (st && st.t.length && k.t === st.t[st.t.length - 1] + M15) { st.t.push(k.t); st.v.push(+k.o, +k.h, +k.l, +k.c); st.dirty = (st.dirty || 0) + 1; }
+        if (st && st.t.length && k.t === st.t[st.t.length - 1] + M15) { st.t.push(k.t); st.v.push(+k.o, +k.h, +k.l, +k.c, +k.v || 0); st.dirty = (st.dirty || 0) + 1; }
       }
       LIVE[k.s] = +k.c; LIVE_T[k.s] = LAST_PX_T = Date.now();
       const now = Date.now();
