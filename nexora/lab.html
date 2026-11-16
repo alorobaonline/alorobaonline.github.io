@@ -2165,6 +2165,51 @@ const TREND = (() => {
   ] };
 })();
 
+const EMAPB = (() => {   // EMA Pullback (Zeal Terminal): ترند EMA21/55، رجعة إغلاق فوق/تحت EMA21، وقف قاع/قمة 5 شموع، هدف 2R
+  function emaArr(C, p) { const out = new Array(C.length).fill(null); if (C.length < p) return out; let e = 0; for (let j = 0; j < p; j++) e += C[j]; e /= p; out[p - 1] = e;
+    for (let k = p; k < C.length; k++) { e = C[k]*(2/(p+1)) + e*(1 - 2/(p+1)); out[k] = e; } return out; }
+  const memo = new WeakMap();
+  function run(D, inds, sp, startTs) {
+    const m = sp.mult, I = inds[m]; if (!I || I.n < 80) return [];
+    if (!memo.has(I)) memo.set(I, { F: emaArr(I.C, 21), S: emaArr(I.C, 55) });
+    const { F, S } = memo.get(I), O = I.O, H = I.H, L = I.L, C = I.C, A = I.atr, n = I.n, out = [];
+    let pos = null;
+    for (let k = 56; k < n; k++) {
+      if (pos) {
+        const d = pos.d; let px = null, why = null;
+        if (k !== pos.k && d*(O[k] - pos.stop) <= 0) { px = O[k]; why = "STOP"; }
+        else if (k !== pos.k && d*(O[k] - pos.tgt) >= 0) { px = O[k]; why = "TGT_GAP"; }
+        else if (d === 1 ? L[k] <= pos.stop : H[k] >= pos.stop) { px = pos.stop; why = "STOP"; }
+        else if (d === 1 ? H[k] >= pos.tgt : L[k] <= pos.tgt) { px = pos.tgt; why = "TARGET"; }
+        if (px !== null) { out.push({ name: sp.name, d, e: pos.k*m, x: k*m + m - 1, rawIn: pos.e, rawOut: px, why, open: false, stop: pos.stop, target: pos.tgt }); pos = null; }
+        continue;
+      }
+      if (k >= n - 1 || F[k] === null || S[k] === null || F[k-1] === null || A[k] === null) continue;
+      if (D.t0 + (k + 1)*m*900000 < startTs) continue;
+      let d = 0;
+      if (F[k] > S[k] && C[k] > F[k] && C[k-1] <= F[k-1]) d = 1;
+      else if (sp.short && F[k] < S[k] && C[k] < F[k] && C[k-1] >= F[k-1]) d = -1;
+      if (!d) continue;
+      let lo = Infinity, hi = -Infinity; for (let j = k - 4; j <= k; j++) { lo = Math.min(lo, L[j]); hi = Math.max(hi, H[j]); }
+      let risk = d === 1 ? C[k] - lo : hi - C[k]; risk = Math.max(risk, (sp.minAtr || 0)*A[k]);
+      if (!(risk > 0)) continue;
+      const stop = C[k] - d*risk, tgt = C[k] + d*2*risk, e = O[k+1];
+      if (d*(e - stop) <= 0 || d*(tgt - e) <= 0) continue;
+      pos = { d, k: k + 1, e, stop, tgt };
+    }
+    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.k*m, x: D.o.length - 1, rawIn: pos.e, rawOut: D.c[D.c.length - 1], why: "TIME", open: true, stop: pos.stop, target: pos.tgt });
+    return out;
+  }
+  const mk = (name, mult, o) => ({ name, mult, short: false, minAtr: 0, ...o, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "EMA Pullback (Zeal Terminal)" });
+  return { run, strats: [
+    mk("EMAPB ساعة لونج", 4),
+    mk("EMAPB 4h لونج", 16),
+    mk("EMAPB 4h لونج+شورت", 16, { short: true }),
+    mk("EMAPB 4h لونج+شورت 1ATR", 16, { short: true, minAtr: 1 }),
+    mk("EMAPB يومي لونج+شورت 1ATR", 96, { short: true, minAtr: 1 }),
+  ] };
+})();
+
 
 
 
@@ -2216,10 +2261,11 @@ const STRATS_ALL = [
   ...GDEC.strats,
   ...GSWEEP.strats,
   ...TREND.strats,
+  ...EMAPB.strats,
 ];
 // نسخ فحص (جان، Turtle Soup...): بتشتغل بمختبر السيرفر بس — المنصة بالمتصفح ما بتحسبها (أسرع، وما بتلوّث الحساب)
 const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جان (فكرة المستخدم)", "تقاطع مراوح جان (فكرة المستخدم)", "تقاطع مراوح جان v2 (طريقة المستخدم)",
-  "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)"]);
+  "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)"]);
 const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => !LAB_ONLY_SRC.has(s.src) && !s.m5 && !s.needV);   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
