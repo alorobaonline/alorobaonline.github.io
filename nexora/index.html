@@ -178,7 +178,7 @@ tr.grp td{background:#11151d;text-align:right;font-weight:700;color:#cfd3da;curs
   <h3 style="margin-top:14px">✅ إشارات مؤكدة — ادخل على افتتاح الشمعة</h3>
   <div id="realConf"></div>
   <h3 style="margin-top:14px">⏳ صفقات محتملة — صار سحب سيولة، وناطرين كسر الهيكل</h3>
-  <div class="mut" style="margin-bottom:6px">الصفقة بتفتح <b>إذا سكّرت شمعة 4 ساعات</b> ورا سعر الشرط قبل آخر موعد (إلا إذا نفس الشمعة عملت سحب جديد). الدخول على افتتاح الشمعة اللي بعدها. الوقف والهدف تقريبيين (بيتحددوا بالـATR لحظة الإغلاق).</div>
+  <div class="mut" style="margin-bottom:6px">الصفقة بتفتح <b>إذا سكّرت شمعة 4 ساعات</b> ورا سعر الشرط قبل آخر موعد (إلا إذا نفس الشمعة عملت سحب جديد). الدخول على افتتاح الشمعة اللي بعدها. الوقف والهدف تقريبيين (بيتحددوا بالـATR لحظة الإغلاق). الباهت = بعيد أكثر من 10% عن الشرط، أو وقفه بعيد أكثر من 15% (⚠️).</div>
   <div id="realPend"></div>
   <h3 style="margin-top:14px">🛑 قاعدة التوقف (حطها قبل ما تبلّش)</h3>
   <div class="bar"><label>تاريخ بداية التداول الحقيقي<input type="date" id="realStart"></label></div>
@@ -787,7 +787,7 @@ const S15 = (() => {
           if (sign*(I.O[k] - lvl) <= 0) raw = I.O[k]; else if (sign === 1 ? I.L[k] <= lvl : I.H[k] >= lvl) raw = lvl; else raw = null;
         }
         if (raw === null) { pend = null; } else {
-        if ((raw - stop)*sign > 0 && stop > 0) pos = { d: sign, e: k, entry: raw, stop, stop0: stop, target: raw + sign*(sp.R || 2)*Math.abs(raw - stop), ...(sp.riskPct ? { w: Math.min(sp.wMax || 3, sp.riskPct/(100*Math.abs(raw - stop)/raw)) } : {}) };
+        if ((raw - stop)*sign > 0 && stop > 0 && !(sp.maxRisk && Math.abs(raw - stop)/raw > sp.maxRisk)) pos = { d: sign, e: k, entry: raw, stop, stop0: stop, target: raw + sign*(sp.R || 2)*Math.abs(raw - stop), ...(sp.riskPct ? { w: Math.min(sp.wMax || 3, sp.riskPct/(100*Math.abs(raw - stop)/raw)) } : {}) };
         pend = null;
         }
       }
@@ -2935,7 +2935,7 @@ function renderReal() {
   const conf = (RESULT ? RESULT.trades : []).filter(t => t.name === STAR && t.open && now - t.eTs < 8*3600e3);
   $("realConf").innerHTML = conf.length ? `<table><tr><th>العملة</th><th>الاتجاه</th><th>الدخول</th><th>الوقف</th><th>الهدف (2.5R)</th><th>المخاطرة</th><th>بدأت</th></tr>${conf.map(t => {
     const r = Math.abs(t.rawIn - t.stop)/t.rawIn;
-    return `<tr><td><b>${cn(t.sym)}</b></td><td>${t.d === 1 ? "🟢 شراء" : "🔴 بيع"}</td><td>${fp(t.rawIn)}</td><td>${fp(t.stop)}</td><td>${fp(t.target)}</td><td>${(r*100).toFixed(2)}% = ${(P.notional*r).toFixed(2)}$</td><td>${tm(t.eTs)}</td></tr>`; }).join("")}</table>` : `<div class="mut">ما في إشارة مؤكدة هلأ.</div>`;
+    return `<tr><td><b>${cn(t.sym)}</b></td><td>${t.d === 1 ? "🟢 شراء" : "🔴 بيع"}</td><td>${fp(t.rawIn)}</td><td>${fp(t.stop)}</td><td>${fp(t.target)}</td><td>${(r*100).toFixed(2)}% = ${(P.notional*r).toFixed(2)}$${r > 0.15 ? '<br><span class="neg">⚠️ وقف بعيد كثير</span>' : ""}</td><td>${tm(t.eTs)}</td></tr>`; }).join("")}</table>` : `<div class="mut">ما في إشارة مؤكدة هلأ.</div>`;
   // صفقات محتملة
   const rows = []; let loading = 0;
   for (const c of CACHE.coins) {
@@ -2947,13 +2947,15 @@ function renderReal() {
       const trig = side === 1 ? Math.max(p.th, w.ema) : Math.min(p.th, w.ema), stop = p.base - side*0.25*w.atr, R = Math.abs(trig - stop);
       if (!(side*(trig - stop) > 0)) continue;
       const lastClose = c.D.t0 + (p.s + 6)*H4ms, firstClose = c.D.t0 + (kLast + 2)*H4ms;
-      rows.push({ sym: c.sym, side, trig, stop, tgt: trig + side*2.5*R, px, dist: px ? side*(trig - px)/px*100 : null, risk: P.notional*R/trig, lastClose, firstClose, emaGate: trig === w.ema, left: p.left });
+      const tgt = trig + side*2.5*R, rp = R/trig*100;
+      rows.push({ sym: c.sym, side, trig, stop, tgt, px, dist: px ? side*(trig - px)/px*100 : null, risk: P.notional*R/trig, rp, bad: rp > 15 || tgt <= 0, lastClose, firstClose, emaGate: trig === w.ema, left: p.left });
     }
   }
-  rows.sort((a, b) => (a.dist ?? 99) - (b.dist ?? 99));
-  $("realPend").innerHTML = (loading ? `<div class="mut">⏳ ${loading} عملة لسا بيانات الـ4 ساعات تبعها عم تتحمّل…</div>` : "") + (rows.length ? `<table><tr><th>العملة</th><th>الاتجاه</th><th>الشرط: إغلاق 4 ساعات</th><th>السعر هلأ</th><th>باقي للشرط</th><th>الوقف ≈</th><th>الهدف ≈</th><th>المخاطرة ≈</th><th>أول إغلاق ممكن</th><th>آخر موعد</th></tr>${rows.map(r => {
-    const ready = r.dist !== null && r.dist <= 0;
-    return `<tr${ready ? ' style="background:#14321f"' : ""}><td><b>${cn(r.sym)}</b></td><td>${r.side === 1 ? "🟢 شراء" : "🔴 بيع"}</td><td>${r.side === 1 ? "فوق" : "تحت"} <b>${fp(r.trig)}</b>${r.emaGate ? ' <span class="mut">(EMA200)</span>' : ""}</td><td>${r.px ? fp(r.px) : "—"}</td><td>${r.dist === null ? "—" : ready ? "✅ محقق هلأ — ناطر الإغلاق" : r.dist.toFixed(2) + "%"}</td><td>${fp(r.stop)}</td><td>${fp(r.tgt)}</td><td>${(r.risk).toFixed(2)}$</td><td>${tm(r.firstClose)}</td><td>${tm(r.lastClose)} <span class="mut">(${r.left} شموع)</span></td></tr>`; }).join("")}</table>` : `<div class="mut">ما في صفقات محتملة هلأ على العملات المحمّلة.</div>`);
+  const rank = r => (r.bad ? 2 : 0) + (r.dist === null || r.dist > 10 ? 1 : 0);
+  rows.sort((a, b) => rank(a) - rank(b) || (a.dist ?? 99) - (b.dist ?? 99));
+  $("realPend").innerHTML = (loading ? `<div class="mut">⏳ ${loading} عملة لسا بيانات الـ4 ساعات تبعها عم تتحمّل…</div>` : "") + (rows.length ? `<table><tr><th>العملة</th><th>الاتجاه</th><th>الشرط: إغلاق 4 ساعات</th><th>السعر هلأ</th><th>باقي للشرط</th><th>الوقف ≈</th><th>الهدف ≈</th><th>المخاطرة ≈ (% / $)</th><th>أول إغلاق ممكن</th><th>آخر موعد</th></tr>${rows.map(r => {
+    const ready = r.dist !== null && r.dist <= 0, far = r.dist === null || r.dist > 10;
+    return `<tr style="${ready && !r.bad ? "background:#14321f;" : ""}${far || r.bad ? "opacity:.5;" : ""}"><td><b>${cn(r.sym)}</b></td><td>${r.side === 1 ? "🟢 شراء" : "🔴 بيع"}</td><td>${r.side === 1 ? "فوق" : "تحت"} <b>${fp(r.trig)}</b>${r.emaGate ? ' <span class="mut">(EMA200)</span>' : ""}</td><td>${r.px ? fp(r.px) : "—"}</td><td>${r.dist === null ? "—" : ready ? "✅ محقق هلأ — ناطر الإغلاق" : r.dist.toFixed(2) + "%"}</td><td>${fp(r.stop)}</td><td>${r.tgt > 0 ? fp(r.tgt) : "—"}</td><td>${r.rp.toFixed(1)}% = ${(r.risk).toFixed(2)}$${r.bad ? '<br><span class="neg">⚠️ وقف بعيد كثير — ما بنصح فيها</span>' : ""}</td><td>${tm(r.firstClose)}</td><td>${tm(r.lastClose)} <span class="mut">(${r.left} شموع)</span></td></tr>`; }).join("")}</table>` : `<div class="mut">ما في صفقات محتملة هلأ على العملات المحمّلة.</div>`);
   // قاعدة التوقف
   const st = $("realStart").value, s0 = st ? new Date(st + "T00:00:00").getTime() : null;
   const sc = P.notional/200, ddTest = 434*sc, ddLim = 1.5*ddTest;
