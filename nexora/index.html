@@ -833,7 +833,7 @@ const S15 = (() => {
           if (sign*(I.O[k] - lvl) <= 0) raw = I.O[k]; else if (sign === 1 ? I.L[k] <= lvl : I.H[k] >= lvl) raw = lvl; else raw = null;
         }
         if (raw === null) { pend = null; } else {
-        if ((raw - stop)*sign > 0 && stop > 0 && !(sp.maxRisk && Math.abs(raw - stop)/raw > sp.maxRisk) && !(sp.minRisk && Math.abs(raw - stop)/raw < sp.minRisk) && !(sp.minStopAtr && Math.abs(raw - stop) < sp.minStopAtr*hit.atrk)) pos = { d: sign, e: k, entry: raw, stop, stop0: stop, target: raw + sign*(sp.R || 2)*Math.abs(raw - stop), ...(sp.riskPct ? { w: Math.min(sp.wMax || 3, sp.riskPct/(100*Math.abs(raw - stop)/raw)) } : {}) };
+        if ((raw - stop)*sign > 0 && stop > 0 && !(sp.maxRisk && Math.abs(raw - stop)/raw > sp.maxRisk)) pos = { d: sign, e: k, entry: raw, stop, stop0: stop, target: raw + sign*(sp.R || 2)*Math.abs(raw - stop), ...(sp.riskPct ? { w: Math.min(sp.wMax || 3, sp.riskPct/(100*Math.abs(raw - stop)/raw)) } : {}) };
         pend = null;
         }
       }
@@ -2346,48 +2346,59 @@ const TREND = (() => {
   ] };
 })();
 
-const EMAPB = (() => {   // EMA Pullback (Zeal Terminal): ترند EMA21/55، رجعة إغلاق فوق/تحت EMA21، وقف قاع/قمة 5 شموع، هدف 2R
+const EMAPB = (() => {   // EMA Pullback (Zeal Terminal) + نسخة PRO (EMA200 + ADX + وقف زمني + حجم حسب المخاطرة)
   function emaArr(C, p) { const out = new Array(C.length).fill(null); if (C.length < p) return out; let e = 0; for (let j = 0; j < p; j++) e += C[j]; e /= p; out[p - 1] = e;
     for (let k = p; k < C.length; k++) { e = C[k]*(2/(p+1)) + e*(1 - 2/(p+1)); out[k] = e; } return out; }
   const memo = new WeakMap();
   function run(D, inds, sp, startTs) {
     const m = sp.mult, I = inds[m]; if (!I || I.n < 80) return [];
-    if (!memo.has(I)) memo.set(I, { F: emaArr(I.C, 21), S: emaArr(I.C, 55) });
-    const { F, S } = memo.get(I), O = I.O, H = I.H, L = I.L, C = I.C, A = I.atr, n = I.n, out = [];
+    if (!memo.has(I)) memo.set(I, { F: emaArr(I.C, 21), S: emaArr(I.C, 55), T: emaArr(I.C, 200) });
+    const { F, S, T } = memo.get(I), O = I.O, H = I.H, L = I.L, C = I.C, A = I.atr, X = I.adx, n = I.n, out = [];
+    const push = (pos, k, px, why) => out.push({ name: sp.name, d: pos.d, e: pos.k*m, x: k*m + m - 1, rawIn: pos.e, rawOut: px, why, open: false, stop: pos.stop, target: pos.tgt, w: pos.w });
     let pos = null;
     for (let k = 56; k < n; k++) {
       if (pos) {
         const d = pos.d; let px = null, why = null;
-        if (k !== pos.k && d*(O[k] - pos.stop) <= 0) { px = O[k]; why = "STOP"; }
+        if (pos.tex === k) { px = O[k]; why = "TIME"; }
+        else if (k !== pos.k && d*(O[k] - pos.stop) <= 0) { px = O[k]; why = "STOP"; }
         else if (k !== pos.k && d*(O[k] - pos.tgt) >= 0) { px = O[k]; why = "TGT_GAP"; }
         else if (d === 1 ? L[k] <= pos.stop : H[k] >= pos.stop) { px = pos.stop; why = "STOP"; }
         else if (d === 1 ? H[k] >= pos.tgt : L[k] <= pos.tgt) { px = pos.tgt; why = "TARGET"; }
-        if (px !== null) { out.push({ name: sp.name, d, e: pos.k*m, x: k*m + m - 1, rawIn: pos.e, rawOut: px, why, open: false, stop: pos.stop, target: pos.tgt }); pos = null; }
+        if (px !== null) { push(pos, k, px, why); pos = null; }
+        else if (sp.timeStop && k - pos.sig >= sp.timeStop && k + 1 < n) pos.tex = k + 1;   // سكّر على افتتاح الشمعة الجاية
         continue;
       }
       if (k >= n - 1 || F[k] === null || S[k] === null || F[k-1] === null || A[k] === null) continue;
       if (D.t0 + (k + 1)*m*900000 < startTs) continue;
+      if (sp.pro && (T[k] === null || X[k] === null || !(X[k] > 20))) continue;
       let d = 0;
-      if (F[k] > S[k] && C[k] > F[k] && C[k-1] <= F[k-1]) d = 1;
-      else if (sp.short && F[k] < S[k] && C[k] < F[k] && C[k-1] >= F[k-1]) d = -1;
+      if (F[k] > S[k] && C[k] > F[k] && C[k-1] <= F[k-1] && (!sp.pro || C[k] > T[k])) d = 1;
+      else if (sp.short && F[k] < S[k] && C[k] < F[k] && C[k-1] >= F[k-1] && (!sp.pro || C[k] < T[k])) d = -1;
       if (!d) continue;
       let lo = Infinity, hi = -Infinity; for (let j = k - 4; j <= k; j++) { lo = Math.min(lo, L[j]); hi = Math.max(hi, H[j]); }
       let risk = d === 1 ? C[k] - lo : hi - C[k]; risk = Math.max(risk, (sp.minAtr || 0)*A[k]);
       if (!(risk > 0)) continue;
       const stop = C[k] - d*risk, tgt = C[k] + d*2*risk, e = O[k+1];
       if (d*(e - stop) <= 0 || d*(tgt - e) <= 0) continue;
-      pos = { d, k: k + 1, e, stop, tgt };
+      const w = sp.riskPct ? Math.min(sp.wMax || 3, (sp.riskPct/100) / (Math.abs(e - stop)/e)) : 1;
+      pos = { d, k: k + 1, sig: k, e, stop, tgt, w };
     }
-    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.k*m, x: D.o.length - 1, rawIn: pos.e, rawOut: D.c[D.c.length - 1], why: "TIME", open: true, stop: pos.stop, target: pos.tgt });
+    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.k*m, x: D.o.length - 1, rawIn: pos.e, rawOut: D.c[D.c.length - 1], why: "TIME", open: true, stop: pos.stop, target: pos.tgt, w: pos.w });
     return out;
   }
   const mk = (name, mult, o) => ({ name, mult, short: false, minAtr: 0, ...o, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "EMA Pullback (Zeal Terminal)" });
+  const pro = { pro: true, timeStop: 15 };
   return { run, strats: [
     mk("EMAPB ساعة لونج", 4),
     mk("EMAPB 4h لونج", 16),
     mk("EMAPB 4h لونج+شورت", 16, { short: true }),
     mk("EMAPB 4h لونج+شورت 1ATR", 16, { short: true, minAtr: 1 }),
     mk("EMAPB يومي لونج+شورت 1ATR", 96, { short: true, minAtr: 1 }),
+    mk("PRO 4h لونج", 16, pro),
+    mk("PRO ساعة لونج", 4, pro),
+    mk("PRO 4h لونج+شورت", 16, { ...pro, short: true }),
+    mk("PRO 4h لونج+شورت مخاطرة 5%", 16, { ...pro, short: true, riskPct: 5, wMax: 3 }),
+    mk("PRO يومي لونج+شورت", 96, { ...pro, short: true }),
   ] };
 })();
 
