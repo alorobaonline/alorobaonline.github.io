@@ -1,4 +1,4 @@
-NEXORA LAB (GitHub) | wave-mods | 2026-11-16T08:55:37.535Z | hash=9e1eb50423 | engine=e81d40ad | coins 9 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $1000/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
+NEXORA LAB (GitHub) | wave-mods | 2026-11-16T11:31:50.265Z | hash=13013fe4cc | engine=75f128ac | coins 9 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $1000/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
 ## WAVE 15m (كما هي) | ❌ (maker-entry ❌) | coins+all3 0/9
 تدريب: n=1264 -4289.50$ PF0.93 win50% gross/t+0.90$ t-1.2 DD8464$ | اختبار: n=393 -7317.34$ PF0.68 win44% gross/t-14.17$ t-3.7 DD7317$ | جديدة: n=222 +54.98$ PF1.00 win51% gross/t+4.61$ t0.0 DD3109$
 maker-entry: تدريب: n=1264 -2609.90$ PF0.96 win50% gross/t+0.90$ t-0.7 DD7108$ | اختبار: n=393 -6759.98$ PF0.70 win44% gross/t-14.17$ t-3.5 DD6760$ | جديدة: n=222 +360.19$ PF1.03 win51% gross/t+4.61$ t0.2 DD2965$
