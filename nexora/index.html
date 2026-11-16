@@ -3246,7 +3246,7 @@ function renderAccount() {
 }
 
 // ===================== حكم السيرفر + التصنيف + الفترة + دفتر القرارات =====================
-let SRV = null, PERIOD = (() => { try { const v = localStorage.getItem("nexora_period"); return v === null ? -1 : +v; } catch (e) { return -1; } })(), SHOW_OFF = false;
+let SRV = null, PERIOD = (() => { try { const v = localStorage.getItem("nexora_period"); return v === null ? -1 : +v; } catch (e) { return -1; } })(), SHOW_OFF = true;   // كل الاستراتيجيات ظاهرة دايماً (16/11)
 // PERIOD: ‎-1 = اليوم (من نص الليل بتوقيتك)، 0 = كل الفترة، n = آخر n يوم
 const periodSince = () => { if (PERIOD === -1) { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); } return PERIOD ? Date.now() - PERIOD*864e5 : -Infinity; };
 const periodName = () => PERIOD === -1 ? "اليوم" : PERIOD ? "آخر " + PERIOD + " يوم" : "كل الفترة";
