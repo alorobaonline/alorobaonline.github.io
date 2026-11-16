@@ -1,0 +1,23 @@
+{
+ "type": "multi",
+ "priority": 53,
+ "note": "London Breakout v2 (user's edit): stop at the opposite side of the Asian range, target 1R, close at 12:00 UTC, unfilled orders cancelled at 12:00. One row, declared before the run.",
+ "coins": [
+  "BTCUSDT",
+  "ETHUSDT"
+ ],
+ "slots": 10,
+ "strategies": [
+  "LBO v2 09-12 وقف الطرف التاني 1R إغلاق 12"
+ ],
+ "variants": [
+  {
+   "base": "S15 Sweep+MSS V2 4h",
+   "R": 2.5,
+   "hold": 40,
+   "sb": 0.25,
+   "maxRisk": 0.15,
+   "name": "S15* بدون وقف أبعد من 15%"
+  }
+ ]
+}
