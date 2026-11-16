@@ -2701,6 +2701,69 @@ const BAGHERI = (() => {   // Bagheri IG Ether v2 (mbagheri746) — منسوخة
   return { run, strats: [mk("Bagheri IG Ether 15m (كما هي)", 1), mk("Bagheri IG Ether ساعة (كما هي)", 4), mk("Bagheri IG Ether 4h (كما هي)", 16)] };
 })();
 
+// 16/11: نسخة S15 بتدخل أول ما شمعة 15 دقيقة تسكّر بعد سعر الشرط (بدل ما تستنى إغلاق شمعة الـ4 ساعات) — طلب المستخدم، لايف على المنصة
+const S15E = (() => {
+  function run(D, inds, sp, startTs) {
+    const I = inds[16]; if (!I || I.n < 220) return [];
+    const nC = I.partial ? I.n - 1 : I.n, N = D.o.length, out = [];
+    // ATR و EMA200 على 4h (نفس طريقة S15)
+    const atr = new Array(I.n).fill(null), ema = new Array(I.n).fill(null); let a = null, e = null;
+    const tr = [0]; for (let k = 1; k < I.n; k++) tr.push(Math.max(I.H[k] - I.L[k], Math.abs(I.H[k] - I.C[k-1]), Math.abs(I.L[k] - I.C[k-1])));
+    for (let k = 0; k < nC; k++) {
+      if (k >= 14) { if (a === null) { a = 0; for (let j = 1; j < 15; j++) a += tr[j]; a /= 14; } else a = (a*13 + tr[k]) / 14; atr[k] = a; }
+      if (k >= 199) { if (e === null) { e = 0; for (let j = 0; j < 200; j++) e += I.C[j]; e /= 200; } else e = I.C[k]*(2/201) + e*(199/201); ema[k] = e; }
+    }
+    // كل الإعدادات المعلّقة (سحب سيولة) لكل جهة: [شمعة السحب، th، level]
+    const pend = [];
+    for (const side of [1, -1]) {
+      let level = null, pending = null;
+      for (let k = 0; k < nC; k++) {
+        if (level !== null && atr[k] !== null && k >= 3) {
+          const sweep = side === 1 ? (level - I.L[k] >= .1*atr[k] && I.C[k] > level) : (I.H[k] - level >= .1*atr[k] && I.C[k] < level);
+          if (sweep) { const th = side === 1 ? Math.max(I.H[k-3], I.H[k-2], I.H[k-1]) : Math.min(I.L[k-3], I.L[k-2], I.L[k-1]); pending = [k, th, level]; pend.push({ side, s: k, th, base: side === 1 ? I.L[k] : I.H[k] }); }
+          else if (pending && (I.C[k] - pending[1])*side > 0 && k - pending[0] >= 1 && k - pending[0] <= 5) pending = null;
+        }
+        if (pending && k - pending[0] > 5) pending = null;
+        const i = k - 3;
+        if (i >= 3) { const arr = side === 1 ? I.L : I.H; let ok = true; for (let j = i - 3; j <= k; j++) if (j !== i && !((arr[j] - arr[i])*side > 0)) { ok = false; break; } if (ok) level = arr[i]; }
+      }
+    }
+    // لكل إعداد: دوّر بشموع الـ15 دقيقة (من الشمعة 4h اللي بعد السحب، لحد 5 شموع 4h) على أول إغلاق بعد الشرط
+    const cand = [];
+    for (const p of pend) {
+      const kE = p.s + 1;
+      for (let k = kE; k <= p.s + 5 && k < I.n; k++) {
+        const ek = ema[k-1], ak = atr[k-1]; if (ek === null || ak === null) break;
+        const trig = p.side === 1 ? Math.max(p.th, ek) : Math.min(p.th, ek);
+        let hit = -1;
+        for (let j = k*16; j < Math.min((k+1)*16, N); j++) if ((D.c[j] - trig)*p.side > 0) { hit = j; break; }
+        if (hit >= 0) { if (hit + 1 < N) cand.push({ side: p.side, j: hit + 1, stop: p.base - p.side*0.25*ak }); break; }
+        if (k < nC && (I.C[k] - p.th)*p.side > 0) break;   // الشمعة 4h سكّرت بعد الشرط بدون إغلاق 15m قبل (ما بيصير عادة) — انتهى الإعداد
+      }
+    }
+    cand.sort((x, y) => x.j - y.j);
+    let busy = -1;
+    for (const c of cand) {
+      if (c.j <= busy || D.t0 + c.j*M15 < startTs) continue;
+      const d = c.side, en = D.o[c.j], R = d*(en - c.stop);
+      if (!(R > 0) || R/en > (sp.maxRisk || 0.15)) continue;
+      const tgt = en + d*(sp.R || 2.5)*R, last = Math.min(N - 1, c.j + (sp.hold || 40)*16 - 1);
+      let px = null, why = null, xi = null;
+      for (let j = c.j; j <= last; j++) {
+        if (j > c.j && d*(D.o[j] - c.stop) <= 0) { px = D.o[j]; why = "INIT_STOP"; xi = j; break; }
+        if (j > c.j && d*(D.o[j] - tgt) >= 0) { px = D.o[j]; why = "TGT_GAP"; xi = j; break; }
+        if (d === 1 ? D.l[j] <= c.stop : D.h[j] >= c.stop) { px = c.stop; why = "INIT_STOP"; xi = j; break; }
+        if (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt) { px = tgt; why = "TARGET"; xi = j; break; }
+      }
+      if (px === null && last < N - 1) { px = D.c[last]; why = "TIME"; xi = last; }
+      if (px !== null) { out.push({ name: sp.name, d, e: c.j, x: xi, rawIn: en, rawOut: px, why, open: false, stop: c.stop, target: tgt }); busy = xi; }
+      else { out.push({ name: sp.name, d, e: c.j, x: N - 1, rawIn: en, rawOut: D.c[N-1], why: "TIME", open: true, stop: c.stop, target: tgt }); busy = N; }
+    }
+    return out;
+  }
+  return { run, strats: [{ name: "⭐ S15 دخول على إغلاق 15m", mult: 16, R: 2.5, hold: 40, maxRisk: 0.15, sig: () => 0, run, sm: 0, tm: 0, hold4: 0, trail: null, cd: null, entry: "imm", src: "Replit #15" }] };
+})();
+
 
 
 
@@ -2790,7 +2853,7 @@ function timingWrap(baseName, mode) {
 }
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
   "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
-  "Bagheri IG Ether 15m (كما هي)", "Bagheri IG Ether ساعة (كما هي)", "Bagheri IG Ether 4h (كما هي)"];
+  "Bagheri IG Ether 15m (كما هي)", "Bagheri IG Ether ساعة (كما هي)", "Bagheri IG Ether 4h (كما هي)", "⭐ S15 دخول على إغلاق 15m"];
 const STRATS_ALL = [
   S("V33 B3 TRAIL فوري", 16, sigV33(3), 1.5, 2.25, 96, "v33trail"),
   S("V33 B3 TRAIL 15m", 16, sigV33(3), 1.5, 2.25, 96, "v33trail", null, "conf15"),
@@ -2836,6 +2899,7 @@ const STRATS_ALL = [
   ...IT1226.strats,
   ...WAVE.strats,
   ...BAGHERI.strats,
+  ...S15E.strats,
 ];
 for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% وقف 0.6%"), tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), tpWrap(b, 0.012, null, "هدف 1.2% وقف أصلي"));
 for (const b of TP_BASES) STRATS_ALL.push(timingWrap(b, "calm"), timingWrap(b, "limit"), timingWrap(b, "confirm"));
