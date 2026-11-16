@@ -2220,7 +2220,7 @@ const STRATS_ALL = [
 // نسخ فحص (جان، Turtle Soup...): بتشتغل بمختبر السيرفر بس — المنصة بالمتصفح ما بتحسبها (أسرع، وما بتلوّث الحساب)
 const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جان (فكرة المستخدم)", "تقاطع مراوح جان (فكرة المستخدم)", "تقاطع مراوح جان v2 (طريقة المستخدم)",
   "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)"]);
-const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => !LAB_ONLY_SRC.has(s.src));   // self مش موجود = مختبر السيرفر (node)
+const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => !LAB_ONLY_SRC.has(s.src) && !s.m5 && !s.needV);   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
   const first = (i+1)*16, last = Math.min(first+16, D.o.length);
