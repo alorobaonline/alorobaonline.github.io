@@ -2626,7 +2626,8 @@ const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جا�
   "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)", "London Breakout", "12/26-IT (AbdulRahimShama)"]);
 // المنصة (المتصفح): بس الـ8 اللي إلهم فرصة حسب المختبر (⭐ + 🧪) — الباقي انشال من المنصة (طلب المستخدم 16/11)
 const PLATFORM_KEEP = new Set(["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR",
-  "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)", "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]);
+  "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)", "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier",
+  "IT1226 يومي لونج+شورت"]);   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
@@ -3021,6 +3022,7 @@ function pool() {
   try { const raw = []; let inds = null;
     for (const sp of STRATS) { if (only5 && !sp.m5) continue;
       if (!sp.m5 && !inds) inds = { 1: makeInd(D, 1), 4: makeInd(D, 4), 16: makeInd(D, 16) };
+      if (!sp.m5 && sp.mult && !inds[sp.mult]) inds[sp.mult] = makeInd(D, sp.mult);   // فريمات تانية (يومي = 96)
       for (const t of evaluate(D, inds, sp, startTs)) raw.push(t); }
     postMessage({ id, raw, ck: D.s5ck });
   } catch (err) { postMessage({ id, err: String((err && err.message) || err) }); } };`;
@@ -3032,7 +3034,7 @@ function pool() {
 }
 function computeOne(c, startTs, prev) {   // نفس الحساب بدون Workers (احتياط)
   if (prev) { c.raw = prev.raw.filter(t => !M5N.has(t.name)); for (const sp of STRATS) if (sp.m5) for (const t of evaluate(c.D, null, sp, startTs)) c.raw.push(t); }
-  else { const inds = { 1: makeInd(c.D, 1), 4: makeInd(c.D, 4), 16: makeInd(c.D, 16) }; c.raw = []; for (const sp of STRATS) for (const t of evaluate(c.D, inds, sp, startTs)) c.raw.push(t); }
+  else { const inds = { 1: makeInd(c.D, 1), 4: makeInd(c.D, 4), 16: makeInd(c.D, 16) }; for (const sp of STRATS) if (sp.mult && !inds[sp.mult]) inds[sp.mult] = makeInd(c.D, sp.mult); c.raw = []; for (const sp of STRATS) for (const t of evaluate(c.D, inds, sp, startTs)) c.raw.push(t); }
 }
 async function computeAll(coins, startTs, prevOf, st) {
   const P = pool(); let done = 0;
@@ -3110,9 +3112,9 @@ let SRV = null, PERIOD = (() => { try { const v = localStorage.getItem("nexora_p
 // PERIOD: ‎-1 = اليوم (من نص الليل بتوقيتك)، 0 = كل الفترة، n = آخر n يوم
 const periodSince = () => { if (PERIOD === -1) { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); } return PERIOD ? Date.now() - PERIOD*864e5 : -Infinity; };
 const periodName = () => PERIOD === -1 ? "اليوم" : PERIOD ? "آخر " + PERIOD + " يوم" : "كل الفترة";
-const JOB_PREF = ["all-15m-plus", "scalping-5m", "sd", "v63", "top4", "s15-improve", "sd-relax", "s15-ema", "s15-user", "s17-improve", "combine", "ts", "ts-5m", "s15-manage", "s15-risk", "s15-combo", "gann", "gannx", "gannx2", "gann-ts", "gann-slow", "gann-dec", "gann-dec-coins", "gann-sweep", "s15-maxrisk", "trend"];
+const JOB_PREF = ["all-15m-plus", "scalping-5m", "sd", "v63", "top4", "s15-improve", "sd-relax", "s15-ema", "s15-user", "s17-improve", "combine", "ts", "ts-5m", "s15-manage", "s15-risk", "s15-combo", "gann", "gannx", "gannx2", "gann-ts", "gann-slow", "gann-dec", "gann-dec-coins", "gann-sweep", "s15-maxrisk", "trend", "it1226"];
 const SRV_ALIAS = { "⭐ S15 V2 4h R2.5 h40": "S15* بدون وقف أبعد من 15%", "⭐ S15 مخاطرة ثابتة": "S15* مخاطرة 7% أقصى 3x", "S15 مخاطرة + وقف متحرك 2ATR": "S15* مخاطرة 5% + وقف متحرك 2ATR", "SD 1H+5m تأكيد خلال ساعة": "SD confirm 12 bars" };
-const SRV_JOBS = ["all-15m-plus", "scalping-5m", "sd", "sd-relax", "v63", "top4", "s15-improve", "s15-ema", "s15-user", "s17-improve", "combine", "ts", "ts-5m", "s15-manage", "s15-risk", "s15-combo", "gann", "gannx", "gannx2", "gann-ts", "gann-slow", "gann-dec", "gann-dec-coins", "gann-sweep", "s15-maxrisk", "trend"];
+const SRV_JOBS = ["all-15m-plus", "scalping-5m", "sd", "sd-relax", "v63", "top4", "s15-improve", "s15-ema", "s15-user", "s17-improve", "combine", "ts", "ts-5m", "s15-manage", "s15-risk", "s15-combo", "gann", "gannx", "gannx2", "gann-ts", "gann-slow", "gann-dec", "gann-dec-coins", "gann-sweep", "s15-maxrisk", "trend", "it1226"];
 async function loadSrv() {   // كل فحص إله ملف ملخص لحاله (بيشتغلوا بالتوازي على السيرفر)
   const bust = Math.floor(Date.now()/600000), out = {};
   await Promise.all(SRV_JOBS.map(async id => { try { const r = await fetch(`../nexora-lab/results/summary/${id}.json?t=${bust}`); if (!r.ok) return;
