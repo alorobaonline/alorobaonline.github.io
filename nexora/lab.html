@@ -2562,7 +2562,8 @@ function tpWrap(baseName, tp, stopPct, label) {
   return { name, mult: (STRATS_ALL.find(x => x.name === baseName) || {}).mult || 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "TP 1.2% wrap" };
 }
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
-  "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة"];
+  "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
+  "Bagheri IG Ether 15m (كما هي)", "Bagheri IG Ether ساعة (كما هي)", "Bagheri IG Ether 4h (كما هي)"];
 const STRATS_ALL = [
   S("V33 B3 TRAIL فوري", 16, sigV33(3), 1.5, 2.25, 96, "v33trail"),
   S("V33 B3 TRAIL 15m", 16, sigV33(3), 1.5, 2.25, 96, "v33trail", null, "conf15"),
@@ -2615,14 +2616,8 @@ for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% �
 const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جان (فكرة المستخدم)", "تقاطع مراوح جان (فكرة المستخدم)", "تقاطع مراوح جان v2 (طريقة المستخدم)",
   "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)", "London Breakout", "12/26-IT (AbdulRahimShama)", "Wave Rider v1"]);
 // المنصة (المتصفح): بس الـ8 اللي إلهم فرصة حسب المختبر (⭐ + 🧪) — الباقي انشال من المنصة (طلب المستخدم 16/11)
-const PLATFORM_KEEP = new Set(["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR",
-  "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)", "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier",
-  "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
-  // 16/11: نسخة هدف 1.2% / وقف 1.2% لكل وحدة (طلب المستخدم) — جنب الأصلية للمقارنة
-  ...["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
-      "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة"].map(b => b + " | هدف 1.2% وقف 1.2%"),
-  // 16/11: Bagheri IG Ether متل ما هي (ETH بس)
-  "Bagheri IG Ether 15m (كما هي)", "Bagheri IG Ether ساعة (كما هي)", "Bagheri IG Ether 4h (كما هي)"]);   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
+// 16/11 16:40: المنصة بتشغّل بس نسخ "هدف 1.2% / وقف 1.2%" من كل الاستراتيجيات (طلب المستخدم) — الأصلية بالمختبر بس
+const PLATFORM_KEEP = new Set(TP_BASES.map(b => b + " | هدف 1.2% وقف 1.2%"));   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
