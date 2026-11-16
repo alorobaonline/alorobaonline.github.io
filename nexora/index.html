@@ -373,7 +373,8 @@ const S17 = (() => {
       if (pend) {
         const p = pend; pend = null;
         const entry = I.O[i], sign = p.d;
-        if (sign * (entry - p.stop) > 0) pos = { d: p.d, e: i, entry, stop: p.stop, target: sp.tgtR ? entry + sign*sp.tgtR*Math.abs(entry - p.stop) : NaN };
+        if (sign * (entry - p.stop) > 0) pos = { d: p.d, e: i, entry, stop: p.stop, stop0: p.stop, best: entry, target: sp.tgtR ? entry + sign*sp.tgtR*Math.abs(entry - p.stop) : NaN,
+          ...(sp.riskPct ? { w: Math.min(sp.wMax || 3, sp.riskPct/(100*Math.abs(entry - p.stop)/entry)) } : {}) };
       }
       if (pos) {
         const sign = pos.d, gap = sign === 1 ? I.O[i] <= pos.stop : I.O[i] >= pos.stop, rng = sign === 1 ? I.L[i] <= pos.stop : I.H[i] >= pos.stop;
@@ -382,8 +383,12 @@ const S17 = (() => {
         else if (sp.tgtR && (sign === 1 ? I.H[i] >= pos.target : I.L[i] <= pos.target)) { raw = sign*(I.O[i] - pos.target) >= 0 ? I.O[i] : pos.target; why = "TARGET"; }
         else if ((sign === 1 ? X.arrowDn[i] : X.arrowUp[i]) && i >= pos.e) { raw = I.C[i]; why = "SSL_EXIT"; }
         if (raw !== null) {
-          out.push({ name: sp.name, d: pos.d, e: pos.e*m, x: i*m + m - 1, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: pos.target });
+          if (why === "INIT_STOP" && pos.stop !== pos.stop0) why = "TRAIL";
+          out.push({ name: sp.name, d: pos.d, e: pos.e*m, x: i*m + m - 1, rawIn: pos.entry, rawOut: raw, why, open: false, stop: pos.stop, target: pos.target, ...(pos.w ? { w: pos.w } : {}) });
           pos = null; closedNow = true;
+        } else if (sp.trailAtr && I.atr[i]) {   // وقف متحرك بعد ما تربح trailFrom×R (بيطبق من الشمعة الجاية)
+          pos.best = sign === 1 ? Math.max(pos.best, I.H[i]) : Math.min(pos.best, I.L[i]);
+          if (sign*(pos.best - pos.entry) >= (sp.trailFrom || 1)*Math.abs(pos.entry - pos.stop0)) { const t = pos.best - sign*sp.trailAtr*I.atr[i]; if (sign*(t - pos.stop) > 0) pos.stop = t; }
         }
       }
       if (!closedNow && !pos && i + 1 <= n && D.t0 + (i+1)*m*M15 > startTs && X.ready[i] && i >= 2) {
