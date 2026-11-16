@@ -117,8 +117,9 @@ function jobMulti(job, per, coins) {
   const SUM = []; LAST_SUM = SUM;
   const P = Pmain(job), rank = Object.fromEntries(coins.map((c, i) => [c, i])), now = Math.max(...Object.values(per).map(x => x.D.t0 + x.D.c.length*M15));
   const days = E.periodDays(now), lines = [];
+  const TAKEN = {};
   for (const name of job.strategies) {
-    const { taken } = E.portfolio(flatOf(per, name, P, rank), job.slots || 10);
+    const { taken } = E.portfolio(flatOf(per, name, P, rank), job.slots || 10); TAKEN[name] = taken;
     const b = [[], [], []]; for (const t of taken) b[E.periodOf(t.eTs)].push(t);
     const s = b.map((x, i) => E.statsOf(x, days[i], P.notional));
     const q = new Map(); for (const t of taken) { const d = new Date(t.eTs), k = `${d.getUTCFullYear()}Q${Math.floor(d.getUTCMonth()/3)+1}`; const o = q.get(k) || { n: 0, net: 0, L: 0, S: 0 }; o.n++; o.net += t.net; if (t.d === 1) o.L += t.net; else o.S += t.net; q.set(k, o); }
@@ -157,6 +158,25 @@ function jobMulti(job, per, coins) {
       const pos = rows.filter(r => r.all.usd > 0).length, p3 = rows.filter(r => r.st.every(x => x.n && x.usd > 0)).length;
       lines.push(`رابحة بالمجموع: ${pos}/${rows.length} | رابحة بالفترات الثلاث: ${p3}/${rows.length}`, "");
     }
+  }
+  if (job.corrWith && TAKEN[job.corrWith]) {   // ارتباط شهري مع استراتيجية أساسية + النتيجة لما يشتغلوا مع بعض (حسابين جنب بعض)
+    const mon = tr => { const m = new Map(); for (const t of tr) { const d = new Date(t.xTs), k = d.getUTCFullYear()*12 + d.getUTCMonth(); m.set(k, (m.get(k) || 0) + t.net); } return m; };
+    const base = TAKEN[job.corrWith], mb = mon(base);
+    const byX = tr => [...tr].sort((a, z) => a.xTs - z.xTs);
+    const stP = tr => { const b = [[], [], []]; for (const t of byX(tr)) b[E.periodOf(t.eTs)].push(t); return b.map((x, i) => E.statsOf(x, days[i], P.notional)); };
+    lines.push(`# ارتباط مع: ${job.corrWith} (أرباح شهرية) + لما يشتغلوا مع بعض`);
+    const sb = stP(base); lines.push(`لحالها: ` + E.PERIODS.map((p, i) => `${p}: ${sP(sb[i])}`).join(" | "));
+    for (const name of job.strategies) { if (name === job.corrWith) continue;
+      const mo = mon(TAKEN[name]), ks = [...new Set([...mb.keys(), ...mo.keys()])].sort((a, b) => a - b);
+      const x = ks.map(k => mb.get(k) || 0), y = ks.map(k => mo.get(k) || 0), mx = x.reduce((a, b) => a + b, 0)/x.length, my = y.reduce((a, b) => a + b, 0)/y.length;
+      let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < x.length; i++) { sxy += (x[i]-mx)*(y[i]-my); sxx += (x[i]-mx)**2; syy += (y[i]-my)**2; }
+      const corr = sxx && syy ? sxy/Math.sqrt(sxx*syy) : 0;
+      const baseBad = ks.filter((k, i) => x[i] < 0), helped = baseBad.filter(k => (mo.get(k) || 0) > 0).length;
+      const both = stP(base.concat(TAKEN[name]));
+      lines.push(`${name}: ارتباط شهري ${corr.toFixed(2)} | بالشهور اللي ${job.corrWith} خسرت فيها (${baseBad.length}) هاي ربحت بـ${helped}`,
+        `  مع بعض: ` + E.PERIODS.map((p, i) => `${p}: ${sP(both[i])}`).join(" | "));
+    }
+    lines.push("");
   }
   if (job.variants || job.select) {   // اختيار صادق: الأفضل بالتدريب بس، وبعدين منشوف اختباره وجديده
     const C = job.selectOnly ? SUM.filter(x => job.selectOnly.includes(x.name)) : SUM;
