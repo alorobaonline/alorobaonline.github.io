@@ -2555,7 +2555,7 @@ function tpWrap(baseName, tp, stopPct, label) {
       }
       const w = legs.length > 1 ? legs.reduce((a, x) => a + (x.w || 1), 0) : (t.w || 1);
       if (px !== null) out.push({ name, d, e: t.e, x: xi, rawIn: e0, rawOut: px, why, open: false, stop, target: tgt, ...(w !== 1 ? { w } : {}) });
-      else for (const x of legs) out.push({ ...x, name, target: tgt });
+      else for (const x of legs) out.push({ ...x, name, target: tgt, ...(stop !== null ? { stop } : {}) });   // اعرض وقف النسخة (مش وقف الأصلية)
     }
     return out;
   };
