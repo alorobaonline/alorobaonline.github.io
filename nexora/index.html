@@ -109,6 +109,15 @@ tr.sel{background:rgba(167,139,250,.14)} tr.grp td{background:rgba(255,255,255,.
 section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(52,245,161,.09)}
 .logo{width:30px;height:30px;border-radius:10px;display:inline-grid;place-items:center;font-weight:800;color:#0b0a1f;background:conic-gradient(from 200deg,#34f5a1,#a78bfa,#38bdf8,#34f5a1);box-shadow:0 0 18px rgba(167,139,250,.55)}
 .px{background:linear-gradient(90deg,#fff,#cdbcff);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+.tfilt{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}
+.tfilt select.tfs{background:rgba(255,255,255,.06);color:var(--txt,#ece9ff);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:6px 10px;font-family:inherit;max-width:260px}
+.tfilt select.tfs option{background:#15132e}
+.tfsum{display:flex;flex-wrap:wrap;gap:14px;width:100%;padding:8px 12px;border-radius:12px;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.2);font-size:13px}
+.tfsum span{color:#9d98c9}.tfsum b{color:#ece9ff}
+.wrap::-webkit-scrollbar{width:8px;height:8px}.wrap::-webkit-scrollbar-track{background:transparent}.wrap::-webkit-scrollbar-thumb{background:rgba(167,139,250,.35);border-radius:8px}.wrap::-webkit-scrollbar-corner{background:transparent}
+.wrap{scrollbar-color:rgba(167,139,250,.35) transparent;scrollbar-width:thin}
+#trades td.stot{background:rgba(167,139,250,.07)}
 </style>
 </head>
 <body>
@@ -175,7 +184,8 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
   <div class="mut" id="srvNote" style="margin-bottom:6px"></div>
   <div class="wrap"><table id="board"></table></div>
   <h2>الصفقات <span class="mut" id="tscope"></span></h2>
-  <div class="wrap" style="max-height:520px"><table id="trades"></table></div>
+  <div class="tfilt" id="tFilt"></div>
+  <div class="wrap" style="max-height:620px"><table id="trades"></table></div>
   <p class="mut"><b>حكم السيرفر</b> = نتيجة الفحص على بيانات بايننس الحقيقية من 8/2024: ✅ ربحت بالتدريب والاختبار بدليل قوي · 🟡 ربحت بس الدليل ضعيف · ❌ خسرت. <b>لايف مقابل الفحص</b> = هل صفقاتها على المنصة ماشية زي ما توقع الفحص (بدري للحكم قبل 20 صفقة).<br><b>قبل العمولة/صفقة</b> = متوسط ربح الصفقة لو ما في عمولة. <b>العمولة أكلت</b> = كم % من هالربح راح عمولة. العمولة: الدخول Taker (إلا إذا اخترت Maker) والوقف Taker مع سليبج، الهدف Maker. التمويل الحقيقي من بايننس.</p>
 </section>
 <section class="tab" data-t="coins">
@@ -3020,16 +3030,48 @@ function render() {
     showTab("acc"); box.scrollIntoView({ behavior: "smooth", block: "center" });
   };
   $("board").querySelectorAll("th[data-k]").forEach(h => h.onclick = () => { const k = h.dataset.k; SORT = { k, dir: SORT.k === k ? -SORT.dir : -1 }; render(); });
-  $("board").querySelectorAll("tr[data-n]").forEach(tr => tr.onclick = () => { SEL = SEL === tr.dataset.n ? null : tr.dataset.n; render(); });
+  $("board").querySelectorAll("tr[data-n]").forEach(tr => tr.onclick = () => { SEL = SEL === tr.dataset.n ? null : tr.dataset.n; TF.s = SEL || ""; TF.c = ""; render(); });
 
   // الصفقات
-  const list = trades.filter(t => (!SEL || t.name === SEL) && (t.open || t.xTs >= since)).sort((a, b) => (b.open - a.open) || (b.xTs - a.xTs));
-  $("tscope").textContent = SEL ? `— ${SEL} (اضغط عليها مرة تانية لترجع للكل)` : "— كل الاستراتيجيات";
-  $("trades").innerHTML = `<tr><th>دخول</th><th>خروج</th><th>الاستراتيجية</th><th>العملة</th><th>اتجاه</th><th>سعر الدخول → الخروج</th><th>السبب</th><th>إجمالي</th><th>عمولة</th><th>تمويل</th><th>صافي</th></tr>` +
-    list.slice(0, 400).map(t => `<tr><td>${dt(t.eTs)}</td><td>${t.open ? "<b>مفتوحة</b>" : dt(t.xTs)}</td><td class="nm">${t.name}</td><td>${cn(t.sym)}</td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><span class="num">${fp(t.fillIn)} → ${fp(t.fillOut)}</span></td><td>${t.open ? `وقف ${fp(t.stop)} / هدف ${Number.isFinite(t.target) ? fp(t.target) : "إشارة خروج"}` : (WHY[t.why] || t.why)}</td><td>${usd(t.gross)}</td><td>${fee$(t.fee)}</td><td>${usd(t.fund)}</td><td><b>${usd(t.net)}</b></td></tr>`).join("") ||
-    `<tr><td colspan="11" class="mut">لسا ما في صفقات من هالتاريخ.</td></tr>`;
+  TT_DATA = { trades, since }; renderTradesT();
   renderJournal();
   renderCoins(trades, P);
+}
+
+let TT_DATA = null, TF = { s: "", c: "", d: "", st: "", r: "" }, TSORT = { k: "t", dir: -1 };
+function renderTradesT() {
+  if (!TT_DATA) return;
+  const { trades, since } = TT_DATA;
+  if (SEL && TF.s !== SEL) TF.s = SEL;
+  const base = trades.filter(t => t.open || t.xTs >= since);
+  const names = [...new Set(base.map(t => t.name))].sort((a, b) => (b.startsWith("⭐") - a.startsWith("⭐")) || a.localeCompare(b));
+  const coins = [...new Set(base.filter(t => !TF.s || t.name === TF.s).map(t => t.sym))].sort();
+  const list = base.filter(t => (!TF.s || t.name === TF.s) && (!TF.c || t.sym === TF.c) && (!TF.d || t.d === +TF.d)
+    && (!TF.st || (TF.st === "o" ? t.open : !t.open)) && (!TF.r || (TF.r === "w" ? t.net > 0 : t.net <= 0)));
+  const TOT = {}, TN = {}; for (const t of list) { TOT[t.name] = (TOT[t.name] || 0) + t.net; TN[t.name] = (TN[t.name] || 0) + 1; }
+  const key = { m: t => TOT[t.name], t: t => t.open ? 9e15 + t.eTs : t.xTs, e: t => t.eTs, s: t => t.name, c: t => t.sym, d: t => t.d, g: t => t.gross, f: t => t.fee, u: t => t.fund, n: t => t.net }[TSORT.k];
+  list.sort((a, b) => { const x = key(a), y = key(b); return TSORT.dir * ((x > y) - (x < y)); });
+  const cl = list.filter(t => !t.open), w = cl.filter(t => t.net > 0).length, net = list.reduce((a, t) => a + t.net, 0);
+  const gw = cl.filter(t => t.net > 0).reduce((a, t) => a + t.net, 0), gl = -cl.filter(t => t.net <= 0).reduce((a, t) => a + t.net, 0);
+  const opt = (v, txt, cur) => `<option value="${v}"${v === cur ? " selected" : ""}>${txt}</option>`;
+  const sel = (id, items, cur) => `<select id="${id}" class="tfs">${items.map(([v, t]) => opt(v, t, cur)).join("")}</select>`;
+  $("tFilt").innerHTML =
+    sel("tfS", [["", "كل الاستراتيجيات"], ...names.map(n => [n, n])], TF.s) +
+    sel("tfC", [["", "كل العملات"], ...coins.map(c => [c, cn(c)])], TF.c) +
+    sel("tfD", [["", "لونج وشورت"], ["1", "LONG بس"], ["-1", "SHORT بس"]], TF.d) +
+    sel("tfSt", [["", "مفتوحة ومسكّرة"], ["o", "المفتوحة بس"], ["c", "المسكّرة بس"]], TF.st) +
+    sel("tfR", [["", "ربح وخسارة"], ["w", "الرابحة بس"], ["l", "الخاسرة بس"]], TF.r) +
+    `<button class="sec" id="tfX" style="padding:5px 10px;font-size:12px">✕ امسح الفلاتر</button>` +
+    `<div class="tfsum"><span><b class="num">${list.length}</b> صفقة</span><span>مسكّرة <b class="num">${cl.length}</b></span><span>ربح% <b class="num">${cl.length ? (100*w/cl.length).toFixed(0) : 0}%</b></span><span>PF <b class="num">${gl ? (gw/gl).toFixed(2) : (gw ? "∞" : "—")}</b></span><span>الصافي <b>${usd(net)}</b></span></div>`;
+  const th = (k, t) => k ? `<th data-tk="${k}" style="cursor:pointer">${t}${TSORT.k === k ? (TSORT.dir < 0 ? " ▼" : " ▲") : ""}</th>` : `<th>${t}</th>`;
+  $("tscope").textContent = TF.s ? `— ${TF.s}` : "— كل الاستراتيجيات";
+  $("trades").innerHTML = `<tr>${th("e", "دخول")}${th("t", "خروج")}${th("s", "الاستراتيجية")}${th("c", "العملة")}${th("d", "اتجاه")}${th("", "سعر الدخول → الخروج")}${th("", "السبب")}${th("g", "إجمالي")}${th("f", "عمولة")}${th("u", "تمويل")}${th("n", "صافي")}${th("m", "مجموع الاستراتيجية")}</tr>` +
+    list.slice(0, 1500).map(t => `<tr><td>${dt(t.eTs)}</td><td>${t.open ? "<b>مفتوحة</b>" : dt(t.xTs)}</td><td class="nm">${t.name}</td><td>${cn(t.sym)}</td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><span class="num">${fp(t.fillIn)} → ${fp(t.fillOut)}</span></td><td>${t.open ? `وقف ${fp(t.stop)} / هدف ${Number.isFinite(t.target) ? fp(t.target) : "إشارة خروج"}` : (WHY[t.why] || t.why)}</td><td>${usd(t.gross)}</td><td>${fee$(t.fee)}</td><td>${usd(t.fund)}</td><td><b>${usd(t.net)}</b></td><td class="stot"><b>${usd(TOT[t.name])}</b><div class="mut">${TN[t.name]} صفقة</div></td></tr>`).join("") ||
+    `<tr><td colspan="12" class="mut">ما في صفقات بهالفلاتر.</td></tr>`;
+  const on = (id, k) => $(id).onchange = e => { TF[k] = e.target.value; if (k === "s") { SEL = TF.s || null; TF.c = ""; } renderTradesT(); };
+  on("tfS", "s"); on("tfC", "c"); on("tfD", "d"); on("tfSt", "st"); on("tfR", "r");
+  $("tfX").onclick = () => { TF = { s: "", c: "", d: "", st: "", r: "" }; SEL = null; renderTradesT(); };
+  $("trades").querySelectorAll("th[data-tk]").forEach(h => h.onclick = () => { const k = h.dataset.tk; TSORT = { k, dir: TSORT.k === k ? -TSORT.dir : -1 }; renderTradesT(); });
 }
 
 let COIN_SEL = null;
