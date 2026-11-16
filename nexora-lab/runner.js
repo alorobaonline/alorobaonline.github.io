@@ -28,11 +28,14 @@ async function klines(sym, iv, fromTs = null) {
   const now = Date.now(), thisMonth = new Date().toISOString().slice(0, 7), rows = new Map();
   const lastMonth = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
   const dir = path.join(DATA, iv, sym); fs.mkdirSync(dir, { recursive: true });
-  for (const m of months(fromTs !== null ? fromTs : E.LAB_START - 40*DAY, now)) {
+  let listed = true;   // من الأحدث للأقدم: أول شهر قديم مش موجود = العملة لسا ما كانت نازلة → ما في داعي نسأل عن اللي قبله
+  for (const m of months(fromTs !== null ? fromTs : E.LAB_START - 40*DAY, now).reverse()) {
     if (m === thisMonth) continue;
+    if (!listed) break;
     const f = path.join(dir, `${m}.zip`);
     let ok = await dl(`https://data.binance.vision/data/futures/um/monthly/klines/${sym}/${iv}/${sym}-${iv}-${m}.zip`, f, m < lastMonth);
     if (!ok && m < lastMonth) {   // شهر قديم مش بالأرشيف = العملة كانت لسا مش نازلة: بس أيام آخر الشهر (يمكن نزلت فيه)
+      listed = false;
       for (let d = 20; d <= 31; d++) { const ds = `${m}-${String(d).padStart(2, "0")}`; if (new Date(ds + "T00:00:00Z").toISOString().slice(0, 7) !== m) break;
         const fd = path.join(dir, `${ds}.zip`);
         if (await dl(`https://data.binance.vision/data/futures/um/daily/klines/${sym}/${iv}/${sym}-${iv}-${ds}.zip`, fd, true)) for (const r of readZipCsv(fd)) rows.set(+r[0], r); }
@@ -56,10 +59,12 @@ async function klines(sym, iv, fromTs = null) {
 async function funding(sym) {
   const out = [], dir = path.join(DATA, "funding", sym); fs.mkdirSync(dir, { recursive: true });
   const thisMonth = new Date().toISOString().slice(0, 7);
-  for (const m of months(E.LAB_START, Date.now())) { if (m === thisMonth) continue;
+  const lastM = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
+  for (const m of months(E.LAB_START, Date.now()).reverse()) { if (m === thisMonth) continue;
     const f = path.join(dir, `${m}.zip`);
-    if (await dl(`https://data.binance.vision/data/futures/um/monthly/fundingRate/${sym}/${sym}-fundingRate-${m}.zip`, f))
-      for (const r of readZipCsv(f)) out.push({ t: +r[0], rate: +r[2], mark: 0 }); }
+    if (await dl(`https://data.binance.vision/data/futures/um/monthly/fundingRate/${sym}/${sym}-fundingRate-${m}.zip`, f, m < lastM))
+      for (const r of readZipCsv(f)) out.push({ t: +r[0], rate: +r[2], mark: 0 });
+    else if (m < lastM) break; }
   return out.sort((a, b) => a.t - b.t);
 }
 function buildD(rows) {
@@ -85,6 +90,8 @@ function buildM5(rows, D) {   // شموع 5 دقايق (مع الفوليوم) �
 }
 async function universe(coins, strats, withM5) {
   const per = {};
+  { const q = [...coins]; await Promise.all(Array.from({ length: 8 }, async () => { while (q.length) { const sym = q.shift();   // تنزيل مسبق 8 عملات مع بعض (الكاش على القرص)
+      try { await klines(sym, "15m"); if (withM5) await klines(sym, "5m"); await funding(sym); } catch (e) { console.log("prefetch fail", sym, e.message); } } })); }
   if (strats.some(s => s.btcF)) { E.setBtcRef(buildD(await klines("BTCUSDT", "15m"))); console.log("BTC filter ref loaded"); }
   for (const sym of coins) {
     const rows = await klines(sym, "15m"), D = buildD(rows); if (!D) { console.log("skip", sym); continue; }
