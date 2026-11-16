@@ -658,7 +658,7 @@ const S15 = (() => {
           if (sign*(I.O[k] - lvl) <= 0) raw = I.O[k]; else if (sign === 1 ? I.L[k] <= lvl : I.H[k] >= lvl) raw = lvl; else raw = null;
         }
         if (raw === null) { pend = null; } else {
-        if ((raw - stop)*sign > 0 && stop > 0 && !(sp.maxRisk && Math.abs(raw - stop)/raw > sp.maxRisk)) pos = { d: sign, e: k, entry: raw, stop, stop0: stop, target: raw + sign*(sp.R || 2)*Math.abs(raw - stop), score: sp.rankBy === "depth" ? -(hit.depth || 0) : Math.abs(raw - stop)/raw, ...(sp.riskPct ? { w: Math.min(sp.wMax || 3, sp.riskPct/(100*Math.abs(raw - stop)/raw)) } : {}) };
+        if ((raw - stop)*sign > 0 && stop > 0 && !(sp.maxRisk && Math.abs(raw - stop)/raw > sp.maxRisk)) pos = { d: sign, e: k, entry: raw, stop, stop0: stop, target: sp.tpPct ? raw*(1 + sign*sp.tpPct) : raw + sign*(sp.R || 2)*Math.abs(raw - stop), score: sp.rankBy === "depth" ? -(hit.depth || 0) : Math.abs(raw - stop)/raw, ...(sp.riskPct ? { w: Math.min(sp.wMax || 3, sp.riskPct/(100*Math.abs(raw - stop)/raw)) } : {}) };
         pend = null;
         }
       }
@@ -666,8 +666,8 @@ const S15 = (() => {
         const s = pos.d, o = I.O[k]; let raw = null, why = null;
         if (s*(o - pos.stop) <= 0) { raw = o; why = "INIT_STOP"; }
         else if (s === 1 ? I.L[k] <= pos.stop : I.H[k] >= pos.stop) { raw = pos.stop; why = "INIT_STOP"; }
-        if (raw === null && sp.partial && !pos.half) {   // جني نص الصفقة على partial×R (أمر ليمت = Maker)
-          const p1 = pos.entry + s*sp.partial*Math.abs(pos.entry - pos.stop0);
+        if (raw === null && (sp.partial || sp.partialPct) && !pos.half) {   // جني نص الصفقة على partial×R أو partialPct% (أمر ليمت = Maker)
+          const p1 = sp.partialPct ? pos.entry*(1 + s*sp.partialPct) : pos.entry + s*sp.partial*Math.abs(pos.entry - pos.stop0);
           let px1 = null; if (s*(o - p1) >= 0) px1 = o; else if (s === 1 ? I.H[k] >= p1 : I.L[k] <= p1) px1 = p1;
           if (px1 !== null) { pos.half = true; out.push({ name: sp.name, d: s, e: pos.e*m, x: k*m + m - 1, rawIn: pos.entry, rawOut: px1, why: "TARGET", open: false, stop: pos.stop, target: p1, w: (pos.w || 1)/2, score: pos.score, part: true });
             if (sp.partialBE) pos.beNext = true; }
