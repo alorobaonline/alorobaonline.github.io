@@ -2122,7 +2122,7 @@ const GSWEEP = (() => {
 
 const S = (name, mult, sig, sm, tm, hold, trail = null, cd = null, entry = "imm") => ({ name, mult, sig, sm, tm, hold, trail, cd, entry });
 const V40 = (a, b) => ["v40", a, b];
-const STRATS = [
+const STRATS_ALL = [
   S("V33 B3 TRAIL فوري", 16, sigV33(3), 1.5, 2.25, 96, "v33trail"),
   S("V33 B3 TRAIL 15m", 16, sigV33(3), 1.5, 2.25, 96, "v33trail", null, "conf15"),
   S("V33 B6 STRUCT فوري", 16, sigV33(6), 1.5, 2.25, 96, "v33struct"),
@@ -2162,6 +2162,10 @@ const STRATS = [
   ...GDEC.strats,
   ...GSWEEP.strats,
 ];
+// نسخ فحص (جان، Turtle Soup...): بتشتغل بمختبر السيرفر بس — المنصة بالمتصفح ما بتحسبها (أسرع، وما بتلوّث الحساب)
+const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جان (فكرة المستخدم)", "تقاطع مراوح جان (فكرة المستخدم)", "تقاطع مراوح جان v2 (طريقة المستخدم)",
+  "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل"]);
+const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => !LAB_ONLY_SRC.has(s.src));   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
   const first = (i+1)*16, last = Math.min(first+16, D.o.length);
