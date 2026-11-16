@@ -90,6 +90,7 @@ async function universe(coins, strats, withM5) {
     const rows = await klines(sym, "15m"), D = buildD(rows); if (!D) { console.log("skip", sym); continue; }
     if (withM5) D.m5 = buildM5(await klines(sym, "5m"), D);
     const F = fixF(await funding(sym), D), inds = { 1: E.makeInd(D, 1), 4: E.makeInd(D, 4), 16: E.makeInd(D, 16) };
+    for (const sp of strats) if (sp.mult && !inds[sp.mult]) inds[sp.mult] = E.makeInd(D, sp.mult);   // فريمات تانية (6 ساعات = 24، 8 ساعات = 32)
     const raw = {}; for (const sp of strats) raw[sp.name] = E.evaluate(D, inds, sp, D.t0).filter(t => !t.open);
     D.m5 = null;   // توفير ذاكرة
     per[sym] = { D, F, raw }; console.log(sym, D.c.length, "bars", new Date(D.t0 + D.c.length*M15).toISOString());
@@ -193,6 +194,29 @@ function pushFiles(files, msg) {   // فحوصات متوازية: كل واحد
   for (let k = 0; k < 8; k++) { try { execSync("git pull --rebase -q && git push -q", { cwd: ROOT, stdio: "inherit" }); return; } catch (e) { try { execSync("git rebase --abort", { cwd: ROOT }); } catch (_) {} execSync(`sleep ${2 + k*3}`); } }
   console.log("push failed after retries");
 }
+// عملات من أرشيف بايننس (USDT فيوتشر) ما استعملناها: لازم يكون إلها بيانات بالشهر الماضي، وعيّنة ثابتة (hash) بعدد limit
+async function archiveCoins(cfg) {
+  const ex = new Set(cfg.exclude || []), syms = []; let marker = "";
+  for (let page = 0; page < 20; page++) {
+    const url = `https://s3-ap-northeast-1.amazonaws.com/data.binance.vision?delimiter=/&prefix=data/futures/um/monthly/klines/${marker ? "&marker=" + encodeURIComponent(marker) : ""}`;
+    const xml = await (await fetch(url)).text();
+    const got = [...xml.matchAll(/<Prefix>data\/futures\/um\/monthly\/klines\/([A-Z0-9]+)\/<\/Prefix>/g)].map(m => m[1]);
+    syms.push(...got);
+    const nm = xml.match(/<NextMarker>([^<]+)<\/NextMarker>/); if (!/<IsTruncated>true/.test(xml) || !nm) break; marker = nm[1];
+  }
+  const bad = /^(USDC|BUSD|TUSD|FDUSD|USDP|DAI|BTCDOM|DEFI|FOOTBALL|BLUEBIRD)/;
+  const cand = [...new Set(syms)].filter(x => x.endsWith("USDT") && !ex.has(x) && !bad.test(x));
+  const lastMonth = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
+  const h = x => crypto.createHash("sha1").update(x + (cfg.seed || "nexora")).digest("hex");
+  const out = [];
+  for (const x of cand.sort((a, b) => h(a) < h(b) ? -1 : 1)) {
+    if (out.length >= (cfg.limit || 100)) break;
+    const r = await fetch(`https://data.binance.vision/data/futures/um/monthly/klines/${x}/15m/${x}-15m-${lastMonth}.zip`, { method: "HEAD" }).catch(() => null);
+    if (r && r.ok) out.push(x);
+  }
+  return out;
+}
+
 if (require.main === module) (async () => {
   const jobsDir = process.env.JOBS_DIR || path.join(__dirname, "jobs"), resDir = process.env.RES_DIR || path.join(__dirname, "results");
   const jobs = fs.readdirSync(jobsDir).filter(f => f.endsWith(".json"));
@@ -220,6 +244,7 @@ if (require.main === module) (async () => {
   const missing = names.filter(n => !strats.find(s => s.name === n)); if (missing.length) console.log("unknown strategies:", missing);
   const t0 = Date.now();
   for (const { id, job, hash, rf } of todo) try {   // كل فحص: بس عملاته واستراتيجياته (أسرع)
+    if (job.coinsFromArchive) { job.coins = await archiveCoins(job.coinsFromArchive); console.log("archive coins:", job.coins.length, job.coins.join(",")); }
     const sub = await universe(job.coins, strats.filter(s => job.strategies.includes(s.name)), !!job.m5);
     let body;
     if (job.type === "confirm") {   // دمج: صفقة A بتنحسب بس إذا B فاتحة صفقة بنفس الاتجاه على نفس العملة لحظة الدخول

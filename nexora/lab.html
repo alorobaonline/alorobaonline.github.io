@@ -619,9 +619,16 @@ const S15 = (() => {
     for (let k = 0; k < n; k++) {
       let closedHere = false;
       if (pend) {
-        const [hit] = pend, sign = hit.side, raw = I.O[k], stop = sp.sb === undefined ? hit.stopLoss : hit.base - sign*sp.sb*hit.atrk;
+        const [hit, ks] = pend, sign = hit.side, stop = sp.sb === undefined ? hit.stopLoss : hit.base - sign*sp.sb*hit.atrk;
+        let raw = I.O[k];
+        if (sp.limitPull) {   // أمر ليمت بسعر أحسن: إغلاق الإشارة مسحوب باتجاه الوقف بنسبة limitPull من المسافة، صالح لشمعة وحدة
+          const lvl = I.C[ks] - sign*sp.limitPull*Math.abs(I.C[ks] - stop);
+          if (sign*(I.O[k] - lvl) <= 0) raw = I.O[k]; else if (sign === 1 ? I.L[k] <= lvl : I.H[k] >= lvl) raw = lvl; else raw = null;
+        }
+        if (raw === null) { pend = null; } else {
         if ((raw - stop)*sign > 0 && stop > 0) pos = { d: sign, e: k, entry: raw, stop, stop0: stop, target: raw + sign*(sp.R || 2)*Math.abs(raw - stop), ...(sp.riskPct ? { w: Math.min(sp.wMax || 3, sp.riskPct/(100*Math.abs(raw - stop)/raw)) } : {}) };
         pend = null;
+        }
       }
       if (pos) {
         const s = pos.d, o = I.O[k]; let raw = null, why = null;
