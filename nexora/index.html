@@ -140,7 +140,7 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
 </nav>
 <details id="settings"><summary style="cursor:pointer;margin-top:10px;color:#cfd3da">⚙️ الإعدادات والفترة (اضغط لتفتح)</summary>
 <div class="bar">
-  <label>من تاريخ<input type="date" id="start"></label>
+  <label>من تاريخ<input type="date" id="start" min="2026-11-16"></label>
   <label>عدد العملات<input type="number" id="ncoins" value="102" min="1" max="150" step="1"></label>
   <label>أقصى صفقات مفتوحة (0 = بلا حد)<input type="number" id="maxOpen" value="0" min="0" step="1"></label>
   <label>رصيد البداية<input type="number" id="balance" value="10000" step="100"></label>
@@ -3778,10 +3778,10 @@ async function liveTick() {
 
 // 16/11 15:45: كل الصفقات انمحت — المنصة بتبلّش عدّ من هاللحظة (أرقام لايف بس، بدون صفقات قبلها)
 const RESET_TS = Date.UTC(2026, 10, 16, 13, 45);
-function startTsOf() { const v = $("start").value, t = new Date(v + "T00:00:00").getTime(); return v === "2026-11-16" ? Math.max(t, RESET_TS) : t; }
+function startTsOf() { const v = $("start").value, t = new Date(v + "T00:00:00").getTime(); return Math.max(Number.isFinite(t) ? t : 0, RESET_TS); }   // ولا صفقة قبل لحظة المسح، مهما كان التاريخ المحفوظ
 (function init() {
   let s = "2026-11-16";
-  try { if (localStorage.getItem("nexora_reset1611")) s = localStorage.getItem("nexora_start") || s; else { localStorage.setItem("nexora_reset1611", "1"); localStorage.setItem("nexora_start", s); } $("ncoins").value = localStorage.getItem("nexora_nc102") ? (localStorage.getItem("nexora_nc") || 102) : 102; localStorage.setItem("nexora_nc102", "1"); } catch (e) {}   // 16/11: المنصة كلها على 102 عملة (نفس عملات المختبر)
+  try { const v = localStorage.getItem("nexora_start"); if (v && v > s) s = v; localStorage.setItem("nexora_start", s); $("ncoins").value = localStorage.getItem("nexora_nc102") ? (localStorage.getItem("nexora_nc") || 102) : 102; localStorage.setItem("nexora_nc102", "1"); } catch (e) {}   // 16/11: المنصة كلها على 102 عملة (نفس عملات المختبر)
   $("start").value = s;
   $("run").onclick = () => { SEEN = null; run(); };
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showTab(b.dataset.t));
