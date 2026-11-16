@@ -2726,17 +2726,18 @@ function tpWrap(baseName, tp, stopPct, label) {
       const tgt = e0*(1 + d*tp);
       // t.stop ممكن يكون الوقف المتحرك الأخير (معلومة من المستقبل) — ما منستعمله: "وقف أصلي" = خروج الاستراتيجية الأصلي متل ما هو
       const stop = stopPct ? e0*(1 - d*stopPct) : null;
-      const xMin = Math.min(...legs.map(x => x.x)), last = t.open ? n - 1 : xMin;
+      const xMin = Math.min(...legs.map(x => x.x)), pure = !!stopPct, last = (t.open || pure) ? n - 1 : xMin;   // pure = بس الهدف والوقف (بدون خروج الاستراتيجية الأصلية)
       let px = null, why = null, xi = null;
       for (let j = t.e; j <= last && j < n; j++) {
         if (stop !== null && j > t.e && d*(D.o[j] - stop) <= 0) { px = D.o[j]; why = "STOP"; xi = j; break; }
         if (j > t.e && d*(D.o[j] - tgt) >= 0) { px = D.o[j]; why = "TGT_GAP"; xi = j; break; }
         if (stop !== null && (d === 1 ? D.l[j] <= stop : D.h[j] >= stop)) { px = stop; why = "STOP"; xi = j; break; }   // الوقف أول (الأسوأ)
-        if (j === xMin && !t.open) break;                                                             // الخروج الأصلي بنفس الشمعة: خليه
+        if (!pure && j === xMin && !t.open) break;                                                    // الخروج الأصلي بنفس الشمعة: خليه
         if (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt) { px = tgt; why = "TARGET"; xi = j; break; }
       }
       const w = legs.length > 1 ? legs.reduce((a, x) => a + (x.w || 1), 0) : (t.w || 1);
       if (px !== null) out.push({ name, d, e: t.e, x: xi, rawIn: e0, rawOut: px, why, open: false, stop, target: tgt, ...(w !== 1 ? { w } : {}) });
+      else if (pure) out.push({ name, d, e: t.e, x: n - 1, rawIn: e0, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt, ...(w !== 1 ? { w } : {}) });   // لسا ما ضرب لا هدف ولا وقف: مفتوحة
       else for (const x of legs) out.push({ ...x, name, target: tgt, ...(stop !== null ? { stop } : {}) });   // اعرض وقف النسخة (مش وقف الأصلية)
     }
     return out;
