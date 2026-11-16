@@ -2553,8 +2553,15 @@ const S15E = (() => {
       for (let k = kE; k <= p.s + 5 && k < I.n; k++) {
         const ek = ema[k-1], ak = atr[k-1]; if (ek === null || ak === null) break;
         const trig = p.side === 1 ? Math.max(p.th, ek) : Math.min(p.th, ek);
-        let hit = -1;
-        for (let j = k*16; j < Math.min((k+1)*16, N); j++) if ((D.c[j] - trig)*p.side > 0) { hit = j; break; }
+        let hit = -1, run2 = 0;
+        for (let j = k*16; j < Math.min((k+1)*16, N); j++) {
+          const beyond = (D.c[j] - trig)*p.side > 0;
+          if (sp.conf === "two") { run2 = beyond ? run2 + 1 : 0; if (run2 >= 2) { hit = j; break; } continue; }   // شمعتين 15m ورا بعض بعد الشرط
+          if (!beyond) continue;
+          if (sp.conf === "atr" && (D.c[j] - trig)*p.side < 0.1*ak) continue;                                      // الإغلاق لازم يكون بعيد عن الشرط ≥ 0.1 ATR(4h)
+          if (sp.conf === "vol") { if (!D.v || j < 20) continue; let av = 0; for (let q = j - 20; q < j; q++) av += D.v[q] || 0; av /= 20; if (!(av > 0 && D.v[j] >= 1.5*av)) continue; }   // فوليوم الشمعة ≥ 1.5× متوسط آخر 20
+          hit = j; break;
+        }
         if (hit >= 0) { if (hit + 1 < N) cand.push({ side: p.side, j: hit + 1, stop: p.base - p.side*0.25*ak }); break; }
         if (k < nC && (I.C[k] - p.th)*p.side > 0) break;   // الشمعة 4h سكّرت بعد الشرط بدون إغلاق 15m قبل (ما بيصير عادة) — انتهى الإعداد
       }
@@ -2579,7 +2586,8 @@ const S15E = (() => {
     }
     return out;
   }
-  return { run, strats: [{ name: "⭐ S15 دخول على إغلاق 15m", mult: 16, R: 2.5, hold: 40, maxRisk: 0.15, sig: () => 0, run, sm: 0, tm: 0, hold4: 0, trail: null, cd: null, entry: "imm", src: "Replit #15" }] };
+  const mk = (name, conf) => ({ name, conf, mult: 16, R: 2.5, hold: 40, maxRisk: 0.15, sig: () => 0, run, sm: 0, tm: 0, trail: null, cd: null, entry: "imm", src: "Replit #15" });
+  return { run, strats: [mk("⭐ S15 دخول على إغلاق 15m"), mk("⭐ S15 دخول 15m + شمعتين", "two"), mk("⭐ S15 دخول 15m + فوليوم", "vol"), mk("⭐ S15 دخول 15m + بُعد ATR", "atr")] };
 })();
 
 
@@ -2721,13 +2729,15 @@ const STRATS_ALL = [
 ];
 for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% وقف 0.6%"), tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), tpWrap(b, 0.012, null, "هدف 1.2% وقف أصلي"));
 for (const b of TP_BASES) STRATS_ALL.push(timingWrap(b, "calm"), timingWrap(b, "limit"), timingWrap(b, "confirm"));
+for (const b of ["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"]) STRATS_ALL.push(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"));
 
 // نسخ فحص (جان، Turtle Soup...): بتشتغل بمختبر السيرفر بس — المنصة بالمتصفح ما بتحسبها (أسرع، وما بتلوّث الحساب)
 const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جان (فكرة المستخدم)", "تقاطع مراوح جان (فكرة المستخدم)", "تقاطع مراوح جان v2 (طريقة المستخدم)",
   "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)", "London Breakout", "12/26-IT (AbdulRahimShama)", "Wave Rider v1"]);
 // المنصة (المتصفح): بس الـ8 اللي إلهم فرصة حسب المختبر (⭐ + 🧪) — الباقي انشال من المنصة (طلب المستخدم 16/11)
 // 16/11 16:40: المنصة بتشغّل بس نسخ "هدف 1.2% / وقف 1.2%" من كل الاستراتيجيات (طلب المستخدم) — الأصلية بالمختبر بس
-const PLATFORM_KEEP = new Set(TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% تأكيد 15m"]));   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
+const PLATFORM_KEEP = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% تأكيد 15m"]),
+  ...["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"].map(b => b + " | هدف 1.2% وقف 1.2%")]);   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
