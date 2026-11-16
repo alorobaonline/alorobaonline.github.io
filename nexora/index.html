@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXORA PAPER — تداول وهمي فيوتشرز</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0f1115;--card:#181b22;--line:#262a33;--txt:#e8eaed;--mut:#8b93a1;--pos:#22c55e;--neg:#ef4444;--acc:#60a5fa}
 *{box-sizing:border-box}
@@ -73,11 +74,46 @@ tr.grp td{background:#11151d;text-align:right;font-weight:700;color:#cfd3da;curs
 .modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:50}
 .modal.on{display:flex}.modal .box{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:14px;width:min(420px,92vw)}
 .modal select,.modal textarea{width:100%;background:#0d1016;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px;font-family:inherit;font-size:14px;margin:6px 0}
+
+/* ===== تصميم "الزجاج الليلي" ===== */
+:root{--bg:#0b0a1f;--card:rgba(255,255,255,.055);--card2:#17152e;--line:rgba(255,255,255,.09);--txt:#ece9ff;--mut:#9d98c9;--pos:#34f5a1;--neg:#ff5d8f;--acc:#a78bfa;--gold:#ffcf6b}
+html{background:#0b0a1f}
+html{background:radial-gradient(1100px 600px at 90% -10%,rgba(124,58,237,.45),transparent 60%),radial-gradient(900px 520px at -5% 105%,rgba(6,95,70,.55),transparent 55%),#0b0a1f;background-attachment:fixed;min-height:100%}
+body{font-family:"Cairo","Tajawal",system-ui,sans-serif;background:transparent;min-height:100vh}
+.num,.px,.cd,.acc .card .v,.topbar .kv b{font-family:"JetBrains Mono",ui-monospace,monospace}
+td{font-variant-numeric:tabular-nums}
+h2{color:#f1eeff;font-weight:700}
+.topbar{background:rgba(11,10,31,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.topbar .brand{font-family:"JetBrains Mono",monospace;letter-spacing:4px;background:linear-gradient(90deg,#34f5a1,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+.topbar .kv{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;padding:3px 10px}
+.card,.panel,.wrap,.bar,.jrow,svg.chart{background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.02));border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(12px);box-shadow:0 16px 36px rgba(0,0,0,.25)}
+.card{padding:12px 14px}.card .v{font-size:21px}
+.tabs button{background:transparent;border:1px solid transparent;color:var(--mut);border-radius:12px}
+.tabs button.on{color:#fff;background:linear-gradient(135deg,rgba(167,139,250,.35),rgba(52,245,161,.18));border-color:rgba(167,139,250,.5);box-shadow:0 0 18px rgba(167,139,250,.25)}
+button{background:linear-gradient(135deg,#a78bfa,#34f5a1);color:#0b0a1f;border-radius:12px}
+button.sec{background:rgba(255,255,255,.08);color:var(--txt);border:1px solid var(--line)}
+.bar input,.bar select,.modal select,.modal textarea{background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:10px;color:var(--txt)}
+th{background:rgba(23,21,46,.92);color:var(--mut);font-weight:600}
+th,td{border-bottom:1px solid var(--line)}
+tr.sel{background:rgba(167,139,250,.14)} tr.grp td{background:rgba(255,255,255,.04)}
+.live{border-color:rgba(255,255,255,.15);font-family:"JetBrains Mono",monospace}
+.live.on{color:var(--pos);border-color:rgba(52,245,161,.45);background:rgba(52,245,161,.1);box-shadow:0 0 14px rgba(52,245,161,.25)}
+.pos,.up{color:var(--pos)} .neg,.dn{color:var(--neg)}
+.pill{background:rgba(255,255,255,.07)} .pill.g{background:rgba(52,245,161,.14);color:#7dffc4} .pill.r{background:rgba(255,93,143,.14);color:#ff9cbc} .pill.y{background:rgba(255,207,107,.14);color:#ffd98a} .pill.b{background:rgba(167,139,250,.16);color:#cdbcff}
+.tag.L{background:rgba(52,245,161,.14);color:#7dffc4}.tag.S{background:rgba(255,93,143,.14);color:#ff9cbc}
+.meter,.feebar{background:rgba(255,255,255,.08)} .meter i{background:linear-gradient(90deg,#ffb86b,#ff5d8f)}
+.periods button.on{background:linear-gradient(135deg,#a78bfa,#34f5a1);color:#0b0a1f}
+.toast{background:rgba(23,21,46,.92);border:1px solid rgba(167,139,250,.35);backdrop-filter:blur(10px)}
+.modal .box{background:#17152e;border-radius:18px}
+#realClock{border-color:rgba(167,139,250,.35)}
+section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(52,245,161,.09)}
+.logo{width:30px;height:30px;border-radius:10px;display:inline-grid;place-items:center;font-weight:800;color:#0b0a1f;background:conic-gradient(from 200deg,#34f5a1,#a78bfa,#ff5d8f,#34f5a1);box-shadow:0 0 18px rgba(167,139,250,.55)}
+.px{background:linear-gradient(90deg,#fff,#cdbcff);-webkit-background-clip:text;background-clip:text;color:transparent}
 </style>
 </head>
 <body>
 <div class="topbar">
-  <span class="brand">🧪 NEXORA</span><span id="live" class="live"><i></i><span>متوقف</span></span>
+  <span class="logo">N</span><span class="brand">NEXORA</span><span id="live" class="live"><i></i><span>متوقف</span></span>
   <span class="kv">Equity <b id="tbEq">—</b></span>
   <span class="kv">اليوم <b id="tbDay">—</b></span>
   <span class="kv">مفتوحة <b id="tbOpen">—</b></span>
@@ -3037,9 +3073,9 @@ function renderReal() {
   $("realClock").innerHTML = `⏰ إغلاق شمعة الـ4 ساعات الجاية: <b>${tm(next)}</b> — بعد <b>${left(next - now)}</b> <span class="mut">(الإشارات بتتأكد بس عند الإغلاق؛ الصفقة على 200$ = حجم الصفقة بالإعدادات: ${P.notional}$)</span>`;
   // إشارات مؤكدة: صفقات ⭐ مفتوحة بدأت بآخر 8 ساعات
   const conf = (RESULT ? RESULT.trades : []).filter(t => t.name === STAR && t.open && now - t.eTs < 8*3600e3);
-  $("realConf").innerHTML = conf.length ? `<table><tr><th>العملة</th><th>الاتجاه</th><th>الدخول</th><th>الوقف</th><th>الهدف (2.5R)</th><th>المخاطرة</th><th>بدأت</th></tr>${conf.map(t => {
+  $("realConf").innerHTML = conf.length ? `<div class="wrap"><table><tr><th>العملة</th><th>الاتجاه</th><th>الدخول</th><th>الوقف</th><th>الهدف (2.5R)</th><th>المخاطرة</th><th>بدأت</th></tr>${conf.map(t => {
     const r = Math.abs(t.rawIn - t.stop)/t.rawIn;
-    return `<tr><td><b>${cn(t.sym)}</b></td><td>${t.d === 1 ? "🟢 شراء" : "🔴 بيع"}</td><td>${fp(t.rawIn)}</td><td>${fp(t.stop)}</td><td>${fp(t.target)}</td><td>${(r*100).toFixed(2)}% = ${(P.notional*r).toFixed(2)}$${r > 0.15 ? '<br><span class="neg">⚠️ وقف بعيد كثير</span>' : ""}</td><td>${tm(t.eTs)}</td></tr>`; }).join("")}</table>` : `<div class="mut">ما في إشارة مؤكدة هلأ.</div>`;
+    return `<tr><td><b>${cn(t.sym)}</b></td><td>${t.d === 1 ? "🟢 شراء" : "🔴 بيع"}</td><td>${fp(t.rawIn)}</td><td>${fp(t.stop)}</td><td>${fp(t.target)}</td><td>${(r*100).toFixed(2)}% = ${(P.notional*r).toFixed(2)}$${r > 0.15 ? '<br><span class="neg">⚠️ وقف بعيد كثير</span>' : ""}</td><td>${tm(t.eTs)}</td></tr>`; }).join("")}</table></div>` : `<div class="mut">ما في إشارة مؤكدة هلأ.</div>`;
   // صفقات محتملة
   const rows = []; let loading = 0;
   for (const c of CACHE.coins) {
@@ -3057,9 +3093,9 @@ function renderReal() {
   }
   const rank = r => (r.bad ? 2 : 0) + (r.dist === null || r.dist > 10 ? 1 : 0);
   rows.sort((a, b) => rank(a) - rank(b) || (a.dist ?? 99) - (b.dist ?? 99));
-  $("realPend").innerHTML = (loading ? `<div class="mut">⏳ ${loading} عملة لسا بيانات الـ4 ساعات تبعها عم تتحمّل…</div>` : "") + (rows.length ? `<table><tr><th>العملة</th><th>الاتجاه</th><th>الشرط: إغلاق 4 ساعات</th><th>السعر هلأ</th><th>باقي للشرط</th><th>الوقف ≈</th><th>الهدف ≈</th><th>المخاطرة ≈ (% / $)</th><th>أول إغلاق ممكن</th><th>آخر موعد</th></tr>${rows.map(r => {
+  $("realPend").innerHTML = (loading ? `<div class="mut">⏳ ${loading} عملة لسا بيانات الـ4 ساعات تبعها عم تتحمّل…</div>` : "") + (rows.length ? `<div class="wrap"><table><tr><th>العملة</th><th>الاتجاه</th><th>الشرط: إغلاق 4 ساعات</th><th>السعر هلأ</th><th>باقي للشرط</th><th>الوقف ≈</th><th>الهدف ≈</th><th>المخاطرة ≈ (% / $)</th><th>أول إغلاق ممكن</th><th>آخر موعد</th></tr>${rows.map(r => {
     const ready = r.dist !== null && r.dist <= 0, far = r.dist === null || r.dist > 10;
-    return `<tr style="${ready && !r.bad ? "background:#14321f;" : ""}${far || r.bad ? "opacity:.5;" : ""}"><td><b>${cn(r.sym)}</b></td><td>${r.side === 1 ? "🟢 شراء" : "🔴 بيع"}</td><td>${r.side === 1 ? "فوق" : "تحت"} <b>${fp(r.trig)}</b>${r.emaGate ? ' <span class="mut">(EMA200)</span>' : ""}</td><td>${r.px ? fp(r.px) : "—"}</td><td>${r.dist === null ? "—" : ready ? "✅ محقق هلأ — ناطر الإغلاق" : r.dist.toFixed(2) + "%"}</td><td>${fp(r.stop)}</td><td>${r.tgt > 0 ? fp(r.tgt) : "—"}</td><td>${r.rp.toFixed(1)}% = ${(r.risk).toFixed(2)}$${r.bad ? '<br><span class="neg">⚠️ وقف بعيد كثير — ما بنصح فيها</span>' : ""}</td><td>${tm(r.firstClose)}</td><td>${tm(r.lastClose)} <span class="mut">(${r.left} شموع)</span></td></tr>`; }).join("")}</table>` : `<div class="mut">ما في صفقات محتملة هلأ على العملات المحمّلة.</div>`);
+    return `<tr style="${ready && !r.bad ? "background:#14321f;" : ""}${far || r.bad ? "opacity:.5;" : ""}"><td><b>${cn(r.sym)}</b></td><td>${r.side === 1 ? "🟢 شراء" : "🔴 بيع"}</td><td>${r.side === 1 ? "فوق" : "تحت"} <b>${fp(r.trig)}</b>${r.emaGate ? ' <span class="mut">(EMA200)</span>' : ""}</td><td>${r.px ? fp(r.px) : "—"}</td><td>${r.dist === null ? "—" : ready ? "✅ محقق هلأ — ناطر الإغلاق" : r.dist.toFixed(2) + "%"}</td><td>${fp(r.stop)}</td><td>${r.tgt > 0 ? fp(r.tgt) : "—"}</td><td>${r.rp.toFixed(1)}% = ${(r.risk).toFixed(2)}$${r.bad ? '<br><span class="neg">⚠️ وقف بعيد كثير — ما بنصح فيها</span>' : ""}</td><td>${tm(r.firstClose)}</td><td>${tm(r.lastClose)} <span class="mut">(${r.left} شموع)</span></td></tr>`; }).join("")}</table></div>` : `<div class="mut">ما في صفقات محتملة هلأ على العملات المحمّلة.</div>`);
   // قاعدة التوقف
   const st = $("realStart").value, s0 = st ? new Date(st + "T00:00:00").getTime() : null;
   const sc = P.notional/200, ddTest = 434*sc, ddLim = 1.5*ddTest;
@@ -3068,7 +3104,7 @@ function renderReal() {
   let gp = 0, gl = 0, eq = 0, pk = 0, dd = 0; for (const t of cl) { if (t.net > 0) gp += t.net; else gl -= t.net; eq += t.net; pk = Math.max(pk, eq); dd = Math.max(dd, pk - eq); }
   const pf = gl ? gp/gl : (gp ? 99 : 0), n = cl.length;
   const stopPF = n >= 100 && pf < 0.9, stopDD = dd > ddLim;
-  $("realKill").innerHTML = `<table><tr><th>الصفقات من البداية</th><th>الصافي</th><th>PF</th><th>أقصى تراجع</th><th>الحكم</th></tr><tr><td>${n}</td><td>${usd(eq)}</td><td>${n ? (pf >= 99 ? "∞" : pf.toFixed(2)) : "—"}</td><td>−${dd.toFixed(2)}$ <span class="mut">(حد التوقف ${ddLim.toFixed(0)}$)</span></td><td>${stopPF || stopDD ? "🛑 <b>وقّف وراجع</b> — " + (stopDD ? "التراجع أكبر من 1.5× أكبر تراجع بالفحص" : "بعد 100 صفقة PF تحت 0.9") : n < 100 ? `🟢 كمّل — ${100 - n} صفقة لأول حكم على الـPF` : "🟢 كمّل"}</td></tr></table>
+  $("realKill").innerHTML = `<div class="wrap"><table><tr><th>الصفقات من البداية</th><th>الصافي</th><th>PF</th><th>أقصى تراجع</th><th>الحكم</th></tr><tr><td>${n}</td><td>${usd(eq)}</td><td>${n ? (pf >= 99 ? "∞" : pf.toFixed(2)) : "—"}</td><td>−${dd.toFixed(2)}$ <span class="mut">(حد التوقف ${ddLim.toFixed(0)}$)</span></td><td>${stopPF || stopDD ? "🛑 <b>وقّف وراجع</b> — " + (stopDD ? "التراجع أكبر من 1.5× أكبر تراجع بالفحص" : "بعد 100 صفقة PF تحت 0.9") : n < 100 ? `🟢 كمّل — ${100 - n} صفقة لأول حكم على الـPF` : "🟢 كمّل"}</td></tr></table>
   <div class="mut" style="margin-top:6px">القاعدة (متفق عليها قبل): وقّف إذا <b>بعد 100 صفقة PF تحت 0.9</b>، أو إذا <b>التراجع تعدّى 1.5× أكبر تراجع بالفحص</b> (434$ على 200$ للصفقة → ${ddTest.toFixed(0)}$ على حجمك). المتوقع من الفحص: PF تقريباً 1.1–1.5، وفترات ضعيفة ممكن تطول لـ8 شهور.</div>`;
 }
 setInterval(() => { if (document.querySelector('section.tab.on[data-t="real"]')) renderReal(); }, 30000);
