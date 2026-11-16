@@ -3125,7 +3125,7 @@ async function computeAll(coins, startTs, prevOf, st) {
   await Promise.all(P.map(w => (async () => {
     while (queue.length) {
       const c = queue.shift(), prev = prevOf(c);
-      const D = { t0: c.D.t0, o: c.D.o, h: c.D.h, l: c.D.l, c: c.D.c, m5: c.D.m5, s5ck: c.D.s5ck };
+      const D = { t0: c.D.t0, sym: c.D.sym, o: c.D.o, h: c.D.h, l: c.D.l, c: c.D.c, v: c.D.v, m5: c.D.m5, s5ck: c.D.s5ck };   // + فوليوم واسم العملة (Wave Rider)
       const res = await new Promise(r => { w.onmessage = ev => r(ev.data); w.onerror = ev => r({ err: ev.message || "worker" }); w.postMessage({ id: c.sym, D, startTs, only5: !!prev }); });
       if (res.err) { computeOne(c, startTs, prev); }
       else { c.raw = prev ? prev.raw.filter(t => !M5N.has(t.name)).concat(res.raw) : res.raw; if (res.ck) { CK[c.sym] = res.ck; c.D.s5ck = res.ck; } }
