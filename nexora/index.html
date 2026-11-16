@@ -2386,6 +2386,44 @@ const EMAPB = (() => {   // EMA Pullback (Zeal Terminal) + نسخة PRO (EMA200 
     if (pos) out.push({ name: sp.name, d: pos.d, e: pos.k*m, x: D.o.length - 1, rawIn: pos.e, rawOut: D.c[D.c.length - 1], why: "TIME", open: true, stop: pos.stop, target: pos.tgt, w: pos.w });
     return out;
   }
+  // v3: لمسة EMA21 بشمعة خضرا (شورت: حمرا) بترند EMA21/55 + فوق EMA200، وقف قاع 5، بعد 1.5R الوقف على الدخول ويلحق أعلى قمة − 0.5ATR، خروج بإغلاق تحت EMA55
+  function run3(D, inds, sp, startTs) {
+    const m = sp.mult, I = inds[m]; if (!I || I.n < 210) return [];
+    if (!memo.has(I)) memo.set(I, { F: emaArr(I.C, 21), S: emaArr(I.C, 55), T: emaArr(I.C, 200) });
+    const { F, S, T } = memo.get(I), O = I.O, H = I.H, L = I.L, C = I.C, A = I.atr, n = I.n, out = [];
+    let pos = null;
+    for (let k = 200; k < n; k++) {
+      if (pos) {
+        const d = pos.d; let px = null, why = null;
+        if (pos.tex === k) { px = O[k]; why = "TREND_BREAK"; }
+        else if (k !== pos.k && d*(O[k] - pos.stop) <= 0) { px = O[k]; why = "STOP"; }
+        else if (d === 1 ? L[k] <= pos.stop : H[k] >= pos.stop) { px = pos.stop; why = "STOP"; }
+        if (px !== null) { out.push({ name: sp.name, d, e: pos.k*m, x: k*m + m - 1, rawIn: pos.e, rawOut: px, why, open: false, stop: pos.stop, target: 0 }); pos = null; continue; }
+        pos.best = d === 1 ? Math.max(pos.best, H[k]) : Math.min(pos.best, L[k]);
+        if (d*(pos.best - pos.ref) >= 1.5*pos.R) {
+          let ns = d === 1 ? Math.max(pos.stop, pos.ref) : Math.min(pos.stop, pos.ref);
+          if (A[k]) { const tr = pos.best - d*0.5*A[k]; ns = d === 1 ? Math.max(ns, tr) : Math.min(ns, tr); }
+          pos.stop = ns;
+        }
+        if (d*(C[k] - S[k]) < 0 && k + 1 < n) pos.tex = k + 1;
+        continue;
+      }
+      if (k >= n - 1 || T[k] === null || A[k] === null) continue;
+      if (D.t0 + (k + 1)*m*900000 < startTs) continue;
+      let d = 0;
+      if (F[k] > S[k] && C[k] > T[k] && L[k] <= F[k] && C[k] > F[k] && C[k] > O[k]) d = 1;
+      else if (sp.short && F[k] < S[k] && C[k] < T[k] && H[k] >= F[k] && C[k] < F[k] && C[k] < O[k]) d = -1;
+      if (!d) continue;
+      let lo = Infinity, hi = -Infinity; for (let j = k - 4; j <= k; j++) { lo = Math.min(lo, L[j]); hi = Math.max(hi, H[j]); }
+      const R = d === 1 ? C[k] - lo : hi - C[k]; if (!(R > 0)) continue;
+      const stop = C[k] - d*R, e = O[k+1];
+      if (d*(e - stop) <= 0) continue;
+      pos = { d, k: k + 1, e, stop, ref: C[k], R, best: d === 1 ? H[k] : L[k] };
+    }
+    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.k*m, x: D.o.length - 1, rawIn: pos.e, rawOut: D.c[D.c.length - 1], why: "TIME", open: true, stop: pos.stop, target: 0 });
+    return out;
+  }
+  const mk3 = (name, mult, o) => ({ name, mult, short: false, ...o, sig: () => 0, run: run3, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "EMA Pullback (Zeal Terminal)" });
   const mk = (name, mult, o) => ({ name, mult, short: false, minAtr: 0, ...o, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "EMA Pullback (Zeal Terminal)" });
   const pro = { pro: true, timeStop: 15 };
   return { run, strats: [
@@ -2399,6 +2437,8 @@ const EMAPB = (() => {   // EMA Pullback (Zeal Terminal) + نسخة PRO (EMA200 
     mk("PRO 4h لونج+شورت", 16, { ...pro, short: true }),
     mk("PRO 4h لونج+شورت مخاطرة 5%", 16, { ...pro, short: true, riskPct: 5, wMax: 3 }),
     mk("PRO يومي لونج+شورت", 96, { ...pro, short: true }),
+    mk3("v3 ساعة لونج", 4), mk3("v3 4h لونج", 16), mk3("v3 يومي لونج", 96),
+    mk3("v3 ساعة لونج+شورت", 4, { short: true }), mk3("v3 4h لونج+شورت", 16, { short: true }),
   ] };
 })();
 

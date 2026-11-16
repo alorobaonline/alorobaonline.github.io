@@ -1,0 +1,37 @@
+{
+ "type": "multi",
+ "priority": 47,
+ "note": "User request: EMA Pullback family on BTC + ETH only. v3 (EMA21 touch with bullish candle above EMA200, BE+ATR trail after 1.5R, exit on close below EMA55): 1h/4h/daily long, 1h/4h long+short. Plus re-run of original and PRO rows on the same 2 coins. Small sample: indicative only.",
+ "coins": [
+  "BTCUSDT",
+  "ETHUSDT"
+ ],
+ "slots": 10,
+ "strategies": [
+  "v3 ساعة لونج",
+  "v3 4h لونج",
+  "v3 يومي لونج",
+  "v3 ساعة لونج+شورت",
+  "v3 4h لونج+شورت",
+  "EMAPB ساعة لونج",
+  "EMAPB 4h لونج",
+  "EMAPB 4h لونج+شورت",
+  "EMAPB 4h لونج+شورت 1ATR",
+  "EMAPB يومي لونج+شورت 1ATR",
+  "PRO 4h لونج",
+  "PRO ساعة لونج",
+  "PRO 4h لونج+شورت",
+  "PRO 4h لونج+شورت مخاطرة 5%",
+  "PRO يومي لونج+شورت"
+ ],
+ "variants": [
+  {
+   "base": "S15 Sweep+MSS V2 4h",
+   "R": 2.5,
+   "hold": 40,
+   "sb": 0.25,
+   "maxRisk": 0.15,
+   "name": "S15* بدون وقف أبعد من 15%"
+  }
+ ]
+}
