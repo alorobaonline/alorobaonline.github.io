@@ -3359,7 +3359,7 @@ function renderTradesT() {
   const { trades, since } = TT_DATA;
   if (SEL && TF.s !== SEL) TF.s = SEL;
   const base = trades.filter(t => t.open || t.xTs >= since);
-  const names = [...new Set(base.map(t => t.name))].sort((a, b) => (b.startsWith("⭐") - a.startsWith("⭐")) || a.localeCompare(b));
+  const names = [...new Set([...STRATS.map(sp => sp.name), ...base.map(t => t.name)])].sort((a, b) => (b.startsWith("⭐") - a.startsWith("⭐")) || a.localeCompare(b));   // كل استراتيجيات المنصة، حتى لو ما إلها صفقات بالفترة المختارة
   const coins = [...new Set(base.filter(t => !TF.s || t.name === TF.s).map(t => t.sym))].sort();
   const list = base.filter(t => (!TF.s || t.name === TF.s) && (!TF.c || t.sym === TF.c) && (!TF.d || t.d === +TF.d)
     && (!TF.st || (TF.st === "o" ? t.open : !t.open)) && (!TF.r || (TF.r === "w" ? t.net > 0 : t.net <= 0)));
