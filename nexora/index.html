@@ -2744,6 +2744,46 @@ function tpWrap(baseName, tp, stopPct, label) {
   };
   return { name, mult: (STRATS_ALL.find(x => x.name === baseName) || {}).mult || 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "TP 1.2% wrap" };
 }
+
+// 16/11: 3 طرق لتوقيت الدخول على نسخ 1.2% (لايف على المنصة): هادئة / ليمت 0.4% / تأكيد 15m — الهدف 1.2% والوقف 1.2% من سعر الدخول الفعلي
+const ATR15_MEMO = new WeakMap();
+function atr15Of(D) {
+  if (ATR15_MEMO.has(D)) return ATR15_MEMO.get(D);
+  const n = D.o.length, a = new Array(n).fill(null); let v = null;
+  for (let i = 1; i < n; i++) { const tr = Math.max(D.h[i] - D.l[i], Math.abs(D.h[i] - D.c[i-1]), Math.abs(D.l[i] - D.c[i-1]));
+    v = v === null ? tr : (v*13 + tr)/14; if (i >= 14) a[i] = v; }
+  ATR15_MEMO.set(D, a); return a;
+}
+function timingWrap(baseName, mode) {
+  const label = { calm: "1.2% هادئة", limit: "1.2% ليمت 0.4%", confirm: "1.2% تأكيد 15m" }[mode], name = `${baseName} | ${label}`;
+  const run = (D, inds, sp, startTs) => {
+    const base = STRATS_ALL.find(x => x.name === baseName); if (!base) return [];
+    const src = evaluate(D, inds, base, startTs), n = D.o.length, out = [], A = atr15Of(D), seen = new Set();
+    for (const t of src) {
+      const k0 = t.e + "|" + t.d; if (seen.has(k0)) continue; seen.add(k0);   // نص صفقة = نفس الدخول
+      const d = t.d; let e = null, ei = null;
+      if (mode === "calm") { const a = A[t.e - 1]; if (a === null || a/D.c[t.e - 1] > 0.004) continue; e = t.rawIn; ei = t.e; }   // ضجيج 15m أكبر من 0.4% = ما بندخل
+      else if (mode === "limit") { const lim = t.rawIn*(1 - d*0.004);   // ليمت أحسن بـ0.4%، صالح ساعة (4 شموع)
+        for (let j = t.e; j < Math.min(n, t.e + 4); j++) if (d === 1 ? D.l[j] <= lim : D.h[j] >= lim) { e = d === 1 ? Math.min(lim, D.o[j]) : Math.max(lim, D.o[j]); ei = j; break; }
+        if (e === null) continue; }
+      else { for (let j = t.e; j < Math.min(n - 1, t.e + 4); j++) if (d*(D.c[j] - D.o[j]) > 0) { ei = j + 1; e = D.o[j + 1]; break; }   // أول شمعة 15m بتسكّر باتجاه الصفقة → دخول على اللي بعدها
+        if (e === null) continue; }
+      const tgt = e*(1 + d*0.012), stop = e*(1 - d*0.012);
+      let px = null, why = null, xi = null;
+      for (let j = ei; j < n; j++) {
+        if (j > ei && d*(D.o[j] - stop) <= 0) { px = D.o[j]; why = "STOP"; xi = j; break; }
+        if (j > ei && d*(D.o[j] - tgt) >= 0) { px = D.o[j]; why = "TGT_GAP"; xi = j; break; }
+        if (d === 1 ? D.l[j] <= stop : D.h[j] >= stop) { px = stop; why = "STOP"; xi = j; break; }
+        if (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt) { px = tgt; why = "TARGET"; xi = j; break; }
+      }
+      const w = t.w || 1;
+      if (px !== null) out.push({ name, d, e: ei, x: xi, rawIn: e, rawOut: px, why, open: false, stop, target: tgt, ...(w !== 1 ? { w } : {}) });
+      else out.push({ name, d, e: ei, x: n - 1, rawIn: e, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt, ...(w !== 1 ? { w } : {}) });
+    }
+    return out;
+  };
+  return { name, mult: (STRATS_ALL.find(x => x.name === baseName) || {}).mult || 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "TP 1.2% wrap" };
+}
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
   "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
   "Bagheri IG Ether 15m (كما هي)", "Bagheri IG Ether ساعة (كما هي)", "Bagheri IG Ether 4h (كما هي)"];
@@ -2794,13 +2834,14 @@ const STRATS_ALL = [
   ...BAGHERI.strats,
 ];
 for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% وقف 0.6%"), tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), tpWrap(b, 0.012, null, "هدف 1.2% وقف أصلي"));
+for (const b of TP_BASES) STRATS_ALL.push(timingWrap(b, "calm"), timingWrap(b, "limit"), timingWrap(b, "confirm"));
 
 // نسخ فحص (جان، Turtle Soup...): بتشتغل بمختبر السيرفر بس — المنصة بالمتصفح ما بتحسبها (أسرع، وما بتلوّث الحساب)
 const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جان (فكرة المستخدم)", "تقاطع مراوح جان (فكرة المستخدم)", "تقاطع مراوح جان v2 (طريقة المستخدم)",
   "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)", "London Breakout", "12/26-IT (AbdulRahimShama)", "Wave Rider v1"]);
 // المنصة (المتصفح): بس الـ8 اللي إلهم فرصة حسب المختبر (⭐ + 🧪) — الباقي انشال من المنصة (طلب المستخدم 16/11)
 // 16/11 16:40: المنصة بتشغّل بس نسخ "هدف 1.2% / وقف 1.2%" من كل الاستراتيجيات (طلب المستخدم) — الأصلية بالمختبر بس
-const PLATFORM_KEEP = new Set(TP_BASES.map(b => b + " | هدف 1.2% وقف 1.2%"));   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
+const PLATFORM_KEEP = new Set(TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% تأكيد 15m"]));   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
