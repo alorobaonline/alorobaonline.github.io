@@ -251,11 +251,11 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
 const M15 = 900000, H4 = 16 * M15;
 
 function aggregate(D, m) {
-  const n = Math.floor(D.o.length / m), O = [], H = [], L = [], C = [];
+  const len = D.o.length, n = D.prov ? Math.ceil(len / m) : Math.floor(len / m), O = [], H = [], L = [], C = [];   // D.prov = آخر شمعة 15m هي الشمعة الحية (لسا ما سكّرت) → آخر شمعة كبيرة ناقصة
   for (let i = 0; i < n; i++) {
-    O.push(D.o[i*m]); let hi = -Infinity, lo = Infinity;
-    for (let k = i*m; k < (i+1)*m; k++) { if (D.h[k] > hi) hi = D.h[k]; if (D.l[k] < lo) lo = D.l[k]; }
-    H.push(hi); L.push(lo); C.push(D.c[(i+1)*m-1]);
+    O.push(D.o[i*m]); let hi = -Infinity, lo = Infinity; const end = Math.min((i+1)*m, len);
+    for (let k = i*m; k < end; k++) { if (D.h[k] > hi) hi = D.h[k]; if (D.l[k] < lo) lo = D.l[k]; }
+    H.push(hi); L.push(lo); C.push(D.c[end-1]);
   }
   return { O, H, L, C };
 }
@@ -289,7 +289,7 @@ function makeInd(D, m) {
     if (cnt <= 14) first += dx;
     if (cnt === 14) adx[i] = first/14; else if (cnt > 14) adx[i] = (adx[i-1]*13 + dx)/14;
   }
-  return { m, n, O, H, L, C, BLO, BHI, atr, ema200: ema(C, 200), ema50: ema(C, 50), adx };
+  return { m, n, O, H, L, C, BLO, BHI, atr, ema200: ema(C, 200), ema50: ema(C, 50), adx, partial: !!D.prov };   // partial = آخر شمعة لسا ما سكّرت (للدخول والخروج بس، مش للإشارات)
 }
 
 const minR = (a, s, e) => { let v = Infinity; for (let k = Math.max(0, s); k < e; k++) if (a[k] < v) v = a[k]; return v; };
@@ -656,6 +656,10 @@ const S16 = (() => {
   // تشغيل كامل على البيانات: 4 محافظ مستقلة، دخول على فتح الشمعة الجاية، وقف = طرف السويب ∓ 0.25 ATR، هدف 2R، أقصى 48 شمعة 15m
   const cache = new WeakMap();
   function runAll(D, inds, startTs) {
+    if (D.prov) {   // S16 آلة حالات: بتشتغل بس على شموع مسكّرة
+      if (!D._np) { const k = D.o.length - 1; D._np = { t0: D.t0, sym: D.sym, o: D.o.slice(0, k), h: D.h.slice(0, k), l: D.l.slice(0, k), c: D.c.slice(0, k), v: D.v && D.v.slice(0, k) }; D._npI = { 1: makeInd(D._np, 1), 4: makeInd(D._np, 4), 16: makeInd(D._np, 16) }; }
+      const np = D._np, ni = D._npI; D = np; inds = ni;
+    }
     const key = inds[1];
     if (cache.has(key) && cache.get(key).startTs === startTs) return cache.get(key).out;
     const s = blank("BTCUSDT"), mk = (I, m, k) => ({ openTime: D.t0 + k*m*900000, closeTime: D.t0 + (k+1)*m*900000 - 1, open: I.O[k], high: I.H[k], low: I.L[k], close: I.C[k] });
@@ -2897,7 +2901,7 @@ function evaluate0(D, inds, sp, startTs) {
   if (sp.run) return sp.run(D, inds, sp, startTs);
   const m = sp.mult, I = inds[m], I16 = inds[16];
   let lo = 0; while (lo < I.n && D.t0 + (lo+1)*m*M15 <= startTs) lo++;
-  const hi = I.n, out = [];
+  const hi = I.partial ? I.n - 1 : I.n, out = [];   // ما في إشارة على شمعة لسا ما سكّرت
   let nextAllowed = lo*m, cd4 = -1;
   for (let i = Math.max(lo, 200); i < hi; i++) {   // آخر شمعة مكتملة كمان (الدخول على الشمعة 15m اللي بعدها)
     const d = sp.sig(I, i); if (!d) continue;
@@ -3256,9 +3260,21 @@ function pool() {
   } catch (e) { POOL = []; }
   return POOL;
 }
+// الشمعة الحية (لسا ما سكّرت) بتنضاف لآخر البيانات وقت الحساب — هيك الصفقة بتنفتح أول ما تبلّش الشمعة، مش بعد ما تسكّر
+const FORMB = {};   // شمعة 15m الحية من بث Bybit
+function withProv(c) {
+  const D = c.D, n = D.o.length; if (!n || D.stub) return D;
+  const t = D.t0 + n*M15; if (Date.now() < t) return D;
+  const F = FORMB[c.sym], px = pxOf(c.sym), prev = D.c[n-1];
+  let o, h, l, cl, v = 0;
+  if (F && F.t === t) { o = F.o; h = F.h; l = F.l; cl = F.c; v = F.v || 0; if (px) { h = Math.max(h, px); l = Math.min(l, px); cl = px; } }
+  else if (px) { o = prev; h = Math.max(prev, px); l = Math.min(prev, px); cl = px; }
+  else return D;
+  return { t0: D.t0, sym: D.sym, prov: true, o: D.o.concat([o]), h: D.h.concat([h]), l: D.l.concat([l]), c: D.c.concat([cl]), v: D.v ? D.v.concat([v]) : undefined, m5: D.m5, s5ck: D.s5ck };
+}
 function computeOne(c, startTs, prev) {   // نفس الحساب بدون Workers (احتياط)
   if (prev) { c.raw = prev.raw.filter(t => !M5N.has(t.name)); for (const sp of STRATS) if (sp.m5) for (const t of evaluate(c.D, null, sp, startTs)) c.raw.push(t); }
-  else { const inds = { 1: makeInd(c.D, 1), 4: makeInd(c.D, 4), 16: makeInd(c.D, 16) }; for (const sp of STRATS) if (sp.mult && !inds[sp.mult]) inds[sp.mult] = makeInd(c.D, sp.mult); c.raw = []; for (const sp of STRATS) for (const t of evaluate(c.D, inds, sp, startTs)) c.raw.push(t); }
+  else { const DP = withProv(c), inds = { 1: makeInd(DP, 1), 4: makeInd(DP, 4), 16: makeInd(DP, 16) }; for (const sp of STRATS) if (sp.mult && !inds[sp.mult]) inds[sp.mult] = makeInd(DP, sp.mult); c.raw = []; for (const sp of STRATS) for (const t of evaluate(DP, inds, sp, startTs)) c.raw.push(t); }
 }
 async function computeAll(coins, startTs, prevOf, st) {
   const P = pool(); let done = 0;
@@ -3269,7 +3285,7 @@ async function computeAll(coins, startTs, prevOf, st) {
   await Promise.all(P.map(w => (async () => {
     while (queue.length) {
       const c = queue.shift(), prev = prevOf(c);
-      const D = { t0: c.D.t0, sym: c.D.sym, o: c.D.o, h: c.D.h, l: c.D.l, c: c.D.c, v: c.D.v, m5: c.D.m5, s5ck: c.D.s5ck };   // + فوليوم واسم العملة (Wave Rider)
+      const DP = withProv(c), D = { t0: DP.t0, sym: DP.sym, prov: !!DP.prov, o: DP.o, h: DP.h, l: DP.l, c: DP.c, v: DP.v, m5: DP.m5, s5ck: DP.s5ck };   // + الشمعة الحية + فوليوم واسم العملة
       const res = await new Promise(r => { w.onmessage = ev => r(ev.data); w.onerror = ev => r({ err: ev.message || "worker" }); w.postMessage({ id: c.sym, D, startTs, only5: !!prev }); });
       if (res.err) { computeOne(c, startTs, prev); }
       else { c.raw = prev ? prev.raw.filter(t => !M5N.has(t.name)).concat(res.raw) : res.raw; if (res.ck) { CK[c.sym] = res.ck; c.D.s5ck = res.ck; } }
@@ -3655,10 +3671,12 @@ function connectBybitWS() {
     BWS = new WebSocket("wss://stream.bybit.com/v5/public/linear");
     BWS.onopen = () => {
       for (let i = 0; i < COINS.length; i += 10) BWS.send(JSON.stringify({ op: "subscribe", args: COINS.slice(i, i + 10).map(x => "tickers." + x) }));
+      for (let i = 0; i < COINS.length; i += 10) BWS.send(JSON.stringify({ op: "subscribe", args: COINS.slice(i, i + 10).map(x => "kline.15." + x) }));
       BWS_PING = setInterval(() => { try { BWS.send(JSON.stringify({ op: "ping" })); } catch (e) {} }, 20000);
     };
     BWS.onmessage = ev => {
       let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+      if (m.topic && m.topic.startsWith("kline.15.") && Array.isArray(m.data) && m.data[0]) { const k = m.data[0]; FORMB[m.topic.slice(9)] = { t: +k.start, o: +k.open, h: +k.high, l: +k.low, c: +k.close, v: +k.volume }; return; }
       const d = m.data; if (!m.topic || !d || d.lastPrice === undefined) return;
       const sym = m.topic.slice(8), px = +d.lastPrice; if (!(px > 0)) return;
       const now = Date.now(); BWS_LAST = now;
@@ -3698,7 +3716,15 @@ function connectWS() {
 function lightUpdate() {
   if (!CACHE || !RESULT) return;
   const P = RESULT.P;
-  RESULT.trades = RESULT.trades.map(t => { if (!t.open) return t; const c = CACHE.bySym[t.sym]; return { ...money(t, c.D, P, c.funding, pxOf(t.sym)), sym: t.sym }; });
+  let closedNow = false;
+  RESULT.trades = RESULT.trades.map(t => { if (!t.open) return t; const c = CACHE.bySym[t.sym], px = pxOf(t.sym);
+    if (px && Number.isFinite(t.target) && Number.isFinite(t.stop)) {   // الهدف أو الوقف انضرب هلأ بالسعر الحي → سكّرها فوراً
+      const d = t.d, hitT = d*(px - t.target) >= 0, hitS = d*(px - t.stop) <= 0;
+      if (hitT || hitS) { closedNow = true; const x = Math.max(t.e, Math.floor((Date.now() - c.D.t0)/M15) - 1);
+        return { ...money({ ...t, open: false, rawOut: hitS ? t.stop : t.target, why: hitS ? "STOP" : "TARGET", x }, c.D, P, c.funding, px), sym: t.sym, live: true }; }
+    }
+    return { ...money(t, c.D, P, c.funding, px), sym: t.sym }; });
+  if (closedNow) { try { render(); } catch (e) {} return; }
   renderAccount(); drawChart(); updateLiveHeader();
   if (Date.now() - LAST_RADAR > 10000) { LAST_RADAR = Date.now(); radar(); }
 }

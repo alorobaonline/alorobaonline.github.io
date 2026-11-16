@@ -69,11 +69,11 @@ textarea{width:100%;height:120px;background:#0f1115;color:var(--mut);border:1px 
 const M15 = 900000, H4 = 16 * M15;
 
 function aggregate(D, m) {
-  const n = Math.floor(D.o.length / m), O = [], H = [], L = [], C = [];
+  const len = D.o.length, n = D.prov ? Math.ceil(len / m) : Math.floor(len / m), O = [], H = [], L = [], C = [];   // D.prov = آخر شمعة 15m هي الشمعة الحية (لسا ما سكّرت) → آخر شمعة كبيرة ناقصة
   for (let i = 0; i < n; i++) {
-    O.push(D.o[i*m]); let hi = -Infinity, lo = Infinity;
-    for (let k = i*m; k < (i+1)*m; k++) { if (D.h[k] > hi) hi = D.h[k]; if (D.l[k] < lo) lo = D.l[k]; }
-    H.push(hi); L.push(lo); C.push(D.c[(i+1)*m-1]);
+    O.push(D.o[i*m]); let hi = -Infinity, lo = Infinity; const end = Math.min((i+1)*m, len);
+    for (let k = i*m; k < end; k++) { if (D.h[k] > hi) hi = D.h[k]; if (D.l[k] < lo) lo = D.l[k]; }
+    H.push(hi); L.push(lo); C.push(D.c[end-1]);
   }
   return { O, H, L, C };
 }
@@ -107,7 +107,7 @@ function makeInd(D, m) {
     if (cnt <= 14) first += dx;
     if (cnt === 14) adx[i] = first/14; else if (cnt > 14) adx[i] = (adx[i-1]*13 + dx)/14;
   }
-  return { m, n, O, H, L, C, BLO, BHI, atr, ema200: ema(C, 200), ema50: ema(C, 50), adx };
+  return { m, n, O, H, L, C, BLO, BHI, atr, ema200: ema(C, 200), ema50: ema(C, 50), adx, partial: !!D.prov };   // partial = آخر شمعة لسا ما سكّرت (للدخول والخروج بس، مش للإشارات)
 }
 
 const minR = (a, s, e) => { let v = Infinity; for (let k = Math.max(0, s); k < e; k++) if (a[k] < v) v = a[k]; return v; };
@@ -474,6 +474,10 @@ const S16 = (() => {
   // تشغيل كامل على البيانات: 4 محافظ مستقلة، دخول على فتح الشمعة الجاية، وقف = طرف السويب ∓ 0.25 ATR، هدف 2R، أقصى 48 شمعة 15m
   const cache = new WeakMap();
   function runAll(D, inds, startTs) {
+    if (D.prov) {   // S16 آلة حالات: بتشتغل بس على شموع مسكّرة
+      if (!D._np) { const k = D.o.length - 1; D._np = { t0: D.t0, sym: D.sym, o: D.o.slice(0, k), h: D.h.slice(0, k), l: D.l.slice(0, k), c: D.c.slice(0, k), v: D.v && D.v.slice(0, k) }; D._npI = { 1: makeInd(D._np, 1), 4: makeInd(D._np, 4), 16: makeInd(D._np, 16) }; }
+      const np = D._np, ni = D._npI; D = np; inds = ni;
+    }
     const key = inds[1];
     if (cache.has(key) && cache.get(key).startTs === startTs) return cache.get(key).out;
     const s = blank("BTCUSDT"), mk = (I, m, k) => ({ openTime: D.t0 + k*m*900000, closeTime: D.t0 + (k+1)*m*900000 - 1, open: I.O[k], high: I.H[k], low: I.L[k], close: I.C[k] });
@@ -2715,7 +2719,7 @@ function evaluate0(D, inds, sp, startTs) {
   if (sp.run) return sp.run(D, inds, sp, startTs);
   const m = sp.mult, I = inds[m], I16 = inds[16];
   let lo = 0; while (lo < I.n && D.t0 + (lo+1)*m*M15 <= startTs) lo++;
-  const hi = I.n, out = [];
+  const hi = I.partial ? I.n - 1 : I.n, out = [];   // ما في إشارة على شمعة لسا ما سكّرت
   let nextAllowed = lo*m, cd4 = -1;
   for (let i = Math.max(lo, 200); i < hi; i++) {   // آخر شمعة مكتملة كمان (الدخول على الشمعة 15m اللي بعدها)
     const d = sp.sig(I, i); if (!d) continue;
