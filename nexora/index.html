@@ -3191,7 +3191,8 @@ function capTrades(raw) {
 function recalc() {
   if (!CACHE) return;
   const P = params($("makerEntry").checked), PM = params(true), PT = params(false);
-  const all = (Q) => CACHE.coins.flatMap(c => c.raw.map(t => ({ ...money(t, c.D, Q, c.funding, pxOf(c.sym)), sym: c.sym })));
+  const all = (Q) => CACHE.coins.flatMap(c => c.raw.map(t0 => { const lc = t0.open && LIVE_CLOSED[t0.name + "|" + c.sym + "|" + t0.e], t = lc ? { ...t0, open: false, rawOut: lc.px, why: lc.why, x: lc.x } : t0;   // صفقة تسكّرت لايف بين حسابين: بتضل مسكّرة
+    return { ...money(t, c.D, Q, c.funding, pxOf(c.sym)), sym: c.sym }; }));
   const cl = Q => capTrades(all(Q)).filter(t => !t.open).map(t => ({ xTs: t.xTs, net: t.net }));
   RESULT = { trades: capTrades(all(P)), startTs: CACHE.startTs, P, mkCl: cl(PM), tkCl: cl(PT), upd: CACHE.upd };
   render();
@@ -3713,6 +3714,7 @@ function connectWS() {
 }
 
 // تحديث خفيف: السعر + الحساب + المفتوحة + الشارت (بدون إعادة حساب كل الصفقات)
+const LIVE_CLOSED = {};   // الصفقات اللي سكّرت بالسعر الحي — بتضل مسكّرة حتى لو الحساب الجاي ما شاف الشمعة كاملة
 function lightUpdate() {
   if (!CACHE || !RESULT) return;
   const P = RESULT.P;
@@ -3721,6 +3723,7 @@ function lightUpdate() {
     if (px && Number.isFinite(t.target) && Number.isFinite(t.stop)) {   // الهدف أو الوقف انضرب هلأ بالسعر الحي → سكّرها فوراً
       const d = t.d, hitT = d*(px - t.target) >= 0, hitS = d*(px - t.stop) <= 0;
       if (hitT || hitS) { closedNow = true; const x = Math.max(t.e, Math.floor((Date.now() - c.D.t0)/M15) - 1);
+        LIVE_CLOSED[t.name + "|" + t.sym + "|" + t.e] = { px: hitS ? t.stop : t.target, why: hitS ? "STOP" : "TARGET", x };
         return { ...money({ ...t, open: false, rawOut: hitS ? t.stop : t.target, why: hitS ? "STOP" : "TARGET", x }, c.D, P, c.funding, px), sym: t.sym, live: true }; }
     }
     return { ...money(t, c.D, P, c.funding, px), sym: t.sym }; });
