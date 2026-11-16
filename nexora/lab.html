@@ -2554,7 +2554,7 @@ function statsOf(list, days, N) {
     const r = t.net; sum += r; if (r > 0) gp += r; else gl -= r;
     eq += r; peak = Math.max(peak, eq); dd = Math.max(dd, peak - eq);
     st = r <= 0 ? st + 1 : 0; mx = Math.max(mx, st);
-    gs += t.d*(t.rawOut - t.rawIn)/t.rawIn*N;
+    gs += t.d*(t.rawOut - t.rawIn)/t.rawIn*N*(t.w || 1);   // نص صفقة (w=0.5) بينحسب بحجمه
   }
   const mean = sum/n; let v = 0; for (const t of list) v += (t.net - mean)**2;
   const sd = n > 1 ? Math.sqrt(v/(n-1)) : 0;
