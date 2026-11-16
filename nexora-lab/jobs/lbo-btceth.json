@@ -1,0 +1,26 @@
+{
+ "type": "multi",
+ "priority": 50,
+ "note": "London Breakout on BTC + ETH only (same 4 rows). Small sample: indicative.",
+ "coins": [
+  "BTCUSDT",
+  "ETHUSDT"
+ ],
+ "slots": 10,
+ "strategies": [
+  "LBO 09-12 إغلاق 12",
+  "LBO 08-12 إغلاق 12",
+  "LBO 09-12 إغلاق 20",
+  "LBO 09-12 إغلاق 20 وقف الطرف التاني 1R"
+ ],
+ "variants": [
+  {
+   "base": "S15 Sweep+MSS V2 4h",
+   "R": 2.5,
+   "hold": 40,
+   "sb": 0.25,
+   "maxRisk": 0.15,
+   "name": "S15* بدون وقف أبعد من 15%"
+  }
+ ]
+}

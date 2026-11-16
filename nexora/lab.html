@@ -2279,6 +2279,56 @@ const EMAPB = (() => {   // EMA Pullback (Zeal Terminal) + نسخة PRO (EMA200 
   ] };
 })();
 
+const LBO = (() => {   // London Breakout: نطاق آسيا 00-08 UTC، أوامر Stop فوق/تحت النطاق بنافذة لندن، أول وحدة بتلغي التانية
+  const M15 = 900000, DAY = 864e5, H = 3600000;
+  function run(D, inds, sp, startTs) {
+    const n = D.o.length, out = [], tod = i => (D.t0 + i*M15) % DAY;
+    let i = 0;
+    while (i < n && tod(i) !== 0) i++;                       // أول بداية يوم
+    for (; i + 32 <= n; i += 96) {                            // كل يوم لحال (البيانات متصلة، 96 شمعة باليوم) — اليوم الحالي كمان لما يكتمل نطاق آسيا
+      const day0 = D.t0 + i*M15; if (day0 + sp.ws*H < startTs) continue;
+      let hi = -Infinity, lo = Infinity;
+      for (let j = i; j < i + 32; j++) { hi = Math.max(hi, D.h[j]); lo = Math.min(lo, D.l[j]); }   // 00:00-08:00
+      const R = hi - lo; if (!(R > 0)) continue;
+      const a = i + sp.ws*4, b = i + 48, xEnd = i + sp.xe*4;   // نافذة الدخول [ws..12:00)، الإغلاق الزمني xe
+      let pos = null;
+      for (let j = a; j < Math.min(xEnd, n); j++) {
+        if (!pos) {
+          if (j >= b) break;                                  // الساعة 12: إلغاء الأوامر اللي ما تفعّلت
+          const upHit = D.h[j] >= hi, dnHit = D.l[j] <= lo;
+          if (!upHit && !dnHit) continue;
+          let d = upHit && dnHit ? (Math.abs(D.o[j] - hi) <= Math.abs(D.o[j] - lo) ? 1 : -1) : upHit ? 1 : -1;
+          const lvl = d === 1 ? hi : lo, e = d === 1 ? Math.max(D.o[j], lvl) : Math.min(D.o[j], lvl);   // فجوة فوق المستوى = تنفيذ على الافتتاح
+          const risk = sp.opp ? (d === 1 ? e - lo : hi - e) : R/2; if (!(risk > 0)) break;
+          pos = { d, e, k: j, stop: e - d*risk, tgt: e + d*(sp.rr || 2)*risk };
+          // نفس شمعة الدخول: الوقف أول (الأسوأ)، والهدف بس إذا الشمعة وصلته
+          if (d === 1 ? D.l[j] <= pos.stop : D.h[j] >= pos.stop) { out.push(mkT(sp, pos, j, pos.stop, "STOP")); pos = null; break; }
+          if (d === 1 ? D.h[j] >= pos.tgt : D.l[j] <= pos.tgt) { out.push(mkT(sp, pos, j, pos.tgt, "TARGET")); pos = null; break; }
+          continue;
+        }
+        const d = pos.d, o = D.o[j];
+        if (d*(o - pos.stop) <= 0) { out.push(mkT(sp, pos, j, o, "STOP")); pos = null; break; }
+        if (d*(o - pos.tgt) >= 0) { out.push(mkT(sp, pos, j, o, "TGT_GAP")); pos = null; break; }
+        if (d === 1 ? D.l[j] <= pos.stop : D.h[j] >= pos.stop) { out.push(mkT(sp, pos, j, pos.stop, "STOP")); pos = null; break; }
+        if (d === 1 ? D.h[j] >= pos.tgt : D.l[j] <= pos.tgt) { out.push(mkT(sp, pos, j, pos.tgt, "TARGET")); pos = null; break; }
+      }
+      if (pos) {
+        if (xEnd < n) out.push(mkT(sp, pos, xEnd, D.o[xEnd], "TIME"));            // إغلاق زمني على افتتاح شمعة الساعة xe
+        else out.push({ name: sp.name, d: pos.d, e: pos.k, x: n - 1, rawIn: pos.e, rawOut: D.c[n-1], why: "TIME", open: true, stop: pos.stop, target: pos.tgt });
+      }
+    }
+    return out;
+  }
+  const mkT = (sp, p, j, px, why) => ({ name: sp.name, d: p.d, e: p.k, x: why === "TIME" ? j - 1 : j, rawIn: p.e, rawOut: px, why, open: false, stop: p.stop, target: p.tgt });
+  const mk = (name, o) => ({ name, mult: 1, ws: 9, xe: 12, rr: 2, opp: false, ...o, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "London Breakout" });
+  return { run, strats: [
+    mk("LBO 09-12 إغلاق 12"),
+    mk("LBO 08-12 إغلاق 12", { ws: 8 }),
+    mk("LBO 09-12 إغلاق 20", { xe: 20 }),
+    mk("LBO 09-12 إغلاق 20 وقف الطرف التاني 1R", { xe: 20, opp: true, rr: 1 }),
+  ] };
+})();
+
 
 
 
@@ -2331,10 +2381,11 @@ const STRATS_ALL = [
   ...GSWEEP.strats,
   ...TREND.strats,
   ...EMAPB.strats,
+  ...LBO.strats,
 ];
 // نسخ فحص (جان، Turtle Soup...): بتشتغل بمختبر السيرفر بس — المنصة بالمتصفح ما بتحسبها (أسرع، وما بتلوّث الحساب)
 const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جان (فكرة المستخدم)", "تقاطع مراوح جان (فكرة المستخدم)", "تقاطع مراوح جان v2 (طريقة المستخدم)",
-  "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)"]);
+  "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)", "London Breakout"]);
 // المنصة (المتصفح): بس الـ8 اللي إلهم فرصة حسب المختبر (⭐ + 🧪) — الباقي انشال من المنصة (طلب المستخدم 16/11)
 const PLATFORM_KEEP = new Set(["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR",
   "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)", "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]);
