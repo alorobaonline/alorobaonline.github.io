@@ -155,14 +155,14 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
   <h2>💼 الحساب الوهمي <span class="mut" id="accNote"></span> <button class="sec" onclick="document.getElementById('copyBoard').click()" style="padding:5px 10px;font-size:12px">📋 انسخ الملخص لـ Claude</button></h2>
   <div id="sumBox" style="display:none;margin:8px 0"><div id="sumMsg" class="mut" style="margin-bottom:6px"></div><textarea id="sumTxt" readonly style="width:100%;height:180px;direction:ltr;text-align:left;background:#0b0e14;color:#e5e7eb;border:1px solid #333;border-radius:8px;font-family:ui-monospace,monospace;font-size:12px"></textarea></div>
   <div class="acc" id="acc"></div>
-  <h2>📉 التراجع <span class="mut">(قديش إنت تحت أعلى رصيد وصلتله — مقارنة بأسوأ تراجع صار بالفترة)</span></h2>
-  <div class="panel" id="ddBox"></div>
-  <h2>المجموع <span class="mut" id="scope"></span></h2>
+  <h2>📊 المجموع <span class="mut" id="scope"></span></h2>
   <div class="periods" id="periodsA"></div>
   <div class="cards" id="cards"></div>
   <h2>💸 الربح قبل العمولة مقابل العمولة</h2>
   <div class="panel" id="feeBox"></div>
-  <h2>الصافي التراكمي</h2>
+  <h2>📉 التراجع <span class="mut">(قديش إنت تحت أعلى رصيد وصلتله — مقارنة بأسوأ تراجع صار بالفترة)</span></h2>
+  <div class="panel" id="ddBox"></div>
+  <h2>📈 الصافي التراكمي</h2>
   <div id="chart"></div>
 </section>
 <section class="tab" data-t="open">
@@ -2727,8 +2727,8 @@ function recalc() {
   if (!CACHE) return;
   const P = params($("makerEntry").checked), PM = params(true), PT = params(false);
   const all = (Q) => CACHE.coins.flatMap(c => c.raw.map(t => ({ ...money(t, c.D, Q, c.funding, pxOf(c.sym)), sym: c.sym })));
-  const net = Q => capTrades(all(Q)).filter(t => !t.open).reduce((s, t) => s + t.net, 0);
-  RESULT = { trades: capTrades(all(P)), startTs: CACHE.startTs, P, makerNet: net(PM), takerNet: net(PT), upd: CACHE.upd };
+  const cl = Q => capTrades(all(Q)).filter(t => !t.open).map(t => ({ xTs: t.xTs, net: t.net }));
+  RESULT = { trades: capTrades(all(P)), startTs: CACHE.startTs, P, mkCl: cl(PM), tkCl: cl(PT), upd: CACHE.upd };
   render();
   try { if (document.querySelector('section.tab.on[data-t="real"]')) renderReal(); } catch (e) { console.warn(e); }
 }
@@ -2870,7 +2870,10 @@ function renderAccount() {
 }
 
 // ===================== حكم السيرفر + التصنيف + الفترة + دفتر القرارات =====================
-let SRV = null, PERIOD = 0, SHOW_OFF = false;
+let SRV = null, PERIOD = (() => { try { const v = localStorage.getItem("nexora_period"); return v === null ? -1 : +v; } catch (e) { return -1; } })(), SHOW_OFF = false;
+// PERIOD: ‎-1 = اليوم (من نص الليل بتوقيتك)، 0 = كل الفترة، n = آخر n يوم
+const periodSince = () => { if (PERIOD === -1) { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); } return PERIOD ? Date.now() - PERIOD*864e5 : -Infinity; };
+const periodName = () => PERIOD === -1 ? "اليوم" : PERIOD ? "آخر " + PERIOD + " يوم" : "كل الفترة";
 const JOB_PREF = ["all-15m-plus", "scalping-5m", "sd", "v63", "top4", "s15-improve", "sd-relax", "s15-ema", "s15-user", "s17-improve", "combine", "ts", "ts-5m", "s15-manage", "s15-risk", "s15-combo", "gann", "gannx", "gannx2", "gann-ts", "gann-slow", "gann-dec", "gann-dec-coins", "gann-sweep", "s15-maxrisk", "trend"];
 const SRV_ALIAS = { "⭐ S15 V2 4h R2.5 h40": "S15* بدون وقف أبعد من 15%", "⭐ S15 مخاطرة ثابتة": "S15* مخاطرة 7% أقصى 3x", "S15 مخاطرة + وقف متحرك 2ATR": "S15* مخاطرة 5% + وقف متحرك 2ATR", "SD 1H+5m تأكيد خلال ساعة": "SD confirm 12 bars" };
 const SRV_JOBS = ["all-15m-plus", "scalping-5m", "sd", "sd-relax", "v63", "top4", "s15-improve", "s15-ema", "s15-user", "s17-improve", "combine", "ts", "ts-5m", "s15-manage", "s15-risk", "s15-combo", "gann", "gannx", "gannx2", "gann-ts", "gann-slow", "gann-dec", "gann-dec-coins", "gann-sweep", "s15-maxrisk", "trend"];
@@ -2910,9 +2913,9 @@ function liveVsTest(name, closed, P) {
 }
 function periodBtns(id) {
   const el = $(id); if (!el) return;
-  el.innerHTML = [[0, "كل الفترة"], [30, "آخر 30 يوم"], [7, "آخر 7 أيام"]].map(([d, t]) => `<button class="sec ${PERIOD === d ? "on" : ""}" data-d="${d}">${t}</button>`).join("") +
+  el.innerHTML = [[-1, "اليوم"], [7, "آخر 7 أيام"], [30, "آخر 30 يوم"], [0, "كل الفترة"]].map(([d, t]) => `<button class="sec ${PERIOD === d ? "on" : ""}" data-d="${d}">${t}</button>`).join("") +
     `<span class="mut" style="align-self:center">${PERIOD ? "⚠️ فترة قصيرة بتخدع — الحكم الحقيقي على كل الفترة وعلى فحص السيرفر" : ""}</span>`;
-  el.querySelectorAll("button").forEach(b => b.onclick = () => { PERIOD = +b.dataset.d; render(); });
+  el.querySelectorAll("button").forEach(b => b.onclick = () => { PERIOD = +b.dataset.d; try { localStorage.setItem("nexora_period", String(PERIOD)); } catch (e) {} render(); });
 }
 function openJournal(name) {
   const s = srvOf(name), j = jLoad();
@@ -2937,12 +2940,12 @@ function renderJournal() {
 function render() {
   renderAccount(); setTimeout(() => { drawChart(); radar(); updateLiveHeader(); }, 0);
   const { trades, P } = RESULT;
-  const since = PERIOD ? Date.now() - PERIOD*864e5 : -Infinity;
+  const since = periodSince();
   const closedAll = trades.filter(t => !t.open), closed = closedAll.filter(t => t.xTs >= since), open = trades.filter(t => t.open);
   const sum = (a, k) => a.reduce((s, t) => s + t[k], 0);
   $("out").style.display = "";
   periodBtns("periodsA"); periodBtns("periodsS");
-  $("scope").textContent = `(${PERIOD ? "آخر " + PERIOD + " يوم" : "من " + $("start").value} — صفقة ${P.notional}$ — Maker ${(P.maker*100).toFixed(3)}% / Taker ${(P.taker*100).toFixed(3)}%)`;
+  $("scope").textContent = `(${PERIOD ? periodName() : "من " + $("start").value} — صفقة ${P.notional}$ — Maker ${(P.maker*100).toFixed(3)}% / Taker ${(P.taker*100).toFixed(3)}%)`;
   const wins = closed.filter(t => t.net > 0).length;
   $("cards").innerHTML = [
     ["صفقات مسكّرة", `<span class="num">${closed.length}</span>`],
@@ -2952,7 +2955,8 @@ function render() {
     ["تمويل", usd(sum(closed, "fund"))],
     ["الصافي", usd(sum(closed, "net"))],
     ["مفتوحة هلأ", `<span class="num">${open.length}</span> ${open.length ? usd(sum(open, "net")) : ""}`],
-    ["لو الدخول كله Maker", `${usd(RESULT.makerNet)}<div class="mut">بتوفّر <span class="num">${(RESULT.makerNet - RESULT.takerNet).toFixed(2)}$</span> عن Taker (كل الفترة)</div>`],
+    (() => { const mk = RESULT.mkCl.filter(t => t.xTs >= since).reduce((a, t) => a + t.net, 0), tk = RESULT.tkCl.filter(t => t.xTs >= since).reduce((a, t) => a + t.net, 0);
+      return ["لو الدخول كله Maker", `${usd(mk)}<div class="mut">بتوفّر <span class="num">${(mk - tk).toFixed(2)}$</span> عن Taker (${periodName()})</div>`]; })(),
   ].map(([k, v]) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
 
   // بار العمولة: الربح قبل العمولة مقابل العمولة
@@ -3004,7 +3008,7 @@ function render() {
   $("board").querySelectorAll(".ed").forEach(e => e.onclick = ev => { ev.stopPropagation(); openJournal(e.dataset.e); });
   $("copyBoard").onclick = () => {
     const days = ((Date.now() - RESULT.startTs)/864e5).toFixed(1);
-    const head = `NEXORA PAPER | from ${$("start").value} (${days}d)${PERIOD ? " | view last " + PERIOD + "d" : ""} | coins ${CACHE.coins.length} | notional ${P.notional}$ | maker ${(P.maker*100).toFixed(3)}% taker ${(P.taker*100).toFixed(3)}% slip ${(P.slip*100).toFixed(3)}% | makerEntry ${P.makerEntry} | cap ${$("maxOpen").value}`;
+    const head = `NEXORA PAPER | from ${$("start").value} (${days}d)${PERIOD === -1 ? " | view today" : PERIOD ? " | view last " + PERIOD + "d" : ""} | coins ${CACHE.coins.length} | notional ${P.notional}$ | maker ${(P.maker*100).toFixed(3)}% taker ${(P.taker*100).toFixed(3)}% slip ${(P.slip*100).toFixed(3)}% | makerEntry ${P.makerEntry} | cap ${$("maxOpen").value}`;
     const lines = rows.map(r => { const c = closed.filter(t => t.name === r.name), L = c.filter(t => t.d === 1), S = c.filter(t => t.d === -1);
       return `${CAT[r.cat][0]} ${r.name} | srv ${r.s ? r.s.verdict + " testPF" + r.s.test.pf : "-"} | n=${r.n} (L${L.length}/S${S.length}) win${r.win.toFixed(0)}% PF${r.n ? (r.pf >= 99 ? "inf" : r.pf.toFixed(2)) : "-"} gross/t ${r.gpt.toFixed(3)}$ fee ${r.fee.toFixed(2)}$ fund ${r.fund.toFixed(2)}$ net ${r.net.toFixed(2)}$ (L ${sum(L, "net").toFixed(2)} / S ${sum(S, "net").toFixed(2)}) DD ${r.dd.toFixed(2)}$ open ${r.o ? r.o.n : 0}`; });
     const txt = head + "\n" + lines.join("\n");
@@ -3030,7 +3034,7 @@ function render() {
 
 let COIN_SEL = null;
 function renderCoins(trades, P) {
-  const since = PERIOD ? Date.now() - PERIOD*864e5 : -Infinity;
+  const since = periodSince();
   const closed = trades.filter(t => !t.open && t.xTs >= since), open = trades.filter(t => t.open);
   periodBtns("periodsC");
   const showOff = $("cAllCats").checked;
