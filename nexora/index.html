@@ -2281,7 +2281,7 @@ const STRATS = [
   { name: "S17 SSL+QQE+WAE 15m", mult: 1, sig: S17.sig, run: S17.run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Replit #17" },
   ...S16.strats,
   ...S15.strats,
-  { ...S15.strats.find(s => s.name === "S15 Sweep+MSS V2 4h"), name: "⭐ S15 V2 4h R2.5 h40", R: 2.5, hold: 40, sb: 0.25, src: "Replit #15 محسّنة (اختيار من التدريب)" },
+  { ...S15.strats.find(s => s.name === "S15 Sweep+MSS V2 4h"), name: "⭐ S15 V2 4h R2.5 h40", R: 2.5, hold: 40, sb: 0.25, maxRisk: 0.15, src: "Replit #15 محسّنة (اختيار من التدريب) — بدون صفقات وقفها أبعد من 15%" },
   { ...S15.strats.find(s => s.name === "S15 Sweep+MSS V2 4h"), name: "⭐ S15 مخاطرة ثابتة", R: 2.5, hold: 40, sb: 0.25, riskPct: 7, wMax: 3, src: "⭐ S15 + حجم حسب المخاطرة (7% ÷ مسافة الوقف، أقصى 3×)" },
   { ...S15.strats.find(s => s.name === "S15 Sweep+MSS V2 4h"), name: "S15 مخاطرة + وقف متحرك 2ATR", R: 2.5, hold: 40, sb: 0.25, riskPct: 5, wMax: 3, trailAtr: 2, trailFrom: 1, src: "⭐ S15 + حجم حسب المخاطرة 5% + وقف متحرك بعد 1R (✅ بالفحص، للمراقبة)" },
   ...SEXT.strats,
@@ -2731,9 +2731,9 @@ function renderAccount() {
 
 // ===================== حكم السيرفر + التصنيف + الفترة + دفتر القرارات =====================
 let SRV = null, PERIOD = 0, SHOW_OFF = false;
-const JOB_PREF = ["all-15m-plus", "scalping-5m", "sd", "v63", "top4", "s15-improve", "sd-relax", "s15-ema", "s15-user", "s17-improve", "combine", "ts", "ts-5m", "s15-manage", "s15-risk", "s15-combo", "gann", "gannx", "gannx2", "gann-ts", "gann-slow", "gann-dec", "gann-dec-coins", "gann-sweep"];
-const SRV_ALIAS = { "⭐ S15 V2 4h R2.5 h40": "S15V2-4h R2.5 h40 sb0.25", "⭐ S15 مخاطرة ثابتة": "S15* مخاطرة 7% أقصى 3x", "S15 مخاطرة + وقف متحرك 2ATR": "S15* مخاطرة 5% + وقف متحرك 2ATR", "SD 1H+5m تأكيد خلال ساعة": "SD confirm 12 bars" };
-const SRV_JOBS = ["all-15m-plus", "scalping-5m", "sd", "sd-relax", "v63", "top4", "s15-improve", "s15-ema", "s15-user", "s17-improve", "combine", "ts", "ts-5m", "s15-manage", "s15-risk", "s15-combo", "gann", "gannx", "gannx2", "gann-ts", "gann-slow", "gann-dec", "gann-dec-coins", "gann-sweep"];
+const JOB_PREF = ["all-15m-plus", "scalping-5m", "sd", "v63", "top4", "s15-improve", "sd-relax", "s15-ema", "s15-user", "s17-improve", "combine", "ts", "ts-5m", "s15-manage", "s15-risk", "s15-combo", "gann", "gannx", "gannx2", "gann-ts", "gann-slow", "gann-dec", "gann-dec-coins", "gann-sweep", "s15-maxrisk"];
+const SRV_ALIAS = { "⭐ S15 V2 4h R2.5 h40": "S15* بدون وقف أبعد من 15%", "⭐ S15 مخاطرة ثابتة": "S15* مخاطرة 7% أقصى 3x", "S15 مخاطرة + وقف متحرك 2ATR": "S15* مخاطرة 5% + وقف متحرك 2ATR", "SD 1H+5m تأكيد خلال ساعة": "SD confirm 12 bars" };
+const SRV_JOBS = ["all-15m-plus", "scalping-5m", "sd", "sd-relax", "v63", "top4", "s15-improve", "s15-ema", "s15-user", "s17-improve", "combine", "ts", "ts-5m", "s15-manage", "s15-risk", "s15-combo", "gann", "gannx", "gannx2", "gann-ts", "gann-slow", "gann-dec", "gann-dec-coins", "gann-sweep", "s15-maxrisk"];
 async function loadSrv() {   // كل فحص إله ملف ملخص لحاله (بيشتغلوا بالتوازي على السيرفر)
   const bust = Math.floor(Date.now()/600000), out = {};
   await Promise.all(SRV_JOBS.map(async id => { try { const r = await fetch(`../nexora-lab/results/summary/${id}.json?t=${bust}`); if (!r.ok) return;
