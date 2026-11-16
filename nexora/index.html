@@ -3321,7 +3321,7 @@ function renderAccount() {
   const { trades, P } = RESULT, B = +$("balance").value, lev = Math.max(1, +$("lev").value);
   const closed = trades.filter(t => !t.open), open = trades.filter(t => t.open).sort((a, b) => b.eTs - a.eTs);
   const realized = closed.reduce((s, t) => s + t.net, 0), unreal = open.reduce((s, t) => s + t.net, 0);
-  const margin = open.length * P.notional / lev, equity = B + realized + unreal, avail = B + realized - margin + Math.min(0, unreal);
+  const margin = open.length * P.notional / lev, equity = B + realized + unreal, avail = B + realized + unreal - margin;   // متل بايننس (Cross): الرصيد المتاح بيتحرك مع ربح/خسارة المفتوحة
   const num = x => `<span class="num">${x.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
   $("accNote").textContent = `(${P.notional}$ للصفقة × ${lev}x = هامش ${(P.notional/lev).toFixed(2)}$ — ${CACHE.coins.length} عملة)`;
   $("acc").innerHTML = [
@@ -3422,6 +3422,24 @@ function renderJournal() {
     : '<div class="mut">لسا ما في قرارات. من تبويب الاستراتيجيات اضغط ✎ جنب أي استراتيجية.</div>';
 }
 
+function renderCards() {   // كروت المجموع — بتتحدث كل ثانية مع السعر الحي
+  if (!RESULT) return;
+  const { trades } = RESULT, since = periodSince();
+  const closed = trades.filter(t => !t.open && t.xTs >= since), open = trades.filter(t => t.open);
+  const sum = (a, k) => a.reduce((s, t) => s + t[k], 0);
+  const wins = closed.filter(t => t.net > 0).length;
+  $("cards").innerHTML = [
+    ["صفقات مسكّرة", `<span class="num">${closed.length}</span>`],
+    ["نسبة الربح", `<span class="num">${closed.length ? (100*wins/closed.length).toFixed(0) : 0}%</span>`],
+    ["الإجمالي (مع المفتوحة)", `${usd(sum(closed, "gross") + sum(open, "gross"))}<div class="mut">محقق ${usd(sum(closed, "gross"))}</div>`],
+    ["عمولة مدفوعة", fee$(sum(closed, "fee"))],
+    ["تمويل", usd(sum(closed, "fund"))],
+    ["الصافي (مع المفتوحة)", `${usd(sum(closed, "net") + sum(open, "net"))}<div class="mut">محقق ${usd(sum(closed, "net"))}</div>`],
+    ["مفتوحة هلأ", `<span class="num">${open.length}</span> ${open.length ? usd(sum(open, "net")) : ""}`],
+    (() => { const mk = RESULT.mkCl.filter(t => t.xTs >= since).reduce((a, t) => a + t.net, 0), tk = RESULT.tkCl.filter(t => t.xTs >= since).reduce((a, t) => a + t.net, 0);
+      return ["لو الدخول كله Maker", `${usd(mk)}<div class="mut">بتوفّر <span class="num">${(mk - tk).toFixed(2)}$</span> عن Taker (${periodName()})</div>`]; })(),
+  ].map(([k, v]) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+}
 function render() {
   renderAccount(); setTimeout(() => { drawChart(); radar(); updateLiveHeader(); }, 0);
   const { trades, P } = RESULT;
@@ -3431,18 +3449,7 @@ function render() {
   $("out").style.display = "";
   periodBtns("periodsA"); periodBtns("periodsS");
   $("scope").textContent = `(${PERIOD ? periodName() : "من " + $("start").value} — صفقة ${P.notional}$ — Maker ${(P.maker*100).toFixed(3)}% / Taker ${(P.taker*100).toFixed(3)}%)`;
-  const wins = closed.filter(t => t.net > 0).length;
-  $("cards").innerHTML = [
-    ["صفقات مسكّرة", `<span class="num">${closed.length}</span>`],
-    ["نسبة الربح", `<span class="num">${closed.length ? (100*wins/closed.length).toFixed(0) : 0}%</span>`],
-    ["الإجمالي", usd(sum(closed, "gross"))],
-    ["عمولة مدفوعة", fee$(sum(closed, "fee"))],
-    ["تمويل", usd(sum(closed, "fund"))],
-    ["الصافي", usd(sum(closed, "net"))],
-    ["مفتوحة هلأ", `<span class="num">${open.length}</span> ${open.length ? usd(sum(open, "net")) : ""}`],
-    (() => { const mk = RESULT.mkCl.filter(t => t.xTs >= since).reduce((a, t) => a + t.net, 0), tk = RESULT.tkCl.filter(t => t.xTs >= since).reduce((a, t) => a + t.net, 0);
-      return ["لو الدخول كله Maker", `${usd(mk)}<div class="mut">بتوفّر <span class="num">${(mk - tk).toFixed(2)}$</span> عن Taker (${periodName()})</div>`]; })(),
-  ].map(([k, v]) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+  renderCards();
 
   // بار العمولة: الربح قبل العمولة مقابل العمولة
   { const g = sum(closed, "gross"), f = sum(closed, "fee"), fu = sum(closed, "fund"), net = g - f + fu, mx = Math.max(Math.abs(g), f, 1);
@@ -3728,7 +3735,7 @@ function lightUpdate() {
     }
     return { ...money(t, c.D, P, c.funding, px), sym: t.sym }; });
   if (closedNow) { try { render(); } catch (e) {} return; }
-  renderAccount(); drawChart(); updateLiveHeader();
+  renderAccount(); renderCards(); drawChart(); updateLiveHeader();
   if (Date.now() - LAST_RADAR > 10000) { LAST_RADAR = Date.now(); radar(); }
 }
 
