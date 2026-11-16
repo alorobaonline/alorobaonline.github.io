@@ -1,0 +1,14 @@
+{
+ "type": "multi",
+ "priority": 64,
+ "note": "Bagheri IG Ether v2 EXACTLY as written (user's rule): ETHUSDT only, TP 3000 ticks / SL 2200 ticks (ETH tick 0.01 = 30$ / 22$ price), entries on bar close -> next open, TradingView OHLC path for same-bar TP/SL. Script names no timeframe: 15m, 1h, 4h shown.",
+ "coins": [
+  "ETHUSDT"
+ ],
+ "slots": 10,
+ "strategies": [
+  "Bagheri IG Ether 15m (كما هي)",
+  "Bagheri IG Ether ساعة (كما هي)",
+  "Bagheri IG Ether 4h (كما هي)"
+ ]
+}

@@ -2463,6 +2463,58 @@ const WAVE = (() => {   // Wave Rider v1 — منسوخة حرفياً من كو
       coins: ["ADAUSDT", "TRXUSDT", "UNIUSDT", "HBARUSDT", "XLMUSDT", "ZECUSDT", "TRUMPUSDT", "TURBOUSDT", "KAITOUSDT", "IPUSDT", "CAKEUSDT"] })] };
 })();
 
+const BAGHERI = (() => {   // Bagheri IG Ether v2 (mbagheri746) — منسوخة حرفياً: ROC(EMA50,186) + دونشيان 53 مزاح 91 + Bears Power(EMA65) + BoP(RMA15) + SMA74 مزاح 37؛ هدف 3000 تيك / وقف 2200 تيك (ETH: تيك 0.01 = 30$ / 22$)
+  const emaP = (x, p) => { const o = new Array(x.length).fill(null); if (x.length < p) return o; let e = 0; for (let j = 0; j < p; j++) e += x[j]; e /= p; o[p-1] = e;
+    for (let i = p; i < x.length; i++) { e = x[i]*(2/(p+1)) + e*(1 - 2/(p+1)); o[i] = e; } return o; };
+  const rmaP = (x, p) => { const o = new Array(x.length).fill(null); if (x.length < p) return o; let e = 0; for (let j = 0; j < p; j++) e += x[j]; e /= p; o[p-1] = e;
+    for (let i = p; i < x.length; i++) { e = (x[i] + (p-1)*e)/p; o[i] = e; } return o; };
+  const memo = new WeakMap();
+  function prep(I) {
+    if (memo.has(I)) return memo.get(I);
+    const { O, H, L, C, n } = I, ma = emaP(C, 50), lw = emaP(C, 65);
+    const sroc = C.map((_, i) => i >= 186 && ma[i] !== null && ma[i-186] !== null ? (ma[i-186] === 0 ? 100 : 100*(ma[i] - ma[i-186])/ma[i-186]) : null);
+    const up = new Array(n).fill(null), lo = new Array(n).fill(null);
+    for (let i = 52; i < n; i++) { let h = -Infinity, l = Infinity; for (let j = i - 52; j <= i; j++) { h = Math.max(h, H[j]); l = Math.min(l, L[j]); } up[i] = h; lo[i] = l; }
+    const BP = L.map((x, i) => lw[i] === null ? null : x - lw[i]);
+    const bop = C.map((c, i) => H[i] > L[i] ? (c - O[i])/(H[i] - L[i]) : 0), SBOP = rmaP(bop, 15);
+    const sma = new Array(n).fill(null); let sm = 0; for (let i = 0; i < n; i++) { sm += C[i]; if (i >= 74) sm -= C[i-74]; if (i >= 73) sma[i] = sm/74; }
+    const P = { sroc, up, lo, BP, SBOP, sma }; memo.set(I, P); return P;
+  }
+  function run(D, inds, sp, startTs) {
+    if (sp.coins && D.sym && !sp.coins.includes(D.sym)) return [];
+    const m = sp.mult, I = inds[m]; if (!I || I.n < 300) return [];
+    const { sroc, up, lo, BP, SBOP, sma } = prep(I), { O, H, L, C, n } = I, out = [], TP = 3000*sp.tick, SL = 2200*sp.tick;
+    let pos = null;
+    for (let k = 300; k < n; k++) {
+      if (pos) {   // أمر الخروج شغال من شمعة الدخول: المسار متل TradingView (الافتتاح ← الطرف الأقرب ← التاني ← الإغلاق)
+        const d = pos.d, tp = pos.e + d*TP, sl = pos.e - d*SL, o = O[k];
+        let px = null, why = null;
+        if (k !== pos.k && d*(o - sl) <= 0) { px = o; why = "STOP"; }
+        else if (k !== pos.k && d*(o - tp) >= 0) { px = o; why = "TGT_GAP"; }
+        else {
+          const hitT = d === 1 ? H[k] >= tp : L[k] <= tp, hitS = d === 1 ? L[k] <= sl : H[k] >= sl;
+          if (hitT && hitS) { const highFirst = (H[k] - o) <= (o - L[k]); const tFirst = d === 1 ? highFirst : !highFirst; px = tFirst ? tp : sl; why = tFirst ? "TARGET" : "STOP"; }
+          else if (hitS) { px = sl; why = "STOP"; } else if (hitT) { px = tp; why = "TARGET"; }
+        }
+        if (px !== null) { out.push({ name: sp.name, d, e: pos.k*m, x: k*m + m - 1, rawIn: pos.e, rawOut: px, why, open: false, stop: sl, target: tp }); pos = null; }
+        if (pos) continue;
+        if (k === n - 1) continue;
+      }
+      if (k >= n - 1 || k < 91 + 52 || sroc[k] === null || up[k-91] === null || BP[k-2] === null || SBOP[k-1] === null || sma[k-37] === null) continue;
+      if (D.t0 + (k + 1)*m*900000 < startTs) continue;
+      const smaSh = sma[k-37], inRange = smaSh > L[k] && smaSh < H[k];
+      const L1 = inRange && sroc[k] < 0 && O[k] < lo[k-91] && BP[k-1] < BP[k] && BP[k-1] < BP[k-2] && SBOP[k-1] < SBOP[k];
+      const S1 = inRange && sroc[k] > 0 && O[k] > up[k-91] && BP[k-1] > BP[k] && BP[k-1] > BP[k-2] && SBOP[k-1] > SBOP[k];
+      if (!L1 && !S1) continue;
+      pos = { d: L1 ? 1 : -1, k: k + 1, e: O[k+1] };
+    }
+    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.k*m, x: D.o.length - 1, rawIn: pos.e, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop: pos.e - pos.d*2200*sp.tick, target: pos.e + pos.d*3000*sp.tick });
+    return out;
+  }
+  const mk = (name, mult) => ({ name, mult, coins: ["ETHUSDT"], tick: 0.01, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Bagheri IG Ether v2" });
+  return { run, strats: [mk("Bagheri IG Ether 15m (كما هي)", 1), mk("Bagheri IG Ether ساعة (كما هي)", 4), mk("Bagheri IG Ether 4h (كما هي)", 16)] };
+})();
+
 
 
 
@@ -2555,6 +2607,7 @@ const STRATS_ALL = [
   ...LBO.strats,
   ...IT1226.strats,
   ...WAVE.strats,
+  ...BAGHERI.strats,
 ];
 for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% وقف 0.6%"), tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), tpWrap(b, 0.012, null, "هدف 1.2% وقف أصلي"));
 
@@ -2567,7 +2620,9 @@ const PLATFORM_KEEP = new Set(["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", 
   "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
   // 16/11: نسخة هدف 1.2% / وقف 1.2% لكل وحدة (طلب المستخدم) — جنب الأصلية للمقارنة
   ...["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
-      "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة"].map(b => b + " | هدف 1.2% وقف 1.2%")]);   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
+      "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة"].map(b => b + " | هدف 1.2% وقف 1.2%"),
+  // 16/11: Bagheri IG Ether متل ما هي (ETH بس)
+  "Bagheri IG Ether 15m (كما هي)", "Bagheri IG Ether ساعة (كما هي)", "Bagheri IG Ether 4h (كما هي)"]);   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
