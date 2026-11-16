@@ -2564,7 +2564,10 @@ const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جا�
 // المنصة (المتصفح): بس الـ8 اللي إلهم فرصة حسب المختبر (⭐ + 🧪) — الباقي انشال من المنصة (طلب المستخدم 16/11)
 const PLATFORM_KEEP = new Set(["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR",
   "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)", "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier",
-  "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة"]);   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
+  "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
+  // 16/11: نسخة هدف 1.2% / وقف 1.2% لكل وحدة (طلب المستخدم) — جنب الأصلية للمقارنة
+  ...["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
+      "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة"].map(b => b + " | هدف 1.2% وقف 1.2%")]);   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
@@ -2608,6 +2611,15 @@ function trade(D, I16, sp, d, e, lastExcl, A) {
 
 // بيرجّع صفقات الاستراتيجية اللي إشارتها بعد startTs
 function evaluate(D, inds, sp, startTs) {
+  if (typeof TP_BASES !== "undefined" && TP_BASES.includes(sp.name) && D && typeof D === "object") {   // نتيجة الاستراتيجية الأصلية محفوظة لنسخ الهدف 1.2% (ما بننحسب مرتين)
+    if (!TPWRAP_MEMO.has(D)) TPWRAP_MEMO.set(D, new Map());
+    const M = TPWRAP_MEMO.get(D), key = sp.name + "|" + startTs;
+    if (!M.has(key)) M.set(key, evaluate0(D, inds, sp, startTs));
+    return M.get(key);
+  }
+  return evaluate0(D, inds, sp, startTs);
+}
+function evaluate0(D, inds, sp, startTs) {
   if (sp.run) return sp.run(D, inds, sp, startTs);
   const m = sp.mult, I = inds[m], I16 = inds[16];
   let lo = 0; while (lo < I.n && D.t0 + (lo+1)*m*M15 <= startTs) lo++;
