@@ -15,6 +15,25 @@ function btcTrend(ts, p) {   // ts = وقت إغلاق شمعة الإشارة
   if (j < 0 || B.ema[p][j] === null) return 0;
   return B.C[j] > B.ema[p][j] ? 1 : -1;
 }
+// نوافذ فيبو الزمنية (4 ساعات): من آخر قمتين وآخر قاعين ورا بعض (Pivots 10/10 مؤكدة لحد k)،
+// النافذة = آخر نقطة + round(r × المسافة بينهم) ± 2 شمعة. set "A" = 0.618/1/1.618/2.618، "B" = 1/2/3/5/8
+const FIBT_MEMO = new WeakMap();
+function fibTimeWin(I, k, set) {
+  if (!FIBT_MEMO.has(I)) FIBT_MEMO.set(I, {});
+  const M = FIBT_MEMO.get(I);
+  if (!M[set]) {
+    const n = I.n, H = I.H, L = I.L, LR = 10, out = new Uint8Array(n), ph = [], pl = [], rs = set === "B" ? [1, 2, 3, 5, 8] : [0.618, 1, 1.618, 2.618];
+    const isP = (p, hi) => { if (p - LR < 0 || p + LR >= n) return false; const v = hi ? H[p] : L[p]; for (let i = 1; i <= LR; i++) { const a = hi ? H[p-i] : L[p-i], b = hi ? H[p+i] : L[p+i]; if (hi ? !(v > a && v >= b) : !(v < a && v <= b)) return false; } return true; };
+    for (let t = 0; t < n; t++) {
+      if (t - LR >= 0 && isP(t - LR, true)) ph.push(t - LR);
+      if (t - LR >= 0 && isP(t - LR, false)) pl.push(t - LR);
+      for (const P of [ph, pl]) { if (P.length < 2) continue; const p1 = P[P.length - 2], p2 = P[P.length - 1], N = p2 - p1;
+        for (const r of rs) if (Math.abs(t - (p2 + Math.round(r*N))) <= 2) out[t] = 1; }
+    }
+    M[set] = out;
+  }
+  return M[set][k] === 1;
+}
 // ===================== Strategy 15: Liquidity Sweep + MSS (منقولة من sweep_rules.py + sweep_replay.py) =====================
 const S15 = (() => {
   function prepare(I) {
@@ -100,6 +119,7 @@ const S15 = (() => {
       let h = hitsAt(P, I, k, sp.v2, sp.emaF);
       if (h.length && sp.btcF) h = h.filter(x => btcTrend(D.t0 + (k+1)*m*900000, sp.btcF) === x.side);
       if (h.length && sp.gannF && m === 16) h = h.filter(x => GDEC.near(I, k, x.side, sp.gannF));   // فلتر جان (strats/gdec.js)
+      if (h.length && sp.fibT && m === 16) { const w = fibTimeWin(I, k, sp.fibT.set || "A"); if (sp.fibT.inside ? !w : w) h = []; }
       if (!h.length) continue;
       const blocked = pos !== null || closedHere || k <= busy || k === n - 1 || D.t0 + (k+1)*m*900000 <= startTs || (k+1)*m >= D.o.length;
       if (!blocked) pend = [h[0], k];
