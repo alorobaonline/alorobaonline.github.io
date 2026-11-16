@@ -1,4 +1,4 @@
-NEXORA LAB (GitHub) | wave-v2-pick-new | 2026-11-16T09:15:48.444Z | hash=afe4c8da98 | engine=b9f65a3f | coins 120 | slots 120 | taker 0.05% maker 0.02% slip 0.01% | $1000/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
+NEXORA LAB (GitHub) | wave-v2-pick-new | 2026-11-16T11:32:44.173Z | hash=1b62b4e91c | engine=75f128ac | coins 120 | slots 120 | taker 0.05% maker 0.02% slip 0.01% | $1000/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
 coin-pick (train n>=8, PF>=1.2) -> 11 coins [ASRUSDT,SQDUSDT,OBOLUSDT,BIOUSDT,MAVIAUSDT,ALPACAUSDT,BANKUSDT,ZEREBROUSDT,TAUSDT,AIOUSDT,FXSUSDT]
   picked: تدريب: n=196 +7101.06$ PF1.69 win46% gross/t+36.53$ t2.4 DD1503$ | اختبار: n=119 +527.60$ PF1.08 win47% gross/t+7.25$ t0.4 DD1749$ | جديدة: n=31 -976.50$ PF0.55 win29% gross/t-28.96$ t-1.5 DD1236$
   others: تدريب: n=1275 -23954.76$ PF0.71 win35% gross/t-17.66$ t-5.4 DD29587$ | اختبار: n=816 -2098.56$ PF0.96 win39% gross/t-2.85$ t-0.5 DD8060$ | جديدة: n=394 -734.61$ PF0.97 win42% gross/t-0.20$ t-0.3 DD7224$
