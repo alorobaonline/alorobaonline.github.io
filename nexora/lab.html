@@ -2329,6 +2329,61 @@ const LBO = (() => {   // London Breakout: نطاق آسيا 00-08 UTC، أوا�
   ] };
 })();
 
+const IT1226 = (() => {   // 12/26-IT (AbdulRahimShama): تقاطع EMA12/26 + MACD + RSI 45-70 + فوق EMA21 و SMA7؛ نص على +5% والباقي +10%؛ خروج بالتقاطع العكسي؛ وقف طوارئ 8% على الإغلاق
+  const emaA = (x, p) => { const o = new Array(x.length).fill(null); let e = null, k = 2/(p+1), c = 0, s0 = 0;
+    for (let i = 0; i < x.length; i++) { if (x[i] === null) continue; if (e === null) { s0 += x[i]; c++; if (c === p) { e = s0/p; o[i] = e; } } else { e = x[i]*k + e*(1-k); o[i] = e; } } return o; };
+  const memo = new WeakMap();
+  function prep(I) {
+    if (memo.has(I)) return memo.get(I);
+    const C = I.C, n = I.n, e12 = emaA(C, 12), e26 = emaA(C, 26), e21 = emaA(C, 21);
+    const macd = C.map((_, i) => e12[i] !== null && e26[i] !== null ? e12[i] - e26[i] : null), sig = emaA(macd, 9);
+    const sma7 = C.map((_, i) => { if (i < 6) return null; let s = 0; for (let j = i - 6; j <= i; j++) s += C[j]; return s/7; });
+    const rsi = new Array(n).fill(null); let ag = 0, al = 0;
+    for (let i = 1; i < n; i++) { const d = C[i] - C[i-1], g = Math.max(d, 0), l = Math.max(-d, 0);
+      if (i <= 14) { ag += g; al += l; if (i === 14) { ag /= 14; al /= 14; rsi[i] = al === 0 ? 100 : 100 - 100/(1 + ag/al); } }
+      else { ag = (ag*13 + g)/14; al = (al*13 + l)/14; rsi[i] = al === 0 ? 100 : 100 - 100/(1 + ag/al); } }
+    const P = { e12, e26, e21, macd, sig, sma7, rsi }; memo.set(I, P); return P;
+  }
+  function run(D, inds, sp, startTs) {
+    const m = sp.mult, I = inds[m]; if (!I || I.n < 60) return [];
+    const { e12, e26, e21, macd, sig, sma7, rsi } = prep(I), O = I.O, H = I.H, L = I.L, C = I.C, n = I.n, out = [];
+    const T = (p, k, px, why, w, part) => out.push({ name: sp.name, d: p.d, e: p.k*m, x: k*m + m - 1, rawIn: p.e, rawOut: px, why, open: false, stop: p.e*(1 - p.d*0.08), target: p.t2, w, ...(part ? { part: true } : {}) });
+    let pos = null;
+    for (let k = 40; k < n; k++) {
+      if (pos) {
+        const d = pos.d, o = O[k], left = pos.half ? 0.5 : 1;
+        if (pos.xNext === k) { T(pos, k, o, "TIME", left); pos = null; }
+        else {
+          if (!pos.half) { let px = null; if (d*(o - pos.t1) >= 0) px = o; else if (d === 1 ? H[k] >= pos.t1 : L[k] <= pos.t1) px = pos.t1;
+            if (px !== null) { pos.half = true; T(pos, k, px, "TARGET", 0.5, true); } }
+          let px2 = null; if (d*(o - pos.t2) >= 0) px2 = o; else if (d === 1 ? H[k] >= pos.t2 : L[k] <= pos.t2) px2 = pos.t2;
+          if (px2 !== null) { T(pos, k, px2, "TARGET", pos.half ? 0.5 : 1); pos = null; }
+          else {
+            const cross = e12[k-1] !== null && (d === 1 ? e12[k] < e26[k] && e12[k-1] >= e26[k-1] : e12[k] > e26[k] && e12[k-1] <= e26[k-1]);
+            const emerg = d*(C[k] - pos.e)/pos.e <= -0.08;
+            if ((cross || emerg) && k + 1 < n) pos.xNext = k + 1;
+          }
+        }
+        continue;
+      }
+      if (k >= n - 1 || e26[k-1] === null || sig[k] === null || rsi[k] === null || sma7[k] === null || e21[k] === null) continue;
+      if (D.t0 + (k + 1)*m*900000 < startTs) continue;
+      let d = 0;
+      if (e12[k] > e26[k] && e12[k-1] <= e26[k-1] && macd[k] > sig[k] && rsi[k] > 45 && rsi[k] < 70 && C[k] > e21[k] && C[k] > sma7[k]) d = 1;
+      else if (sp.short && e12[k] < e26[k] && e12[k-1] >= e26[k-1] && macd[k] < sig[k] && rsi[k] < 55 && rsi[k] > 30 && C[k] < e21[k] && C[k] < sma7[k]) d = -1;
+      if (!d) continue;
+      const e = O[k+1]; pos = { d, k: k + 1, e, t1: e*(1 + d*0.05), t2: e*(1 + d*0.10) };
+    }
+    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.k*m, x: D.o.length - 1, rawIn: pos.e, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop: pos.e*(1 - pos.d*0.08), target: pos.t2, w: pos.half ? 0.5 : 1 });
+    return out;
+  }
+  const mk = (name, mult, o) => ({ name, mult, short: false, ...o, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "12/26-IT (AbdulRahimShama)" });
+  return { run, strats: [
+    mk("IT1226 ساعة لونج", 4), mk("IT1226 4h لونج", 16), mk("IT1226 يومي لونج", 96),
+    mk("IT1226 ساعة لونج+شورت", 4, { short: true }), mk("IT1226 4h لونج+شورت", 16, { short: true }), mk("IT1226 يومي لونج+شورت", 96, { short: true }),
+  ] };
+})();
+
 
 
 
@@ -2382,10 +2437,11 @@ const STRATS_ALL = [
   ...TREND.strats,
   ...EMAPB.strats,
   ...LBO.strats,
+  ...IT1226.strats,
 ];
 // نسخ فحص (جان، Turtle Soup...): بتشتغل بمختبر السيرفر بس — المنصة بالمتصفح ما بتحسبها (أسرع، وما بتلوّث الحساب)
 const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جان (فكرة المستخدم)", "تقاطع مراوح جان (فكرة المستخدم)", "تقاطع مراوح جان v2 (طريقة المستخدم)",
-  "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)", "London Breakout"]);
+  "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)", "London Breakout", "12/26-IT (AbdulRahimShama)"]);
 // المنصة (المتصفح): بس الـ8 اللي إلهم فرصة حسب المختبر (⭐ + 🧪) — الباقي انشال من المنصة (طلب المستخدم 16/11)
 const PLATFORM_KEEP = new Set(["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR",
   "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)", "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]);
