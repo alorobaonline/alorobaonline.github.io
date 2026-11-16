@@ -1,0 +1,32 @@
+{
+ "type": "multi",
+ "priority": 56,
+ "note": "Wave Rider adjustments, ONE change per row vs the original (originals included for comparison): trailing 2ATR, trailing 3ATR, 4h timeframe, fixed size (1,000$), mirrored short added. Same 10 author coins, same sizing unless the row says otherwise.",
+ "coins": [
+  "BTCUSDT",
+  "ETHUSDT",
+  "SOLUSDT",
+  "BNBUSDT",
+  "XRPUSDT",
+  "ADAUSDT",
+  "AVAXUSDT",
+  "LINKUSDT",
+  "DOTUSDT",
+  "MATICUSDT"
+ ],
+ "slots": 10,
+ "notional": 1000,
+ "strategies": [
+  "WAVE 15m (كما هي)",
+  "WAVE ساعة (كما هي)",
+  "WAVE 15m متحرك 2ATR",
+  "WAVE ساعة متحرك 2ATR",
+  "WAVE 15m متحرك 3ATR",
+  "WAVE ساعة متحرك 3ATR",
+  "WAVE 4h (كما هي)",
+  "WAVE 15m حجم ثابت",
+  "WAVE ساعة حجم ثابت",
+  "WAVE 15m لونج+شورت",
+  "WAVE ساعة لونج+شورت"
+ ]
+}
