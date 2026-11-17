@@ -3814,7 +3814,7 @@ STRATS_ALL.push(...OLDB.strats);
 // 17/11 23:08 (طلب المستخدم): ichibot و volbot على المنصة — كما هم + نسخة ليمت 0.6% · هدف 2% · وقف 1.2% (هي اللي بتنفتح بالحقيقي)
 const OLD_ICHI = OLDB.strats[1].name, OLD_VOL = OLDB.strats[3].name;
 STRATS_ALL.push(timingWrap(OLD_ICHI, "limit6", 0.02, 0.012), timingWrap(OLD_VOL, "limit6", 0.02, 0.012));
-const OLD_KEEP = [OLD_ICHI, OLD_VOL, OLDB.strats[5].name, OLDB.strats[11].name];   // 18/11 00:17 (طلب المستخدم): + فيبو 0.618 و الشموع 4h كما هم   // 17/11 23:16: كما هم بشروطهم بس (نسخ الليمت 0.6% بالمختبر — خسرت على السنتين)
+const OLD_KEEP = [OLD_ICHI, OLD_VOL, ...OLDB.strats.slice(5).map(x => x.name)];   // 18/11 00:49 (طلب المستخدم): كل البوتات القديمة الباقية على المنصة يجمعوا معلومات من التصفير   // 18/11 00:17 (طلب المستخدم): + فيبو 0.618 و الشموع 4h كما هم   // 17/11 23:16: كما هم بشروطهم بس (نسخ الليمت 0.6% بالمختبر — خسرت على السنتين)
 // 17/11 17:19: اتجاه واحد بس (مختبر) — لفحص الشورت لحاله قبل ربطه بالحقيقي
 function dirOnlyWrap(baseName, d) {
   const name = baseName + (d === 1 ? " | لونج بس" : " | شورت بس");
@@ -4733,7 +4733,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0020";
+const BUILD = "2026-11-18-0050";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
