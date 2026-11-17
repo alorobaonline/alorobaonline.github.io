@@ -2647,8 +2647,8 @@ function atr15Of(D) {
     v = v === null ? tr : (v*13 + tr)/14; if (i >= 14) a[i] = v; }
   ATR15_MEMO.set(D, a); return a;
 }
-function timingWrap(baseName, mode, tp = 0.012) {   // 17/11 18:16: tp قابل للتغيير (1.5% طلب المستخدم)
-  const P = (tp*100).toFixed(1) + "%", label = { calm: P + " هادئة", limit: P + " ليمت 0.4%", limit6: P + " ليمت 0.6%", limit8: P + " ليمت 0.8%", confirm: P + " تأكيد 15m" }[mode], name = `${baseName} | ${label}`;
+function timingWrap(baseName, mode, tp = 0.012, sl = 0.012) {   // 17/11 18:16: tp قابل للتغيير · 22:33: sl كمان (فحص الوقف)
+  const P = (tp*100).toFixed(1) + "%", label = { calm: P + " هادئة", limit: P + " ليمت 0.4%", limit6: P + " ليمت 0.6%", limit8: P + " ليمت 0.8%", confirm: P + " تأكيد 15m" }[mode] + (sl !== 0.012 ? ` · وقف ${(sl*100).toFixed(1)}%` : ""), name = `${baseName} | ${label}`;
   const depth = { limit: 0.004, limit6: 0.006, limit8: 0.008 }[mode];   // 17/11: ليمت أعمق للسوق العرضي (طلب المستخدم)
   const run = (D, inds, sp, startTs) => {
     const base = STRATS_ALL.find(x => x.name === baseName); if (!base) return [];
@@ -2662,7 +2662,7 @@ function timingWrap(baseName, mode, tp = 0.012) {   // 17/11 18:16: tp قابل 
         if (e === null) continue; }
       else { for (let j = t.e; j < Math.min(n - 1, t.e + 4); j++) if (d*(D.c[j] - D.o[j]) > 0) { ei = j + 1; e = D.o[j + 1]; break; }   // أول شمعة 15m بتسكّر باتجاه الصفقة → دخول على اللي بعدها
         if (e === null) continue; }
-      const tgt = e*(1 + d*tp), stop = e*(1 - d*0.012);
+      const tgt = e*(1 + d*tp), stop = e*(1 - d*sl);
       let px = null, why = null, xi = null;
       for (let j = ei; j < n; j++) {
         if (j > ei && d*(D.o[j] - stop) <= 0) { px = D.o[j]; why = "STOP"; xi = j; break; }
@@ -3064,6 +3064,8 @@ const MACDP = (() => {
     mk("MACD v1.1 5m · ليمت 0.8% · شورت · هدف 1.2% وقف 1.2%", 5, 0.008, 0.012, 0.012, { shortOnly: true, fixStop: 0.012 }),   // 17/11 17:26: مختبر بس
     ...[0, 0.002, 0.004].map(dp => mk(`MACD v1.1 5m · ${dp ? "ليمت " + (dp*100).toFixed(1) + "%" : "بدون ليمت"} · شورت · هدف 1.2% وقف 1.2%`, 5, dp, 0.012, 0.012, { shortOnly: true, fixStop: 0.012 })),
     ...[0, 0.004, 0.008].map(dp => mk(`MACD v1.1 5m · عكس الشورت → لونج · ${dp ? "ليمت " + (dp*100).toFixed(1) + "%" : "بدون ليمت"} · هدف 1.2% وقف 1.2%`, 5, dp, 0.012, 0.012, { invert: true, longOnly: true, fixStop: 0.012 })),
+    ...[0.008, 0.010, 0.015, 0.020].map(sl => mk(`MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف ${(sl*100).toFixed(1)}%`, 5, 0.008, 0.012, 0.012, { longOnly: true, fixStop: sl })),   // 17/11 22:33: فحص الوقف
+    ...[0.008, 0.010, 0.012, 0.015, 0.020].map(sl => mk(`MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.2% وقف ${(sl*100).toFixed(1)}%`, 60, 0.008, 0.012, 0.012, { longOnly: true, fixStop: sl })),
     mk("MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.5% وقف 1.2%", 5, 0.008, 0.015, 0.015, { longOnly: true, fixStop: 0.012 }),   // 17/11 18:16: هدف 1.5% (طلب المستخدم)
     mk("MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.5% وقف 1.2%", 15, 0.008, 0.015, 0.015, { longOnly: true, fixStop: 0.012 }),
     mk("MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.5% وقف 1.5ATR", 60, 0.008, 0.015, 0.015, { longOnly: true })];   // 17/11 17:41: مختبر بس   // 17/11 17:34: فحص شورت بليمت أصغر (مختبر بس)
@@ -3132,6 +3134,9 @@ for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% �
 for (const b of TP_BASES) STRATS_ALL.push(timingWrap(b, "calm"), timingWrap(b, "limit"), timingWrap(b, "limit6"), timingWrap(b, "limit8"), timingWrap(b, "confirm"));
 for (const b of ["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"]) STRATS_ALL.push(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"));
 for (const b of TP_BASES) STRATS_ALL.push(trendWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), trendWrap(timingWrap(b, "limit")));
+// 17/11 22:33 (طلب المستخدم): فحص الوقف — 0.8% 1% 1.5% 2% (والهدف 1.2%) — مختبر بس
+const SL_TEST = [0.008, 0.010, 0.015, 0.020];
+for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "⭐ S15 V2 4h R2.5 h40"]) for (const sl of SL_TEST) STRATS_ALL.push(timingWrap(b, "limit8", 0.012, sl));
 // 17/11 18:16 (طلب المستخدم): كل المنصة هدف 1.5% ووقف 1.2% — نفس النسخ بس الهدف 1.5% (نسخ 1.2% بتضل بالمختبر)
 for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.015, 0.012, "هدف 1.5% وقف 1.2%"), ...["calm", "limit", "limit6", "limit8"].map(m => timingWrap(b, m, 0.015)), trendWrap(tpWrap(b, 0.015, 0.012, "هدف 1.5% وقف 1.2%")), trendWrap(timingWrap(b, "limit", 0.015)));
 for (const b of ["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"]) STRATS_ALL.push(tpWrap(b, 0.015, 0.012, "هدف 1.5% وقف 1.2%"));
