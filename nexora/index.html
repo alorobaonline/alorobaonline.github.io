@@ -3234,7 +3234,10 @@ const PLATFORM_KEEP = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% و�
 ]);   // 17/11 07:45: نسخ "فلتر استسلام" (فوليوم) انشالت من المنصة — بالمختبر بس (طلب المستخدم)   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 const PLATFORM_NOVOL = s => s.name.startsWith("WAVE ") || s.name.startsWith("⭐ S15 دخول 15m + فوليوم");
-const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name) && !PLATFORM_NOVOL(s));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
+// 17/11 10:45: V42 على المنصة بنسخة وحدة بس — ليمت 0.8% · هدف 1.2% · وقف 1.2% (طلب المستخدم، الأحسن من التصفير) — باقي نسخ V42 بالمختبر بس
+const V42_KEEP = "V42 4H SHORT b0 | 1.2% ليمت 0.8%";
+const PLATFORM_V42OFF = s => s.name.startsWith("V42 4H SHORT b0 |") && s.name !== V42_KEEP;
+const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name) && !PLATFORM_NOVOL(s) && !PLATFORM_V42OFF(s));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
   const first = (i+1)*16, last = Math.min(first+16, D.o.length);
