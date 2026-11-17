@@ -119,6 +119,7 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
 .tfsum span{color:#9d98c9}.tfsum b{color:#ece9ff}
 .wrap::-webkit-scrollbar{width:8px;height:8px}.wrap::-webkit-scrollbar-track{background:transparent}.wrap::-webkit-scrollbar-thumb{background:rgba(167,139,250,.35);border-radius:8px}.wrap::-webkit-scrollbar-corner{background:transparent}
 .wrap{scrollbar-color:rgba(167,139,250,.35) transparent;scrollbar-width:thin}
+.wrap{cursor:grab}.wrap.drag{cursor:grabbing;user-select:none}.wrap.drag *{cursor:grabbing}   /* 17/11: سحب الجدول بالماوس */
 #trades td.stot{background:rgba(167,139,250,.07)}
 </style>
 </head>
@@ -4661,6 +4662,37 @@ function startTsOf() { const v = $("start").value, t = new Date(v + "T00:00:00")
     const d = new Date(Date.now() - (+b.dataset.days)*864e5); $("start").value = d.toISOString().slice(0, 10); SEEN = null; run();
   });
   (async () => { if (await loadSnap()) { BUSY = true; try { await run(true); } finally { BUSY = false; } } else run(); })();
+})();
+</script>
+<script>
+/* 17/11: اكبس بالماوس واسحب — الجدول بيتحرك يمين/يسار (وفوق/تحت إذا الجدول طويل) */
+(() => {
+  let w = null, x0 = 0, y0 = 0, sl = 0, st = 0, moved = false;
+  document.addEventListener("mousedown", e => {
+    if (e.button !== 0) return;
+    const el = e.target.closest(".wrap");
+    if (!el || e.target.closest("button,input,select,textarea,a,label")) return;
+    if (el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight) return;
+    w = el; x0 = e.clientX; y0 = e.clientY; sl = el.scrollLeft; st = el.scrollTop; moved = false;
+  });
+  document.addEventListener("mousemove", e => {
+    if (!w) return;
+    const dx = e.clientX - x0, dy = e.clientY - y0;
+    if (!moved && Math.abs(dx) + Math.abs(dy) < 5) return;
+    if (!moved) { moved = true; w.classList.add("drag"); }
+    w.scrollLeft = sl - dx; w.scrollTop = st - dy;
+    e.preventDefault();
+  });
+  document.addEventListener("mouseup", () => {
+    if (!w) return;
+    w.classList.remove("drag");
+    if (moved) {   // نمنع الكبسة اللي بتيجي بعد السحب بس (ما بنفتح صف بالغلط)
+      const kill = ev => { ev.stopPropagation(); ev.preventDefault(); };
+      document.addEventListener("click", kill, { capture: true, once: true });
+      setTimeout(() => document.removeEventListener("click", kill, true), 0);
+    }
+    w = null;
+  });
 })();
 </script>
 </body>
