@@ -210,7 +210,8 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
         <div class="mut">الشمعة الجاية بتسكّر بعد <span class="cd" id="cd">--:--</span> <button class="sec" id="snd" style="padding:5px 10px;font-size:12px;margin-inline-start:6px">🔕 الصوت</button></div>
       </div>
       <canvas id="chart15"></canvas>
-      <div class="mut">آخر 30 ساعة (شموع 15 دقيقة). خطوط الصفقات المفتوحة: <span style="color:#e5e7eb">— دخول</span> · <span class="neg">— وقف</span> · <span class="pos">— هدف</span> · ▲ لونغ ▼ شورت</div>
+      <div class="mut">آخر 30 ساعة (شموع 15 دقيقة). خطوط الصفقات المفتوحة: <span style="color:#e5e7eb">— دخول</span> · <span class="neg">— وقف</span> · <span class="pos">— هدف</span> · ▲ لونغ ▼ شورت · <span style="color:#f87171">▭ مقاومة/عرض</span> · <span style="color:#4ade80">▭ دعم/طلب</span></div>
+      <div id="zonesBox" style="margin-top:6px;line-height:1.8"></div>
     </div>
     <div class="panel">
       <b>📜 الأحداث</b>
@@ -3370,7 +3371,7 @@ function recalc() {
     return { ...money(t, c.D, Q, c.funding, pxOf(c.sym)), sym: c.sym }; }));
   const cl = Q => capTrades(all(Q)).filter(t => !t.open).map(t => ({ xTs: t.xTs, net: t.net }));
   RESULT = { trades: capTrades(all(P)), startTs: CACHE.startTs, P, mkCl: cl(PM), tkCl: cl(PT), upd: CACHE.upd };
-  render(); try { renderMkt(); } catch (e) {}
+  render(); try { renderMkt(); renderZones(); } catch (e) {}
   try { if (document.querySelector('section.tab.on[data-t="real"]')) renderReal(); } catch (e) { console.warn(e); }
 }
 
@@ -3952,7 +3953,7 @@ function lightUpdate() {
     }
     return { ...money(t, c.D, P, c.funding, px), sym: t.sym }; });
   if (closedNow) { try { render(); } catch (e) {} return; }
-  renderAccount(); renderCards(); drawChart(); updateLiveHeader(); try { renderMkt(); } catch (e) {}
+  renderAccount(); renderCards(); drawChart(); updateLiveHeader(); try { renderMkt(); renderZones(); } catch (e) {}
   if (Date.now() - LAST_RADAR > 10000) { LAST_RADAR = Date.now(); radar(); }
 }
 
@@ -3969,6 +3970,53 @@ function updateLiveHeader() {
   $("live").className = "live" + (on ? " on" : ""); $("live").querySelector("span").textContent = on ? "LIVE" : "متوقف";
 }
 
+
+// 17/11 — الخطوة 2: مناطق مهمة على الشارت (دعم/مقاومة + عرض/طلب) من قمم وقيعان الساعة و4 ساعات المسكّرة
+// كل قمة/قاع = Pivot 5/5. القمم والقيعان القريبة من بعض (≤ 0.35×ATR 4h) بتنجمع بمنطقة وحدة. القوة = عدد اللمسات (قاع/قمة 4h = لمستين).
+// منطقة "عرض" = السعر نزل منها بقوة (≥1.5 ATR خلال 3 شموع)، "طلب" = طلع منها بقوة. منرسم بس المناطق القوية (قوة ≥ 2)، الأقرب 3 فوق و3 تحت.
+const ZONES_MEMO = {};
+function zonesOf(sym) {
+  const c = CACHE && CACHE.bySym[sym]; if (!c || c.D.stub) return null;
+  const D = c.D, key = D.c.length + "|" + D.c[D.c.length-1]; if (ZONES_MEMO[sym] && ZONES_MEMO[sym].key === key) return ZONES_MEMO[sym].z;
+  const I16 = makeInd(D, 16), A4 = I16.atr[I16.n-1]; if (!A4) return null;
+  const piv = [];
+  for (const [m, look, w] of [[4, 300, 1], [16, 180, 2]]) {
+    const I = m === 16 ? I16 : makeInd(D, m), n = I.n, L = 5;
+    for (let k = Math.max(L, n - look); k < n - L; k++) {
+      let isH = true, isL = true;
+      for (let j = k - L; j <= k + L; j++) { if (j === k) continue; if (I.H[j] >= I.H[k]) isH = false; if (I.L[j] <= I.L[k]) isL = false; }
+      const a = I.atr[k] || A4;
+      if (isH) { const dn = I.H[k] - Math.min(I.C[k+1], I.C[k+2] ?? Infinity, I.C[k+3] ?? Infinity); piv.push({ v: I.H[k], w, tf: m, kind: dn >= 1.5*a ? "عرض" : null }); }
+      if (isL) { const up = Math.max(I.C[k+1], I.C[k+2] ?? -Infinity, I.C[k+3] ?? -Infinity) - I.L[k]; piv.push({ v: I.L[k], w, tf: m, kind: up >= 1.5*a ? "طلب" : null }); }
+    }
+  }
+  piv.sort((a, b) => a.v - b.v);
+  const tol = 0.35*A4, Z = [];
+  for (const p of piv) { const z = Z[Z.length-1];
+    if (z && p.v - z.hi <= tol) { z.hi = Math.max(z.hi, p.v); z.score += p.w; z.n++; if (p.tf === 16) z.tf4 = true; if (p.kind) z.kinds.add(p.kind); }
+    else Z.push({ lo: p.v, hi: p.v, score: p.w, n: 1, tf4: p.tf === 16, kinds: new Set(p.kind ? [p.kind] : []) }); }
+  for (const z of Z) { if (z.hi - z.lo < 0.2*A4) { const m = (z.hi + z.lo)/2; z.lo = m - 0.1*A4; z.hi = m + 0.1*A4; } }
+  const out = Z.filter(z => z.score >= 2);
+  ZONES_MEMO[sym] = { key, z: out }; return out;
+}
+function zonesNear(sym, px) {
+  const Z = zonesOf(sym); if (!Z) return null;
+  const above = Z.filter(z => z.lo > px).sort((a, b) => a.lo - b.lo).slice(0, 3), below = Z.filter(z => z.hi < px).sort((a, b) => b.hi - a.hi).slice(0, 3), inside = Z.filter(z => z.lo <= px && z.hi >= px);
+  return { above, below, inside };
+}
+function zoneLabel(z, role) { const k = role === "res" ? (z.kinds.has("عرض") ? " · عرض" : "") : (z.kinds.has("طلب") ? " · طلب" : "");
+  return `${role === "res" ? "مقاومة" : role === "sup" ? "دعم" : "جوا منطقة"} ${z.tf4 ? "4h" : "1h"} ×${z.score}${k}`; }
+function renderZones() {
+  const el = $("zonesBox"); if (!el || !CACHE) return;
+  const px = pxOf(CSYM) || (CACHE.bySym[CSYM] && CACHE.bySym[CSYM].D.c.slice(-1)[0]); let Zn = null; try { Zn = zonesNear(CSYM, px); } catch (e) {}
+  if (!Zn) { el.innerHTML = ""; return; }
+  const pc = v => (100*(v/px - 1)), f = z => `${fp(z.lo)}–${fp(z.hi)}`;
+  const row = (z, role) => `<span style="display:inline-block;margin:2px 4px;padding:1px 8px;border-radius:8px;background:${role === "res" ? "rgba(239,68,68,.12)" : role === "sup" ? "rgba(34,197,94,.12)" : "rgba(234,179,8,.15)"}">${zoneLabel(z, role)}: <span class="num">${f(z)}</span> <b class="num ${role === "res" ? "neg" : "pos"}">${role === "in" ? "هلأ" : (pc(role === "res" ? z.lo : z.hi) >= 0 ? "+" : "") + pc(role === "res" ? z.lo : z.hi).toFixed(2) + "%"}</b></span>`;
+  el.innerHTML = `<b>🧱 مناطق مهمة (${cn(CSYM)})</b> <span class="mut">— من قمم وقيعان الساعة و4 ساعات المسكّرة · ×الرقم = قوة المنطقة (عدد اللمسات، 4h بلمستين)</span><br>` +
+    (Zn.inside.length ? Zn.inside.map(z => row(z, "in")).join("") + "<br>" : "") +
+    (Zn.above.length ? Zn.above.map(z => row(z, "res")).join("") : '<span class="mut">ما في مقاومة قوية قريبة فوق</span>') + "<br>" +
+    (Zn.below.length ? Zn.below.map(z => row(z, "sup")).join("") : '<span class="mut">ما في دعم قوي قريب تحت</span>');
+}
 function drawChart() {
   if (!CACHE || !CACHE.bySym[CSYM] || CACHE.bySym[CSYM].D.stub) return;
   const cv = $("chart15"), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, Hh = cv.clientHeight;
@@ -3985,6 +4033,12 @@ function drawChart() {
   const R = 70, cw = (W - R)/bars.length, y = v => 8 + (Hh - 24)*(hi - v)/(hi - lo);
   g.font = "11px ui-monospace,monospace"; g.fillStyle = "#6b7280"; g.strokeStyle = "#1f2430"; g.lineWidth = 1;
   for (let k = 0; k <= 4; k++) { const v = lo + (hi - lo)*k/4, yy = y(v); g.beginPath(); g.moveTo(0, yy); g.lineTo(W - R, yy); g.stroke(); g.fillText(fp(v), W - R + 6, yy + 4); }
+  try { const Zn = zonesNear(CSYM, pxOf(CSYM) || bars[bars.length-1].c);   // الخطوة 2: المناطق المهمة (تحت الشموع)
+    if (Zn) for (const [list, role] of [[Zn.above, "res"], [Zn.below, "sup"], [Zn.inside, "in"]]) for (const z of list) {
+      if (z.hi < lo || z.lo > hi) continue; const y1 = y(Math.min(hi, z.hi)), y2 = y(Math.max(lo, z.lo));
+      g.fillStyle = role === "res" ? "rgba(239,68,68,0.13)" : role === "sup" ? "rgba(34,197,94,0.13)" : "rgba(234,179,8,0.16)"; g.fillRect(0, y1, W - R, Math.max(2, y2 - y1));
+      g.fillStyle = role === "res" ? "#f87171" : role === "sup" ? "#4ade80" : "#facc15"; g.fillText(zoneLabel(z, role), W - R - 150, y1 + 11); }
+  } catch (e) {}
   bars.forEach((b, i) => {
     const x = i*cw + cw/2, up = b.c >= b.o; g.strokeStyle = g.fillStyle = up ? "#22c55e" : "#ef4444";
     g.beginPath(); g.moveTo(x, y(b.h)); g.lineTo(x, y(b.l)); g.stroke();
@@ -4008,6 +4062,7 @@ function drawChart() {
   const px = pxOf(CSYM) || bars[bars.length-1].c, yy = y(px);
   g.strokeStyle = "#60a5fa"; g.setLineDash([1, 2]); g.beginPath(); g.moveTo(0, yy); g.lineTo(W - R, yy); g.stroke(); g.setLineDash([]);
   g.fillStyle = "#60a5fa"; g.fillRect(W - R + 2, yy - 8, R - 4, 16); g.fillStyle = "#081018"; g.fillText(fp(px), W - R + 5, yy + 4);
+  try { renderZones(); } catch (e) {}
 }
 
 // رادار: لو الشمعة الحالية سكّرت هيك، مين بيعطي إشارة؟ (للعملة المختارة)
