@@ -37,10 +37,10 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
 .acc{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
 .acc .card .v{font-family:ui-monospace,monospace}
 .lv{display:grid;grid-template-columns:1fr;gap:8px}
-@media(min-width:900px){.lv{grid-template-columns:2fr 1fr}}
+#feed{max-height:220px;overflow:auto}   /* 17/11: الأحداث تحت الشارت، والشارت بعرض الصفحة */
 .panel{background:var(--card);border-radius:12px;padding:10px}
 #chart15{width:100%;height:280px;display:block}
-#lwc{width:100%;height:420px;direction:ltr}
+#lwc{width:100%;height:600px;direction:ltr}@media(max-width:700px){#lwc{height:460px}}
 .lwbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}.lwbar button{padding:3px 10px;font-size:12px;border-radius:8px;background:#1f2430;color:#cbd5e1;border:1px solid #2a3140;cursor:pointer}.lwbar button.on{background:#2563eb;color:#fff;border-color:#2563eb}.lwbar label{font-size:12px;color:#9ca3af;display:flex;gap:3px;align-items:center}
 .px{font-size:26px;font-weight:800;font-family:ui-monospace,monospace;direction:ltr;display:inline-block}
 .cd{font-family:ui-monospace,monospace;font-size:18px;direction:ltr;display:inline-block}
