@@ -643,6 +643,17 @@ const S15 = (() => {
     return { pend: out, atr: P.atr[kLast], ema: P.ema[kLast] };
   }
   const sig = v2 => (I, i) => { const h = hitsAt(prep(I), I, i, v2); return h.length ? h[0].side : 0; };
+  // نظام التقلب: ATR(14) الحالي ÷ متوسط ATR لآخر n شمعة (مختبر: sp.volR = {n, max} أو {n, min}؛ بدونه ما في أي تغيير)
+  const volMemo = new WeakMap();
+  function volRatio(I, P, k, n) {
+    if (!volMemo.has(I)) volMemo.set(I, {}); const mm = volMemo.get(I);
+    if (!mm[n]) { const out = new Array(I.n).fill(null); let sum = 0, cnt = 0;
+      for (let j = 0; j < I.n; j++) { const a = P.atr[j]; if (a !== null) { sum += a; cnt++; }
+        const old = j - n >= 0 ? P.atr[j - n] : null; if (old !== null) { sum -= old; cnt--; }
+        if (cnt === n && a !== null) out[j] = a / (sum / n); }
+      mm[n] = out; }
+    return mm[n][k];
+  }
   // آخر تمويل معروف لحد وقت ts (D.fund من المختبر: [{t, rate}] مرتبة)
   function fundAt(D, ts) { const F = D.fund; if (!F || !F.length) return null; let lo = 0, hi = F.length - 1, r = -1;
     while (lo <= hi) { const mid = (lo + hi) >> 1; if (F[mid].t <= ts) { r = mid; lo = mid + 1; } else hi = mid - 1; } return r < 0 || ts - F[r].t > 864e5 ? null : F[r].rate; }   // تمويل قديم (أكتر من يوم) = ما في معلومة
@@ -702,6 +713,7 @@ const S15 = (() => {
       if (h.length && sp.fundF) { const r = fundAt(D, D.t0 + (k+1)*m*900000); h = h.filter(x => fundOk(sp, r, x.side)); }
       if (h.length && sp.gannF && m === 16) h = h.filter(x => GDEC.near(I, k, x.side, sp.gannF));
       if (h.length && sp.fibT && m === 16) { const w = fibTimeWin(I, k, sp.fibT.set || "A"); if (sp.fibT.inside ? !w : w) h = []; }
+      if (h.length && sp.volR) { const r = volRatio(I, P, k, sp.volR.n || 100); if (r !== null && ((sp.volR.max && r > sp.volR.max) || (sp.volR.min && r < sp.volR.min))) h = []; }
       if (!h.length) continue;
       const blocked = pos !== null || closedHere || k <= busy || k === n - 1 || D.t0 + (k+1)*m*900000 <= startTs || (k+1)*m >= D.o.length;
       if (!blocked) pend = [h[0], k];
