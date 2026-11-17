@@ -3194,6 +3194,55 @@ const MACDM = (() => {
   };
   return { strats: [{ name, mult: 0, m5: true, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD Momentum v1.1 (من المستخدم 17/11) — كما هي على 5m" }] };
 })();
+
+// 17/11 12:19: MACD Momentum v1.1 على المنصة (طلب المستخدم) — 3 نسخ بليمت 0.8% (صالح ساعة):
+//  إشارة على شمعة مسكّرة: هيستوغرام MACD(12,26,9) يقطع الصفر + الإغلاق فوق/تحت EMA50 + لون الشمعة · حاجز 0.6% على سعر السوق وقت الإشارة
+//  وقف 1.5×ATR14 (على فريم الإشارة) · تعادل بعد 1R · تتبع من 1.5R على بُعد 1R ومن 2R على بُعد 0.5R · هدف ثابت (لونج/شورت)
+const MACDP = (() => {
+  const M5 = 300000;
+  const mk = (name, tf, depth, tpL, tpS) => ({ name, mult: tf === 5 ? 0 : (tf === 60 ? 4 : 1), ...(tf === 5 ? { m5: true } : {}), sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD Momentum v1.1 (من المستخدم 17/11)",
+    run: (D, inds, sp, startTs) => {
+      let S, X;   // S = شموع الإشارة (مسكّرة) · X = شموع التنفيذ
+      if (tf === 5) { const m = D.m5; if (!m || m.o.length < 300) return []; S = { t0: m.t0, step: M5, O: m.o, H: m.h, L: m.l, C: m.c, n: m.o.length }; X = { t0: m.t0, step: M5, o: m.o, h: m.h, l: m.l, c: m.c }; }
+      else { const nc = D.prov ? D.o.length - 1 : D.o.length; X = { t0: D.t0, step: M15, o: D.o, h: D.h, l: D.l, c: D.c };
+        if (tf === 15) S = { t0: D.t0, step: M15, O: D.o, H: D.h, L: D.l, C: D.c, n: nc };
+        else { const K = Math.floor(nc/4), O = [], H = [], L = [], C = []; for (let k = 0; k < K; k++) { let h = -Infinity, l = Infinity; for (let j = 4*k; j < 4*k + 4; j++) { h = Math.max(h, D.h[j]); l = Math.min(l, D.l[j]); } O.push(D.o[4*k]); H.push(h); L.push(l); C.push(D.c[4*k + 3]); } S = { t0: D.t0, step: 4*M15, O, H, L, C, n: K }; } }
+      const N = S.n, from = Math.max(0, Math.floor((startTs - (tf === 60 ? 700 : 2000)*S.step - S.t0)/S.step)), cs = S.C.slice(from, N); if (cs.length < 260) return [];   // بداية ثابتة (من تاريخ البداية) = نفس الإشارات مهما زادت الشموع
+      const e12 = ema(cs, 12), e26 = ema(cs, 26), mac = cs.map((x, i) => e12[i] - e26[i]), sg = ema(mac, 9), hist = mac.map((x, i) => x - sg[i]), e50 = ema(cs, 50);
+      const atr = new Array(cs.length).fill(null); let a = null;
+      for (let i = 1; i < cs.length; i++) { const k = i + from, tr = Math.max(S.H[k] - S.L[k], Math.abs(S.H[k] - S.C[k-1]), Math.abs(S.L[k] - S.C[k-1])); if (i < 14) continue; a = a === null ? tr : (a*13 + tr)/14; atr[i] = a; }
+      const nx = X.o.length, toE = ts => Math.max(0, Math.min(D.o.length - 1, Math.floor((ts - D.t0)/M15))), out = []; let busyT = -1;
+      for (let i = 200; i < cs.length; i++) {
+        const k = i + from, tClose = S.t0 + (k + 1)*S.step; if (tClose < startTs - 864e5 || atr[i] === null || tClose <= busyT) continue;
+        const Lg = hist[i-1] <= 0 && hist[i] > 0 && cs[i] > e50[i] && cs[i] > S.O[k], Sh = hist[i-1] >= 0 && hist[i] < 0 && cs[i] < e50[i] && cs[i] < S.O[k];
+        if (Lg === Sh) continue; const d = Lg ? 1 : -1;
+        const j0 = Math.round((tClose - X.t0)/X.step); if (j0 < 0 || j0 >= nx) continue; const ref = X.o[j0];
+        if (Math.abs(ref*(1 + d*0.0001)/cs[i] - 1) > 0.006 + 1e-12) continue;   // حاجز 0.6%
+        const lim = ref*(1 - d*depth), jEnd = Math.min(nx, j0 + Math.round(3600000/X.step)); let ej = null, px = null;
+        for (let j = j0; j < jEnd; j++) if (d === 1 ? X.l[j] <= lim : X.h[j] >= lim) { ej = j; px = d === 1 ? Math.min(lim, X.o[j]) : Math.max(lim, X.o[j]); break; }
+        if (ej === null) continue;
+        const R1 = 1.5*atr[i]; let stop = px - d*R1, best = px, ox = null, xj = null, why = null; const tgt = px*(1 + d*(d === 1 ? tpL : tpS));
+        for (let j = ej; j < nx; j++) {
+          if (j > ej && d*(X.o[j] - stop) <= 0) { ox = X.o[j]; xj = j; why = "STOP"; break; }
+          if (j > ej && d*(X.o[j] - tgt) >= 0) { ox = X.o[j]; xj = j; why = "TGT_GAP"; break; }
+          if (d === 1 ? X.l[j] <= stop : X.h[j] >= stop) { ox = stop; xj = j; why = d*(stop - px) > 0 ? "TRAIL_STOP" : (Math.abs(stop - px) < 1e-12 ? "BE" : "INIT_STOP"); break; }
+          if (j === ej) continue;   // شمعة التنفيذ: أعلى/أدنى سعر فيها ممكن صار قبل التنفيذ → ما منحسب منه هدف ولا تتبع
+          if (d === 1 ? X.h[j] >= tgt : X.l[j] <= tgt) { ox = tgt; xj = j; why = "TARGET"; break; }
+          if (D.prov && tf !== 5 && j === nx - 1) break;   // الشمعة الحية: ما منحدّث الوقف عليها
+          best = d === 1 ? Math.max(best, X.h[j]) : Math.min(best, X.l[j]); const g = d*(best - px);
+          if (g >= R1) stop = d === 1 ? Math.max(stop, px) : Math.min(stop, px);
+          if (g >= 1.5*R1) stop = d === 1 ? Math.max(stop, best - R1) : Math.min(stop, best + R1);
+          if (g >= 2*R1) stop = d === 1 ? Math.max(stop, best - 0.5*R1) : Math.min(stop, best + 0.5*R1);
+        }
+        const eTs = X.t0 + ej*X.step, open = ox === null; busyT = open ? Infinity : X.t0 + (xj + 1)*X.step;
+        if (eTs < startTs) continue;
+        out.push(open ? { name, d, e: toE(eTs), x: D.o.length - 1, rawIn: px, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop, target: tgt }
+                      : { name, d, e: toE(eTs), x: toE(X.t0 + xj*X.step), rawIn: px, rawOut: ox, why, open: false, stop, target: tgt });
+      }
+      return out;
+    } });
+  return { strats: [mk("MACD v1.1 ساعة · ليمت 0.8% · لونج 1.2% شورت 1%", 60, 0.008, 0.012, 0.010), mk("MACD v1.1 15m · ليمت 0.8% · هدف 1.2%", 15, 0.008, 0.012, 0.012), mk("MACD v1.1 5m · ليمت 0.8% · هدف 1.2%", 5, 0.008, 0.012, 0.012)] };
+})();
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
   "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
   "Bagheri IG Ether 15m (كما هي)", "⭐ S15 دخول على إغلاق 15m"];   // 17/11: Bagheri ساعة و4h انشالوا (إشارتين بالسنة — طلب المستخدم)
@@ -3249,6 +3298,7 @@ const STRATS_ALL = [
   ...MRVLAB.strats,   // مختبر بس
   ...FLOORLAB.strats,   // مختبر بس
   ...MACDM.strats,   // مختبر بس
+  ...MACDP.strats,   // على المنصة (17/11)
   { ...RSNIPER.strats[0], name: "Range Sniper + فوليوم ≥5× (مختبر)", volMin: 5 },
 ];
 for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% وقف 0.6%"), tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), tpWrap(b, 0.012, null, "هدف 1.2% وقف أصلي"));
@@ -3267,7 +3317,7 @@ const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جا�
 // 16/11 16:40: المنصة بتشغّل بس نسخ "هدف 1.2% / وقف 1.2%" من كل الاستراتيجيات (طلب المستخدم) — الأصلية بالمختبر بس
 const PLATFORM_KEEP = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% ليمت 0.6%", b + " | 1.2% ليمت 0.8%"]),   // 17/11 03:55: «تأكيد 15m» انلغت من المنصة (طلب المستخدم — دخول متأخر على أسوأ سعر)
   ...["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"].map(b => b + " | هدف 1.2% وقف 1.2%"),
-  ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"]), "Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h",   // 17/11: كسر+فوليوم+ريتست انشالت من المنصة (خسرت من التصفير وعلى السنتين) — بالمختبر بس
+  ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"]), "Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", ...MACDP.strats.map(s => s.name),   // MACD v1.1 (17/11 12:19) · 17/11: كسر+فوليوم+ريتست انشالت من المنصة (خسرت من التصفير وعلى السنتين) — بالمختبر بس
 ]);   // 17/11 07:45: نسخ "فلتر استسلام" (فوليوم) انشالت من المنصة — بالمختبر بس (طلب المستخدم)   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 const PLATFORM_NOVOL = s => s.name.startsWith("WAVE ") || s.name.startsWith("⭐ S15 دخول 15m + فوليوم");
@@ -3421,9 +3471,10 @@ async function paced() { const w = LAST_REQ - Date.now(); LAST_REQ = Math.max(Da
 async function altKlines(sym, interval, t, limit) {
   const mins = interval === "15m" ? 15 : interval === "5m" ? 5 : 60, now = Date.now();
   try {   // Bybit: نفس أسماء العملات (حتى 1000PEPEUSDT)
-    const r = await fetch(`https://api.bybit.com/v5/market/kline?category=linear&symbol=${sym}&interval=${mins}&start=${t}&limit=${Math.min(1000, limit)}`);
+    const mp = typeof BYBIT_MAP !== "undefined" && BYBIT_MAP[sym], bs = mp ? mp[0] : sym, f = mp ? mp[1] : 1;   // 17/11: أسماء Bybit المختلفة
+    const r = await fetch(`https://api.bybit.com/v5/market/kline?category=linear&symbol=${bs}&interval=${mins}&start=${t}&limit=${Math.min(1000, limit)}`);
     if (r.ok) { const j = await r.json(); const L = j && j.result && j.result.list;
-      if (L && L.length) { SRC_NOTE = "Bybit"; return L.map(x => [+x[0], x[1], x[2], x[3], x[4], x[5], +x[0] + mins*60000 - 1]).sort((a, b) => a[0] - b[0]); } }
+      if (L && L.length) { SRC_NOTE = "Bybit"; return L.map(x => [+x[0], x[1]*f, x[2]*f, x[3]*f, x[4]*f, x[5]/f, +x[0] + mins*60000 - 1]).sort((a, b) => a[0] - b[0]); } }
   } catch (e) {}
   try {   // OKX: BTCUSDT → BTC-USDT-SWAP (العملات اللي بأولها 1000 مختلفة الحجم هناك — منتجاهلها)
     if (/^1000/.test(sym)) return null;
@@ -3528,7 +3579,7 @@ const MEM5 = {}, M5 = 300000;
 async function loadM5(sym, fromTs, prog) {
   let st = MEM5[sym];
   if (!st) { const c = await idb.get("m5_" + sym); st = c && c.t.length ? { t: Array.from(c.t), v: Array.from(c.v) } : { t: [], v: [] }; }
-  let added = await fromServer(sym, "k5", st, fromTs, M5, 5);
+  let added = Date.now() - fromTs > 5*864e5 ? await fromServer(sym, "k5", st, fromTs, M5, 5) : 0;   // 17/11: فترة قصيرة = بدون ملف السيرفر (120 يوم)
   added += await fillKlines(sym, "5m", M5, 5, st, fromTs, prog);
   MEM5[sym] = st;
   st.dirty = (st.dirty || 0) + added;
@@ -3649,8 +3700,10 @@ async function run(silent, only5) {
     // تحميل: 3 عملات بنفس الوقت عشان ما نتعدى حد بايننس
     const queue = COINS.slice();
     const worker = async () => { while (queue.length) { const sym = queue.shift();
-      try { const D = await loadCandles(sym, fromTs, d => st(`⬇️ ${done.n}/${COINS.length} — ${cn(sym)} ${d}`));
-        if (D) { if (!CK[sym]) CK[sym] = (await idb.get("ck_" + sym)) || {}; D.s5ck = CK[sym]; D.m5 = NEED_M5 ? await loadM5(sym, Math.floor((startTs - 2*864e5)/H4)*H4, d => st(`⬇️ ${done.n}/${COINS.length} — ${cn(sym)} 5m ${d}`)) : null;
+      try { const old = only5 && CACHE && CACHE.startTs === startTs && CACHE.bySym[sym] && !CACHE.bySym[sym].D.stub ? CACHE.bySym[sym] : null;   // 17/11: تحديث الـ5 دقايق ما بيعيد تنزيل الـ15 دقيقة
+        const D = old ? old.D : await loadCandles(sym, fromTs, d => st(`⬇️ ${done.n}/${COINS.length} — ${cn(sym)} ${d}`));
+        if (D && old) { D.m5 = await loadM5(sym, Math.floor((startTs - 2*864e5)/H4)*H4, () => {}); coins.push({ sym, D, funding: old.funding }); }
+        else if (D) { if (!CK[sym]) CK[sym] = (await idb.get("ck_" + sym)) || {}; D.s5ck = CK[sym]; D.m5 = NEED_M5 ? await loadM5(sym, Math.floor((startTs - 2*864e5)/H4)*H4, d => st(`⬇️ ${done.n}/${COINS.length} — ${cn(sym)} 5m ${d}`)) : null;
           const funding = await loadFunding(sym, startTs, D); coins.push({ sym, D, funding }); } } catch (e) { failed.push(`${sym}: ${e.message}`); if (String(e.message).includes("451")) throw e; }
       done.n++; st(`⬇️ حمّلت ${done.n}/${COINS.length} عملة…`); } };
     await Promise.all(Array.from({length: Math.min(6, COINS.length)}, () => worker()));
@@ -3711,12 +3764,18 @@ function computeOne(c, startTs, prev) {   // نفس الحساب بدون Worker
   if (prev) { c.raw = prev.raw.filter(t => !M5N.has(t.name)); for (const sp of STRATS) if (sp.m5) for (const t of evaluate(c.D, null, sp, startTs)) c.raw.push(t); }
   else { const DP = withProv(c); DP.btcS = BTC_S; const inds = { 1: makeInd(DP, 1), 4: makeInd(DP, 4), 16: makeInd(DP, 16) }; for (const sp of STRATS) if (sp.mult && !inds[sp.mult]) inds[sp.mult] = makeInd(DP, sp.mult); c.raw = []; for (const sp of STRATS) for (const t of evaluate(DP, inds, sp, startTs)) c.raw.push(t); }
 }
+let PROG_T = 0;
+function progressive(c, startTs) {   // 17/11: كل عملة بتخلص بتنعرض فوراً (إذا في نتيجة سابقة لنفس الفترة)
+  if (!CACHE || CACHE.startTs !== startTs || !CACHE.bySym[c.sym] || CACHE.bySym[c.sym].D.stub || !c.raw) return;
+  const o = CACHE.bySym[c.sym]; o.D = c.D; o.raw = c.raw; o.funding = c.funding;
+  if (Date.now() - PROG_T > 1500) { PROG_T = Date.now(); try { recalc(); } catch (e) {} }
+}
 async function computeAll(coins, startTs, prevOf, st) {
   const P = pool(); let done = 0;
   { const b = coins.find(x => x.sym === "BTCUSDT"); BTC_S = b && b.D && !b.D.stub && b.D.o.length > 400 ? btcStateOf(b.D) : null; }
   const tick = () => st(`⚙️ بحسب الاستراتيجيات… ${done}/${coins.length}${P.length ? ` (${P.length} معالجات مع بعض)` : ""}`);
   tick();
-  if (!P.length) { for (const c of coins) { computeOne(c, startTs, prevOf(c)); done++; tick(); await sleep(5); } return; }
+  if (!P.length) { for (const c of coins) { computeOne(c, startTs, prevOf(c)); progressive(c, startTs); done++; tick(); await sleep(5); } return; }
   const queue = coins.slice();
   await Promise.all(P.map(w => (async () => {
     while (queue.length) {
@@ -3725,7 +3784,7 @@ async function computeAll(coins, startTs, prevOf, st) {
       const res = await new Promise(r => { w.onmessage = ev => r(ev.data); w.onerror = ev => r({ err: ev.message || "worker" }); w.postMessage({ id: c.sym, D, startTs, only5: !!prev }); });
       if (res.err) { computeOne(c, startTs, prev); }
       else { c.raw = prev ? prev.raw.filter(t => !M5N.has(t.name)).concat(res.raw) : res.raw; if (res.ck) { CK[c.sym] = res.ck; c.D.s5ck = res.ck; } }
-      done++; tick();
+      progressive(c, startTs); done++; tick();
     }
   })()));
 }
