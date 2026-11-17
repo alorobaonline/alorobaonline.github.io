@@ -3338,7 +3338,7 @@ async function run(silent, only5) {
     const nc = Math.min(150, Math.max(1, +$("ncoins").value || 102));
     const startedAt = performance.now();
     if (!silent && CACHE && !CACHE.coins[0].D.stub && CACHE.startTs === startTs && CACHE.coins.length === nc && CACHE.upd >= Math.floor(Date.now()/M15)*M15) { recalc(); st("⚡ النتائج من الذاكرة — بدون تنزيل جديد"); return; }
-    if (!COINS || COINS.length !== nc) { st("🔎 بجيب أعلى العملات حسب حجم التداول…"); COINS = await topCoins(nc); fillCoinSel(); connectWS(); }
+    if (!COINS || COINS.length !== (nc >= 100 ? Math.min(nc, DEFAULT_TOP.length - DELISTED.size) : nc) || COINS.some(x => DELISTED.has(x))) { st("🔎 بجيب أعلى العملات حسب حجم التداول…"); COINS = await topCoins(nc); fillCoinSel(); connectWS(); }
     const coins = [], done = { n: 0 }, failed = [];
     // تحميل: 3 عملات بنفس الوقت عشان ما نتعدى حد بايننس
     const queue = COINS.slice();
@@ -3433,7 +3433,7 @@ async function loadSnap() {   // افتح فوراً على آخر نتيجة م
     const s = await idb.get("snap"), startTs = startTsOf(), nc = Math.min(150, Math.max(1, +$("ncoins").value || 102));
     if (!s || s.startTs !== startTs || s.nc !== nc || !s.coins.length) return false;
     const known = new Set(STRATS.map(x => x.name)), oldVer = s.ver !== ENGINE_VER;   // نسخة محرك أقدم؟ منعرضها لحد ما يخلص الحساب الجديد
-    const coins = s.coins.map(c => ({ sym: c.sym, raw: c.raw.filter(t => known.has(t.name)), funding: c.funding, D: { stub: true, t0: c.t0, o: [], h: [], l: [], c: [c.last] } }));
+    const coins = s.coins.filter(c => !DELISTED.has(c.sym)).map(c => ({ sym: c.sym, raw: c.raw.filter(t => known.has(t.name)), funding: c.funding, D: { stub: true, t0: c.t0, o: [], h: [], l: [], c: [c.last] } }));
     CACHE = { coins, bySym: Object.fromEntries(coins.map(c => [c.sym, c])), startTs, upd: s.upd, upd5: s.upd5 };
     COINS = coins.map(c => c.sym); fillCoinSel(); connectWS();
     recalc(); $("status").textContent = `⚡ فتحت على آخر نتيجة محفوظة (${dt(s.upd)})${oldVer ? " — من نسخة أقدم للمنصة" : ""} — عم بحدّث بالخلفية…`;
