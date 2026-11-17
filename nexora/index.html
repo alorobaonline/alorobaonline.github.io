@@ -4032,7 +4032,7 @@ function lwInit() {
   const el = $("lwc"); if (!el) return false;
   try {
     el.style.display = "block"; $("lwbar").style.display = "flex"; $("chart15").style.display = "none";
-    LW.chart = LightweightCharts.createChart(el, { autoSize: true, layout: { background: { color: "transparent" }, textColor: "#9ca3af", fontSize: 11 },
+    LW.chart = LightweightCharts.createChart(el, { autoSize: false, width: el.clientWidth || 600, height: el.clientHeight || 400, layout: { background: { color: "transparent" }, textColor: "#9ca3af", fontSize: 11 },
       grid: { vertLines: { color: "#1a1f2b" }, horzLines: { color: "#1a1f2b" } }, crosshair: { mode: 0 }, rightPriceScale: { borderColor: "#2a3140" },
       timeScale: { borderColor: "#2a3140", timeVisible: true, secondsVisible: false, rightOffset: 6 } });
     LW.cs = LW.chart.addCandlestickSeries({ upColor: "#22c55e", downColor: "#ef4444", borderVisible: false, wickUpColor: "#22c55e", wickDownColor: "#ef4444" });
@@ -4064,6 +4064,7 @@ function drawChartLW() {
   const c = CACHE.bySym[CSYM]; if (!c || c.D.stub) return true;
   const w = $("lwc").clientWidth; if (!w) { LW.hidden = true; return true; }   // التبويب مخفي: ما منرسم
   if (LW.hidden) { LW.hidden = false; LW.key = ""; }   // صار ظاهر → ارسم من جديد بالمدى الافتراضي
+  const hgt = $("lwc").clientHeight; if (LW.w !== w || LW.h !== hgt) { const first = !LW.w; LW.w = w; LW.h = hgt; LW.chart.resize(w, hgt); if (first) LW.key = ""; }   // الحجم بإيدنا (مش autoSize) عشان المدى يزبط
   $("lwbar").querySelectorAll("button[data-tf]").forEach(b => b.classList.toggle("on", +b.dataset.tf === LW.tf));
   const D = c.D, m = LW.tf, { bars, vol } = lwBars(D, m, CSYM), MAXB = 600, B = bars.slice(-MAXB), V = vol.slice(-MAXB);
   const key = CSYM + "|" + m + "|" + D.c.length + "|" + B.length + "|" + JSON.stringify(LW.show);
