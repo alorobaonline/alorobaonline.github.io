@@ -3124,7 +3124,7 @@ for (const b of TP_BASES) STRATS_ALL.push(trendWrap(tpWrap(b, 0.012, 0.012, "ه�
 // 17/11 13:59: Lux ليمت 1% · هدف 1% · وقف 1.5% (كود المستخدم) — الليمت صالح 4 شموع 15m، صفقة وحدة بالمرة على العملة، الوقف قبل الهدف بنفس الشمعة
 //  + تصليح شمعة التنفيذ: ما في هدف (ولا فجوة افتتاح) على الشمعة اللي تعبّى فيها الليمت
 const LUX_L10 = "#8 Lux Trendline+TRAMA+Chandelier | ليمت 1% · هدف 1% · وقف 1.5%";
-function luxL10Wrap(baseName, name, depth, tp, sl) {
+function luxL10Wrap(baseName, name, depth, tp, sl, asis = false) {   // asis = كود المستخدم بدون تصليح شمعة التنفيذ (مختبر بس، للمقارنة)
   const run = (D, inds, sp, startTs) => {
     const base = STRATS_ALL.find(x => x.name === baseName); if (!base) return [];
     const src = evaluate(D, inds, base, startTs).slice().sort((a, b) => a.e - b.e), n = D.o.length, out = [], seen = new Set();
@@ -3140,10 +3140,10 @@ function luxL10Wrap(baseName, name, depth, tp, sl) {
       const tgt = e*(1 + d*tp), stop = e*(1 - d*sl);
       let px = null, why = null, xi = null;
       for (let j = ei; j < n; j++) {
-        if (j > ei && d*(D.o[j] - stop) <= 0) { px = D.o[j]; why = "STOP"; xi = j; break; }
-        if (j > ei && d*(D.o[j] - tgt) >= 0) { px = D.o[j]; why = "TGT_GAP"; xi = j; break; }
+        if ((asis || j > ei) && d*(D.o[j] - stop) <= 0) { px = D.o[j]; why = "STOP"; xi = j; break; }
+        if ((asis || j > ei) && d*(D.o[j] - tgt) >= 0) { px = D.o[j]; why = "TGT_GAP"; xi = j; break; }
         if (d === 1 ? D.l[j] <= stop : D.h[j] >= stop) { px = stop; why = "STOP"; xi = j; break; }
-        if (j === ei) continue;   // شمعة التنفيذ
+        if (j === ei && !asis) continue;   // شمعة التنفيذ
         if (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt) { px = tgt; why = "TARGET"; xi = j; break; }
       }
       const w = t.w || 1;
@@ -3154,7 +3154,8 @@ function luxL10Wrap(baseName, name, depth, tp, sl) {
   };
   return { name, mult: (STRATS_ALL.find(x => x.name === baseName) || {}).mult || 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Lux limit 1% wrap (user)" };
 }
-STRATS_ALL.push(luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", LUX_L10, 0.010, 0.010, 0.015));
+STRATS_ALL.push(luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", LUX_L10, 0.010, 0.010, 0.015),
+  luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", LUX_L10 + " (كود كما هو)", 0.010, 0.010, 0.015, true));   // الثانية مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(quietWrap(timingWrap(b, "limit6")));   // مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(posWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), 0.4), posWrap(timingWrap(b, "limit6"), 0.4));   // مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(floorAvoidWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), floorAvoidWrap(timingWrap(b, "limit6")));   // مختبر بس
