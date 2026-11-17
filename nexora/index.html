@@ -2905,6 +2905,50 @@ function trendWrap(inner) {
   const run = (D, inds, sp, startTs) => inner.run(D, inds, inner, startTs).filter(t => trendOk(D, inds, t.e, t.d)).map(t => trendExit(D, inds, { ...t, name }));
   return { ...inner, name, run, src: "1.2% + فلتر ترند (ساعة + بيتكوين) + خروج مبكر عند انقلاب الترند" };
 }
+
+// 17/11: Range Sniper (Pine من المستخدم) — كما هي بالزبط على 15m: ADX(14)<25 + لمس بولنجر 20/2 + RSI(14) ≤30 / ≥70
+// دخول على افتتاح الشمعة اللي بعد الإشارة · وقف = ذيل شمعة الإشارة ∓ 0.5×ATR(14) · هدف = خط بولنجر الوسط لحظة الإشارة (ثابت) · صفقة وحدة بالعملة
+const RSNIPER = (() => {
+  const rma = (x, n) => { const o = new Array(x.length).fill(null); let s = 0, cnt = 0, v = null;
+    for (let i = 0; i < x.length; i++) { if (x[i] === null) continue; if (v === null) { s += x[i]; cnt++; if (cnt === n) { v = s/n; o[i] = v; } } else { v = (v*(n-1) + x[i])/n; o[i] = v; } } return o; };
+  const NAME = "Range Sniper 15m (كما هي)";
+  const run = (D, inds, sp, startTs) => {
+    const o = D.o, h = D.h, l = D.l, c = D.c, n = c.length, lastSig = D.prov ? n - 2 : n - 1;   // الإشارة من شمعة مسكّرة بس
+    const ch = c.map((x, i) => i ? x - c[i-1] : null);
+    const ag = rma(ch.map(x => x === null ? null : Math.max(x, 0)), 14), al = rma(ch.map(x => x === null ? null : Math.max(-x, 0)), 14);
+    const tr = c.map((x, i) => i ? Math.max(h[i]-l[i], Math.abs(h[i]-c[i-1]), Math.abs(l[i]-c[i-1])) : h[i]-l[i]);
+    const atr = rma(tr, 14), trr = rma(tr.map((x, i) => i ? x : null), 14);
+    const pdm = h.map((x, i) => { if (!i) return null; const u = h[i]-h[i-1], d = l[i-1]-l[i]; return u > d && u > 0 ? u : 0; });
+    const mdm = h.map((x, i) => { if (!i) return null; const u = h[i]-h[i-1], d = l[i-1]-l[i]; return d > u && d > 0 ? d : 0; });
+    const sp_ = rma(pdm, 14), sm_ = rma(mdm, 14);
+    const adx = rma(trr.map((v, i) => { if (v === null || sp_[i] === null) return null; const p = 100*sp_[i]/v, m = 100*sm_[i]/v, s = p + m; return Math.abs(p - m)/(s === 0 ? 1 : s); }), 14);
+    let lo0 = 0; while (lo0 < n && D.t0 + lo0*M15 < startTs - 30*864e5) lo0++;   // شهر قبل البداية بيكفي لحالة "في صفقة مفتوحة"
+    const out = []; let busyTo = -1, s20 = 0, q20 = 0;
+    for (let i = Math.max(30, lo0); i <= lastSig && i < n - 1; i++) {
+      if (i <= busyTo) continue;
+      if (adx[i] === null || ag[i] === null || atr[i] === null || 100*adx[i] >= 25) continue;
+      let m = 0; for (let k = i-19; k <= i; k++) m += c[k]; m /= 20; let v = 0; for (let k = i-19; k <= i; k++) v += (c[k]-m)**2; const sd = Math.sqrt(v/20);
+      const rsi = al[i] === 0 ? 100 : (ag[i] === 0 ? 0 : 100 - 100/(1 + ag[i]/al[i]));
+      const d = l[i] <= m - 2*sd && rsi <= 30 ? 1 : (h[i] >= m + 2*sd && rsi >= 70 ? -1 : 0); if (!d) continue;
+      const stop = d === 1 ? l[i] - atr[i]*0.5 : h[i] + atr[i]*0.5, tgt = m;
+      if (!(d*(c[i] - stop) > 0)) continue;
+      const e = i + 1, entry = o[e]; let px = null, why = null, x = null;
+      for (let j = e; j < n; j++) {
+        if (j === e) { if (d*(o[j] - stop) <= 0) { px = o[j]; why = "STOP"; x = j; break; } if (d*(o[j] - tgt) >= 0) { px = o[j]; why = "TARGET"; x = j; break; } }
+        const hS = d === 1 ? l[j] <= stop : h[j] >= stop, hT = d === 1 ? h[j] >= tgt : l[j] <= tgt;
+        if (hS && hT) { const hiFirst = Math.abs(o[j]-h[j]) < Math.abs(o[j]-l[j]), tF = d === 1 ? hiFirst : !hiFirst; px = tF ? tgt : stop; why = tF ? "TARGET" : "STOP"; x = j; break; }
+        if (hS) { px = stop; why = "STOP"; x = j; break; }
+        if (hT) { px = tgt; why = "TARGET"; x = j; break; }
+      }
+      const open = px === null; busyTo = open ? n : x - 1;
+      if (D.t0 + e*M15 < startTs) continue;
+      out.push(open ? { name: NAME, d, e, x: n - 1, rawIn: entry, rawOut: c[n-1], why: "TIME", open: true, stop, target: tgt }
+                    : { name: NAME, d, e, x, rawIn: entry, rawOut: px, why, open: false, stop, target: tgt });
+    }
+    return out;
+  };
+  return { strats: [{ name: NAME, mult: 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Range Sniper (Pine من المستخدم 17/11) — كما هي، حجم المنصة الثابت" }] };
+})();
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
   "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
   "Bagheri IG Ether 15m (كما هي)", "Bagheri IG Ether ساعة (كما هي)", "Bagheri IG Ether 4h (كما هي)", "⭐ S15 دخول على إغلاق 15m"];
@@ -2954,6 +2998,7 @@ const STRATS_ALL = [
   ...WAVE.strats,
   ...BAGHERI.strats,
   ...S15E.strats,
+  ...RSNIPER.strats,
 ];
 for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% وقف 0.6%"), tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), tpWrap(b, 0.012, null, "هدف 1.2% وقف أصلي"));
 for (const b of TP_BASES) STRATS_ALL.push(timingWrap(b, "calm"), timingWrap(b, "limit"), timingWrap(b, "limit6"), timingWrap(b, "limit8"), timingWrap(b, "confirm"));
@@ -2967,7 +3012,7 @@ const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جا�
 // 16/11 16:40: المنصة بتشغّل بس نسخ "هدف 1.2% / وقف 1.2%" من كل الاستراتيجيات (طلب المستخدم) — الأصلية بالمختبر بس
 const PLATFORM_KEEP = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% ليمت 0.6%", b + " | 1.2% ليمت 0.8%"]),   // 17/11 03:55: «تأكيد 15m» انلغت من المنصة (طلب المستخدم — دخول متأخر على أسوأ سعر)
   ...["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"].map(b => b + " | هدف 1.2% وقف 1.2%"),
-  ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"])]);   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
+  ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"]), "Range Sniper 15m (كما هي)"]);   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
