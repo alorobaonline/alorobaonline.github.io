@@ -4220,7 +4220,8 @@ function renderRealM5() {
     let e = M5PEND.get(m); if (!e || e.len !== m.c.length) { let p = []; try { p = MACDP.pending(c.D, CACHE.startTs); } catch (er) {} e = { len: m.c.length, p }; M5PEND.set(m, e); }
     for (const q of e.p) if (q.until > now && !openSyms.has(c.sym)) rows.push({ sym: c.sym, ...q, px: pxOf(c.sym) });
   }
-  rows.sort((a, b) => b.sigTs - a.sigTs);
+  const dOf = r => r.px ? (r.px/r.lim - 1)*100 : Infinity;   // 17/11: الأقرب لليمت فوق (طلب المستخدم)
+  rows.sort((a, b) => dOf(a) - dOf(b) || b.sigTs - a.sigTs);
   $("realM5Pend").innerHTML = rows.length ? `<div class="wrap"><table><tr><th>العملة</th><th>الأمر</th><th>سعر الليمت</th><th>السعر هلأ</th><th>بعيد عن الليمت</th><th>الهدف (+1.2%)</th><th>الوقف (−1.2%)</th><th>الإشارة</th><th>يلغى الساعة</th></tr>${rows.map(r => {
     const dist = r.px ? (r.px/r.lim - 1)*100 : null, hit = dist !== null && dist <= 0;
     return `<tr style="${hit ? "background:#14321f;" : ""}"><td><b>${cn(r.sym)}</b></td><td>🟢 Limit Buy</td><td><b class="num">${fp(r.lim)}</b>${r.approx ? ' <span class="mut" title="الشمعة اللي بعد الإشارة لسا ما سكّرت — الليمت محسوب من آخر سعر وبيتعدّل شوي على افتتاحها">≈</span>' : ""}</td><td>${r.px ? fp(r.px) : "—"}</td><td>${dist === null ? "—" : hit ? "✅ وصل الليمت" : dist.toFixed(2) + "%"}</td><td><span class="num pos">${fp(r.tgt)}</span></td><td><span class="num neg">${fp(r.stop)}</span></td><td>${tm(r.sigTs)}</td><td><b>${tm(r.until)}</b> <span class="mut">(${left(r.until - now)})</span></td></tr>`; }).join("")}</table></div>` : `<div class="mut">ما في ليمت لازم ينحط هلأ${noData ? ` <span class="mut">(${noData} عملة بدون بيانات 5د لسا)</span>` : ""}.</div>`;
