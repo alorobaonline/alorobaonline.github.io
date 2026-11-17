@@ -3124,7 +3124,7 @@ for (const b of TP_BASES) STRATS_ALL.push(trendWrap(tpWrap(b, 0.012, 0.012, "ه�
 // 17/11 13:59: Lux ليمت 1% · هدف 1% · وقف 1.5% (كود المستخدم) — الليمت صالح 4 شموع 15m، صفقة وحدة بالمرة على العملة، الوقف قبل الهدف بنفس الشمعة
 //  + تصليح شمعة التنفيذ: ما في هدف (ولا فجوة افتتاح) على الشمعة اللي تعبّى فيها الليمت
 const LUX_L10 = "#8 Lux Trendline+TRAMA+Chandelier | ليمت 1% · هدف 1% · وقف 1.5%";
-function luxL10Wrap(baseName, name, depth, tp, sl, asis = false) {   // asis = كود المستخدم بدون تصليح شمعة التنفيذ (مختبر بس، للمقارنة)
+function luxL10Wrap(baseName, name, depth, tp, sl, asis = false, m5 = false) {   // m5 = شمعة التنفيذ بتنفحص بشموع الـ5 دقايق بالترتيب الحقيقي (فحص 17/11 14:31)   // asis = كود المستخدم بدون تصليح شمعة التنفيذ (مختبر بس، للمقارنة)
   const run = (D, inds, sp, startTs) => {
     const base = STRATS_ALL.find(x => x.name === baseName); if (!base) return [];
     const src = evaluate(D, inds, base, startTs).slice().sort((a, b) => a.e - b.e), n = D.o.length, out = [], seen = new Set();
@@ -3138,8 +3138,22 @@ function luxL10Wrap(baseName, name, depth, tp, sl, asis = false) {   // asis = �
       for (let j = t.e; j <= last; j++) if (d === 1 ? D.l[j] <= lim : D.h[j] >= lim) { e = d === 1 ? Math.min(lim, D.o[j]) : Math.max(lim, D.o[j]); ei = j; break; }
       if (e === null) { busy = last; continue; }
       const tgt = e*(1 + d*tp), stop = e*(1 - d*sl);
-      let px = null, why = null, xi = null;
-      for (let j = ei; j < n; j++) {
+      let px = null, why = null, xi = null, j0 = ei;
+      if (m5) {   // شمعة التنفيذ: 3 شموع 5د — أول وحدة لمست الليمت = لحظة الدخول، بعدها بالترتيب: وقف قبل هدف
+        const M = D.m5, k0 = M ? Math.round((D.t0 + ei*M15 - M.t0)/300000) : -1;
+        if (M && k0 >= 0 && k0 + 2 < M.o.length) {
+          let kf = -1;
+          for (let k = k0; k < k0 + 3; k++) {
+            if (kf < 0) { if (d === 1 ? M.l[k] <= lim : M.h[k] >= lim) { kf = k; if (d === 1 ? M.l[k] <= stop : M.h[k] >= stop) { px = stop; why = "STOP"; xi = ei; break; } } continue; }
+            if (d*(M.o[k] - stop) <= 0) { px = M.o[k]; why = "STOP"; xi = ei; break; }
+            if (d*(M.o[k] - tgt) >= 0) { px = M.o[k]; why = "TGT_GAP"; xi = ei; break; }
+            if (d === 1 ? M.l[k] <= stop : M.h[k] >= stop) { px = stop; why = "STOP"; xi = ei; break; }
+            if (d === 1 ? M.h[k] >= tgt : M.l[k] <= tgt) { px = tgt; why = "TARGET"; xi = ei; break; }
+          }
+        }
+        j0 = ei + 1;   // إذا ما سكّرت بشمعة التنفيذ (أو ما في 5د) بنكمّل من الشمعة اللي بعدها
+      }
+      for (let j = j0; px === null && j < n; j++) {
         if ((asis || j > ei) && d*(D.o[j] - stop) <= 0) { px = D.o[j]; why = "STOP"; xi = j; break; }
         if ((asis || j > ei) && d*(D.o[j] - tgt) >= 0) { px = D.o[j]; why = "TGT_GAP"; xi = j; break; }
         if (d === 1 ? D.l[j] <= stop : D.h[j] >= stop) { px = stop; why = "STOP"; xi = j; break; }
@@ -3155,6 +3169,7 @@ function luxL10Wrap(baseName, name, depth, tp, sl, asis = false) {   // asis = �
   return { name, mult: (STRATS_ALL.find(x => x.name === baseName) || {}).mult || 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Lux limit 1% wrap (user)" };
 }
 STRATS_ALL.push(luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", LUX_L10, 0.010, 0.010, 0.015),
+  luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", LUX_L10 + " (دقة 5د)", 0.010, 0.010, 0.015, true, true),   // مختبر بس (بيحتاج D.m5)
   luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", LUX_L10 + " (كود كما هو)", 0.010, 0.010, 0.015, true));   // الثانية مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(quietWrap(timingWrap(b, "limit6")));   // مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(posWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), 0.4), posWrap(timingWrap(b, "limit6"), 0.4));   // مختبر بس
