@@ -3702,7 +3702,113 @@ const OLDB = (() => {
       }
       if (pos && pos.e*M15 + D.t0 >= startTs) out.push({ name: sp.name, d: pos.d, e: pos.e, x: nD - 1, rawIn: D.o[pos.e], rawOut: D.c[nD-1], why: "TIME", open: true, stop: pos.stop, target: pos.tp });
       return out; } };
-  return { strats: [ichimaj, ichibot, srce, vol, zp, fib, gann, luxb, msbb, hottb, stb, c3], btcAt, bars4, barsN };
+  // ===== 🧪 s17bot: SSL Hybrid + QQE MOD + WAE (15m) — نفس s17.py =====
+  const S17 = (() => {
+    const sma = (x, n) => { const out = new Array(x.length).fill(null); let q = [], acc = 0;
+      for (let i = 0; i < x.length; i++) { const v = x[i]; if (v === null) { q = []; acc = 0; continue; } q.push(v); acc += v; if (q.length > n) acc -= q.shift(); if (q.length === n) out[i] = acc/n; } return out; };
+    const stdev = (x, n) => { const out = new Array(x.length).fill(null);
+      for (let i = n - 1; i < x.length; i++) { let ok = true, m = 0; for (let k = i - n + 1; k <= i; k++) { if (x[k] === null) { ok = false; break; } m += x[k]; } if (!ok) continue; m /= n;
+        let s = 0; for (let k = i - n + 1; k <= i; k++) s += (x[k] - m)**2; out[i] = Math.sqrt(s/n); } return out; };
+    const ema = (x, n) => { const out = new Array(x.length).fill(null), a = 2/(n + 1); let e = null, buf = [];
+      for (let i = 0; i < x.length; i++) { const v = x[i]; if (v === null) continue; if (e === null) { buf.push(v); if (buf.length === n) { e = buf.reduce((p, q) => p + q, 0)/n; out[i] = e; } continue; } e = a*v + (1 - a)*e; out[i] = e; } return out; };
+    const rmaP = (x, n) => { const out = new Array(x.length).fill(null); let e = null, buf = [];
+      for (let i = 0; i < x.length; i++) { const v = x[i]; if (v === null) continue; if (e === null) { buf.push(v); if (buf.length === n) { e = buf.reduce((p, q) => p + q, 0)/n; out[i] = e; } continue; } e = (e*(n - 1) + v)/n; out[i] = e; } return out; };
+    const wma = (x, n) => { const out = new Array(x.length).fill(null), den = n*(n + 1)/2;
+      for (let i = n - 1; i < x.length; i++) { let s = 0, ok = true; for (let k = 0; k < n; k++) { const v = x[i - n + 1 + k]; if (v === null) { ok = false; break; } s += v*(k + 1); } if (ok) out[i] = s/den; } return out; };
+    const pyRound = v => { const f = Math.floor(v), r = v - f; return r > 0.5 ? f + 1 : (r < 0.5 ? f : (f % 2 === 0 ? f : f + 1)); };
+    const hma = (x, n) => { const a = wma(x, Math.max(Math.trunc(n/2), 1)), b = wma(x, n); return wma(a.map((p, i) => p !== null && b[i] !== null ? 2*p - b[i] : null), Math.max(pyRound(Math.sqrt(n)), 1)); };
+    const rsi = (x, n) => { const g = [null], l = [null]; for (let i = 1; i < x.length; i++) { g.push(Math.max(x[i] - x[i-1], 0)); l.push(Math.max(x[i-1] - x[i], 0)); }
+      const ag = rmaP(g, n), al = rmaP(l, n); return ag.map((a, i) => a === null || al[i] === null ? null : (al[i] === 0 ? 100 : 100 - 100/(1 + a/al[i]))); };
+    function ssl(H, L, C) { const n = C.length, base = hma(C, 60), rng = ema(trng(H, L, C), 60), state = new Array(n).fill(0);
+      for (let i = 0; i < n; i++) { if (base[i] === null || rng[i] === null) continue; const u = base[i] + rng[i]*0.2, d = base[i] - rng[i]*0.2; state[i] = C[i] > u ? 1 : (C[i] < d ? -1 : 0); }
+      const eh = hma(H, 15), el = hma(L, 15), ex = new Array(n).fill(null), arrow = new Array(n).fill(0); let hlv = 0;
+      for (let i = 0; i < n; i++) { if (eh[i] === null || el[i] === null) continue; hlv = C[i] > eh[i] ? 1 : (C[i] < el[i] ? -1 : hlv); ex[i] = hlv < 0 ? eh[i] : el[i];
+        if (i > 0 && ex[i-1] !== null) { if (C[i] > ex[i] && C[i-1] <= ex[i-1]) arrow[i] = 1; else if (ex[i] > C[i] && ex[i-1] <= C[i-1]) arrow[i] = -1; } }
+      return { base, state, arrow }; }
+    function qqe(C, rl, sf, q) { const wp = rl*2 - 1, r = rsi(C, rl), rm = ema(r, sf), n = C.length, atr = [null];
+      for (let i = 1; i < n; i++) atr.push(rm[i] !== null && rm[i-1] !== null ? Math.abs(rm[i-1] - rm[i]) : null);
+      const dar = ema(ema(atr, wp), wp).map(v => v !== null ? v*q : null), lb = new Array(n).fill(0), sb = new Array(n).fill(0), tr = new Array(n).fill(1), tl = new Array(n).fill(null);
+      for (let i = 0; i < n; i++) {
+        if (rm[i] === null || dar[i] === null || i === 0 || rm[i-1] === null) { if (i) { lb[i] = lb[i-1]; sb[i] = sb[i-1]; tr[i] = tr[i-1]; } continue; }
+        const R = rm[i], R1 = rm[i-1], nsb = R + dar[i], nlb = R - dar[i];
+        lb[i] = (R1 > lb[i-1] && R > lb[i-1]) ? Math.max(lb[i-1], nlb) : nlb;
+        sb[i] = (R1 < sb[i-1] && R < sb[i-1]) ? Math.min(sb[i-1], nsb) : nsb;
+        const s2 = i >= 2 ? sb[i-2] : sb[i-1], l2 = i >= 2 ? lb[i-2] : lb[i-1];
+        const cu = (R > sb[i-1] && R1 <= s2) || (R < sb[i-1] && R1 >= s2), cd = (lb[i-1] > R && l2 <= R1) || (lb[i-1] < R && l2 >= R1);
+        tr[i] = cu ? 1 : (cd ? -1 : tr[i-1]); tl[i] = tr[i] === 1 ? lb[i] : sb[i]; }
+      return { rm, tl }; }
+    function qqeMod(C) { const A = qqe(C, 6, 6, 3), B = qqe(C, 6, 5, 1.61), x = A.tl.map(v => v !== null ? v - 50 : null), basis = sma(x, 50), dev = stdev(x, 50), n = C.length;
+      const hist = B.rm.map(v => v !== null ? v - 50 : null), white = B.tl.map(v => v !== null ? v - 50 : null), sig = new Array(n).fill(0);
+      for (let i = 0; i < n; i++) { if (hist[i] === null || A.rm[i] === null || basis[i] === null || dev[i] === null) continue; const up = basis[i] + 0.35*dev[i], lo = basis[i] - 0.35*dev[i];
+        if (hist[i] > 3 && A.rm[i] - 50 > up) sig[i] = 1; else if (hist[i] < -3 && A.rm[i] - 50 < lo) sig[i] = -1; }
+      return { hist, white, sig }; }
+    function wae(C) { const ef = ema(C, 20), es = ema(C, 40), macd = ef.map((a, i) => a !== null && es[i] !== null ? a - es[i] : null), sd = stdev(C, 20), n = C.length;
+      const up = new Array(n).fill(0), dn = new Array(n).fill(0), ex = new Array(n).fill(null);
+      for (let i = 1; i < n; i++) { if (macd[i] !== null && macd[i-1] !== null) { const t1 = (macd[i] - macd[i-1])*180; if (t1 >= 0) up[i] = t1; else dn[i] = -t1; } if (sd[i] !== null) ex[i] = 4*sd[i]; }
+      return { up, dn, ex }; }
+    function run(D, inds, sp, startTs) {
+      const B = barsN(D, 1), n = B.K, nD = D.o.length, out = []; if (n < 300) return out;
+      const { O, H, L, C } = B, S = ssl(H, L, C), Q = qqeMod(C), W = wae(C);
+      const ok = (c, side) => { const b = S.base[c], qh = Q.hist[c], qw = Q.white[c], we = W.ex[c]; if (b === null || qh === null || qw === null || we === null) return false;
+        return side === 1 ? (C[c] > O[c] && C[c] > b && S.state[c] === 1 && Q.sig[c] === 1 && qh > qw && W.up[c] > we)
+                          : (C[c] < O[c] && C[c] < b && S.state[c] === -1 && Q.sig[c] === -1 && qh < qw && W.dn[c] > we); };
+      let pos = null;
+      for (let c = 200; c < n; c++) {
+        let busy = false;
+        if (pos) { const i = c, s = pos.d; let px = null, why = null, x = null;
+          if (s === 1 ? O[i] <= pos.stop : O[i] >= pos.stop) { px = O[i]; why = "STOP"; x = i; }
+          else if (s === 1 ? L[i] <= pos.stop : H[i] >= pos.stop) { px = pos.stop; why = "STOP"; x = i; }
+          else if (S.arrow[i] === -s) { if (i + 1 < nD) { px = D.o[i + 1]; why = "SSL_ARROW"; x = i + 1; busy = true; } }
+          if (px !== null) { if (pos.e*M15 + D.t0 >= startTs) out.push({ name: sp.name, d: s, e: pos.e, x, rawIn: D.o[pos.e], rawOut: px, why, open: false, stop: pos.stop, target: NaN }); pos = null; } }
+        if (pos || busy || c + 1 >= nD) continue;
+        for (const side of [1, -1]) { if (!ok(c, side)) continue;
+          const e = D.o[c + 1], st = side === 1 ? L[c - 2] : H[c - 2]; if ((e - st)*side <= 0) break;
+          pos = { d: side, e: c + 1, stop: st }; break; }
+      }
+      if (pos && pos.e*M15 + D.t0 >= startTs) out.push({ name: sp.name, d: pos.d, e: pos.e, x: nD - 1, rawIn: D.o[pos.e], rawOut: D.c[nD-1], why: "TIME", open: true, stop: pos.stop, target: NaN });
+      return out;
+    }
+    return { name: "🧪 بوت S17 SSL+QQE+WAE 15m (s17bot)", mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "بوت تلغرام قديم (ملفات المستخدم)", run, _ind: (H, L, C) => ({ S: ssl(H, L, C), Q: qqeMod(C), W: wae(C) }) };
+  })();
+  // ===== 🧪 mssbot: Sweep + MSS V2 (4h) — نفس sweepms.trades_for (فلتر EMA200) · كل اتجاه محفظة لحاله =====
+  const MSS = (() => {
+    const atr14 = (H, L, C) => { const n = C.length, out = new Array(n).fill(null); let a = null; const tr = j => Math.max(H[j] - L[j], Math.abs(H[j] - C[j-1]), Math.abs(L[j] - C[j-1]));
+      for (let i = 1; i < n; i++) { if (i < 14) continue; if (a === null) { a = 0; for (let j = 1; j < 15; j++) a += tr(j); a /= 14; } else a = (a*13 + tr(i))/14; out[i] = a; } return out; };
+    const ema200 = C => { const out = new Array(C.length).fill(null), k = 2/201; let e = null; for (let i = 199; i < C.length; i++) { if (e === null) { e = 0; for (let j = 0; j < 200; j++) e += C[j]; e /= 200; } else e = C[i]*k + e*(1 - k); out[i] = e; } return out; };
+    function signals(H, L, C, A, side) { const n = C.length, out = []; let lvl = null, pend = null;
+      for (let k = 0; k < n; k++) {
+        if (lvl !== null && A[k] !== null && k >= 3) {
+          if (side === 1 && lvl - L[k] >= 0.1*A[k] && C[k] > lvl) pend = [k, Math.max(H[k-3], H[k-2], H[k-1])];
+          else if (side === -1 && H[k] - lvl >= 0.1*A[k] && C[k] < lvl) pend = [k, Math.min(L[k-3], L[k-2], L[k-1])];
+          else if (pend && (C[k] - pend[1])*side > 0 && k - pend[0] >= 1 && k - pend[0] <= 5) { out.push([k, pend[0]]); pend = null; } }
+        if (pend && k - pend[0] > 5) pend = null;
+        const i = k - 3;
+        if (i >= 3) { let a = true, b = true;
+          for (let j = i - 3; j <= k; j++) { if (j === i) continue; if (!(L[i] < L[j])) a = false; if (!(H[i] > H[j])) b = false; }
+          if (side === 1 && a) lvl = L[i]; if (side === -1 && b) lvl = H[i]; } }
+      return out; }
+    function run(D, inds, sp, startTs) {
+      const B = barsN(D, 16), { O, H, L, C } = B, n = B.K, nD = D.o.length, out = []; if (n < 210) return out;
+      const A = atr14(H, L, C), E = ema200(C);
+      for (const side of [1, -1]) { let busy = -1;
+        for (const [c, s] of signals(H, L, C, A, side)) { const e = c + 1;
+          if (e >= n || c <= busy || A[c] === null) continue;
+          if (E[c] === null || (C[c] - E[c])*side <= 0) continue;
+          const entry = O[e], stop = side === 1 ? L[s] - 0.25*A[c] : H[s] + 0.25*A[c], risk = (entry - stop)*side; if (risk <= 0) continue;
+          const tp = entry + side*2*risk, last = Math.min(e + 19, n - 1); let px = null, why = null, j = e;
+          for (j = e; j <= last; j++) {
+            if (side === 1) { if (O[j] <= stop) { px = O[j]; why = "STOP"; break; } if (L[j] <= stop) { px = stop; why = "STOP"; break; } if (O[j] >= tp) { px = O[j]; why = "TARGET"; break; } if (H[j] >= tp) { px = tp; why = "TARGET"; break; } }
+            else { if (O[j] >= stop) { px = O[j]; why = "STOP"; break; } if (H[j] >= stop) { px = stop; why = "STOP"; break; } if (O[j] <= tp) { px = O[j]; why = "TARGET"; break; } if (L[j] <= tp) { px = tp; why = "TARGET"; break; } } }
+          let open = false; if (px === null) { j = last; px = C[last]; why = "TIME"; open = last === n - 1 && e + 19 > n - 1; }
+          busy = j;
+          if (e*16*M15 + D.t0 < startTs) continue;
+          out.push({ name: sp.name, d: side, e: e*16, x: open ? nD - 1 : (why === "TIME" ? Math.min((j + 1)*16, nD - 1) : j*16), rawIn: entry, rawOut: open ? D.c[nD-1] : (why === "TIME" && (j + 1)*16 < nD ? D.o[(j + 1)*16] : px), why, open, stop, target: tp });
+        } }
+      return out.sort((a, b) => a.e - b.e);
+    }
+    return { name: "🧪 بوت Sweep + MSS V2 4h (mssbot)", mult: 16, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "بوت تلغرام قديم (ملفات المستخدم)", run, _sig: signals };
+  })();
+  return { strats: [ichimaj, ichibot, srce, vol, zp, fib, gann, luxb, msbb, hottb, stb, c3, S17, MSS], btcAt, bars4, barsN };
 })();
 STRATS_ALL.push(...OLDB.strats);
 // 17/11 23:08 (طلب المستخدم): ichibot و volbot على المنصة — كما هم + نسخة ليمت 0.6% · هدف 2% · وقف 1.2% (هي اللي بتنفتح بالحقيقي)
@@ -4627,7 +4733,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0010";
+const BUILD = "2026-11-18-0040";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);

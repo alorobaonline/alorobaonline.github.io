@@ -110,7 +110,9 @@
   "🧱 بوت MSB 15m/1h + Chandelier 4h (msbbot)",
   "🌊 بوت HOTT LOTT 1h/4h + Chandelier 4h (hottbot)",
   "📈 بوت Supertrend 4h + BTC (stbot)",
-  "🕯️ بوت الشموع 4h (candle3bot)"
+  "🕯️ بوت الشموع 4h (candle3bot)",
+  "🧪 بوت S17 SSL+QQE+WAE 15m (s17bot)",
+  "🧪 بوت Sweep + MSS V2 4h (mssbot)"
  ],
  "slots": 10,
  "notional": 200
