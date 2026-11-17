@@ -3227,7 +3227,7 @@ const MACDP = (() => {
       for (let i = 200; i < cs.length; i++) {
         const k = i + from, tClose = S.t0 + (k + 1)*S.step; if (tClose < startTs - 864e5 || atr[i] === null || tClose <= busyT) continue;
         const Lg = hist[i-1] <= 0 && hist[i] > 0 && cs[i] > e50[i] && cs[i] > S.O[k], Sh = hist[i-1] >= 0 && hist[i] < 0 && cs[i] < e50[i] && cs[i] < S.O[k];
-        if (Lg === Sh) continue; const d = Lg ? 1 : -1;
+        if (Lg === Sh) continue; const d = (Lg ? 1 : -1)*(opt.invert ? -1 : 1);   // invert: إشارة الشورت → شراء (فحص 17/11 17:41)
         if (opt.longOnly && d !== 1) continue;   // 17/11 13:00: لونج بس (الشورت مسكّر)
         if (opt.shortOnly && d !== -1) continue;   // 17/11 17:26: فحص الشورت لحاله (مختبر)
         const j0 = Math.round((tClose - X.t0)/X.step); if (j0 < 0 || j0 > nx || (j0 === nx && !pend)) continue; const ref = j0 < nx ? X.o[j0] : X.c[nx-1];   // j0 = nx: الشمعة اللي بعد الإشارة لسا ما سكّرت (خطة حقيقي بس) → آخر سعر تقريبي
@@ -3263,7 +3263,8 @@ const MACDP = (() => {
     mk("MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR", 60, 0.008, 0.012, 0.012, { longOnly: true }),
     mk("MACD v1.1 ساعة · ليمت 0.8% · لونج 1.2% شورت 1%", 60, 0.008, 0.012, 0.010), mk("MACD v1.1 15m · ليمت 0.8% · هدف 1.2%", 15, 0.008, 0.012, 0.012), mk("MACD v1.1 5m · ليمت 0.8% · هدف 1.2%", 5, 0.008, 0.012, 0.012),
     mk("MACD v1.1 5m · ليمت 0.8% · شورت · هدف 1.2% وقف 1.2%", 5, 0.008, 0.012, 0.012, { shortOnly: true, fixStop: 0.012 }),   // 17/11 17:26: مختبر بس
-    ...[0, 0.002, 0.004].map(dp => mk(`MACD v1.1 5m · ${dp ? "ليمت " + (dp*100).toFixed(1) + "%" : "بدون ليمت"} · شورت · هدف 1.2% وقف 1.2%`, 5, dp, 0.012, 0.012, { shortOnly: true, fixStop: 0.012 }))];   // 17/11 17:34: فحص شورت بليمت أصغر (مختبر بس)
+    ...[0, 0.002, 0.004].map(dp => mk(`MACD v1.1 5m · ${dp ? "ليمت " + (dp*100).toFixed(1) + "%" : "بدون ليمت"} · شورت · هدف 1.2% وقف 1.2%`, 5, dp, 0.012, 0.012, { shortOnly: true, fixStop: 0.012 })),
+    ...[0, 0.004, 0.008].map(dp => mk(`MACD v1.1 5m · عكس الشورت → لونج · ${dp ? "ليمت " + (dp*100).toFixed(1) + "%" : "بدون ليمت"} · هدف 1.2% وقف 1.2%`, 5, dp, 0.012, 0.012, { invert: true, longOnly: true, fixStop: 0.012 }))];   // 17/11 17:41: مختبر بس   // 17/11 17:34: فحص شورت بليمت أصغر (مختبر بس)
   const pending = (D, startTs) => { const p = []; strats[0].run(D, null, strats[0], startTs, p); return p; };   // 17/11 14:55: خطة حقيقي — MACD 5m
   return { strats, pending };
 })();
