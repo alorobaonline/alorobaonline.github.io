@@ -2668,6 +2668,7 @@ function timingWrap(baseName, mode) {
         if (j > ei && d*(D.o[j] - stop) <= 0) { px = D.o[j]; why = "STOP"; xi = j; break; }
         if (j > ei && d*(D.o[j] - tgt) >= 0) { px = D.o[j]; why = "TGT_GAP"; xi = j; break; }
         if (d === 1 ? D.l[j] <= stop : D.h[j] >= stop) { px = stop; why = "STOP"; xi = j; break; }
+        if (depth && j === ei) continue;   // 17/11 تصليح: شمعة تنفيذ الليمت — أعلى/أدنى سعر فيها ممكن صار قبل التنفيذ، فما منحسب منه هدف
         if (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt) { px = tgt; why = "TARGET"; xi = j; break; }
       }
       const w = t.w || 1;
