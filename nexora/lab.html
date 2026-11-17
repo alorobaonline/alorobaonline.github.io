@@ -3011,7 +3011,7 @@ const MACDM = (() => {
 //  وقف 1.5×ATR14 (على فريم الإشارة) · تعادل بعد 1R · تتبع من 1.5R على بُعد 1R ومن 2R على بُعد 0.5R · هدف ثابت (لونج/شورت)
 const MACDP = (() => {
   const M5 = 300000;
-  const mk = (name, tf, depth, tpL, tpS) => ({ name, mult: tf === 5 ? 0 : (tf === 60 ? 4 : 1), ...(tf === 5 ? { m5: true } : {}), sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD Momentum v1.1 (من المستخدم 17/11)",
+  const mk = (name, tf, depth, tpL, tpS, opt = {}) => ({ name, mult: tf === 5 ? 0 : (tf === 60 ? 4 : 1), ...(tf === 5 ? { m5: true } : {}), sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD Momentum v1.1 (من المستخدم 17/11)",
     run: (D, inds, sp, startTs) => {
       let S, X;   // S = شموع الإشارة (مسكّرة) · X = شموع التنفيذ
       if (tf === 5) { const m = D.m5; if (!m || m.o.length < 300) return []; S = { t0: m.t0, step: M5, O: m.o, H: m.h, L: m.l, C: m.c, n: m.o.length }; X = { t0: m.t0, step: M5, o: m.o, h: m.h, l: m.l, c: m.c }; }
@@ -3027,12 +3027,13 @@ const MACDP = (() => {
         const k = i + from, tClose = S.t0 + (k + 1)*S.step; if (tClose < startTs - 864e5 || atr[i] === null || tClose <= busyT) continue;
         const Lg = hist[i-1] <= 0 && hist[i] > 0 && cs[i] > e50[i] && cs[i] > S.O[k], Sh = hist[i-1] >= 0 && hist[i] < 0 && cs[i] < e50[i] && cs[i] < S.O[k];
         if (Lg === Sh) continue; const d = Lg ? 1 : -1;
+        if (opt.longOnly && d !== 1) continue;   // 17/11 13:00: لونج بس (الشورت مسكّر)
         const j0 = Math.round((tClose - X.t0)/X.step); if (j0 < 0 || j0 >= nx) continue; const ref = X.o[j0];
         if (Math.abs(ref*(1 + d*0.0001)/cs[i] - 1) > 0.006 + 1e-12) continue;   // حاجز 0.6%
         const lim = ref*(1 - d*depth), jEnd = Math.min(nx, j0 + Math.round(3600000/X.step)); let ej = null, px = null;
         for (let j = j0; j < jEnd; j++) if (d === 1 ? X.l[j] <= lim : X.h[j] >= lim) { ej = j; px = d === 1 ? Math.min(lim, X.o[j]) : Math.max(lim, X.o[j]); break; }
         if (ej === null) continue;
-        const R1 = 1.5*atr[i]; let stop = px - d*R1, best = px, ox = null, xj = null, why = null; const tgt = px*(1 + d*(d === 1 ? tpL : tpS));
+        const R1 = opt.fixStop ? px*opt.fixStop : 1.5*atr[i]; let stop = px - d*R1, best = px, ox = null, xj = null, why = null; const tgt = px*(1 + d*(d === 1 ? tpL : tpS));
         for (let j = ej; j < nx; j++) {
           if (j > ej && d*(X.o[j] - stop) <= 0) { ox = X.o[j]; xj = j; why = "STOP"; break; }
           if (j > ej && d*(X.o[j] - tgt) >= 0) { ox = X.o[j]; xj = j; why = "TGT_GAP"; break; }
@@ -3052,7 +3053,11 @@ const MACDP = (() => {
       }
       return out;
     } });
-  return { strats: [mk("MACD v1.1 ساعة · ليمت 0.8% · لونج 1.2% شورت 1%", 60, 0.008, 0.012, 0.010), mk("MACD v1.1 15m · ليمت 0.8% · هدف 1.2%", 15, 0.008, 0.012, 0.012), mk("MACD v1.1 5m · ليمت 0.8% · هدف 1.2%", 5, 0.008, 0.012, 0.012)] };
+  // 17/11 13:00 (طلب المستخدم): لونج بس · 5د و15د وقف ثابت 1.2% · ساعة وقف 1.5ATR — النسخ القديمة (لونج+شورت) بالمختبر بس
+  return { strats: [mk("MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", 5, 0.008, 0.012, 0.012, { longOnly: true, fixStop: 0.012 }),
+    mk("MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", 15, 0.008, 0.012, 0.012, { longOnly: true, fixStop: 0.012 }),
+    mk("MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR", 60, 0.008, 0.012, 0.012, { longOnly: true }),
+    mk("MACD v1.1 ساعة · ليمت 0.8% · لونج 1.2% شورت 1%", 60, 0.008, 0.012, 0.010), mk("MACD v1.1 15m · ليمت 0.8% · هدف 1.2%", 15, 0.008, 0.012, 0.012), mk("MACD v1.1 5m · ليمت 0.8% · هدف 1.2%", 5, 0.008, 0.012, 0.012)] };
 })();
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
   "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
@@ -3128,7 +3133,7 @@ const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جا�
 // 16/11 16:40: المنصة بتشغّل بس نسخ "هدف 1.2% / وقف 1.2%" من كل الاستراتيجيات (طلب المستخدم) — الأصلية بالمختبر بس
 const PLATFORM_KEEP = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% ليمت 0.6%", b + " | 1.2% ليمت 0.8%"]),   // 17/11 03:55: «تأكيد 15m» انلغت من المنصة (طلب المستخدم — دخول متأخر على أسوأ سعر)
   ...["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"].map(b => b + " | هدف 1.2% وقف 1.2%"),
-  ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"]), "Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", ...MACDP.strats.map(s => s.name),   // MACD v1.1 (17/11 12:19) · 17/11: كسر+فوليوم+ريتست انشالت من المنصة (خسرت من التصفير وعلى السنتين) — بالمختبر بس
+  ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"]), "Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", ...MACDP.strats.slice(0, 3).map(s => s.name),   // MACD v1.1 (17/11 12:19) · 17/11: كسر+فوليوم+ريتست انشالت من المنصة (خسرت من التصفير وعلى السنتين) — بالمختبر بس
 ]);   // 17/11 07:45: نسخ "فلتر استسلام" (فوليوم) انشالت من المنصة — بالمختبر بس (طلب المستخدم)   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 const PLATFORM_NOVOL = s => s.name.startsWith("WAVE ") || s.name.startsWith("⭐ S15 دخول 15m + فوليوم");
