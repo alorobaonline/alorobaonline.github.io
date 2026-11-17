@@ -4037,7 +4037,7 @@ function drawChart() {
     if (Zn) for (const [list, role] of [[Zn.above, "res"], [Zn.below, "sup"], [Zn.inside, "in"]]) for (const z of list) {
       if (z.hi < lo || z.lo > hi) continue; const y1 = y(Math.min(hi, z.hi)), y2 = y(Math.max(lo, z.lo));
       g.fillStyle = role === "res" ? "rgba(239,68,68,0.13)" : role === "sup" ? "rgba(34,197,94,0.13)" : "rgba(234,179,8,0.16)"; g.fillRect(0, y1, W - R, Math.max(2, y2 - y1));
-      g.fillStyle = role === "res" ? "#f87171" : role === "sup" ? "#4ade80" : "#facc15"; g.fillText(zoneLabel(z, role), W - R - 150, y1 + 11); }
+      g.fillStyle = role === "res" ? "#f87171" : role === "sup" ? "#4ade80" : "#facc15"; g.save(); g.direction = "rtl"; g.textAlign = "right"; g.font = "12px system-ui,sans-serif"; g.fillText(zoneLabel(z, role), W - R - 6, y1 + 12); g.restore(); }
   } catch (e) {}
   bars.forEach((b, i) => {
     const x = i*cw + cw/2, up = b.c >= b.o; g.strokeStyle = g.fillStyle = up ? "#22c55e" : "#ef4444";
