@@ -2672,8 +2672,8 @@ function timingWrap(baseName, mode, tp = 0.012) {   // 17/11 18:16: tp قابل 
         if (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt) { px = tgt; why = "TARGET"; xi = j; break; }
       }
       const w = t.w || 1;
-      if (px !== null) out.push({ name, d, e: ei, x: xi, rawIn: e, rawOut: px, why, open: false, stop, target: tgt, ...(w !== 1 ? { w } : {}) });
-      else out.push({ name, d, e: ei, x: n - 1, rawIn: e, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt, ...(w !== 1 ? { w } : {}) });
+      if (px !== null) out.push({ name, d, e: ei, x: xi, rawIn: e, rawOut: px, why, open: false, stop, target: tgt, ...(depth ? { lim: true } : {}), ...(w !== 1 ? { w } : {}) });
+      else out.push({ name, d, e: ei, x: n - 1, rawIn: e, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt, ...(depth ? { lim: true } : {}), ...(w !== 1 ? { w } : {}) });
     }
     return out;
   };
@@ -3051,8 +3051,8 @@ const MACDP = (() => {
         }
         const eTs = X.t0 + ej*X.step, open = ox === null; busyT = open ? Infinity : X.t0 + (xj + 1)*X.step;
         if (eTs < startTs) continue;
-        out.push(open ? { name, d, e: toE(eTs), x: D.o.length - 1, rawIn: px, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop, target: tgt }
-                      : { name, d, e: toE(eTs), x: toE(X.t0 + xj*X.step), rawIn: px, rawOut: ox, why, open: false, stop, target: tgt });
+        out.push(open ? { name, d, e: toE(eTs), x: D.o.length - 1, rawIn: px, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop, target: tgt, ...(depth ? { lim: true } : {}) }
+                      : { name, d, e: toE(eTs), x: toE(X.t0 + xj*X.step), rawIn: px, rawOut: ox, why, open: false, stop, target: tgt, ...(depth ? { lim: true } : {}) });
       }
       return out;
     } });
@@ -3181,8 +3181,8 @@ function luxL10Wrap(baseName, name, depth, tp, sl, asis = false, m5 = false) {  
         if (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt) { px = tgt; why = "TARGET"; xi = j; break; }
       }
       const w = t.w || 1;
-      if (px !== null) { out.push({ name, d, e: ei, x: xi, rawIn: e, rawOut: px, why, open: false, stop, target: tgt, ...(w !== 1 ? { w } : {}) }); busy = xi; }
-      else { out.push({ name, d, e: ei, x: n - 1, rawIn: e, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt, ...(w !== 1 ? { w } : {}) }); busy = n - 1; }
+      if (px !== null) { out.push({ name, d, e: ei, x: xi, rawIn: e, rawOut: px, why, open: false, stop, target: tgt, lim: true, ...(w !== 1 ? { w } : {}) }); busy = xi; }
+      else { out.push({ name, d, e: ei, x: n - 1, rawIn: e, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt, lim: true, ...(w !== 1 ? { w } : {}) }); busy = n - 1; }
     }
     return out;
   };
@@ -3211,11 +3211,16 @@ const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.
 const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المستخدم — 1.5% طلع أسوأ من التصفير). نسخ 1.5% بالمختبر
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
+// 17/11 19:53 (طلب المستخدم): الخسرانين من التصفير انشالوا من المنصة — بالمختبر بس
+const PLATFORM_DROP = new Set(["#8 Lux Trendline+TRAMA+Chandelier | هدف 1.2% وقف 1.2%", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% هادئة", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.4%",
+  "⭐ S15 دخول على إغلاق 15m | هدف 1.2% وقف 1.2%", "⭐ S15 دخول على إغلاق 15m | 1.2% ليمت 0.4%", "⭐ S15 دخول على إغلاق 15m | 1.2% ليمت 0.6%", "⭐ S15 دخول على إغلاق 15m | 1.2% ليمت 0.8%",
+  "#8 Lux Trendline+TRAMA+Chandelier | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.4% + فلتر ترند ساعة", "⭐ S15 دخول 15m + بُعد ATR | هدف 1.2% وقف 1.2%",
+  "⭐ S15 دخول على إغلاق 15m | هدف 1.2% وقف 1.2% + فلتر ترند ساعة"]);
 const PLATFORM_NOVOL = s => s.name.startsWith("WAVE ") || s.name.startsWith("⭐ S15 دخول 15m + فوليوم");
 // 17/11 10:45: V42 على المنصة بنسخة وحدة بس — ليمت 0.8% · هدف 1.2% · وقف 1.2% (طلب المستخدم، الأحسن من التصفير) — باقي نسخ V42 بالمختبر بس
 const V42_KEEP = PLAT_TP15 ? "V42 4H SHORT b0 | 1.5% ليمت 0.8%" : "V42 4H SHORT b0 | 1.2% ليمت 0.8%";   // 17/11 18:16: هدف 1.5%
 const PLATFORM_V42OFF = s => s.name.startsWith("V42 4H SHORT b0 |") && s.name !== V42_KEEP;
-const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name) && !PLATFORM_NOVOL(s) && !PLATFORM_V42OFF(s));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
+const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name) && !PLATFORM_NOVOL(s) && !PLATFORM_V42OFF(s) && !PLATFORM_DROP.has(s.name));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
   const first = (i+1)*16, last = Math.min(first+16, D.o.length);
@@ -3292,8 +3297,9 @@ function evaluate0(D, inds, sp, startTs) {
 
 // العمولة والتمويل والصافي لكل صفقة
 function money(t, D, P, funding, lastPrice) {
-  const d = t.d, fillIn = P.makerEntry ? t.rawIn : t.rawIn*(1 + d*P.slip), qty = P.notional*(t.w || 1)/fillIn;
-  const feeIn = qty*fillIn*(P.makerEntry ? P.maker : P.taker);
+  const mkIn = P.makerEntry || !!t.lim;   // 17/11 19:53: دخول ليمت = Maker (بدون انزلاق) — طلب المستخدم
+  const d = t.d, fillIn = mkIn ? t.rawIn : t.rawIn*(1 + d*P.slip), qty = P.notional*(t.w || 1)/fillIn;
+  const feeIn = qty*fillIn*(mkIn ? P.maker : P.taker);
   const eTs = D.t0 + t.e*M15, xTs = D.t0 + (t.x+1)*M15;
   let fillOut, feeOut, gross;
   if (t.open) { fillOut = lastPrice; feeOut = 0; }
