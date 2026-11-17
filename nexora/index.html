@@ -4053,9 +4053,9 @@ function lwBars(D, m, sym) {   // شموع الفريم المختار (مسكّ
     for (let k = i; k < e; k++) { h = Math.max(h, D.h[k]); l = Math.min(l, D.l[k]); v += D.v ? (D.v[k] || 0) : 0; }
     out.push({ time: (D.t0 + i*M15)/1000 + TZS(), open: D.o[i], high: h, low: l, close: D.c[e-1] }); vol.push(v); }
   const F = FORM[sym] && FORM[sym].t >= D.t0 + n*M15 ? FORM[sym] : (FORMB[sym] && FORMB[sym].t >= D.t0 + n*M15 ? FORMB[sym] : null), px = pxOf(sym);
-  if (F || px) { const ft = D.t0 + n*M15, fo = F ? F.o : D.c[n-1], fh = Math.max(F ? F.h : fo, px || fo), fl = Math.min(F ? F.l : fo, px || fo), fc = px || (F ? F.c : fo);
+  if (F || px) { const ft = F ? F.t : D.t0 + n*M15, fo = F ? F.o : D.c[n-1], fh = Math.max(F ? F.h : fo, px || fo), fl = Math.min(F ? F.l : fo, px || fo), fc = px || (F ? F.c : fo);   // وقت الشمعة الحية الحقيقي (حتى لو آخر شمعة مسكّرة لسا ما وصلت)
     const bt = D.t0 + s*M15 + Math.floor((ft - D.t0 - s*M15)/(m*M15))*m*M15, T = bt/1000 + TZS(), last = out[out.length-1];
-    if (last && last.time === T) { if (last.close !== undefined && (n - s) % m !== 0) { last.high = Math.max(last.high, fh); last.low = Math.min(last.low, fl); last.close = fc; } else if ((n - s) % m === 0) out.push({ time: T, open: fo, high: fh, low: fl, close: fc }); }
+    if (last && last.time === T) { last.high = Math.max(last.high, fh); last.low = Math.min(last.low, fl); last.close = fc; }
     else if (!last || T > last.time) { out.push({ time: T, open: fo, high: fh, low: fl, close: fc }); vol.push(F && F.v ? F.v : 0); } }
   return { bars: out, vol };
 }
