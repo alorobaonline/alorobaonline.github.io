@@ -3158,6 +3158,42 @@ function floorAvoidWrap(inner) {
   return { ...inner, name, run: (D, inds, sp, startTs) => { const P = pivOf(D); return inner.run(D, inds, inner, startTs).filter(t => {
     const px = t.rawIn, up = t.e - 1, L = t.d === -1 ? levelNear(D, P, P.lows, up, px*(1 - 0.012), px) : levelNear(D, P, P.highs, up, px, px*(1 + 0.012)); return L.n < 4; }).map(t => ({ ...t, name })); }, src: "مختبر: تجنب الأرضية القريبة (17/11)" };
 }
+
+// 17/11 مختبر بس: MACD Momentum v1.1 (من المستخدم) — 5m، كما هي:
+//  إشارة على شمعة مسكّرة: هيستوغرام MACD(12,26,9) يقطع الصفر باتجاه الصفقة + الإغلاق فوق/تحت EMA50 + الشمعة باتجاهها · تهيئة 200 شمعة (EMA200)
+//  دخول: افتتاح الشمعة الجاية، مرفوض إذا سعر التعبئة المقدّر (مع انزلاق 1bps) أبعد من 0.6% عن إغلاق شمعة الإشارة (abs)
+//  خروج: وقف أولي 1.5×ATR14 (=1R) · تعادل بعد 1R · وقف متحرك من 1.5R على بُعد 1R من أفضل سعر · من 2R الحماية بتقرّب لـ 0.5R (افتراض — مسافة التتبع مش محددة)
+const MACDM = (() => {
+  const M5 = 300000, name = "MACD Momentum v1.1 5m (كما هي)";
+  const run = (D, inds, sp, startTs) => {
+    const m = D.m5; if (!m || m.o.length < 400) return [];
+    const n = m.o.length, C = m.c, e12 = ema(C, 12), e26 = ema(C, 26), mac = C.map((x, i) => e12[i] - e26[i]), sg = ema(mac, 9), hist = mac.map((x, i) => x - sg[i]), e50 = ema(C, 50);
+    const atr = new Array(n).fill(null); let a = null; for (let i = 1; i < n; i++) { const tr = Math.max(m.h[i] - m.l[i], Math.abs(m.h[i] - C[i-1]), Math.abs(m.l[i] - C[i-1])); if (i < 14) continue; a = a === null ? tr : (a*13 + tr)/14; atr[i] = a; }
+    const toE = i => Math.max(0, Math.floor((m.t0 + i*M5 - D.t0)/M15)), out = []; let busyTo = -1;
+    let i0 = 200; while (i0 < n && m.t0 + i0*M5 < startTs - 2*864e5) i0++;
+    for (let i = Math.max(200, i0); i < n - 1; i++) {
+      if (i <= busyTo || atr[i] === null) continue;
+      const L = hist[i-1] <= 0 && hist[i] > 0 && C[i] > e50[i] && C[i] > m.o[i], S = hist[i-1] >= 0 && hist[i] < 0 && C[i] < e50[i] && C[i] < m.o[i];
+      if (L === S) continue; const d = L ? 1 : -1, e = i + 1, px = m.o[e];
+      if (Math.abs(px*(1 + d*0.0001)/C[i] - 1) > 0.006 + 1e-12) continue;   // حاجز 0.6%
+      const R1 = 1.5*atr[i]; if (!(R1 > 0)) continue;
+      let stop = px - d*R1, best = px, ox = null, xi = null, why = null;
+      for (let j = e; j < n; j++) {
+        if (j > e && d*(m.o[j] - stop) <= 0) { ox = m.o[j]; xi = j; why = "STOP"; break; }
+        if (d === 1 ? m.l[j] <= stop : m.h[j] >= stop) { ox = stop; xi = j; why = d*(stop - px) > 0 ? "TRAIL_STOP" : (stop === px ? "BE" : "INIT_STOP"); break; }
+        best = d === 1 ? Math.max(best, m.h[j]) : Math.min(best, m.l[j]); const g = d*(best - px);   // التحديث بيسري من الشمعة الجاية
+        if (g >= R1) stop = d === 1 ? Math.max(stop, px) : Math.min(stop, px);
+        if (g >= 1.5*R1) stop = d === 1 ? Math.max(stop, best - R1) : Math.min(stop, best + R1);
+        if (g >= 2*R1) stop = d === 1 ? Math.max(stop, best - 0.5*R1) : Math.min(stop, best + 0.5*R1);
+      }
+      const open = ox === null; busyTo = open ? n : xi;
+      if (m.t0 + e*M5 < startTs) continue;
+      out.push(open ? { name, d, e: toE(e), x: D.o.length - 1, rawIn: px, rawOut: C[n-1], why: "TIME", open: true, stop, target: NaN } : { name, d, e: toE(e), x: toE(xi), rawIn: px, rawOut: ox, why, open: false, stop, target: NaN });
+    }
+    return out;
+  };
+  return { strats: [{ name, mult: 0, m5: true, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD Momentum v1.1 (من المستخدم 17/11) — كما هي على 5m" }] };
+})();
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
   "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
   "Bagheri IG Ether 15m (كما هي)", "⭐ S15 دخول على إغلاق 15m"];   // 17/11: Bagheri ساعة و4h انشالوا (إشارتين بالسنة — طلب المستخدم)
@@ -3212,6 +3248,7 @@ const STRATS_ALL = [
   ...VBLAB.strats,   // مختبر بس (مش بـ PLATFORM_KEEP)
   ...MRVLAB.strats,   // مختبر بس
   ...FLOORLAB.strats,   // مختبر بس
+  ...MACDM.strats,   // مختبر بس
   { ...RSNIPER.strats[0], name: "Range Sniper + فوليوم ≥5× (مختبر)", volMin: 5 },
 ];
 for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% وقف 0.6%"), tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), tpWrap(b, 0.012, null, "هدف 1.2% وقف أصلي"));
