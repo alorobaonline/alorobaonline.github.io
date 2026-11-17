@@ -3328,6 +3328,12 @@ for (const b of ["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + 
 for (const b of TP_BASES) STRATS_ALL.push(trendWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), trendWrap(timingWrap(b, "limit")));
 // 17/11 13:59: Lux ليمت 1% · هدف 1% · وقف 1.5% (كود المستخدم) — الليمت صالح 4 شموع 15m، صفقة وحدة بالمرة على العملة، الوقف قبل الهدف بنفس الشمعة
 //  + تصليح شمعة التنفيذ: ما في هدف (ولا فجوة افتتاح) على الشمعة اللي تعبّى فيها الليمت
+// 17/11 17:19: اتجاه واحد بس (مختبر) — لفحص الشورت لحاله قبل ربطه بالحقيقي
+function dirOnlyWrap(baseName, d) {
+  const name = baseName + (d === 1 ? " | لونج بس" : " | شورت بس");
+  return { name, mult: (STRATS_ALL.find(x => x.name === baseName) || {}).mult || 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "direction filter",
+    run: (D, inds, sp, startTs) => { const base = STRATS_ALL.find(x => x.name === baseName); if (!base) return []; return evaluate(D, inds, base, startTs).filter(t => t.d === d).map(t => ({ ...t, name })); } };
+}
 const LUX_L10 = "#8 Lux Trendline+TRAMA+Chandelier | ليمت 1% · هدف 1% · وقف 1.5%";
 function luxL10Wrap(baseName, name, depth, tp, sl, asis = false, m5 = false) {   // m5 = شمعة التنفيذ بتنفحص بشموع الـ5 دقايق بالترتيب الحقيقي (فحص 17/11 14:31)   // asis = كود المستخدم بدون تصليح شمعة التنفيذ (مختبر بس، للمقارنة)
   const run = (D, inds, sp, startTs) => {
@@ -3376,6 +3382,7 @@ function luxL10Wrap(baseName, name, depth, tp, sl, asis = false, m5 = false) {  
 STRATS_ALL.push(luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", LUX_L10, 0.010, 0.010, 0.015),
   luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", LUX_L10 + " (دقة 5د)", 0.010, 0.010, 0.015, true, true),   // مختبر بس (بيحتاج D.m5)
   luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", LUX_L10 + " (كود كما هو)", 0.010, 0.010, 0.015, true));   // الثانية مختبر بس
+STRATS_ALL.push(dirOnlyWrap("#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8%", -1), dirOnlyWrap("#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.6%", -1));   // مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(quietWrap(timingWrap(b, "limit6")));   // مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(posWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), 0.4), posWrap(timingWrap(b, "limit6"), 0.4));   // مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(floorAvoidWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), floorAvoidWrap(timingWrap(b, "limit6")));   // مختبر بس
