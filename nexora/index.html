@@ -2880,10 +2880,28 @@ function btcStateOf(D) {   // +1 = بيتكوين فوق EMA50 على الساع
   const E = ema(C, 50), st = new Int8Array(n); for (let i = 50; i < n; i++) st[i] = C[i] > E[i] ? 1 : -1;
   return { t0: D.t0, st };
 }
+// 17/11: خروج مبكر عند انقلاب الترند (طلب المستخدم) — على كل إغلاق شمعة ساعة بعد الدخول:
+//  • البيتكوين قلب ضد الصفقة (شورت وسكّر فوق EMA50 ساعة / لونج وسكّر تحتها)، أو
+//  • العملة نفسها قطعت EMA50 ساعة ضد الصفقة (كانت تحتها وسكّرت فوقها للشورت، والعكس للونج)
+//  → خروج على افتتاح الشمعة 15m اللي بعدها (قبل الوقف). شموع مسكّرة بس.
+function trendExit(D, inds, t) {
+  const I = inds && inds[4]; if (!I) return t;
+  const n = D.o.length, lastClosed = D.prov ? n - 2 : n - 1, d = t.d, B = D.btcS;
+  const end = Math.min(t.open ? lastClosed : t.x - 1, n - 2);   // لازم الخروج المبكر يصير قبل خروج الصفقة الأصلي
+  for (let j = t.e; j <= end && j <= lastClosed; j++) {
+    if ((j + 1) % 4) continue;
+    const k = (j + 1)/4 - 1; if (k < 1 || k >= I.n) continue;
+    let flip = false;
+    if (B) { const kb = Math.floor((D.t0 + (j + 1)*M15 - B.t0)/(4*M15)) - 1; if (kb >= 0 && kb < B.st.length && B.st[kb] === -d) flip = true; }
+    if (d === -1 ? (I.C[k-1] <= I.ema50[k-1] && I.C[k] > I.ema50[k]) : (I.C[k-1] >= I.ema50[k-1] && I.C[k] < I.ema50[k])) flip = true;
+    if (flip) return { ...t, x: j + 1, rawOut: D.o[j + 1], why: "TREND_EXIT", open: false };
+  }
+  return t;
+}
 function trendWrap(inner) {
   const name = inner.name + " + فلتر ترند ساعة";
-  const run = (D, inds, sp, startTs) => inner.run(D, inds, inner, startTs).filter(t => trendOk(D, inds, t.e, t.d)).map(t => ({ ...t, name }));
-  return { ...inner, name, run, src: "1.2% + فلتر ترند (ساعة + بيتكوين)" };
+  const run = (D, inds, sp, startTs) => inner.run(D, inds, inner, startTs).filter(t => trendOk(D, inds, t.e, t.d)).map(t => trendExit(D, inds, { ...t, name }));
+  return { ...inner, name, run, src: "1.2% + فلتر ترند (ساعة + بيتكوين) + خروج مبكر عند انقلاب الترند" };
 }
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
   "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
@@ -3052,7 +3070,7 @@ const fp = v => !Number.isFinite(v) ? "—" : v >= 1000 ? v.toFixed(1) : v >= 10
 const cn = s => s.replace(/USDT$/, "") + "/USDT";
 const dur = ms => { const m = Math.max(0, Math.floor(ms/60000)), d = Math.floor(m/1440), hh = Math.floor(m%1440/60), mm = m%60; return (d ? d + "ي " : "") + (d || hh ? hh + "س " : "") + mm + "د"; };
 const dt = ts => { const z = new Date(ts); return z.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit" }) + " " + z.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); };
-const WHY = { TARGET: "الهدف 🎯", INIT_STOP: "الوقف", TRAIL_STOP: "وقف متحرك", TIME: "انتهى الوقت", SSL_EXIT: "سهم خروج SSL", CHAND_EXIT: "انقلاب شاندلير 4س" };
+const WHY = { TREND_EXIT: "خروج مبكر (انقلب الترند) ↩️", TARGET: "الهدف 🎯", INIT_STOP: "الوقف", TRAIL_STOP: "وقف متحرك", TIME: "انتهى الوقت", SSL_EXIT: "سهم خروج SSL", CHAND_EXIT: "انقلاب شاندلير 4س" };
 
 let BAN_UNTIL = 0;
 const banned = () => Date.now() < BAN_UNTIL;
