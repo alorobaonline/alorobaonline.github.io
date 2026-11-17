@@ -4099,7 +4099,8 @@ function drawChartLW() {
     }
     if (Zn) for (const [list, role] of [[Zn.above, "res"], [Zn.below, "sup"], [Zn.inside, "in"]]) for (const z of list) {
       const col = role === "res" ? "rgba(248,113,113,.75)" : role === "sup" ? "rgba(74,222,128,.75)" : "rgba(250,204,21,.8)";
-      add(z.hi, col, 3, role === "sup" ? "" : zoneLabel(z, role)); add(z.lo, col, 3, role === "sup" ? zoneLabel(z, role) : "");
+      const tl = role === "res" ? (z.kinds.has("عرض") ? "عرض" : "مقاومة") : role === "sup" ? (z.kinds.has("طلب") ? "طلب" : "دعم") : "منطقة";   // كلمة وحدة (العربي المخلوط بأرقام بيتخربط بالشارت)
+      add(z.hi, col, 3, role === "sup" ? "" : tl, z.tf4 ? 2 : 1); add(z.lo, col, 3, role === "sup" ? tl : "", z.tf4 ? 2 : 1);
     }
     LW.lineKey = lk;
   }
