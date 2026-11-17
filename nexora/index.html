@@ -3229,6 +3229,7 @@ const MACDP = (() => {
         const Lg = hist[i-1] <= 0 && hist[i] > 0 && cs[i] > e50[i] && cs[i] > S.O[k], Sh = hist[i-1] >= 0 && hist[i] < 0 && cs[i] < e50[i] && cs[i] < S.O[k];
         if (Lg === Sh) continue; const d = Lg ? 1 : -1;
         if (opt.longOnly && d !== 1) continue;   // 17/11 13:00: لونج بس (الشورت مسكّر)
+        if (opt.shortOnly && d !== -1) continue;   // 17/11 17:26: فحص الشورت لحاله (مختبر)
         const j0 = Math.round((tClose - X.t0)/X.step); if (j0 < 0 || j0 > nx || (j0 === nx && !pend)) continue; const ref = j0 < nx ? X.o[j0] : X.c[nx-1];   // j0 = nx: الشمعة اللي بعد الإشارة لسا ما سكّرت (خطة حقيقي بس) → آخر سعر تقريبي
         if (Math.abs(ref*(1 + d*0.0001)/cs[i] - 1) > 0.006 + 1e-12) continue;   // حاجز 0.6%
         const lim = ref*(1 - d*depth), jEnd = Math.min(nx, j0 + Math.round(3600000/X.step)); let ej = null, px = null;
@@ -3260,7 +3261,8 @@ const MACDP = (() => {
   const strats = [mk("MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", 5, 0.008, 0.012, 0.012, { longOnly: true, fixStop: 0.012 }),
     mk("MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", 15, 0.008, 0.012, 0.012, { longOnly: true, fixStop: 0.012 }),
     mk("MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR", 60, 0.008, 0.012, 0.012, { longOnly: true }),
-    mk("MACD v1.1 ساعة · ليمت 0.8% · لونج 1.2% شورت 1%", 60, 0.008, 0.012, 0.010), mk("MACD v1.1 15m · ليمت 0.8% · هدف 1.2%", 15, 0.008, 0.012, 0.012), mk("MACD v1.1 5m · ليمت 0.8% · هدف 1.2%", 5, 0.008, 0.012, 0.012)];
+    mk("MACD v1.1 ساعة · ليمت 0.8% · لونج 1.2% شورت 1%", 60, 0.008, 0.012, 0.010), mk("MACD v1.1 15m · ليمت 0.8% · هدف 1.2%", 15, 0.008, 0.012, 0.012), mk("MACD v1.1 5m · ليمت 0.8% · هدف 1.2%", 5, 0.008, 0.012, 0.012),
+    mk("MACD v1.1 5m · ليمت 0.8% · شورت · هدف 1.2% وقف 1.2%", 5, 0.008, 0.012, 0.012, { shortOnly: true, fixStop: 0.012 })];   // 17/11 17:26: مختبر بس
   const pending = (D, startTs) => { const p = []; strats[0].run(D, null, strats[0], startTs, p); return p; };   // 17/11 14:55: خطة حقيقي — MACD 5m
   return { strats, pending };
 })();
