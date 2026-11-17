@@ -3380,15 +3380,26 @@ const OLDB = (() => {
     return { O, H, L, C, V, K };
   }
   // محرك البوت (engine.process_bar لعملة وحدة)
-  function sim(D, sp, startTs, decide, prep) {
+  function sim(D, sp, startTs, decide, prep, pre) {   // pre = خروج قبل منطق المحرك (فيبو/جان: 18 شمعة وهي خسرانة · حماية ربح)
     const B = bars4(D); if (B.K < 120) return [];
     const S = prep(B, D), out = [], nD = D.o.length;
     let spos = 0, pos = null, blocked = 0;
     for (let i = 0; i < B.K; i++) {
+      const eD = (i + 1)*16;
+      if (pre && pos) {
+        const g = (B.C[i]/pos.ref - 1)*pos.d; pos.best = Math.max(pos.best || 0, g);
+        const why = pre(i - pos.si, g, pos.best);
+        if (why) {
+          if (pos.e*M15 + D.t0 >= startTs) out.push(eD < nD
+            ? { name: sp.name, d: pos.d, e: pos.e, x: eD, rawIn: D.o[pos.e], rawOut: D.o[eD], why, open: false, stop: pos.ref*(1 - pos.d*0.08), target: NaN }
+            : { name: sp.name, d: pos.d, e: pos.e, x: nD - 1, rawIn: D.o[pos.e], rawOut: D.c[nD-1], why: "TIME", open: true, stop: pos.ref*(1 - pos.d*0.08), target: NaN });
+          pos = null; spos = 0;
+        }
+      }
       const r = decide(S, B, i, spos, D, D.t0 + (i + 1)*H4); if (!r) continue;
       const { exit, entry } = r, want = entry ? entry : (exit ? 0 : null);
       if (want !== null) spos = want;
-      const eD = (i + 1)*16; let stopped = false;
+      let stopped = false;
       if (pos) {
         const px = B.C[i], hit = (pos.d === 1 && px <= pos.ref*(1 - 0.08)) || (pos.d === -1 && px >= pos.ref*(1 + 0.08));
         if (hit || (want !== null && want !== pos.d)) {
@@ -3402,14 +3413,14 @@ const OLDB = (() => {
       if ((want === 1 || want === -1) && !pos && !stopped) {
         if (blocked === want) continue;
         blocked = 0;
-        if (eD < nD) pos = { d: want, e: eD, ref: B.C[i] };
+        if (eD < nD) pos = { d: want, e: eD, ref: B.C[i], si: i, best: 0 };
       }
     }
     if (pos && pos.e*M15 + D.t0 >= startTs) out.push({ name: sp.name, d: pos.d, e: pos.e, x: nD - 1, rawIn: D.o[pos.e], rawOut: D.c[nD-1], why: "TIME", open: true, stop: pos.ref*(1 - pos.d*0.08), target: NaN });
     return out;
   }
   const mk = (name, decide, prep, extra = {}) => ({ name, _prep: prep, mult: 16, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", btcF: 600, src: "بوت تلغرام قديم (ملفات المستخدم)", ...extra,
-    run: (D, inds, sp, startTs) => (extra.only && !extra.only.has(D.sym)) ? [] : sim(D, sp, startTs, decide, prep) });
+    run: (D, inds, sp, startTs) => (extra.only && !extra.only.has(D.sym)) ? [] : sim(D, sp, startTs, decide, prep, extra.pre) });
   // ☁️ ichimaj: Tenkan يقطع Kijun لفوق + الإغلاق فوق Kijun + Chandelier صاعد · خروج: Chandelier نازل · لونج بس · BTC + 29 كبيرة
   const MAJ = new Set(["BTC","ETH","BNB","XRP","SOL","DOGE","ADA","TRX","LINK","AVAX","XLM","BCH","LTC","DOT","HBAR","UNI","NEAR","AAVE","ICP","ETC","ATOM","FIL","APT","ARB","OP","INJ","SUI","ALGO","VET","TON"].map(c => c + "USDT"));
   const ichimaj = mk("☁️ بوت إيشيموكو الكبيرة 4h لونج (ichimaj)", (S, B, i, spos) => {
@@ -3471,7 +3482,227 @@ const OLDB = (() => {
       const lc = C[i] > filt[i] && up[i] > 0, sc = C[i] < filt[i] && dn[i] > 0; cond[i] = lc ? 1 : (sc ? -1 : cond[i-1]);
       if (lc && cond[i-1] === -1) sig[i] = 1; else if (sc && cond[i-1] === 1) sig[i] = -1; }
     return { sig, e200: emaF(C, 200) }; });
-  return { strats: [ichimaj, ichibot, srce, vol, zp], btcAt, bars4 };
+    // 📐 fibbot / gannbot: قمم وقيعان مؤكدة (سوينغ 7) · كسر مستوى (فيبو 0.618 / خط جان 1×8) بشمعتين إغلاق · إشارة وحدة لكل حركة
+  const pivots = (H, L, n) => { const N = H.length, ph = new Array(N).fill(null), pl = new Array(N).fill(null);
+    for (let i = 2*n; i < N; i++) { const k = i - n; let mh = -Infinity, ml = Infinity; for (let j = i - 2*n; j <= i; j++) { if (H[j] > mh) mh = H[j]; if (L[j] < ml) ml = L[j]; }
+      if (H[k] === mh) ph[i] = H[k]; if (L[k] === ml) pl[i] = L[k]; } return { ph, pl }; };
+  const levelSig = (B, lineF) => { const { H, L, C } = B, N = C.length, { ph, pl } = pivots(H, L, 7), raw = new Array(N).fill(0), used = new Set();
+    let hP = null, lP = null, hB = -1, lB = -1;
+    for (let i = 1; i < N; i++) { if (ph[i] !== null) { hP = ph[i]; hB = i - 7; } if (pl[i] !== null) { lP = pl[i]; lB = i - 7; }
+      if (hP === null || lP === null || hB === lB || i < 2) continue;
+      const up = hB > lB, ln = lineF(up, hP, lP, hB, lB), key = hB + "," + lB; if (used.has(key)) continue;
+      if (up && C[i-2] >= ln(i-2) && C[i-1] < ln(i-1) && C[i] < ln(i)) raw[i] = -1;
+      else if (!up && C[i-2] <= ln(i-2) && C[i-1] > ln(i-1) && C[i] > ln(i)) raw[i] = 1;
+      if (raw[i]) used.add(key); }
+    return raw; };
+  const fibDec = filt => (S, B, i, spos, D, ts) => { const s = S.raw[i]; if (!s || s === spos) return null;
+    const f = filt(B, i, D, ts); return { exit: spos === -s, entry: (f === 0 || f === s) ? s : 0 }; };
+  const fib = mk("📐 بوت فيبو 0.618 4h (fibbot)", fibDec((B, i, D, ts) => btcAt(D, ts, 600)),
+    B => ({ raw: levelSig(B, (up, hP, lP) => { const x = up ? lP + (hP - lP)*0.618 : hP + (lP - hP)*0.618; return () => x; }) }),
+    { pre: (held, g, best) => held >= 18 && g <= 0 ? "TIME18" : (best >= 0.06 && g <= best - 0.02 ? "TRAIL" : null) });
+  const gann = mk("📐 بوت جان 1×8 4h (gannbot)", fibDec((B, i) => smaAbove(B.C, i, 600)),
+    B => ({ raw: levelSig(B, (up, hP, lP, hB, lB) => { const a0 = up ? lB : hB, p0 = up ? lP : hP, sc = Math.abs(hP - lP)/Math.abs(hB - lB);
+      return j => up ? p0 + sc*(j - a0)/8 : p0 - sc*(j - a0)/8; }) }),
+    { pre: (held, g) => held >= 18 && g <= 0 ? "TIME18" : null });
+  // ===== محرك عام لفريم m (1 = 15m، 4 = ساعة، 16 = 4h) — نفس engine.process_bar =====
+  function barsN(D, m) {
+    if (m === 1) { const nAll = D.prov ? D.o.length - 1 : D.o.length; return { O: D.o.slice(0, nAll), H: D.h.slice(0, nAll), L: D.l.slice(0, nAll), C: D.c.slice(0, nAll), V: D.v ? D.v.slice(0, nAll) : [], K: nAll }; }
+    const nAll = D.prov ? D.o.length - 1 : D.o.length, K = Math.floor(nAll/m), O = [], H = [], L = [], C = [], V = [];
+    for (let k = 0; k < K; k++) { let h = -Infinity, l = Infinity, v = 0; for (let j = m*k; j < m*k + m; j++) { if (D.h[j] > h) h = D.h[j]; if (D.l[j] < l) l = D.l[j]; v += D.v ? D.v[j] : 0; }
+      O.push(D.o[m*k]); H.push(h); L.push(l); C.push(D.c[m*k + m - 1]); V.push(v); }
+    return { O, H, L, C, V, K };
+  }
+  function simM(D, sp, startTs, decide, prep, m) {
+    const B = barsN(D, m); if (B.K < 120) return [];
+    const S = prep(B, D), out = [], nD = D.o.length;
+    let spos = 0, pos = null, blocked = 0;
+    for (let i = 0; i < B.K; i++) {
+      const ts = D.t0 + (i + 1)*m*M15, r = decide(S, B, i, spos, D, ts); if (!r) continue;
+      const { exit, entry } = r, want = entry ? entry : (exit ? 0 : null);
+      if (want !== null) spos = want;
+      const eD = (i + 1)*m; let stopped = false;
+      if (pos) {
+        const px = B.C[i], hit = (pos.d === 1 && px <= pos.ref*(1 - 0.08)) || (pos.d === -1 && px >= pos.ref*(1 + 0.08));
+        if (hit || (want !== null && want !== pos.d)) {
+          if (pos.e*M15 + D.t0 >= startTs) out.push(eD < nD
+            ? { name: sp.name, d: pos.d, e: pos.e, x: eD, rawIn: D.o[pos.e], rawOut: D.o[eD], why: hit ? "STOP8" : "SIGNAL", open: false, stop: pos.ref*(1 - pos.d*0.08), target: NaN }
+            : { name: sp.name, d: pos.d, e: pos.e, x: nD - 1, rawIn: D.o[pos.e], rawOut: D.c[nD-1], why: "TIME", open: true, stop: pos.ref*(1 - pos.d*0.08), target: NaN });
+          if (hit) { blocked = pos.d; stopped = true; }
+          pos = null;
+        }
+      }
+      if ((want === 1 || want === -1) && !pos && !stopped) {
+        if (blocked === want) continue;
+        blocked = 0;
+        if (eD < nD) pos = { d: want, e: eD, ref: B.C[i] };
+      }
+    }
+    if (pos && pos.e*M15 + D.t0 >= startTs) out.push({ name: sp.name, d: pos.d, e: pos.e, x: nD - 1, rawIn: D.o[pos.e], rawOut: D.c[nD-1], why: "TIME", open: true, stop: pos.ref*(1 - pos.d*0.08), target: NaN });
+    return out;
+  }
+  const mkM = (name, m, decide, prep, extra = {}) => ({ name, _prep: prep, mult: m, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", btcF: 600, src: "بوت تلغرام قديم (ملفات المستخدم)", ...extra,
+    run: (D, inds, sp, startTs) => simM(D, sp, startTs, decide, prep, m) });
+  const trng = (H, L, C) => { const t = [H[0] - L[0]]; for (let i = 1; i < C.length; i++) t.push(Math.max(H[i] - L[i], Math.abs(H[i] - C[i-1]), Math.abs(L[i] - C[i-1]))); return t; };
+  // ---- luxtl: Trendlines with Breaks (14/1/Atr) + TRAMA 99 + RSI 14 ----
+  function tlBreaks(H, L, C, len = 14, mult = 1) {
+    const n = C.length, atr = rma(trng(H, L, C), len), out = new Array(n).fill(0);
+    let upper = 0, lower = 0, sph = 0, spl = 0, upos = 0, dnos = 0;
+    for (let i = 0; i < n; i++) {
+      const slope = atr[i] !== null ? atr[i]/len*mult : 0; let ph = null, pl = null;
+      if (i >= 2*len) { let mh = -Infinity, ml = Infinity; for (let k = i - 2*len; k <= i; k++) { if (H[k] > mh) mh = H[k]; if (L[k] < ml) ml = L[k]; }
+        if (H[i - len] === mh) ph = H[i - len]; if (L[i - len] === ml) pl = L[i - len]; }
+      if (ph !== null) sph = slope; if (pl !== null) spl = slope;
+      upper = ph !== null ? ph : upper - sph; lower = pl !== null ? pl : lower + spl;
+      const pu = upos, pd = dnos;
+      upos = ph !== null ? 0 : (C[i] > upper - sph*len ? 1 : upos);
+      dnos = pl !== null ? 0 : (C[i] < lower + spl*len ? 1 : dnos);
+      if (i >= 2*len && upper && lower) { if (upos > pu) out[i] = 1; else if (dnos > pd) out[i] = -1; }
+    }
+    return out;
+  }
+  function tramaHL(H, L, C, len = 99) {
+    const n = C.length, flag = new Array(n).fill(0); let hp = null, lp = null;
+    for (let i = 0; i < n; i++) { let hh = -Infinity, ll = Infinity; for (let k = Math.max(0, i - len + 1); k <= i; k++) { if (H[k] > hh) hh = H[k]; if (L[k] < ll) ll = L[k]; }
+      if (i >= len - 1) flag[i] = ((hp !== null && hh > hp) || (lp !== null && ll < lp)) ? 1 : 0; hp = hh; lp = ll; }
+    const ama = new Array(n).fill(null); let acc = 0, cur = null;
+    for (let i = 0; i < n; i++) { acc += flag[i]; if (i >= len) acc -= flag[i - len]; const tc = i >= len - 1 ? (acc/len)**2 : 0;
+      cur = cur === null ? C[i] : cur + tc*(C[i] - cur); ama[i] = i >= 2*len ? cur : null; }
+    return ama;
+  }
+  function rsiL(C, n = 14) {
+    const N = C.length, out = new Array(N).fill(null), g = [], l = [];
+    for (let i = 1; i < N; i++) { g.push(Math.max(C[i] - C[i-1], 0)); l.push(Math.max(C[i-1] - C[i], 0)); }
+    const ag = rma(g, n), al = rma(l, n);
+    for (let i = 1; i < N; i++) { const a = ag[i-1], b = al[i-1]; if (a === null) continue; out[i] = b === 0 ? 100 : 100 - 100/(1 + a/b); }
+    return out;
+  }
+  const luxEv = (H, L, C) => { const br = tlBreaks(H, L, C), ama = tramaHL(H, L, C), r = rsiL(C);
+    return br.map((x, i) => (!x || ama[i] === null || r[i] === null) ? 0 : ((x === 1 && C[i] > ama[i] && r[i] > 50) || (x === -1 && C[i] < ama[i] && r[i] < 50) ? x : 0)); };
+  const ceAt = (S, ts) => { const j = Math.floor((ts - S.t0)/H4) - 1; return j >= 26 ? S.dr4[j] : 0; };   // Chandelier آخر شمعة 4h مسكّرة
+  const prep4 = (B, D) => { const B4 = barsN(D, 16); return { t0: D.t0, B4, dr4: chand(B4.C, B4.H, B4.L) }; };
+  // 📐 luxbot: شراء = إشارة Lux على 15m + BTC مو هابط + Chandelier 4h صاعد · شورت = إشارة Lux على الساعة + BTC مو صاعد + Chandelier 4h نازل · خروج: Chandelier 4h يقلب
+  const luxb = mkM("📐 بوت خط الترند Lux 15m/1h + Chandelier 4h (luxbot)", 1, (S, B, k, spos, D, ts) => {
+    if (k < 1) return null; const h4c = ts % H4 === 0, hc = ts % 3600000 === 0, btc = btcAt(D, ts, 600);
+    let exit = false, entry = 0;
+    if (spos && h4c && ceAt(S, ts) === -spos) exit = true;
+    if (S.e15[k] === 1 && spos !== 1 && btc !== -1 && ceAt(S, ts) === 1) entry = 1;
+    if (!entry && hc && spos !== -1 && btc !== 1) { const h = (k + 1)/4 - 1; if (h >= 249 && S.e1[h] === -1 && ceAt(S, ts) === -1) entry = -1; }
+    return (exit || entry) ? { exit, entry } : null;
+  }, (B, D) => { const P = prep4(B, D), B1 = barsN(D, 4); return { ...P, e15: luxEv(B.H, B.L, B.C), e1: luxEv(B1.H, B1.L, B1.C) }; });
+  // ---- msb: Market Structure Break (ZigZag 9 · Fib 0.273) ----
+  function msbLv(H, L, C, zz = 9, fib = 0.273) {
+    const n = C.length, sig = new Array(n).fill(0), brk = new Array(n).fill(null), top = new Array(n).fill(null);
+    let trend = 1, market = 1, lu = null, ld = null; const hs = [], ls = [];
+    for (let i = 0; i < n; i++) {
+      const a = Math.max(0, i - zz + 1); let mh = -Infinity, ml = Infinity; for (let k = a; k <= i; k++) { if (H[k] > mh) mh = H[k]; if (L[k] < ml) ml = L[k]; }
+      const tu = H[i] >= mh, td = L[i] <= ml;
+      const nl = lu !== null ? Math.max(i - lu - 1, 1) : 1, nh = ld !== null ? Math.max(i - ld - 1, 1) : 1;
+      let lv = Infinity, hv = -Infinity; for (let k = Math.max(0, i - nl + 1); k <= i; k++) if (L[k] < lv) lv = L[k]; for (let k = Math.max(0, i - nh + 1); k <= i; k++) if (H[k] > hv) hv = H[k];
+      const prev = trend; if (trend === 1 && td) trend = -1; else if (trend === -1 && tu) trend = 1;
+      if (trend !== prev) { if (trend === 1) { ls.unshift(lv); ls.length = Math.min(ls.length, 2); } else { hs.unshift(hv); hs.length = Math.min(hs.length, 2); } }
+      if (tu) lu = i; if (td) ld = i;
+      if (trend !== prev && hs.length >= 2 && ls.length >= 2) { const [h0, h1] = hs, [l0, l1] = ls, old = market;
+        if (trend === 1 && market === 1 && l0 < l1 && l0 < l1 - Math.abs(h0 - l1)*fib) market = -1;
+        else if (trend === -1 && market === -1 && h0 > h1 && h0 > h1 + Math.abs(h1 - l0)*fib) market = 1;
+        if (market !== old) { sig[i] = market; brk[i] = market === -1 ? l1 : h1; top[i] = market === -1 ? h0 : l0; } }
+    }
+    return { sig, brk, top };
+  }
+  function msbConf1(C, M) {   // شورت الساعة: بعد MSB هابط، إغلاقين ورا بعض تحت القاع المكسور خلال 6 شموع (آخر 12 شمعة بس)
+    const n = C.length, out = new Array(n).fill(0);
+    for (let h = 59; h < n; h++) { let pend = null;
+      for (let i = Math.max(0, h - 11); i <= h; i++) {
+        if (M.sig[i] === 1) pend = null;
+        if (M.sig[i] === -1) pend = [i + 6, M.brk[i], 0];
+        if (pend) { if (i > pend[0]) { pend = null; continue; }
+          pend[2] = C[i] < pend[1] ? pend[2] + 1 : 0;
+          if (pend[2] >= 2) { if (i === h) out[h] = -1; pend = null; } }
+      } }
+    return out;
+  }
+  // 🧱 msbbot: شراء = MSB صاعد 15m + BTC مو هابط + Chandelier 4h صاعد (خروج MSB هابط 15m) · شورت = MSB هابط ساعة بتأكيد إغلاقين + BTC مو صاعد + Chandelier 4h نازل (خروج Chandelier صاعد)
+  const msbb = mkM("🧱 بوت MSB 15m/1h + Chandelier 4h (msbbot)", 1, (S, B, k, spos, D, ts) => {
+    if (k < 1) return null; const hc = ts % 3600000 === 0, btc = btcAt(D, ts, 600), s15 = S.m15[k];
+    let exit = false, entry = 0;
+    if (spos === 1 && s15 === -1) exit = true;
+    if (s15 === 1 && spos !== 1 && btc !== -1 && ceAt(S, ts) === 1) entry = 1;
+    if (hc && entry === 0) { const h = (k + 1)/4 - 1;
+      if (spos === -1 && ceAt(S, ts) === 1) exit = true;
+      if (S.c1[h] === -1 && spos !== -1 && btc !== 1 && ceAt(S, ts) === -1) entry = -1; }
+    return (exit || entry) ? { exit, entry } : null;
+  }, (B, D) => { const P = prep4(B, D), B1 = barsN(D, 4); return { ...P, m15: msbLv(B.H, B.L, B.C).sig, c1: msbConf1(B1.C, msbLv(B1.H, B1.L, B1.C)) }; });
+  // ---- HOTT LOTT (2 / 0.6 / 10 · VAR) ----
+  function varMA(x, n) { const a = 2/(n + 1), out = []; let v = 0;
+    for (let i = 0; i < x.length; i++) { let ud = 0, dd = 0; for (let k = Math.max(1, i - 8); k <= i; k++) { const ch = x[k] - x[k-1]; if (ch > 0) ud += ch; else dd -= ch; }
+      const cmo = ud + dd ? (ud - dd)/(ud + dd) : 0; v = a*Math.abs(cmo)*x[i] + (1 - a*Math.abs(cmo))*v; out.push(v); } return out; }
+  function ottF(src, len = 2, pct = 0.6) { const m = varMA(src, len), out = []; let lsP = null, ssP = null, dr = 1;
+    for (const mv of m) { const f = mv*pct*0.01; let ls = mv - f, ss = mv + f; const lp = lsP === null ? ls : lsP, sp = ssP === null ? ss : ssP;
+      if (mv > lp) ls = Math.max(ls, lp); if (mv < sp) ss = Math.min(ss, sp);
+      if (dr === -1 && mv > sp) dr = 1; else if (dr === 1 && mv < lp) dr = -1;
+      const mt = dr === 1 ? ls : ss; out.push(mv > mt ? mt*(200 + pct)/200 : mt*(200 - pct)/200); lsP = ls; ssP = ss; } return out; }
+  function hottZone(H, L, C, hl = 10) { const n = C.length, hi = [], lo = [];
+    for (let i = 0; i < n; i++) { let a = -Infinity, b = Infinity; for (let k = Math.max(0, i - hl + 1); k <= i; k++) { if (H[k] > a) a = H[k]; if (L[k] < b) b = L[k]; } hi.push(a); lo.push(b); }
+    const ho = ottF(hi), lt = ottF(lo), z = new Array(n).fill(0);
+    for (let i = 2; i < n; i++) z[i] = C[i] > ho[i-2] ? 1 : (C[i] < lt[i-2] ? -1 : 0); return z; }
+  // 🌊 hottbot: شراء (ساعة) = إغلاق فوق HOTT أول مرة + BTC فوق 90 يوم + Chandelier 4h صاعد (خروج إغلاق ساعة تحت LOTT) · شورت (4h) = إغلاق تحت LOTT أول مرة + BTC مو صاعد + Chandelier نازل (خروج إغلاق 4h فوق HOTT)
+  const hottb = mkM("🌊 بوت HOTT LOTT 1h/4h + Chandelier 4h (hottbot)", 4, (S, B, h, spos, D, ts) => {
+    if (h < 99) return null; const h4c = ts % H4 === 0, z = S.z1[h], zp = S.z1[h-1];
+    let exit = false, entry = 0;
+    if (spos === 1 && z === -1) exit = true;
+    const j = h4c ? (h + 1)/4 - 1 : -1, ok4 = j >= 99;
+    if (spos === -1 && ok4 && S.z4[j] === 1) exit = true;
+    if (spos !== 1 && z === 1 && zp !== 1 && btcAt(D, ts, 540) !== -1 && ceAt(S, ts) === 1) entry = 1;
+    if (!entry && ok4 && spos !== -1 && S.z4[j] === -1 && S.z4[j-1] !== -1 && btcAt(D, ts, 600) !== 1 && ceAt(S, ts) === -1) entry = -1;
+    return (exit || entry) ? { exit, entry } : null;
+  }, (B, D) => { const P = prep4(B, D); return { ...P, z1: hottZone(B.H, B.L, B.C), z4: hottZone(P.B4.H, P.B4.L, P.B4.C) }; });
+  // 📈 stbot: Supertrend 10/3 + شمعة تأكيد + BTC (4h) · خروج: انقلاب Supertrend
+  function stF(H, L, C, p = 10, mult = 3) { const n = C.length, tr = trng(H, L, C), A = []; let a = tr[0]; for (const v of tr) { a = (a*(p - 1) + v)/p; A.push(a); }
+    const up = new Array(n).fill(0), dn = new Array(n).fill(0), t = new Array(n).fill(1);
+    for (let i = 0; i < n; i++) { const s = (H[i] + L[i])/2; let u = s - mult*A[i], d = s + mult*A[i];
+      if (i > 0) { if (C[i-1] > up[i-1]) u = Math.max(u, up[i-1]); if (C[i-1] < dn[i-1]) d = Math.min(d, dn[i-1]);
+        let x = t[i-1]; if (x === -1 && C[i] > dn[i-1]) x = 1; else if (x === 1 && C[i] < up[i-1]) x = -1; t[i] = x; }
+      up[i] = u; dn[i] = d; } return { t, up, dn }; }
+  const stb = mk("📈 بوت Supertrend 4h + BTC (stbot)", (S, B, i, spos, D, ts) => {
+    if (i < 59) return null; const { t, up, dn } = S, C = B.C, flip = t[i] !== t[i-1] ? t[i] : 0;
+    let conf = 0; if (t[i-1] !== t[i-2] && t[i] === t[i-1]) { const side = t[i-1], lvl = side === 1 ? dn[i-2] : up[i-2]; if ((side === 1 && C[i] > lvl) || (side === -1 && C[i] < lvl)) conf = side; }
+    const exit = !!spos && flip === -spos, btc = btcAt(D, ts, 600); let entry = 0;
+    if ((spos === 0 || exit) && conf && (btc === 0 || btc === conf)) entry = conf;
+    return { exit, entry };
+  }, B => stF(B.H, B.L, B.C));
+  // 🕯️ candle3bot: ثلاث جنود (شراء) · ثلاث غربان / نجمة المساء / 5 تركيبات مستخرجة (شورت) — دخول على الإغلاق · وقف ورا الشموع +0.1% (≤8%) · هدف 1:2 · أقصى 20 شمعة 4h
+  const MINED = [[[-1,1,1],[-1,2,1]], [[1,0,1],[-1,1,1]], [[-1,0,1],[-1,2,1]], [[-1,2,1],[-1,2,1]], [[-1,2,1],[1,0,1]]];
+  function codeAt(H, L, C, i) { const r = H[i] - L[i]; let av = 0; for (let k = i - 19; k < i; k++) av += H[k] - L[k]; av /= 19; if (r <= 0 || av <= 0) return null;
+    const o = C[i-1], bf = Math.abs(C[i] - o)/r, dr = bf < 0.1 ? 0 : (C[i] > o ? 1 : -1), b = bf < 0.33 ? 0 : (bf < 0.66 ? 1 : 2), sz = r < 0.7*av ? 0 : (r < 1.5*av ? 1 : 2);
+    let lo = Infinity, hi = -Infinity; for (let k = i - 9; k <= i; k++) { if (L[k] < lo) lo = L[k]; if (H[k] > hi) hi = H[k]; }
+    const p = hi > lo ? (C[i] - lo)/(hi - lo) : 0.5; return { c: [dr, b, sz], loc: p < 0.25 ? -1 : (p > 0.75 ? 1 : 0) }; }
+  function c3Sigs(H, L, C, i) {   // بالترتيب: three, mined, star
+    const out = [], O = k => C[k-1], body = k => Math.abs(C[k] - O(k)), rng = k => H[k] - L[k], up = k => C[k] > O(k), dn = k => C[k] < O(k);
+    const ks = [i-2, i-1, i], strong = ks.every(k => rng(k) > 0 && body(k) >= 0.5*rng(k));
+    if (strong && ks.every(up) && C[i-2] < C[i-1] && C[i-1] < C[i]) out.push([1, L[i-2]]);
+    if (strong && ks.every(dn) && C[i-2] > C[i-1] && C[i-1] > C[i]) out.push([-1, H[i-2]]);
+    const c1 = codeAt(H, L, C, i - 1), c2 = codeAt(H, L, C, i);
+    if (c1 && c2 && c2.loc === 1 && MINED.some(([a, b]) => a.join() === c1.c.join() && b.join() === c2.c.join())) out.push([-1, Math.max(H[i-1], H[i])]);
+    const a = i - 2, m = i - 1, big = rng(a) > 0 && body(a) >= 0.6*rng(a), small = body(m) <= 0.3*Math.max(rng(m), 1e-12), md = (O(a) + C[a])/2;
+    if (big && up(a) && small && dn(i) && C[i] < md) out.push([-1, Math.max(H[a], H[m], H[i])]);
+    return out;
+  }
+  const c3 = { name: "🕯️ بوت الشموع 4h (candle3bot)", mult: 16, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "بوت تلغرام قديم (ملفات المستخدم)",
+    run: (D, inds, sp, startTs) => { const B = barsN(D, 16), nD = D.o.length, out = []; if (B.K < 60) return out; let pos = null;
+      for (let i = 0; i < B.K; i++) {
+        if (pos && i > pos.si) { const b = pos.si + (i - pos.si); let px = null, why = null;
+          if (pos.d === -1 ? B.H[i] >= pos.stop : B.L[i] <= pos.stop) { px = pos.d === -1 ? Math.max(pos.stop, B.O[i]) : Math.min(pos.stop, B.O[i]); why = "STOP"; }
+          else if (pos.d === -1 ? B.L[i] <= pos.tp : B.H[i] >= pos.tp) { px = pos.d === -1 ? Math.min(pos.tp, B.O[i]) : Math.max(pos.tp, B.O[i]); why = "TARGET"; }
+          else if (i - pos.si - 1 >= 20 && (i + 1)*16 < nD) { px = D.o[(i + 1)*16]; why = "TIME"; }
+          if (px !== null) { if (pos.e*M15 + D.t0 >= startTs) out.push({ name: sp.name, d: pos.d, e: pos.e, x: why === "TIME" ? (i + 1)*16 : b*16, rawIn: D.o[pos.e], rawOut: px, why, open: false, stop: pos.stop, target: pos.tp });
+            pos = null; } }
+        if (pos || i < 25 || (i + 1)*16 >= nD) continue;
+        const e = D.o[(i + 1)*16];
+        for (const [d, ext] of c3Sigs(B.H, B.L, B.C, i)) { const stop = ext*(1 - d*0.001), risk = (e - stop)*d; if (risk <= 0 || risk/e > 0.08) continue;
+          pos = { d, e: (i + 1)*16, si: i, stop, tp: e + 2*risk*d }; break; }
+      }
+      if (pos && pos.e*M15 + D.t0 >= startTs) out.push({ name: sp.name, d: pos.d, e: pos.e, x: nD - 1, rawIn: D.o[pos.e], rawOut: D.c[nD-1], why: "TIME", open: true, stop: pos.stop, target: pos.tp });
+      return out; } };
+  return { strats: [ichimaj, ichibot, srce, vol, zp, fib, gann, luxb, msbb, hottb, stb, c3], btcAt, bars4, barsN };
 })();
 STRATS_ALL.push(...OLDB.strats);
 // 17/11 23:08 (طلب المستخدم): ichibot و volbot على المنصة — كما هم + نسخة ليمت 0.6% · هدف 2% · وقف 1.2% (هي اللي بتنفتح بالحقيقي)
@@ -4396,7 +4627,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-17-2320";
+const BUILD = "2026-11-18-0010";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
