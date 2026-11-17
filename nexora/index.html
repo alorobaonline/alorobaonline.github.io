@@ -512,8 +512,9 @@ const S16 = (() => {
     return f;
   }
   function confirmSwings(s, f, b) {
-    const bars = f.bars.concat([b]); if (bars.length < 7) return;
-    const pivot = bars[bars.length-4], nb = bars.slice(-7, -4).concat(bars.slice(-3));
+    const N = f.bars.length + 1; if (N < 7) return;   // 18/11: بدون نسخ المصفوفة كل شمعة (نفس النتيجة)
+    const g = i => i === N - 1 ? b : f.bars[i];
+    const pivot = g(N-4), nb = [g(N-7), g(N-6), g(N-5), g(N-3), g(N-2), g(N-1)];
     for (const [side, field, cmp] of [["high", "high", (a, c) => a > c], ["low", "low", (a, c) => a < c]]) {
       if (nb.every(x => cmp(pivot[field], x[field]))) {
         const point = { id: id(s.symbol, side, pivot.openTime), price: pivot[field], openTime: pivot.openTime, confirmedAt: b.closeTime, atrAtConfirmation: f.atr };
@@ -620,7 +621,7 @@ const S16 = (() => {
     }
     if (!live || !atr || atr <= 0) return [];
     const entries = [];
-    for (const x of Array.from(s.setups.values())) {
+    for (const x of s.setups.values()) {   // 18/11: بدون نسخ (اللوب ما بيضيف ولا بيشيل)
       if (terminal(x)) continue;
       const z = s.zones.get(x.zoneId);
       if (!z || !(z.status === "fresh" || z.status === "tested")) continue;
@@ -668,9 +669,9 @@ const S16 = (() => {
     if (tf === "1h" || tf === "4h") zoneStep(s, tf, f, b); else entries = interactionStep(s, f, b, live);
     if ((tf === "1h" || tf === "4h") && live) armWaiting(s, b.closeTime);
     confirmSwings(s, f, b);
-    f.bars = f.bars.concat([b]).slice(-Math.max(60, CFG.atrPeriod + 8));
-    for (const [k, z] of Array.from(s.zones)) if (!(["pending", "fresh", "tested"].includes(z.status) || b.closeTime - (z.endedAt ?? b.closeTime) < 4 * TFM["4h"])) s.zones.delete(k);
-    for (const [k, x] of Array.from(s.setups)) if (!(!terminal(x) || b.closeTime - x.updatedAt < 4 * TFM["4h"])) s.setups.delete(k);
+    f.bars.push(b); const keep = Math.max(60, CFG.atrPeriod + 8); if (f.bars.length > keep) f.bars.splice(0, f.bars.length - keep);   // 18/11: بدون نسخ (نفس النتيجة)
+    for (const [k, z] of s.zones) if (!(z.status === "pending" || z.status === "fresh" || z.status === "tested" || b.closeTime - (z.endedAt ?? b.closeTime) < 4 * TFM["4h"])) s.zones.delete(k);
+    for (const [k, x] of s.setups) if (!(!terminal(x) || b.closeTime - x.updatedAt < 4 * TFM["4h"])) s.setups.delete(k);
     return entries;
   }
 
@@ -951,22 +952,31 @@ const SEXT = (() => {
     const r = g === null ? null : (g === 0 && l === 0 ? 50 : l === 0 ? 100 : 100 - 100 / (1 + g / l));
     return { atr: a, rsi: r };
   }
+  const HLW = new WeakMap();   // 18/11 (أسرع، نفس النتيجة): أعلى/أدنى آخر period شمعة محسوبين مرة وحدة
+  function hlWin(B, period) {
+    let M = HLW.get(B.H); if (!M) { M = {}; HLW.set(B.H, M); }
+    if (!M[period]) { const n = B.H.length, hi = new Float64Array(n), lo = new Float64Array(n);
+      for (let i = 0; i < n; i++) { let h = -Infinity, l = Infinity; for (let j = i-period+1; j <= i; j++) { if (B.H[j] > h) h = B.H[j]; if (B.L[j] < l) l = B.L[j]; } hi[i] = h; lo[i] = l; }
+      M[period] = { hi, lo }; }
+    return M[period];
+  }
   function chandelierLast(B, s, e, period = 22, mult = 3) {
     let a = null, cnt = 0, sum = 0, ls = null, ss = null, dir = 1, last = null;
+    const W = hlWin(B, period);
     for (let i = s; i <= e; i++) {
       if (i > s) { const tr = Math.max(B.H[i] - B.L[i], Math.abs(B.H[i] - B.C[i-1]), Math.abs(B.L[i] - B.C[i-1]));
         if (a === null) { sum += tr; cnt++; if (cnt === period) a = sum / period; } else a = (a*(period-1) + tr) / period; }
       if (a === null) { last = null; continue; }
-      let hi = -Infinity, lo = Infinity; for (let j = i-period+1; j <= i; j++) { if (B.H[j] > hi) hi = B.H[j]; if (B.L[j] < lo) lo = B.L[j]; }
+      const hi = W.hi[i], lo = W.lo[i];
       const rl = hi - mult*a, rs = lo + mult*a;
       if (ls !== null) {
         if (B.C[i] > ss) dir = 1; else if (B.C[i] < ls) dir = -1;
         ls = B.C[i-1] > ls ? Math.max(rl, ls) : rl;
         ss = B.C[i-1] < ss ? Math.min(rs, ss) : rs;
       } else { ls = rl; ss = rs; }
-      last = { dir, ls, ss };
+      last = true;
     }
-    return last;
+    return last ? { dir, ls, ss } : null;   // 18/11: كائن وحدة بالآخر بدل كائن لكل شمعة
   }
   function prepare(D) {
     const B = { O: D.o, H: D.h, L: D.l, C: D.c, n: D.o.length };
@@ -1000,7 +1010,7 @@ const SEXT = (() => {
     return v;
   }
   function lastTwo(piv, s, k) { // pivots with window index>=2 and confirmed before bar k opens
-    let b = -1; for (let q = piv.length-1; q >= 0; q--) { if (piv[q] <= k-3) { b = q; break; } }
+    let lo = 0, hi = piv.length - 1, b = -1; while (lo <= hi) { const md = (lo + hi) >> 1; if (piv[md] <= k-3) { b = md; lo = md + 1; } else hi = md - 1; }   // 18/11: بحث ثنائي (نفس النتيجة، الـpivots مرتبة)
     if (b < 1 || piv[b-1] < s+2) return null; return [piv[b-1], piv[b]];
   }
   function lineBreaks(P, s, k) {
@@ -1031,14 +1041,17 @@ const SEXT = (() => {
     // lux
     const N4 = Math.floor((k+1)/16); if (N4 < 200) return null;
     const ch = P.ch4(N4); if (!ch) return null;
-    const t = trama(P, s, k); if (t === null || P.sk[k] === null || P.sd[k] === null) return null;
-    const c = B.C[k];
-    const pre1 = c > t && P.sk[k] >= P.sd[k] && ch.dir === 1, pre2 = c < t && P.sk[k] <= P.sd[k] && ch.dir === -1;
-    if (!pre1 && !pre2) return null;
+    if (P.sk[k] === null || P.sd[k] === null) return null;
+    // 18/11 (أسرع، نفس النتيجة بالزبط): كسر خط الترند أول (رخيص ونادر)، وبعدين TRAMA (غالي)
     const ln = lineBreaks(P, s, k);
-    if (!(pre1 && ln.up) && !(pre2 && ln.down)) return null;
+    const u = ln.up && P.sk[k] >= P.sd[k] && ch.dir === 1, w = ln.down && P.sk[k] <= P.sd[k] && ch.dir === -1;
+    if (!u && !w) return null;
+    const t = trama(P, s, k); if (t === null) return null;
+    const c = B.C[k];
+    const pre1 = u && c > t, pre2 = w && c < t;
+    if (!pre1 && !pre2) return null;
     const ar = winAtrRsi(B, s, k); if (ar.atr === null || ar.rsi === null) return null;
-    const buy = pre1 && ln.up && ar.rsi > 50, sell = pre2 && ln.down && ar.rsi < 50;
+    const buy = pre1 && ar.rsi > 50, sell = pre2 && ar.rsi < 50;
     if (buy === sell) return null;
     return { d: buy ? 1 : -1, atr: ar.atr, N4 };
   }
@@ -2933,17 +2946,22 @@ const RSNIPER = (() => {
   const rma = (x, n) => { const o = new Array(x.length).fill(null); let s = 0, cnt = 0, v = null;
     for (let i = 0; i < x.length; i++) { if (x[i] === null) continue; if (v === null) { s += x[i]; cnt++; if (cnt === n) { v = s/n; o[i] = v; } } else { v = (v*(n-1) + x[i])/n; o[i] = v; } } return o; };
   const NAME = "Range Sniper 15m (كما هي)", NAME4 = "Range Sniper 15m + ترند 4h";
+  const IMEMO = new WeakMap();
   const run = (D, inds, sp, startTs) => {
     const tf4 = !!sp.tf4, I16 = tf4 ? ((inds && inds[16]) || makeInd(D, 16)) : null, nm = sp.name;   // tf4: شورت بس تحت EMA200 على 4h، لونج بس فوقها (شمعة 4h المسكّرة قبل الدخول)
     const o = D.o, h = D.h, l = D.l, c = D.c, n = c.length, lastSig = D.prov ? n - 2 : n - 1;   // الإشارة من شمعة مسكّرة بس
-    const ch = c.map((x, i) => i ? x - c[i-1] : null);
-    const ag = rma(ch.map(x => x === null ? null : Math.max(x, 0)), 14), al = rma(ch.map(x => x === null ? null : Math.max(-x, 0)), 14);
-    const tr = c.map((x, i) => i ? Math.max(h[i]-l[i], Math.abs(h[i]-c[i-1]), Math.abs(l[i]-c[i-1])) : h[i]-l[i]);
-    const atr = rma(tr, 14), trr = rma(tr.map((x, i) => i ? x : null), 14);
-    const pdm = h.map((x, i) => { if (!i) return null; const u = h[i]-h[i-1], d = l[i-1]-l[i]; return u > d && u > 0 ? u : 0; });
-    const mdm = h.map((x, i) => { if (!i) return null; const u = h[i]-h[i-1], d = l[i-1]-l[i]; return d > u && d > 0 ? d : 0; });
-    const sp_ = rma(pdm, 14), sm_ = rma(mdm, 14);
-    const adx = rma(trr.map((v, i) => { if (v === null || sp_[i] === null) return null; const p = 100*sp_[i]/v, m = 100*sm_[i]/v, s = p + m; return Math.abs(p - m)/(s === 0 ? 1 : s); }), 14);
+    if (!IMEMO.has(c)) {   // 18/11: المؤشرات محسوبة مرة وحدة لكل نسخ Range Sniper (نفس النتيجة)
+      const ch = c.map((x, i) => i ? x - c[i-1] : null);
+      const ag = rma(ch.map(x => x === null ? null : Math.max(x, 0)), 14), al = rma(ch.map(x => x === null ? null : Math.max(-x, 0)), 14);
+      const tr = c.map((x, i) => i ? Math.max(h[i]-l[i], Math.abs(h[i]-c[i-1]), Math.abs(l[i]-c[i-1])) : h[i]-l[i]);
+      const atr = rma(tr, 14), trr = rma(tr.map((x, i) => i ? x : null), 14);
+      const pdm = h.map((x, i) => { if (!i) return null; const u = h[i]-h[i-1], d = l[i-1]-l[i]; return u > d && u > 0 ? u : 0; });
+      const mdm = h.map((x, i) => { if (!i) return null; const u = h[i]-h[i-1], d = l[i-1]-l[i]; return d > u && d > 0 ? d : 0; });
+      const sp_ = rma(pdm, 14), sm_ = rma(mdm, 14);
+      const adx = rma(trr.map((v, i) => { if (v === null || sp_[i] === null) return null; const p = 100*sp_[i]/v, m = 100*sm_[i]/v, s = p + m; return Math.abs(p - m)/(s === 0 ? 1 : s); }), 14);
+      IMEMO.set(c, { ag, al, atr, adx });
+    }
+    const { ag, al, atr, adx } = IMEMO.get(c);
     let lo0 = 0; while (lo0 < n && D.t0 + lo0*M15 < startTs - 30*864e5) lo0++;   // شهر قبل البداية بيكفي لحالة "في صفقة مفتوحة"
     const out = []; let busyTo = -1, s20 = 0, q20 = 0;
     for (let i = Math.max(30, lo0); i <= lastSig && i < n - 1; i++) {
@@ -4070,13 +4088,28 @@ async function altKlines(sym, interval, t, limit) {
   return null;
 }
 let SRC_NOTE = "";
+// 18/11: تصليح شموع إجت من مصدر بديل (Bybit/OKX) وقت حظر بايننس — بنكتب فوقها شموع بايننس الأصلية
+async function repairRows(sym, interval, step, width, st, from, to) {
+  if (!st.t.length || from > to) return 0;
+  let t = from, n = 0;
+  while (t <= to) { await paced();
+    let r; try { r = await getJSON("/fapi/v1/klines", { symbol: sym, interval, startTime: t, endTime: to, limit: 1000 }); } catch (e) { return false; }
+    if (!r || !r.length) break;
+    const now = Date.now();
+    for (const k of r) { if (k[6] >= now) continue; let lo = 0, hi = st.t.length - 1, i = -1; while (lo <= hi) { const md = (lo + hi) >> 1; if (st.t[md] === k[0]) { i = md; break; } if (st.t[md] < k[0]) lo = md + 1; else hi = md - 1; }
+      if (i < 0) continue; let ch = false; for (let q = 0; q < width; q++) { const x = +k[q+1]; if (st.v[width*i + q] !== x) { st.v[width*i + q] = x; ch = true; } } if (ch) n++; }
+    t = r[r.length-1][0] + step; if (r.length < 1000) break; }
+  return n;
+}
 async function fillKlines(sym, interval, step, width, st, fromTs, prog) {
   const now = Date.now(); let added = 0;
+  if (!st.fx1118 && st.t.length) { const c = await repairRows(sym, interval, step, width, st, Math.max(Date.UTC(2026, 10, 15), st.t[0]), st.t[st.t.length-1]); if (c !== false) { st.fx1118 = 1; added += c + 51; } }   // مرة وحدة: من 15/11 (شموع بديلة قديمة بدون علامة) — +51 = احفظ
+  if (st.alt && st.alt.length) { const keep = []; for (const [a, b] of st.alt) { const c = await repairRows(sym, interval, step, width, st, a, b); if (c === false) keep.push([a, b]); else added += c + 51; } st.alt = keep; }
   const grab = async (from, until) => { const T = [], V = []; let t = from;
     while (t < until) { await paced();
       let r;
       try { r = await getJSON("/fapi/v1/klines", { symbol: sym, interval, startTime: t, limit: 1000 }); }
-      catch (e) { if (e.message !== "RATE") throw e; r = await altKlines(sym, interval, t, 1000); if (!r) break; }
+      catch (e) { if (e.message !== "RATE") throw e; r = await altKlines(sym, interval, t, 1000); if (!r) break; if (r.length) (st.alt = st.alt || []).push([r[0][0], r[r.length-1][0]]); }   // 18/11: شموع من مصدر بديل بتنعلّم وبتتصلّح من بايننس بعدين
       if (!r.length) break;
       for (const k of r) if (k[6] < now && k[0] < until) { T.push(k[0]); for (let q = 1; q <= width; q++) V.push(+k[q]); }
       t = r[r.length-1][0] + step; prog && prog(new Date(r[r.length-1][0]).toISOString().slice(0, 10));
@@ -4129,13 +4162,13 @@ async function fromServer(sym, kind, st, fromTs, step, width) {
 
 async function loadCandles(sym, fromTs, prog) {
   let st = MEM[sym];
-  if (!st) { const c = await idb.get("kv_" + sym); st = c && c.t.length ? { t: Array.from(c.t), v: Array.from(c.v) } : { t: [], v: [] }; }   // kv_ = شموع مع فوليوم (5 قيم لكل شمعة)
+  if (!st) { const c = await idb.get("kv_" + sym); st = c && c.t.length ? { t: Array.from(c.t), v: Array.from(c.v), alt: c.alt || [], fx1118: c.fx1118 } : { t: [], v: [], fx1118: 1 }; }   // kv_ = شموع مع فوليوم (5 قيم لكل شمعة)
   prog && prog("⚡ من السيرفر");
   let added = await fromServer(sym, "k15", st, fromTs, M15, 5);
   added += await fillKlines(sym, "15m", M15, 5, st, fromTs, prog);
   MEM[sym] = st;
   st.dirty = (st.dirty || 0) + added;
-  if (added > 50 || (st.dirty && Date.now() - (st.saved || 0) > 600000)) { st.dirty = 0; st.saved = Date.now(); await idb.set("kv_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) }); }
+  if (added > 50 || (st.dirty && Date.now() - (st.saved || 0) > 600000)) { st.dirty = 0; st.saved = Date.now(); await idb.set("kv_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v), alt: st.alt || [], fx1118: st.fx1118 }); }
   if (!st.t.length) return null;
   // شموع متواصلة من حد 4H، والفجوات بشمعة مسطّحة
   let a = 0; while (a < st.t.length && st.t[a] < fromTs) a++;
@@ -4157,12 +4190,12 @@ async function loadCandles(sym, fromTs, prog) {
 const MEM5 = {}, M5 = 300000;
 async function loadM5(sym, fromTs, prog) {
   let st = MEM5[sym];
-  if (!st) { const c = await idb.get("m5_" + sym); st = c && c.t.length ? { t: Array.from(c.t), v: Array.from(c.v) } : { t: [], v: [] }; }
+  if (!st) { const c = await idb.get("m5_" + sym); st = c && c.t.length ? { t: Array.from(c.t), v: Array.from(c.v), alt: c.alt || [], fx1118: c.fx1118 } : { t: [], v: [], fx1118: 1 }; }
   let added = Date.now() - fromTs > 5*864e5 ? await fromServer(sym, "k5", st, fromTs, M5, 5) : 0;   // 17/11: فترة قصيرة = بدون ملف السيرفر (120 يوم)
   added += await fillKlines(sym, "5m", M5, 5, st, fromTs, prog);
   MEM5[sym] = st;
   st.dirty = (st.dirty || 0) + added;
-  if (added > 50 || (st.dirty && Date.now() - (st.saved || 0) > 600000)) { st.dirty = 0; st.saved = Date.now(); await idb.set("m5_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v) }); }
+  if (added > 50 || (st.dirty && Date.now() - (st.saved || 0) > 600000)) { st.dirty = 0; st.saved = Date.now(); await idb.set("m5_" + sym, { t: Float64Array.from(st.t), v: Float64Array.from(st.v), alt: st.alt || [], fx1118: st.fx1118 }); }
   let a = 0; while (a < st.t.length && st.t[a] < fromTs) a++;
   if (a >= st.t.length) return null;
   const t0 = Math.ceil(st.t[a] / M15) * M15, n = Math.floor((st.t[st.t.length-1] - t0)/M5) + 1;
@@ -4736,7 +4769,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0150";
+const BUILD = "2026-11-18-0300";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
