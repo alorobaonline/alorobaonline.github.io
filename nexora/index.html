@@ -4062,6 +4062,8 @@ function lwBars(D, m, sym) {   // شموع الفريم المختار (مسكّ
 function drawChartLW() {
   if (!lwInit()) return false;
   const c = CACHE.bySym[CSYM]; if (!c || c.D.stub) return true;
+  const w = $("lwc").clientWidth; if (!w) { LW.hidden = true; return true; }   // التبويب مخفي: ما منرسم
+  if (LW.hidden) { LW.hidden = false; LW.key = ""; }   // صار ظاهر → ارسم من جديد بالمدى الافتراضي
   $("lwbar").querySelectorAll("button[data-tf]").forEach(b => b.classList.toggle("on", +b.dataset.tf === LW.tf));
   const D = c.D, m = LW.tf, { bars, vol } = lwBars(D, m, CSYM), MAXB = 600, B = bars.slice(-MAXB), V = vol.slice(-MAXB);
   const key = CSYM + "|" + m + "|" + D.c.length + "|" + B.length + "|" + JSON.stringify(LW.show);
