@@ -3012,7 +3012,7 @@ const MACDM = (() => {
 const MACDP = (() => {
   const M5 = 300000;
   const mk = (name, tf, depth, tpL, tpS, opt = {}) => ({ name, mult: tf === 5 ? 0 : (tf === 60 ? 4 : 1), ...(tf === 5 ? { m5: true } : {}), sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD Momentum v1.1 (من المستخدم 17/11)",
-    run: (D, inds, sp, startTs) => {
+    run: (D, inds, sp, startTs, pend) => {   // pend (اختياري) = خطة حقيقي: ليمتات لسا ناطرة تتعبّى
       let S, X;   // S = شموع الإشارة (مسكّرة) · X = شموع التنفيذ
       if (tf === 5) { const m = D.m5; if (!m || m.o.length < 300) return []; S = { t0: m.t0, step: M5, O: m.o, H: m.h, L: m.l, C: m.c, n: m.o.length }; X = { t0: m.t0, step: M5, o: m.o, h: m.h, l: m.l, c: m.c }; }
       else { const nc = D.prov ? D.o.length - 1 : D.o.length; X = { t0: D.t0, step: M15, o: D.o, h: D.h, l: D.l, c: D.c };
@@ -3028,11 +3028,13 @@ const MACDP = (() => {
         const Lg = hist[i-1] <= 0 && hist[i] > 0 && cs[i] > e50[i] && cs[i] > S.O[k], Sh = hist[i-1] >= 0 && hist[i] < 0 && cs[i] < e50[i] && cs[i] < S.O[k];
         if (Lg === Sh) continue; const d = Lg ? 1 : -1;
         if (opt.longOnly && d !== 1) continue;   // 17/11 13:00: لونج بس (الشورت مسكّر)
-        const j0 = Math.round((tClose - X.t0)/X.step); if (j0 < 0 || j0 >= nx) continue; const ref = X.o[j0];
+        const j0 = Math.round((tClose - X.t0)/X.step); if (j0 < 0 || j0 > nx || (j0 === nx && !pend)) continue; const ref = j0 < nx ? X.o[j0] : X.c[nx-1];   // j0 = nx: الشمعة اللي بعد الإشارة لسا ما سكّرت (خطة حقيقي بس) → آخر سعر تقريبي
         if (Math.abs(ref*(1 + d*0.0001)/cs[i] - 1) > 0.006 + 1e-12) continue;   // حاجز 0.6%
         const lim = ref*(1 - d*depth), jEnd = Math.min(nx, j0 + Math.round(3600000/X.step)); let ej = null, px = null;
         for (let j = j0; j < jEnd; j++) if (d === 1 ? X.l[j] <= lim : X.h[j] >= lim) { ej = j; px = d === 1 ? Math.min(lim, X.o[j]) : Math.max(lim, X.o[j]); break; }
-        if (ej === null) continue;
+        if (ej === null) { const until = X.t0 + (j0 + Math.round(3600000/X.step))*X.step;   // الليمت لسا صالح؟
+          if (pend && j0 + Math.round(3600000/X.step) > nx) pend.push({ d, lim, ref, approx: j0 >= nx, sigTs: tClose, until, tgt: lim*(1 + d*(d === 1 ? tpL : tpS)), stop: opt.fixStop ? lim*(1 - d*opt.fixStop) : lim - d*1.5*atr[i] });
+          continue; }
         const R1 = opt.fixStop ? px*opt.fixStop : 1.5*atr[i]; let stop = px - d*R1, best = px, ox = null, xj = null, why = null; const tgt = px*(1 + d*(d === 1 ? tpL : tpS));
         for (let j = ej; j < nx; j++) {
           if (j > ej && d*(X.o[j] - stop) <= 0) { ox = X.o[j]; xj = j; why = "STOP"; break; }
@@ -3054,10 +3056,12 @@ const MACDP = (() => {
       return out;
     } });
   // 17/11 13:00 (طلب المستخدم): لونج بس · 5د و15د وقف ثابت 1.2% · ساعة وقف 1.5ATR — النسخ القديمة (لونج+شورت) بالمختبر بس
-  return { strats: [mk("MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", 5, 0.008, 0.012, 0.012, { longOnly: true, fixStop: 0.012 }),
+  const strats = [mk("MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", 5, 0.008, 0.012, 0.012, { longOnly: true, fixStop: 0.012 }),
     mk("MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", 15, 0.008, 0.012, 0.012, { longOnly: true, fixStop: 0.012 }),
     mk("MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR", 60, 0.008, 0.012, 0.012, { longOnly: true }),
-    mk("MACD v1.1 ساعة · ليمت 0.8% · لونج 1.2% شورت 1%", 60, 0.008, 0.012, 0.010), mk("MACD v1.1 15m · ليمت 0.8% · هدف 1.2%", 15, 0.008, 0.012, 0.012), mk("MACD v1.1 5m · ليمت 0.8% · هدف 1.2%", 5, 0.008, 0.012, 0.012)] };
+    mk("MACD v1.1 ساعة · ليمت 0.8% · لونج 1.2% شورت 1%", 60, 0.008, 0.012, 0.010), mk("MACD v1.1 15m · ليمت 0.8% · هدف 1.2%", 15, 0.008, 0.012, 0.012), mk("MACD v1.1 5m · ليمت 0.8% · هدف 1.2%", 5, 0.008, 0.012, 0.012)];
+  const pending = (D, startTs) => { const p = []; strats[0].run(D, null, strats[0], startTs, p); return p; };   // 17/11 14:55: خطة حقيقي — MACD 5m
+  return { strats, pending };
 })();
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
   "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",

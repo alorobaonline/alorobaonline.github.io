@@ -229,13 +229,22 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
   <div class="wrap"><table class="radar" id="radar"></table></div>
 </section>
 <section class="tab" data-t="real">
-  <h2>🎯 خطة التداول الحقيقي — ⭐ S15 V2 4h بس <span class="mut">(المنصة ما بتفتح ولا صفقة — إنت بتفتح بإيدك)</span></h2>
+  <h2>🎯 خطة التداول الحقيقي — ⭐ S15 V2 4h <span class="mut">(المنصة ما بتفتح ولا صفقة — إنت بتفتح بإيدك)</span></h2>
   <div id="realClock" class="card" style="font-size:15px"></div>
   <h3 style="margin-top:14px">✅ إشارات مؤكدة — ادخل على افتتاح الشمعة</h3>
   <div id="realConf"></div>
   <h3 style="margin-top:14px">⏳ صفقات محتملة — صار سحب سيولة، وناطرين كسر الهيكل</h3>
   <div class="mut" style="margin-bottom:6px">الصفقة بتفتح <b>إذا سكّرت شمعة 4 ساعات</b> ورا سعر الشرط قبل آخر موعد (إلا إذا نفس الشمعة عملت سحب جديد). الدخول على افتتاح الشمعة اللي بعدها. الوقف والهدف تقريبيين (بيتحددوا بالـATR لحظة الإغلاق). الباهت = بعيد أكثر من 10% عن الشرط، أو وقفه بعيد أكثر من 15% (⚠️).</div>
   <div id="realPend"></div>
+  <h2 style="margin-top:22px">⚡ MACD v1.1 5m — لونج بس · ليمت 0.8% · هدف 1.2% · وقف 1.2% <span class="mut">(المنصة ما بتفتح ولا صفقة — إنت بتحط الليمت بإيدك)</span></h2>
+  <div id="realM5Clock" class="card" style="font-size:15px"></div>
+  <h3 style="margin-top:14px">⏳ ليمت شراء لازم ينحط هلأ</h3>
+  <div class="mut" style="margin-bottom:6px">إشارة طلعت على شمعة 5 دقايق مسكّرة: حط <b>Limit Buy</b> على سعر الليمت، ومعه الهدف والوقف. إذا ما تعبّى لحد «يلغى الساعة» — <b>الغيه</b>. الصفقة الوحدة على العملة: إذا في صفقة مفتوحة على نفس العملة، المنصة ما بتعطي إشارة جديدة.</div>
+  <div id="realM5Pend"></div>
+  <h3 style="margin-top:14px">📌 صفقات MACD 5m مفتوحة هلأ (تعبّى الليمت)</h3>
+  <div id="realM5Open"></div>
+  <h3 style="margin-top:14px">🛑 قاعدة التوقف لـ MACD 5m</h3>
+  <div id="realM5Kill"></div>
   <h3 style="margin-top:14px">🛑 قاعدة التوقف (حطها قبل ما تبلّش)</h3>
   <div class="bar"><label>تاريخ بداية التداول الحقيقي<input type="date" id="realStart"></label></div>
   <div id="realKill"></div>
@@ -3204,7 +3213,7 @@ const MACDM = (() => {
 const MACDP = (() => {
   const M5 = 300000;
   const mk = (name, tf, depth, tpL, tpS, opt = {}) => ({ name, mult: tf === 5 ? 0 : (tf === 60 ? 4 : 1), ...(tf === 5 ? { m5: true } : {}), sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD Momentum v1.1 (من المستخدم 17/11)",
-    run: (D, inds, sp, startTs) => {
+    run: (D, inds, sp, startTs, pend) => {   // pend (اختياري) = خطة حقيقي: ليمتات لسا ناطرة تتعبّى
       let S, X;   // S = شموع الإشارة (مسكّرة) · X = شموع التنفيذ
       if (tf === 5) { const m = D.m5; if (!m || m.o.length < 300) return []; S = { t0: m.t0, step: M5, O: m.o, H: m.h, L: m.l, C: m.c, n: m.o.length }; X = { t0: m.t0, step: M5, o: m.o, h: m.h, l: m.l, c: m.c }; }
       else { const nc = D.prov ? D.o.length - 1 : D.o.length; X = { t0: D.t0, step: M15, o: D.o, h: D.h, l: D.l, c: D.c };
@@ -3220,11 +3229,13 @@ const MACDP = (() => {
         const Lg = hist[i-1] <= 0 && hist[i] > 0 && cs[i] > e50[i] && cs[i] > S.O[k], Sh = hist[i-1] >= 0 && hist[i] < 0 && cs[i] < e50[i] && cs[i] < S.O[k];
         if (Lg === Sh) continue; const d = Lg ? 1 : -1;
         if (opt.longOnly && d !== 1) continue;   // 17/11 13:00: لونج بس (الشورت مسكّر)
-        const j0 = Math.round((tClose - X.t0)/X.step); if (j0 < 0 || j0 >= nx) continue; const ref = X.o[j0];
+        const j0 = Math.round((tClose - X.t0)/X.step); if (j0 < 0 || j0 > nx || (j0 === nx && !pend)) continue; const ref = j0 < nx ? X.o[j0] : X.c[nx-1];   // j0 = nx: الشمعة اللي بعد الإشارة لسا ما سكّرت (خطة حقيقي بس) → آخر سعر تقريبي
         if (Math.abs(ref*(1 + d*0.0001)/cs[i] - 1) > 0.006 + 1e-12) continue;   // حاجز 0.6%
         const lim = ref*(1 - d*depth), jEnd = Math.min(nx, j0 + Math.round(3600000/X.step)); let ej = null, px = null;
         for (let j = j0; j < jEnd; j++) if (d === 1 ? X.l[j] <= lim : X.h[j] >= lim) { ej = j; px = d === 1 ? Math.min(lim, X.o[j]) : Math.max(lim, X.o[j]); break; }
-        if (ej === null) continue;
+        if (ej === null) { const until = X.t0 + (j0 + Math.round(3600000/X.step))*X.step;   // الليمت لسا صالح؟
+          if (pend && j0 + Math.round(3600000/X.step) > nx) pend.push({ d, lim, ref, approx: j0 >= nx, sigTs: tClose, until, tgt: lim*(1 + d*(d === 1 ? tpL : tpS)), stop: opt.fixStop ? lim*(1 - d*opt.fixStop) : lim - d*1.5*atr[i] });
+          continue; }
         const R1 = opt.fixStop ? px*opt.fixStop : 1.5*atr[i]; let stop = px - d*R1, best = px, ox = null, xj = null, why = null; const tgt = px*(1 + d*(d === 1 ? tpL : tpS));
         for (let j = ej; j < nx; j++) {
           if (j > ej && d*(X.o[j] - stop) <= 0) { ox = X.o[j]; xj = j; why = "STOP"; break; }
@@ -3246,10 +3257,12 @@ const MACDP = (() => {
       return out;
     } });
   // 17/11 13:00 (طلب المستخدم): لونج بس · 5د و15د وقف ثابت 1.2% · ساعة وقف 1.5ATR — النسخ القديمة (لونج+شورت) بالمختبر بس
-  return { strats: [mk("MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", 5, 0.008, 0.012, 0.012, { longOnly: true, fixStop: 0.012 }),
+  const strats = [mk("MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", 5, 0.008, 0.012, 0.012, { longOnly: true, fixStop: 0.012 }),
     mk("MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", 15, 0.008, 0.012, 0.012, { longOnly: true, fixStop: 0.012 }),
     mk("MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR", 60, 0.008, 0.012, 0.012, { longOnly: true }),
-    mk("MACD v1.1 ساعة · ليمت 0.8% · لونج 1.2% شورت 1%", 60, 0.008, 0.012, 0.010), mk("MACD v1.1 15m · ليمت 0.8% · هدف 1.2%", 15, 0.008, 0.012, 0.012), mk("MACD v1.1 5m · ليمت 0.8% · هدف 1.2%", 5, 0.008, 0.012, 0.012)] };
+    mk("MACD v1.1 ساعة · ليمت 0.8% · لونج 1.2% شورت 1%", 60, 0.008, 0.012, 0.010), mk("MACD v1.1 15m · ليمت 0.8% · هدف 1.2%", 15, 0.008, 0.012, 0.012), mk("MACD v1.1 5m · ليمت 0.8% · هدف 1.2%", 5, 0.008, 0.012, 0.012)];
+  const pending = (D, startTs) => { const p = []; strats[0].run(D, null, strats[0], startTs, p); return p; };   // 17/11 14:55: خطة حقيقي — MACD 5m
+  return { strats, pending };
 })();
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
   "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
@@ -4152,6 +4165,7 @@ const tm = ts => new Date(ts).toLocaleString("en-GB", { weekday: "short", day: "
 const left = ms => { const m = Math.max(0, Math.round(ms/60000)); return m >= 60 ? `${Math.floor(m/60)}س ${m%60}د` : `${m}د`; };
 function renderReal() {
   if (!$("realClock") || !CACHE) return;
+  try { renderRealM5(); } catch (e) { console.warn(e); }   // 17/11: MACD 5m بنفس التبويب
   const P = RESULT ? RESULT.P : params($("makerEntry").checked), H4ms = 4*3600e3, now = Date.now(), next = Math.ceil(now/H4ms)*H4ms;
   $("realClock").innerHTML = `⏰ إغلاق شمعة الـ4 ساعات الجاية: <b>${tm(next)}</b> — بعد <b>${left(next - now)}</b> <span class="mut">(الإشارات بتتأكد بس عند الإغلاق؛ الصفقة على 200$ = حجم الصفقة بالإعدادات: ${P.notional}$)</span>`;
   // إشارات مؤكدة: صفقات ⭐ مفتوحة بدأت بآخر 8 ساعات
@@ -4192,6 +4206,34 @@ function renderReal() {
   <div class="mut" style="margin-top:6px">القاعدة (متفق عليها قبل): وقّف إذا <b>بعد 100 صفقة PF تحت 0.9</b>، أو إذا <b>التراجع تعدّى 1.5× أكبر تراجع بالفحص</b> (434$ على 200$ للصفقة → ${ddTest.toFixed(0)}$ على حجمك). المتوقع من الفحص: PF تقريباً 1.1–1.5، وفترات ضعيفة ممكن تطول لـ8 شهور.</div>`;
 }
 setInterval(() => { if (document.querySelector('section.tab.on[data-t="real"]')) renderReal(); }, 30000);
+// 17/11 14:55: خطة حقيقي — MACD 5m (طلب المستخدم). نفس محرك المنصة بالزبط (MACDP.pending = نفس الشروط، بس بيرجّع الليمتات اللي لسا صالحة)
+const M5NAME = "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", M5PEND = new WeakMap();
+function renderRealM5() {
+  if (!$("realM5Pend") || !CACHE) return;
+  const P = RESULT ? RESULT.P : params($("makerEntry").checked), now = Date.now(), M5ms = 300000, next = Math.ceil(now/M5ms)*M5ms;
+  $("realM5Clock").innerHTML = `⏰ إغلاق شمعة الـ5 دقايق الجاية: <b>${tm(next)}</b> — بعد <b>${left(next - now)}</b> <span class="mut">(المنصة بتحدّث الـ5 دقايق لحالها؛ الصفقة = ${P.notional}$ — الهدف ${(P.notional*0.012).toFixed(2)}$ والوقف ${(P.notional*0.012).toFixed(2)}$ قبل العمولة)</span>`;
+  const openSyms = new Set((RESULT ? RESULT.trades : []).filter(t => t.name === M5NAME && t.open).map(t => t.sym));
+  const rows = []; let noData = 0;
+  for (const c of CACHE.coins) {
+    const m = c.D.m5; if (c.D.stub || !m) { noData++; continue; }
+    let e = M5PEND.get(m); if (!e || e.len !== m.c.length) { let p = []; try { p = MACDP.pending(c.D, CACHE.startTs); } catch (er) {} e = { len: m.c.length, p }; M5PEND.set(m, e); }
+    for (const q of e.p) if (q.until > now && !openSyms.has(c.sym)) rows.push({ sym: c.sym, ...q, px: pxOf(c.sym) });
+  }
+  rows.sort((a, b) => b.sigTs - a.sigTs);
+  $("realM5Pend").innerHTML = rows.length ? `<div class="wrap"><table><tr><th>العملة</th><th>الأمر</th><th>سعر الليمت</th><th>السعر هلأ</th><th>بعيد عن الليمت</th><th>الهدف (+1.2%)</th><th>الوقف (−1.2%)</th><th>الإشارة</th><th>يلغى الساعة</th></tr>${rows.map(r => {
+    const dist = r.px ? (r.px/r.lim - 1)*100 : null, hit = dist !== null && dist <= 0;
+    return `<tr style="${hit ? "background:#14321f;" : ""}"><td><b>${cn(r.sym)}</b></td><td>🟢 Limit Buy</td><td><b class="num">${fp(r.lim)}</b>${r.approx ? ' <span class="mut" title="الشمعة اللي بعد الإشارة لسا ما سكّرت — الليمت محسوب من آخر سعر وبيتعدّل شوي على افتتاحها">≈</span>' : ""}</td><td>${r.px ? fp(r.px) : "—"}</td><td>${dist === null ? "—" : hit ? "✅ وصل الليمت" : dist.toFixed(2) + "%"}</td><td><span class="num pos">${fp(r.tgt)}</span></td><td><span class="num neg">${fp(r.stop)}</span></td><td>${tm(r.sigTs)}</td><td><b>${tm(r.until)}</b> <span class="mut">(${left(r.until - now)})</span></td></tr>`; }).join("")}</table></div>` : `<div class="mut">ما في ليمت لازم ينحط هلأ${noData ? ` <span class="mut">(${noData} عملة بدون بيانات 5د لسا)</span>` : ""}.</div>`;
+  const op = (RESULT ? RESULT.trades : []).filter(t => t.name === M5NAME && t.open).sort((a, b) => b.eTs - a.eTs);
+  $("realM5Open").innerHTML = op.length ? `<div class="wrap"><table><tr><th>العملة</th><th>الدخول</th><th>السعر هلأ</th><th>الهدف</th><th>الوقف</th><th>ربح/خسارة</th><th>بدأت</th></tr>${op.map(t => `<tr><td><b>${cn(t.sym)}</b></td><td>${fp(t.rawIn)}</td><td>${fp(t.fillOut)}</td><td><span class="num pos">${fp(t.target)}</span></td><td><span class="num neg">${fp(t.stop)}</span></td><td><b>${usd(t.net)}</b></td><td>${tm(t.eTs)}</td></tr>`).join("")}</table></div>` : `<div class="mut">ما في صفقة MACD 5m مفتوحة هلأ.</div>`;
+  const st = $("realStart").value, s0 = st ? new Date(st + "T00:00:00").getTime() : null;
+  if (!s0) { $("realM5Kill").innerHTML = `<div class="mut">حط «تاريخ بداية التداول الحقيقي» فوق، وبحسبلك صفقات MACD 5m من يومها.</div>`; return; }
+  const cl = (RESULT ? RESULT.trades : []).filter(t => t.name === M5NAME && !t.open && t.eTs >= s0).sort((a, b) => a.xTs - b.xTs);
+  let gp = 0, gl = 0, eq = 0, pk = 0, dd = 0; for (const t of cl) { if (t.net > 0) gp += t.net; else gl -= t.net; eq += t.net; pk = Math.max(pk, eq); dd = Math.max(dd, pk - eq); }
+  const pf = gl ? gp/gl : (gp ? 99 : 0), n = cl.length, stop = n >= 100 && pf < 0.9;
+  $("realM5Kill").innerHTML = `<div class="wrap"><table><tr><th>الصفقات من البداية</th><th>رابحة</th><th>الصافي</th><th>PF</th><th>أقصى تراجع</th><th>الحكم</th></tr><tr><td>${n}</td><td>${cl.filter(t => t.net > 0).length}</td><td>${usd(eq)}</td><td>${n ? (pf >= 99 ? "∞" : pf.toFixed(2)) : "—"}</td><td>−${dd.toFixed(2)}$</td><td>${stop ? "🛑 <b>وقّف وراجع</b> — بعد 100 صفقة PF تحت 0.9" : n < 100 ? `🟢 كمّل — ${100 - n} صفقة لأول حكم على الـPF` : "🟢 كمّل"}</td></tr></table></div>
+  <div class="mut" style="margin-top:6px">⚠️ هالنسخة (لونج بس، وقف ثابت 1.2%) ما انفحصت على السنتين — نتيجتها من يوم واحد، وكان السوق طالع. القاعدة متل S15: وقّف إذا بعد 100 صفقة PF تحت 0.9.</div>`;
+}
+
 
 function showTab(t) {
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
