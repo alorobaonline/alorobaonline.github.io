@@ -3313,6 +3313,40 @@ for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% �
 for (const b of TP_BASES) STRATS_ALL.push(timingWrap(b, "calm"), timingWrap(b, "limit"), timingWrap(b, "limit6"), timingWrap(b, "limit8"), timingWrap(b, "confirm"));
 for (const b of ["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"]) STRATS_ALL.push(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"));
 for (const b of TP_BASES) STRATS_ALL.push(trendWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), trendWrap(timingWrap(b, "limit")));
+// 17/11 13:59: Lux ليمت 1% · هدف 1% · وقف 1.5% (كود المستخدم) — الليمت صالح 4 شموع 15m، صفقة وحدة بالمرة على العملة، الوقف قبل الهدف بنفس الشمعة
+//  + تصليح شمعة التنفيذ: ما في هدف (ولا فجوة افتتاح) على الشمعة اللي تعبّى فيها الليمت
+const LUX_L10 = "#8 Lux Trendline+TRAMA+Chandelier | ليمت 1% · هدف 1% · وقف 1.5%";
+function luxL10Wrap(baseName, name, depth, tp, sl) {
+  const run = (D, inds, sp, startTs) => {
+    const base = STRATS_ALL.find(x => x.name === baseName); if (!base) return [];
+    const src = evaluate(D, inds, base, startTs).slice().sort((a, b) => a.e - b.e), n = D.o.length, out = [], seen = new Set();
+    let busy = -1;
+    for (const t of src) {
+      const k0 = t.e + "|" + t.d; if (seen.has(k0)) continue; seen.add(k0);
+      if (t.e <= busy) continue;
+      const d = t.d, ref = +t.rawIn; if (!(ref > 0)) continue;
+      const lim = ref*(1 - d*depth), last = Math.min(n - 1, t.e + 3);
+      let e = null, ei = null;
+      for (let j = t.e; j <= last; j++) if (d === 1 ? D.l[j] <= lim : D.h[j] >= lim) { e = d === 1 ? Math.min(lim, D.o[j]) : Math.max(lim, D.o[j]); ei = j; break; }
+      if (e === null) { busy = last; continue; }
+      const tgt = e*(1 + d*tp), stop = e*(1 - d*sl);
+      let px = null, why = null, xi = null;
+      for (let j = ei; j < n; j++) {
+        if (j > ei && d*(D.o[j] - stop) <= 0) { px = D.o[j]; why = "STOP"; xi = j; break; }
+        if (j > ei && d*(D.o[j] - tgt) >= 0) { px = D.o[j]; why = "TGT_GAP"; xi = j; break; }
+        if (d === 1 ? D.l[j] <= stop : D.h[j] >= stop) { px = stop; why = "STOP"; xi = j; break; }
+        if (j === ei) continue;   // شمعة التنفيذ
+        if (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt) { px = tgt; why = "TARGET"; xi = j; break; }
+      }
+      const w = t.w || 1;
+      if (px !== null) { out.push({ name, d, e: ei, x: xi, rawIn: e, rawOut: px, why, open: false, stop, target: tgt, ...(w !== 1 ? { w } : {}) }); busy = xi; }
+      else { out.push({ name, d, e: ei, x: n - 1, rawIn: e, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt, ...(w !== 1 ? { w } : {}) }); busy = n - 1; }
+    }
+    return out;
+  };
+  return { name, mult: (STRATS_ALL.find(x => x.name === baseName) || {}).mult || 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Lux limit 1% wrap (user)" };
+}
+STRATS_ALL.push(luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", LUX_L10, 0.010, 0.010, 0.015));
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(quietWrap(timingWrap(b, "limit6")));   // مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(posWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), 0.4), posWrap(timingWrap(b, "limit6"), 0.4));   // مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(floorAvoidWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), floorAvoidWrap(timingWrap(b, "limit6")));   // مختبر بس
@@ -3325,7 +3359,7 @@ const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جا�
 // 16/11 16:40: المنصة بتشغّل بس نسخ "هدف 1.2% / وقف 1.2%" من كل الاستراتيجيات (طلب المستخدم) — الأصلية بالمختبر بس
 const PLATFORM_KEEP = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% ليمت 0.6%", b + " | 1.2% ليمت 0.8%"]),   // 17/11 03:55: «تأكيد 15m» انلغت من المنصة (طلب المستخدم — دخول متأخر على أسوأ سعر)
   ...["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"].map(b => b + " | هدف 1.2% وقف 1.2%"),
-  ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"]), "Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", ...MACDP.strats.slice(0, 3).map(s => s.name),   // MACD v1.1 (17/11 12:19) · 17/11: كسر+فوليوم+ريتست انشالت من المنصة (خسرت من التصفير وعلى السنتين) — بالمختبر بس
+  ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"]), "Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", ...MACDP.strats.slice(0, 3).map(s => s.name), LUX_L10,   // MACD v1.1 (17/11 12:19) · 17/11: كسر+فوليوم+ريتست انشالت من المنصة (خسرت من التصفير وعلى السنتين) — بالمختبر بس
 ]);   // 17/11 07:45: نسخ "فلتر استسلام" (فوليوم) انشالت من المنصة — بالمختبر بس (طلب المستخدم)   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 const PLATFORM_NOVOL = s => s.name.startsWith("WAVE ") || s.name.startsWith("⭐ S15 دخول 15m + فوليوم");
