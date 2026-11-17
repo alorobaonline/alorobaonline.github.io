@@ -1,4 +1,4 @@
-NEXORA LAB (GitHub) | s15-maxrisk | 2026-11-16T11:37:32.774Z | hash=181e551c4b | engine=75f128ac | coins 102 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
+NEXORA LAB (GitHub) | s15-maxrisk | 2026-11-17T12:11:59.348Z | hash=145c5f1c91 | engine=23d5f2b7 | coins 102 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
 # SELECTION (chosen on TRAIN only)
 best-train taker: S15* بدون وقف أبعد من 15% | تدريب: n=1046 +2212.60$ PF1.30 win41% gross/t+2.40$ t3.4 DD567$ | اختبار: n=570 +337.07$ PF1.10 win39% gross/t+0.86$ t0.9 DD409$ | جديدة: n=221 +815.73$ PF1.63 win48% gross/t+3.96$ t2.9 DD349$
 best-train maker: S15* بدون وقف أبعد من 15% | تدريب: n=1046 +2296.22$ PF1.31 win42% gross/t+2.40$ t3.5 DD561$ | اختبار: n=570 +382.64$ PF1.11 win40% gross/t+0.86$ t1.0 DD405$ | جديدة: n=221 +833.40$ PF1.65 win48% gross/t+3.96$ t3.0 DD344$
