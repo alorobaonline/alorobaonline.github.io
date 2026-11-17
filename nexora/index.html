@@ -24,7 +24,7 @@ button.sec{background:#2a2f3a;color:var(--txt)}
 .num{direction:ltr;unicode-bidi:isolate;display:inline-block}
 .wrap{overflow-x:auto;background:var(--card);border-radius:12px}
 table{border-collapse:collapse;width:100%;font-size:13px}
-th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+th,td{padding:6px 6px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
 th{position:sticky;top:0;background:#1f232c;font-weight:600;color:#cfd3da;cursor:pointer}
 td.nm{text-align:right} tr.sel{background:#1d2633}
 svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;display:block}
@@ -119,6 +119,7 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
 .tfsum span{color:#9d98c9}.tfsum b{color:#ece9ff}
 .wrap::-webkit-scrollbar{width:8px;height:8px}.wrap::-webkit-scrollbar-track{background:transparent}.wrap::-webkit-scrollbar-thumb{background:rgba(167,139,250,.35);border-radius:8px}.wrap::-webkit-scrollbar-corner{background:transparent}
 .wrap{scrollbar-color:rgba(167,139,250,.35) transparent;scrollbar-width:thin}
+#openT.cmp .hc{display:none} #openT.cmp td.nm{white-space:normal;min-width:170px;max-width:230px;line-height:1.35}   /* 17/11: الوضع المختصر */
 .wrap{cursor:grab}.wrap.drag{cursor:grabbing;user-select:none}.wrap.drag *{cursor:grabbing}   /* 17/11: سحب الجدول بالماوس */
 #trades td.stot{background:rgba(167,139,250,.07)}
 </style>
@@ -3831,13 +3832,16 @@ function renderAccount() {
     ["الربح الكلي", usd(realized + unreal)], ["صفقات مفتوحة", `<span class="num">${open.length}</span> <span class="mut">هامش ${margin.toFixed(0)}$</span>`],
   ].map(([k, v]) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
   let OPENF = "today"; try { OPENF = localStorage.getItem("nexora_openf") || "today"; } catch (e) {}
+  let OPENC = true; try { OPENC = localStorage.getItem("nexora_openc") !== "0"; } catch (e) {}   // 17/11: المختصر شغّال افتراضياً
   const midnight = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); })();
   const openToday = open.filter(t => t.eTs >= midnight), openAll = open;
   { const open = OPENF === "today" ? openToday : openAll;   // الجدول بس — الحساب فوق بيضل على كل المفتوحة
-  $("openF").innerHTML = `<button class="${OPENF === "today" ? "on" : ""}" data-f="today">اللي انفتحت اليوم (${openToday.length})</button><button class="${OPENF === "all" ? "on" : ""}" data-f="all">كل المفتوحة (${openAll.length})</button>`;
-  $("openF").querySelectorAll("button").forEach(b => b.onclick = () => { try { localStorage.setItem("nexora_openf", b.dataset.f); } catch (e) {} renderAccount(); });
-  $("openT").innerHTML = `<tr><th>الاستراتيجية</th><th>العملة</th><th>اتجاه</th><th>ROE%</th><th>ربح/خسارة</th><th>دخول</th><th>السعر هلأ</th><th>الوقف</th><th>الهدف</th><th>بدأت</th><th>مدتها</th><th>عمولة+تمويل</th></tr>` +
-    (open.map(t => `<tr data-s="${t.sym}" style="cursor:pointer"><td class="nm">${t.name}</td><td><b>${cn(t.sym)}</b></td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><b class="num ${t.net >= 0 ? "pos" : "neg"}">${(t.net >= 0 ? "+" : "") + (100*t.net/(P.notional*(t.w || 1)/lev)).toFixed(1)}%</b></td><td><b>${usd(t.net)}</b></td><td><span class="num">${fp(t.fillIn)}</span></td><td><span class="num">${fp(t.fillOut)}</span>${LIVE_T[t.sym] > Date.now() - 30000 ? "" : ' <span title="السعر مش محدّث — آخر سعر معروف" style="color:#f59e0b">⏳</span>'}</td><td><span class="num neg">${fp(t.stop)}</span></td><td><span class="num pos">${Number.isFinite(t.target) ? fp(t.target) : "إشارة خروج"}</span></td><td><span class="num">${dt(t.eTs)}</span></td><td>${dur(Date.now() - t.eTs)}</td><td>${usd(t.fund - t.fee)}</td></tr>`).join("") ||
+  $("openF").innerHTML = `<button class="${OPENF === "today" ? "on" : ""}" data-f="today">اللي انفتحت اليوم (${openToday.length})</button><button class="${OPENF === "all" ? "on" : ""}" data-f="all">كل المفتوحة (${openAll.length})</button><button class="${OPENC ? "on" : ""}" id="openC" title="بيخبي «بدأت» و«عمولة+تمويل» وبيكسر اسم الاستراتيجية على سطرين">📐 مختصر</button>`;
+  $("openT").classList.toggle("cmp", OPENC);
+  $("openF").querySelectorAll("button[data-f]").forEach(b => b.onclick = () => { try { localStorage.setItem("nexora_openf", b.dataset.f); } catch (e) {} renderAccount(); });
+  $("openC").onclick = () => { try { localStorage.setItem("nexora_openc", OPENC ? "0" : "1"); } catch (e) {} renderAccount(); };
+  $("openT").innerHTML = `<tr><th>الاستراتيجية</th><th>العملة</th><th>اتجاه</th><th>ROE%</th><th>ربح/خسارة</th><th>دخول</th><th>السعر هلأ</th><th>الوقف</th><th>الهدف</th><th class="hc">بدأت</th><th>مدتها</th><th class="hc">عمولة+تمويل</th></tr>` +
+    (open.map(t => `<tr data-s="${t.sym}" style="cursor:pointer"><td class="nm">${t.name}</td><td><b>${cn(t.sym)}</b></td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td><b class="num ${t.net >= 0 ? "pos" : "neg"}">${(t.net >= 0 ? "+" : "") + (100*t.net/(P.notional*(t.w || 1)/lev)).toFixed(1)}%</b></td><td><b>${usd(t.net)}</b></td><td><span class="num">${fp(t.fillIn)}</span></td><td><span class="num">${fp(t.fillOut)}</span>${LIVE_T[t.sym] > Date.now() - 30000 ? "" : ' <span title="السعر مش محدّث — آخر سعر معروف" style="color:#f59e0b">⏳</span>'}</td><td><span class="num neg">${fp(t.stop)}</span></td><td><span class="num pos">${Number.isFinite(t.target) ? fp(t.target) : "إشارة خروج"}</span></td><td class="hc"><span class="num">${dt(t.eTs)}</span></td><td>${dur(Date.now() - t.eTs)}</td><td class="hc">${usd(t.fund - t.fee)}</td></tr>`).join("") ||
      `<tr><td colspan="12" class="mut">${OPENF === "today" && openAll.length ? `ما انفتحت ولا صفقة اليوم لهلأ — في ${openAll.length} صفقة مفتوحة من أيام قبل (اكبس «كل المفتوحة»).` : "ما في صفقات مفتوحة هلأ — الاستراتيجيات بتستنى إشارة."}</td></tr>`); }
   $("openT").querySelectorAll("tr[data-s]").forEach(tr => tr.onclick = () => { CSYM = tr.dataset.s; fillCoinSel(); drawChart(); radar(); updateLiveHeader(); });
   // الشريط الثابت + التراجع
