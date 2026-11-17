@@ -3265,7 +3265,7 @@ async function loadFunding(sym, fromTs, D) {
 }
 
 // 17/11: عقود بحالة SETTLING على بايننس فيوتشرز (عم تنشال، ما بتقدر تفتح عليها) — طالعين من المنصة
-const DELISTED = new Set(["TONUSDT", "IPUSDT"]);
+const DELISTED = new Set(["TONUSDT", "IPUSDT", "FETUSDT"]);   // FET: مش موجودة على Bybit (ما في سعر حي كل ثانية) — طلب المستخدم 17/11
 // أسماء مختلفة على Bybit (السعر الحي): [اسم Bybit، ضرب السعر]
 const BYBIT_MAP = { "1000SATSUSDT": ["10000SATSUSDT", 0.1], "1000SHIBUSDT": ["SHIB1000USDT", 1], "PUMPUSDT": ["PUMPFUNUSDT", 1], "TURBOUSDT": ["1000TURBOUSDT", 0.001] };
 const BYBIT_REV = Object.fromEntries(Object.entries(BYBIT_MAP).map(([k, [b, f]]) => [b, [k, f]]));
