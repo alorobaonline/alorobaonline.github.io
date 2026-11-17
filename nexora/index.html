@@ -3091,6 +3091,16 @@ function quietWrap(inner) {
   const name = inner.name + " + فوليوم هادي";
   return { ...inner, name, run: (D, inds, sp, startTs) => { if (!D.v) return []; const F = mrvFeat(D); return inner.run(D, inds, inner, startTs).filter(t => { const v = F.vr[t.e - 1]; return v !== null && v < 1; }).map(t => ({ ...t, name })); }, src: "مختبر: فوليوم هادي (17/11)" };
 }
+
+// 17/11 مختبر بس: شرط موقع الدخول — ما في شورت بأسفل 40% من مدى آخر 24 ساعة (ولا لونج بأعلى 40%)، من شموع مسكّرة قبل الدخول
+function posOk(D, e, d, px, minPos) {
+  if (e < 96) return false; let hi = -Infinity, lo = Infinity; for (let k = e - 96; k < e; k++) { if (D.h[k] > hi) hi = D.h[k]; if (D.l[k] < lo) lo = D.l[k]; }
+  if (!(hi > lo)) return false; const pos = d === 1 ? (hi - px)/(hi - lo) : (px - lo)/(hi - lo); return pos >= minPos;
+}
+function posWrap(inner, minPos) {
+  const name = inner.name + " + موقع دخول ≥" + Math.round(minPos*100) + "%";
+  return { ...inner, name, run: (D, inds, sp, startTs) => inner.run(D, inds, inner, startTs).filter(t => posOk(D, t.e, t.d, t.rawIn, minPos)).map(t => ({ ...t, name })), src: "مختبر: شرط موقع الدخول بمدى 24 ساعة (17/11)" };
+}
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
   "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
   "Bagheri IG Ether 15m (كما هي)", "⭐ S15 دخول على إغلاق 15m"];   // 17/11: Bagheri ساعة و4h انشالوا (إشارتين بالسنة — طلب المستخدم)
@@ -3151,6 +3161,7 @@ for (const b of TP_BASES) STRATS_ALL.push(timingWrap(b, "calm"), timingWrap(b, "
 for (const b of ["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"]) STRATS_ALL.push(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"));
 for (const b of TP_BASES) STRATS_ALL.push(trendWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), trendWrap(timingWrap(b, "limit")));
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(quietWrap(timingWrap(b, "limit6")));   // مختبر بس
+for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(posWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), 0.4), posWrap(timingWrap(b, "limit6"), 0.4));   // مختبر بس
 for (const b of TP_BASES) STRATS_ALL.push(capitWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), capitWrap(timingWrap(b, "limit6")));   // 17/11 فلتر استسلام   // 17/11 فلتر ترند
 
 // نسخ فحص (جان، Turtle Soup...): بتشتغل بمختبر السيرفر بس — المنصة بالمتصفح ما بتحسبها (أسرع، وما بتلوّث الحساب)
