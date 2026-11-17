@@ -40,6 +40,8 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
 @media(min-width:900px){.lv{grid-template-columns:2fr 1fr}}
 .panel{background:var(--card);border-radius:12px;padding:10px}
 #chart15{width:100%;height:280px;display:block}
+#lwc{width:100%;height:420px;direction:ltr}
+.lwbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}.lwbar button{padding:3px 10px;font-size:12px;border-radius:8px;background:#1f2430;color:#cbd5e1;border:1px solid #2a3140;cursor:pointer}.lwbar button.on{background:#2563eb;color:#fff;border-color:#2563eb}.lwbar label{font-size:12px;color:#9ca3af;display:flex;gap:3px;align-items:center}
 .px{font-size:26px;font-weight:800;font-family:ui-monospace,monospace;direction:ltr;display:inline-block}
 .cd{font-family:ui-monospace,monospace;font-size:18px;direction:ltr;display:inline-block}
 .radar td{font-size:12.5px} .hot{color:#f59e0b;font-weight:700}
@@ -209,6 +211,9 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
         <div><select id="csel" style="font-weight:700"></select> <span class="px" id="lpx">—</span> <span id="lchg" class="num mut"></span></div>
         <div class="mut">الشمعة الجاية بتسكّر بعد <span class="cd" id="cd">--:--</span> <button class="sec" id="snd" style="padding:5px 10px;font-size:12px;margin-inline-start:6px">🔕 الصوت</button></div>
       </div>
+      <div class="lwbar" id="lwbar" style="display:none"><span class="mut">الفريم:</span><button data-tf="1">15د</button><button data-tf="4">ساعة</button><button data-tf="16">4 ساعات</button>
+        <span class="mut" style="margin-inline-start:8px">إظهار:</span><label><input type="checkbox" data-lw="trades" checked>الصفقات</label><label><input type="checkbox" data-lw="zones" checked>المناطق</label><label><input type="checkbox" data-lw="ema" checked>EMA50/200</label><label><input type="checkbox" data-lw="vol" checked>الفوليوم</label></div>
+      <div id="lwc" style="display:none"></div>
       <canvas id="chart15"></canvas>
       <div class="mut">آخر 30 ساعة (شموع 15 دقيقة). خطوط الصفقات المفتوحة: <span style="color:#e5e7eb">— دخول</span> · <span class="neg">— وقف</span> · <span class="pos">— هدف</span> · ▲ لونغ ▼ شورت · <span style="color:#f87171">▭ مقاومة/عرض</span> · <span style="color:#4ade80">▭ دعم/طلب</span></div>
       <div id="zonesBox" style="margin-top:6px;line-height:1.8"></div>
@@ -248,6 +253,7 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
   <div style="display:flex;gap:8px;justify-content:flex-end"><button class="sec" id="jCancel">إلغاء</button><button id="jSave">احفظ</button></div>
 </div></div>
 
+<script src="lib/lightweight-charts-4.2.3.js"></script>
 <script id="engine">
 // ===================== NEXORA ENGINE (نفس منطق الفحص بالضبط) =====================
 const M15 = 900000, H4 = 16 * M15;
@@ -4017,7 +4023,95 @@ function renderZones() {
     (Zn.above.length ? Zn.above.map(z => row(z, "res")).join("") : '<span class="mut">ما في مقاومة قوية قريبة فوق</span>') + "<br>" +
     (Zn.below.length ? Zn.below.map(z => row(z, "sup")).join("") : '<span class="mut">ما في دعم قوي قريب تحت</span>');
 }
+// 17/11: شارت TradingView (Lightweight Charts 4.2.3, Apache-2.0 — lib/) — زوم وسحب، محور وقت، فوليوم، EMA، المناطق، الصفقات. لو المكتبة ما حمّلت → الشارت القديم
+const LW = { chart: null, cs: null, vs: null, e50: null, e200: null, lines: [], key: "", lineKey: "", tf: 1, show: { trades: true, zones: true, ema: true, vol: true }, ok: typeof LightweightCharts !== "undefined" };
+try { const v = JSON.parse(localStorage.getItem("nexora_lw") || "null"); if (v) { LW.tf = v.tf || 1; Object.assign(LW.show, v.show || {}); } } catch (e) {}
+const TZS = () => -new Date().getTimezoneOffset()*60;   // الشارت بيعرض UTC → منزيح للوقت المحلي
+function lwInit() {
+  if (LW.chart || !LW.ok) return !!LW.chart;
+  const el = $("lwc"); if (!el) return false;
+  try {
+    el.style.display = "block"; $("lwbar").style.display = "flex"; $("chart15").style.display = "none";
+    LW.chart = LightweightCharts.createChart(el, { autoSize: true, layout: { background: { color: "transparent" }, textColor: "#9ca3af", fontSize: 11 },
+      grid: { vertLines: { color: "#1a1f2b" }, horzLines: { color: "#1a1f2b" } }, crosshair: { mode: 0 }, rightPriceScale: { borderColor: "#2a3140" },
+      timeScale: { borderColor: "#2a3140", timeVisible: true, secondsVisible: false, rightOffset: 6 } });
+    LW.cs = LW.chart.addCandlestickSeries({ upColor: "#22c55e", downColor: "#ef4444", borderVisible: false, wickUpColor: "#22c55e", wickDownColor: "#ef4444" });
+    LW.vs = LW.chart.addHistogramSeries({ priceFormat: { type: "volume" }, priceScaleId: "vol", lastValueVisible: false, priceLineVisible: false });
+    LW.chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+    LW.e50 = LW.chart.addLineSeries({ color: "#eab308", lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false, title: "EMA50" });
+    LW.e200 = LW.chart.addLineSeries({ color: "#a855f7", lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false, title: "EMA200" });
+    const save = () => { try { localStorage.setItem("nexora_lw", JSON.stringify({ tf: LW.tf, show: LW.show })); } catch (e) {} };
+    $("lwbar").querySelectorAll("button[data-tf]").forEach(b => b.onclick = () => { LW.tf = +b.dataset.tf; LW.key = ""; save(); drawChart(); });
+    $("lwbar").querySelectorAll("input[data-lw]").forEach(c => { c.checked = !!LW.show[c.dataset.lw]; c.onchange = () => { LW.show[c.dataset.lw] = c.checked; LW.key = ""; LW.lineKey = ""; save(); drawChart(); }; });
+    return true;
+  } catch (e) { console.warn("lwc", e); LW.ok = false; LW.chart = null; $("lwc").style.display = "none"; $("lwbar").style.display = "none"; $("chart15").style.display = "block"; return false; }
+}
+function lwBars(D, m, sym) {   // شموع الفريم المختار (مسكّرة) + الشمعة الحية
+  let s = 0; while (m > 1 && ((D.t0 + s*M15) % (m*M15)) !== 0) s++;
+  const n = D.c.length, out = [], vol = [];
+  for (let i = s; i < n; i += m) { const e = Math.min(i + m, n); let h = -Infinity, l = Infinity, v = 0;
+    for (let k = i; k < e; k++) { h = Math.max(h, D.h[k]); l = Math.min(l, D.l[k]); v += D.v ? (D.v[k] || 0) : 0; }
+    out.push({ time: (D.t0 + i*M15)/1000 + TZS(), open: D.o[i], high: h, low: l, close: D.c[e-1] }); vol.push(v); }
+  const F = FORM[sym] && FORM[sym].t >= D.t0 + n*M15 ? FORM[sym] : (FORMB[sym] && FORMB[sym].t >= D.t0 + n*M15 ? FORMB[sym] : null), px = pxOf(sym);
+  if (F || px) { const ft = D.t0 + n*M15, fo = F ? F.o : D.c[n-1], fh = Math.max(F ? F.h : fo, px || fo), fl = Math.min(F ? F.l : fo, px || fo), fc = px || (F ? F.c : fo);
+    const bt = D.t0 + s*M15 + Math.floor((ft - D.t0 - s*M15)/(m*M15))*m*M15, T = bt/1000 + TZS(), last = out[out.length-1];
+    if (last && last.time === T) { if (last.close !== undefined && (n - s) % m !== 0) { last.high = Math.max(last.high, fh); last.low = Math.min(last.low, fl); last.close = fc; } else if ((n - s) % m === 0) out.push({ time: T, open: fo, high: fh, low: fl, close: fc }); }
+    else if (!last || T > last.time) { out.push({ time: T, open: fo, high: fh, low: fl, close: fc }); vol.push(F && F.v ? F.v : 0); } }
+  return { bars: out, vol };
+}
+function drawChartLW() {
+  if (!lwInit()) return false;
+  const c = CACHE.bySym[CSYM]; if (!c || c.D.stub) return true;
+  $("lwbar").querySelectorAll("button[data-tf]").forEach(b => b.classList.toggle("on", +b.dataset.tf === LW.tf));
+  const D = c.D, m = LW.tf, { bars, vol } = lwBars(D, m, CSYM), MAXB = 600, B = bars.slice(-MAXB), V = vol.slice(-MAXB);
+  const key = CSYM + "|" + m + "|" + D.c.length + "|" + B.length + "|" + JSON.stringify(LW.show);
+  if (key !== LW.key) {
+    const keepRange = LW.key && LW.key.split("|").slice(0, 2).join("|") === CSYM + "|" + m;
+    const r = keepRange ? LW.chart.timeScale().getVisibleLogicalRange() : null;
+    LW.cs.setData(B);
+    LW.vs.setData(LW.show.vol ? B.map((b, i) => ({ time: b.time, value: V[i], color: b.close >= b.open ? "rgba(34,197,94,.35)" : "rgba(239,68,68,.35)" })) : []);
+    if (LW.show.ema) { const C = bars.map(b => b.close), E5 = ema(C, 50), E2 = ema(C, 200), off = bars.length - B.length;
+      LW.e50.setData(B.map((b, i) => ({ time: b.time, value: E5[i + off] }))); LW.e200.setData(B.map((b, i) => ({ time: b.time, value: E2[i + off] }))); }
+    else { LW.e50.setData([]); LW.e200.setData([]); }
+    // صفقات هالعملة: علامات دخول/خروج
+    const mine = RESULT.trades.filter(t => t.sym === CSYM), t0 = B.length ? B[0].time : 0, snap = ts => { const T = ts/1000 + TZS(); let lo = 0, hi = B.length - 1; while (lo < hi) { const md = (lo + hi + 1) >> 1; if (B[md].time <= T) lo = md; else hi = md - 1; } return B[lo] ? B[lo].time : T; };
+    const mk = [];
+    if (LW.show.trades) for (const t of mine) { if (t.eTs/1000 + TZS() < t0) continue; const short = t.name.split(" | ")[0].replace("#8 Lux Trendline+TRAMA+Chandelier", "Lux").replace("V42 4H SHORT b0", "V42").slice(0, 18);
+      mk.push({ time: snap(t.eTs), position: t.d === 1 ? "belowBar" : "aboveBar", color: t.d === 1 ? "#22c55e" : "#ef4444", shape: t.d === 1 ? "arrowUp" : "arrowDown", text: "" , id: short });
+      if (!t.open) mk.push({ time: snap(t.xTs - M15), position: "inBar", color: t.net >= 0 ? "#eab308" : "#9ca3af", shape: "circle", text: "" }); }
+    mk.sort((a, b) => a.time - b.time); LW.cs.setMarkers(mk);
+    if (!keepRange) LW.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, B.length - (m === 1 ? 120 : m === 4 ? 120 : 90)), to: B.length + 5 });
+    else if (r) LW.chart.timeScale().setVisibleLogicalRange(r);
+    LW.key = key;
+  } else if (B.length) { LW.cs.update(B[B.length-1]); }
+  // خطوط: الصفقات المفتوحة (مجمّعة) + المناطق
+  const open = RESULT.trades.filter(t => t.sym === CSYM && t.open), px = pxOf(CSYM) || (B.length ? B[B.length-1].close : 0);
+  let Zn = null; try { if (LW.show.zones) Zn = zonesNear(CSYM, px); } catch (e) {}
+  const lk = CSYM + "|" + open.map(t => t.name + t.e + t.stop + t.target).join(",") + "|" + (Zn ? [...Zn.above, ...Zn.below, ...Zn.inside].map(z => z.lo + "-" + z.hi).join(",") : "") + JSON.stringify(LW.show);
+  if (lk !== LW.lineKey) {
+    for (const pl of LW.lines) try { LW.cs.removePriceLine(pl); } catch (e) {}
+    LW.lines = [];
+    const add = (price, color, style, title, w = 1) => LW.lines.push(LW.cs.createPriceLine({ price, color, lineWidth: w, lineStyle: style, axisLabelVisible: true, title }));
+    if (LW.show.trades && open.length) {   // الخطوط القريبة من بعض (<0.1%) بتنجمع بخط واحد
+      const grp = (vals, color, style, lab) => { vals.sort((a, b) => a - b); const G = []; for (const v of vals) { const g = G[G.length-1]; if (g && Math.abs(v/g.v - 1) < 0.001) g.n++; else G.push({ v, n: 1 }); }
+        for (const g of G) add(g.v, color, style, lab + (g.n > 1 ? " ×" + g.n : "")); };
+      grp(open.map(t => t.fillIn), "#e5e7eb", 2, "دخول"); grp(open.filter(t => Number.isFinite(t.stop)).map(t => t.stop), "#ef4444", 1, "SL"); grp(open.filter(t => Number.isFinite(t.target)).map(t => t.target), "#22c55e", 1, "TP");
+    }
+    if (Zn) for (const [list, role] of [[Zn.above, "res"], [Zn.below, "sup"], [Zn.inside, "in"]]) for (const z of list) {
+      const col = role === "res" ? "rgba(248,113,113,.75)" : role === "sup" ? "rgba(74,222,128,.75)" : "rgba(250,204,21,.8)";
+      add(z.hi, col, 3, role === "sup" ? "" : zoneLabel(z, role)); add(z.lo, col, 3, role === "sup" ? zoneLabel(z, role) : "");
+    }
+    LW.lineKey = lk;
+  }
+  try { renderZones(); } catch (e) {}
+  return true;
+}
 function drawChart() {
+  if (!CACHE || !CACHE.bySym[CSYM] || CACHE.bySym[CSYM].D.stub) return;
+  if (LW.ok && drawChartLW()) return;
+  drawChartCanvas();
+}
+function drawChartCanvas() {
   if (!CACHE || !CACHE.bySym[CSYM] || CACHE.bySym[CSYM].D.stub) return;
   const cv = $("chart15"), dpr = window.devicePixelRatio || 1, W = cv.clientWidth, Hh = cv.clientHeight;
   if (!W) return;
