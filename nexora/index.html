@@ -3498,7 +3498,8 @@ const fee$ = x => `<span class="num neg">−${x.toFixed(2)}$</span>`;
 const fp = v => !Number.isFinite(v) ? "—" : v >= 1000 ? v.toFixed(1) : v >= 10 ? v.toFixed(2) : v >= 1 ? v.toFixed(3) : v.toPrecision(4);
 const cn = s => s.replace(/USDT$/, "") + "/USDT";
 const dur = ms => { const m = Math.max(0, Math.floor(ms/60000)), d = Math.floor(m/1440), hh = Math.floor(m%1440/60), mm = m%60; return (d ? d + "ي " : "") + (d || hh ? hh + "س " : "") + mm + "د"; };
-const dt = ts => { const z = new Date(ts); return z.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit" }) + " " + z.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); };
+const DT_D = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit" }), DT_T = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" });   // 17/11: formatter واحد (toLocaleString كل مرة كان ياخد 300ms على جدول الصفقات وتعلّق الصفحة)
+const dt = ts => { const z = new Date(ts); return DT_D.format(z) + " " + DT_T.format(z); };
 const WHY = { TREND_EXIT: "خروج مبكر (انقلب الترند) ↩️", TARGET: "الهدف 🎯", INIT_STOP: "الوقف", TRAIL_STOP: "وقف متحرك", TIME: "انتهى الوقت", SSL_EXIT: "سهم خروج SSL", CHAND_EXIT: "انقلاب شاندلير 4س" };
 
 let BAN_UNTIL = 0;
@@ -4161,7 +4162,7 @@ function renderCoins(trades, P) {
 // ===================== 🎯 خطة التداول الحقيقي (⭐ S15 بس) =====================
 const STAR = "⭐ S15 V2 4h R2.5 h40", IND16 = new WeakMap();
 const ind16 = D => { if (!IND16.has(D) || IND16.get(D).len !== D.c.length) IND16.set(D, { len: D.c.length, I: makeInd(D, 16) }); return IND16.get(D).I; };
-const tm = ts => new Date(ts).toLocaleString("en-GB", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+const TM_F = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }), tm = ts => TM_F.format(new Date(ts));
 const left = ms => { const m = Math.max(0, Math.round(ms/60000)); return m >= 60 ? `${Math.floor(m/60)}س ${m%60}د` : `${m}د`; };
 function renderReal() {
   if (!$("realClock") || !CACHE) return;
