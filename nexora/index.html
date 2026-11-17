@@ -3016,6 +3016,35 @@ function capitWrap(inner) {
   const name = inner.name + " + فلتر استسلام";
   return { ...inner, name, run: (D, inds, sp, startTs) => inner.run(D, inds, inner, startTs).filter(t => capitOk(D, t.e, t.d)).map(t => ({ ...t, name })), src: "بدون شورت 12 ساعة بعد كسر قاع بفوليوم >5× (17/11)" };
 }
+
+// 17/11: نسخ فحص للمختبر بس (مش على المنصة): كسر 20 ساعة + فوليوم 2–5× + دخول فوري، مع/بدون "ذيل كبير" (إغلاق بعيد عن طرف الشمعة) وترند 4h
+const VBLAB = (() => {
+  const mk = (name, cfg) => ({ name, mult: 4, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "فحص كسر+فوليوم (مختبر 17/11)", run: (D, inds, sp, startTs) => {
+    if (!D.v) return [];
+    const X = h1v(D), n = D.o.length, I16 = cfg.t4 ? ((inds && inds[16]) || makeInd(D, 16)) : null, out = []; let busyTo = -1;
+    for (let k = 21; k < X.K; k++) {
+      const i0 = X.s + 4*k + 4; if (i0 >= n) break; if (D.t0 + i0*M15 < startTs - 3*864e5) continue;
+      const up = X.C[k] > X.hh[k] && !(X.C[k-1] > X.hh[k-1]), dn = X.C[k] < X.ll[k] && !(X.C[k-1] < X.ll[k-1]);
+      if (!(up || dn) || X.vr[k] === null || X.vr[k] < 2 || X.vr[k] > 5) continue;
+      const d = up ? 1 : -1; if (i0 <= busyTo) continue;
+      if (cfg.wick) { const rng = X.H[k] - X.L[k]; if (!(rng > 0)) continue; const cp = d === 1 ? (X.C[k] - X.L[k])/rng : (X.H[k] - X.C[k])/rng; if (cp >= 0.5) continue; }
+      if (cfg.t4) { const q = Math.floor(i0/16) - 1; if (q < 200 || q >= I16.n) continue; if (!(d*(I16.C[q] - I16.ema200[q]) > 0 && d*(I16.ema50[q] - I16.ema200[q]) > 0)) continue; }
+      const px = D.o[i0], stop = px*(1 - d*0.012), tgt = px*(1 + d*cfg.tp); let ox = null, why = null, xi = null;
+      for (let j = i0; j < n; j++) {
+        if (j > i0 && d*(D.o[j] - stop) <= 0) { ox = D.o[j]; why = "STOP"; xi = j; break; }
+        if (j > i0 && d*(D.o[j] - tgt) >= 0) { ox = D.o[j]; why = "TGT_GAP"; xi = j; break; }
+        if (d === 1 ? D.l[j] <= stop : D.h[j] >= stop) { ox = stop; why = "STOP"; xi = j; break; }
+        if (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt) { ox = tgt; why = "TARGET"; xi = j; break; }
+      }
+      const open = ox === null; busyTo = open ? n : xi;
+      if (D.t0 + i0*M15 < startTs) continue;
+      out.push(open ? { name, d, e: i0, x: n - 1, rawIn: px, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt } : { name, d, e: i0, x: xi, rawIn: px, rawOut: ox, why, open: false, stop, target: tgt });
+    }
+    return out;
+  } });
+  return { strats: [mk("VB فوري 2-5× | 1.2", { tp: 0.012 }), mk("VB فوري 2-5× + ترند4h | 1.2", { tp: 0.012, t4: true }), mk("VB ذيل | 1.2", { tp: 0.012, wick: true }),
+    mk("VB ذيل + ترند4h | 1.2", { tp: 0.012, wick: true, t4: true }), mk("VB ذيل + ترند4h | هدف 2.4", { tp: 0.024, wick: true, t4: true })] };
+})();
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
   "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
   "Bagheri IG Ether 15m (كما هي)", "⭐ S15 دخول على إغلاق 15m"];   // 17/11: Bagheri ساعة و4h انشالوا (إشارتين بالسنة — طلب المستخدم)
@@ -3067,6 +3096,7 @@ const STRATS_ALL = [
   ...S15E.strats,
   ...RSNIPER.strats,
   ...VBRK.strats,
+  ...VBLAB.strats,   // مختبر بس (مش بـ PLATFORM_KEEP)
 ];
 for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% وقف 0.6%"), tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), tpWrap(b, 0.012, null, "هدف 1.2% وقف أصلي"));
 for (const b of TP_BASES) STRATS_ALL.push(timingWrap(b, "calm"), timingWrap(b, "limit"), timingWrap(b, "limit6"), timingWrap(b, "limit8"), timingWrap(b, "confirm"));

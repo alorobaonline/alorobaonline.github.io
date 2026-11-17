@@ -2648,7 +2648,8 @@ function atr15Of(D) {
   ATR15_MEMO.set(D, a); return a;
 }
 function timingWrap(baseName, mode) {
-  const label = { calm: "1.2% هادئة", limit: "1.2% ليمت 0.4%", confirm: "1.2% تأكيد 15m" }[mode], name = `${baseName} | ${label}`;
+  const label = { calm: "1.2% هادئة", limit: "1.2% ليمت 0.4%", limit6: "1.2% ليمت 0.6%", limit8: "1.2% ليمت 0.8%", confirm: "1.2% تأكيد 15m" }[mode], name = `${baseName} | ${label}`;
+  const depth = { limit: 0.004, limit6: 0.006, limit8: 0.008 }[mode];   // 17/11: ليمت أعمق للسوق العرضي (طلب المستخدم)
   const run = (D, inds, sp, startTs) => {
     const base = STRATS_ALL.find(x => x.name === baseName); if (!base) return [];
     const src = evaluate(D, inds, base, startTs), n = D.o.length, out = [], A = atr15Of(D), seen = new Set();
@@ -2656,7 +2657,7 @@ function timingWrap(baseName, mode) {
       const k0 = t.e + "|" + t.d; if (seen.has(k0)) continue; seen.add(k0);   // نص صفقة = نفس الدخول
       const d = t.d; let e = null, ei = null;
       if (mode === "calm") { const a = A[t.e - 1]; if (a === null || a/D.c[t.e - 1] > 0.004) continue; e = t.rawIn; ei = t.e; }   // ضجيج 15m أكبر من 0.4% = ما بندخل
-      else if (mode === "limit") { const lim = t.rawIn*(1 - d*0.004);   // ليمت أحسن بـ0.4%، صالح ساعة (4 شموع)
+      else if (depth) { const lim = t.rawIn*(1 - d*depth);   // ليمت أحسن بـ0.4%، صالح ساعة (4 شموع)
         for (let j = t.e; j < Math.min(n, t.e + 4); j++) if (d === 1 ? D.l[j] <= lim : D.h[j] >= lim) { e = d === 1 ? Math.min(lim, D.o[j]) : Math.max(lim, D.o[j]); ei = j; break; }
         if (e === null) continue; }
       else { for (let j = t.e; j < Math.min(n - 1, t.e + 4); j++) if (d*(D.c[j] - D.o[j]) > 0) { ei = j + 1; e = D.o[j + 1]; break; }   // أول شمعة 15m بتسكّر باتجاه الصفقة → دخول على اللي بعدها
@@ -2677,9 +2678,186 @@ function timingWrap(baseName, mode) {
   };
   return { name, mult: (STRATS_ALL.find(x => x.name === baseName) || {}).mult || 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "TP 1.2% wrap" };
 }
+// 17/11: فلتر ترند (طلب المستخدم) — على شمعة الساعة المسكّرة قبل الدخول (كان 4 ساعات، المستخدم غيّره لساعة) (ما في معلومة من المستقبل):
+//  • ترند العملة: لونج بس إذا السعر فوق EMA200 و EMA50 فوق EMA200، شورت بس إذا العكس، غير هيك ما في دخول
+//  • سوق عرضي: ADX(14) أقل من 20 = ما في دخول
+//  • ترند السوق (بيتكوين ساعة): ما في شورت والبيتكوين فوق EMA50، وما في لونج وهو تحتها
+function trendOk(D, inds, e, d) {
+  const I = inds && inds[4]; if (!I) return false;
+  const k = Math.floor(e/4) - 1; if (k < 200 || k >= I.n) return false;
+  const c = I.C[k], e50 = I.ema50[k], e200 = I.ema200[k], adx = I.adx[k];
+  if (adx === null || adx < 20) return false;
+  if (d === 1 && !(c > e200 && e50 > e200)) return false;
+  if (d === -1 && !(c < e200 && e50 < e200)) return false;
+  const B = D.btcS;
+  if (B) { const kb = Math.floor((D.t0 + e*M15 - B.t0)/(4*M15)) - 1; const st = kb >= 0 && kb < B.st.length ? B.st[kb] : 0;
+    if (st === 0) return false; if (st !== d) return false; }
+  return true;
+}
+function btcStateOf(D) {   // +1 = بيتكوين فوق EMA50 على الساعة، -1 = تحتها (شموع مسكّرة بس)
+  const n = Math.floor(D.o.length/4), C = []; for (let i = 0; i < n; i++) C.push(D.c[i*4 + 3]);
+  const E = ema(C, 50), st = new Int8Array(n); for (let i = 50; i < n; i++) st[i] = C[i] > E[i] ? 1 : -1;
+  return { t0: D.t0, st };
+}
+// 17/11: خروج مبكر عند انقلاب الترند (طلب المستخدم) — على كل إغلاق شمعة ساعة بعد الدخول:
+//  • البيتكوين قلب ضد الصفقة (شورت وسكّر فوق EMA50 ساعة / لونج وسكّر تحتها)، أو
+//  • العملة نفسها قطعت EMA50 ساعة ضد الصفقة (كانت تحتها وسكّرت فوقها للشورت، والعكس للونج)
+//  → خروج على افتتاح الشمعة 15m اللي بعدها (قبل الوقف). شموع مسكّرة بس.
+function trendExit(D, inds, t) {
+  const I = inds && inds[4]; if (!I) return t;
+  const n = D.o.length, lastClosed = D.prov ? n - 2 : n - 1, d = t.d, B = D.btcS;
+  const end = Math.min(t.open ? lastClosed : t.x - 1, n - 2);   // لازم الخروج المبكر يصير قبل خروج الصفقة الأصلي
+  for (let j = t.e; j <= end && j <= lastClosed; j++) {
+    if ((j + 1) % 4) continue;
+    const k = (j + 1)/4 - 1; if (k < 1 || k >= I.n) continue;
+    let flip = false;
+    if (B) { const kb = Math.floor((D.t0 + (j + 1)*M15 - B.t0)/(4*M15)) - 1; if (kb >= 0 && kb < B.st.length && B.st[kb] === -d) flip = true; }
+    if (d === -1 ? (I.C[k-1] <= I.ema50[k-1] && I.C[k] > I.ema50[k]) : (I.C[k-1] >= I.ema50[k-1] && I.C[k] < I.ema50[k])) flip = true;
+    if (flip) return { ...t, x: j + 1, rawOut: D.o[j + 1], why: "TREND_EXIT", open: false };
+  }
+  return t;
+}
+function trendWrap(inner) {
+  const name = inner.name + " + فلتر ترند ساعة";
+  const run = (D, inds, sp, startTs) => inner.run(D, inds, inner, startTs).filter(t => trendOk(D, inds, t.e, t.d)).map(t => trendExit(D, inds, { ...t, name }));
+  return { ...inner, name, run, src: "1.2% + فلتر ترند (ساعة + بيتكوين) + خروج مبكر عند انقلاب الترند" };
+}
+
+// 17/11: Range Sniper (Pine من المستخدم) — كما هي بالزبط على 15m: ADX(14)<25 + لمس بولنجر 20/2 + RSI(14) ≤30 / ≥70
+// دخول على افتتاح الشمعة اللي بعد الإشارة · وقف = ذيل شمعة الإشارة ∓ 0.5×ATR(14) · هدف = خط بولنجر الوسط لحظة الإشارة (ثابت) · صفقة وحدة بالعملة
+const RSNIPER = (() => {
+  const rma = (x, n) => { const o = new Array(x.length).fill(null); let s = 0, cnt = 0, v = null;
+    for (let i = 0; i < x.length; i++) { if (x[i] === null) continue; if (v === null) { s += x[i]; cnt++; if (cnt === n) { v = s/n; o[i] = v; } } else { v = (v*(n-1) + x[i])/n; o[i] = v; } } return o; };
+  const NAME = "Range Sniper 15m (كما هي)", NAME4 = "Range Sniper 15m + ترند 4h";
+  const run = (D, inds, sp, startTs) => {
+    const tf4 = !!sp.tf4, I16 = tf4 ? ((inds && inds[16]) || makeInd(D, 16)) : null, nm = sp.name;   // tf4: شورت بس تحت EMA200 على 4h، لونج بس فوقها (شمعة 4h المسكّرة قبل الدخول)
+    const o = D.o, h = D.h, l = D.l, c = D.c, n = c.length, lastSig = D.prov ? n - 2 : n - 1;   // الإشارة من شمعة مسكّرة بس
+    const ch = c.map((x, i) => i ? x - c[i-1] : null);
+    const ag = rma(ch.map(x => x === null ? null : Math.max(x, 0)), 14), al = rma(ch.map(x => x === null ? null : Math.max(-x, 0)), 14);
+    const tr = c.map((x, i) => i ? Math.max(h[i]-l[i], Math.abs(h[i]-c[i-1]), Math.abs(l[i]-c[i-1])) : h[i]-l[i]);
+    const atr = rma(tr, 14), trr = rma(tr.map((x, i) => i ? x : null), 14);
+    const pdm = h.map((x, i) => { if (!i) return null; const u = h[i]-h[i-1], d = l[i-1]-l[i]; return u > d && u > 0 ? u : 0; });
+    const mdm = h.map((x, i) => { if (!i) return null; const u = h[i]-h[i-1], d = l[i-1]-l[i]; return d > u && d > 0 ? d : 0; });
+    const sp_ = rma(pdm, 14), sm_ = rma(mdm, 14);
+    const adx = rma(trr.map((v, i) => { if (v === null || sp_[i] === null) return null; const p = 100*sp_[i]/v, m = 100*sm_[i]/v, s = p + m; return Math.abs(p - m)/(s === 0 ? 1 : s); }), 14);
+    let lo0 = 0; while (lo0 < n && D.t0 + lo0*M15 < startTs - 30*864e5) lo0++;   // شهر قبل البداية بيكفي لحالة "في صفقة مفتوحة"
+    const out = []; let busyTo = -1, s20 = 0, q20 = 0;
+    for (let i = Math.max(30, lo0); i <= lastSig && i < n - 1; i++) {
+      if (i <= busyTo) continue;
+      if (adx[i] === null || ag[i] === null || atr[i] === null || 100*adx[i] >= 25) continue;
+      let m = 0; for (let k = i-19; k <= i; k++) m += c[k]; m /= 20; let v = 0; for (let k = i-19; k <= i; k++) v += (c[k]-m)**2; const sd = Math.sqrt(v/20);
+      const rsi = al[i] === 0 ? 100 : (ag[i] === 0 ? 0 : 100 - 100/(1 + ag[i]/al[i]));
+      const d = l[i] <= m - 2*sd && rsi <= 30 ? 1 : (h[i] >= m + 2*sd && rsi >= 70 ? -1 : 0); if (!d) continue;
+      if (tf4) { const k = Math.floor((i + 1)/16) - 1; if (k < 200 || k >= I16.n || !(d*(I16.C[k] - I16.ema200[k]) > 0)) continue; }
+      const stop = d === 1 ? l[i] - atr[i]*0.5 : h[i] + atr[i]*0.5, tgt = m;
+      if (!(d*(c[i] - stop) > 0)) continue;
+      const e = i + 1, entry = o[e]; let px = null, why = null, x = null;
+      for (let j = e; j < n; j++) {
+        if (j === e) { if (d*(o[j] - stop) <= 0) { px = o[j]; why = "STOP"; x = j; break; } if (d*(o[j] - tgt) >= 0) { px = o[j]; why = "TARGET"; x = j; break; } }
+        const hS = d === 1 ? l[j] <= stop : h[j] >= stop, hT = d === 1 ? h[j] >= tgt : l[j] <= tgt;
+        if (hS && hT) { const hiFirst = Math.abs(o[j]-h[j]) < Math.abs(o[j]-l[j]), tF = d === 1 ? hiFirst : !hiFirst; px = tF ? tgt : stop; why = tF ? "TARGET" : "STOP"; x = j; break; }
+        if (hS) { px = stop; why = "STOP"; x = j; break; }
+        if (hT) { px = tgt; why = "TARGET"; x = j; break; }
+      }
+      const open = px === null; busyTo = open ? n : x - 1;
+      if (D.t0 + e*M15 < startTs) continue;
+      out.push(open ? { name: nm, d, e, x: n - 1, rawIn: entry, rawOut: c[n-1], why: "TIME", open: true, stop, target: tgt }
+                      : { name: nm, d, e, x, rawIn: entry, rawOut: px, why, open: false, stop, target: tgt });
+    }
+    return out;
+  };
+  return { strats: [{ name: NAME, mult: 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Range Sniper (Pine من المستخدم 17/11) — كما هي، حجم المنصة الثابت" },
+    { name: NAME4, mult: 1, sig: () => 0, run, tf4: true, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Range Sniper + ترند 4h (شورت تحت EMA200 4h، لونج فوقها) — اقتراح 17/11" }] };
+})();
+
+// 17/11: فوليوم الساعة (مشترك): شموع ساعة مسكّرة بس + نسبة الفوليوم لمعدل آخر 20 + أعلى/أدنى 20
+const H1V_MEMO = new WeakMap();
+function h1v(D) {
+  if (H1V_MEMO.has(D)) return H1V_MEMO.get(D);
+  let s = 0; while (((D.t0 + s*M15) % (4*M15)) !== 0 && s < 4) s++;
+  const N = D.prov ? D.o.length - 1 : D.o.length, O = [], H = [], L = [], C = [], V = [];
+  for (let i = s; i + 4 <= N; i += 4) { let h = -Infinity, l = Infinity, v = 0; for (let k = i; k < i + 4; k++) { h = Math.max(h, D.h[k]); l = Math.min(l, D.l[k]); v += D.v ? (D.v[k] || 0) : 0; } O.push(D.o[i]); H.push(h); L.push(l); C.push(D.c[i+3]); V.push(v); }
+  const K = C.length, vr = new Array(K).fill(null), hh = new Array(K).fill(null), ll = new Array(K).fill(null), atr = new Array(K).fill(null);
+  let a = null; for (let k = 1; k < K; k++) { const tr = Math.max(H[k]-L[k], Math.abs(H[k]-C[k-1]), Math.abs(L[k]-C[k-1])); a = a === null ? tr : (a*13 + tr)/14; if (k >= 14) atr[k] = a; }
+  for (let k = 20; k < K; k++) { let x = -Infinity, y = Infinity, va = 0; for (let j = k - 20; j < k; j++) { x = Math.max(x, H[j]); y = Math.min(y, L[j]); va += V[j]; } hh[k] = x; ll[k] = y; vr[k] = va > 0 ? V[k]/(va/20) : null; }
+  const R = { s, K, O, H, L, C, V, vr, hh, ll, atr }; H1V_MEMO.set(D, R); return R;
+}
+// استراتيجية: كسر 20 ساعة بفوليوم 2–5× → ليمت على مستوى الكسر (ريتست) صالح 6 ساعات
+const VBRK = (() => {
+  const mk = (name, mode) => ({ name, mult: 4, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "كسر + فوليوم 2-5× + ريتست (17/11، من فحص الفوليوم)", run: (D, inds, sp, startTs) => {
+    if (!D.v) return [];
+    const X = h1v(D), n = D.o.length, out = []; let busyTo = -1;
+    for (let k = 21; k < X.K; k++) {
+      const t1 = D.t0 + (X.s + 4*k + 4)*M15; if (t1 < startTs - 3*864e5) continue;
+      const up = X.C[k] > X.hh[k] && !(X.C[k-1] > X.hh[k-1]), dn = X.C[k] < X.ll[k] && !(X.C[k-1] < X.ll[k-1]);
+      if (!(up || dn) || X.vr[k] === null || X.vr[k] < 2 || X.vr[k] > 5 || X.atr[k] === null) continue;
+      const d = up ? 1 : -1, lvl = up ? X.hh[k] : X.ll[k], i0 = X.s + 4*k + 4;
+      if (i0 <= busyTo) continue;
+      let ei = null, px = null;
+      for (let j = i0; j < Math.min(n, i0 + 24); j++) if (d === 1 ? D.l[j] <= lvl : D.h[j] >= lvl) { ei = j; px = d === 1 ? Math.min(lvl, D.o[j]) : Math.max(lvl, D.o[j]); break; }
+      if (ei === null) continue;
+      let stop, tgt, hold = Infinity;
+      if (mode === "fix") { stop = px*(1 - d*0.012); tgt = px*(1 + d*0.012); }
+      else { stop = d === 1 ? X.L[k] - 0.1*X.atr[k] : X.H[k] + 0.1*X.atr[k]; const r = d*(px - stop); if (!(r > 0) || r/px > 0.08) continue; tgt = px + d*2*r; hold = 192; }
+      let ox = null, why = null, xi = null;
+      for (let j = ei; j < n; j++) {
+        if (j > ei && d*(D.o[j] - stop) <= 0) { ox = D.o[j]; why = "STOP"; xi = j; break; }
+        if (j > ei && d*(D.o[j] - tgt) >= 0) { ox = D.o[j]; why = "TGT_GAP"; xi = j; break; }
+        if (d === 1 ? D.l[j] <= stop : D.h[j] >= stop) { ox = stop; why = "STOP"; xi = j; break; }
+        if (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt) { ox = tgt; why = "TARGET"; xi = j; break; }
+        if (j - ei + 1 >= hold && !(D.prov && j === n - 1)) { ox = D.c[j]; why = "TIME"; xi = j; break; }
+      }
+      const open = ox === null; busyTo = open ? n : xi;
+      if (D.t0 + ei*M15 < startTs) continue;
+      out.push(open ? { name, d, e: ei, x: n - 1, rawIn: px, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt } : { name, d, e: ei, x: xi, rawIn: px, rawOut: ox, why, open: false, stop, target: tgt });
+    }
+    return out;
+  } });
+  return { strats: [mk("كسر+فوليوم+ريتست ساعة | 1.2%", "fix"), mk("كسر+فوليوم+ريتست ساعة | وقف شمعة الكسر 2R", "R")] };
+})();
+// فلتر "استسلام": ما في شورت خلال 12 ساعة بعد شمعة ساعة كسرت قاع 20 ساعة بفوليوم أكتر من 5× (بالفحص: السعر غالباً بيرتد)
+function capitOk(D, e, d) {
+  if (d !== -1 || !D.v) return true;
+  const X = h1v(D), kmax = Math.floor((e - X.s)/4) - 1;
+  for (let k = Math.max(21, kmax - 11); k <= kmax && k < X.K; k++) if (X.C[k] < X.ll[k] && X.vr[k] !== null && X.vr[k] > 5) return false;
+  return true;
+}
+function capitWrap(inner) {
+  const name = inner.name + " + فلتر استسلام";
+  return { ...inner, name, run: (D, inds, sp, startTs) => inner.run(D, inds, inner, startTs).filter(t => capitOk(D, t.e, t.d)).map(t => ({ ...t, name })), src: "بدون شورت 12 ساعة بعد كسر قاع بفوليوم >5× (17/11)" };
+}
+
+// 17/11: نسخ فحص للمختبر بس (مش على المنصة): كسر 20 ساعة + فوليوم 2–5× + دخول فوري، مع/بدون "ذيل كبير" (إغلاق بعيد عن طرف الشمعة) وترند 4h
+const VBLAB = (() => {
+  const mk = (name, cfg) => ({ name, mult: 4, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "فحص كسر+فوليوم (مختبر 17/11)", run: (D, inds, sp, startTs) => {
+    if (!D.v) return [];
+    const X = h1v(D), n = D.o.length, I16 = cfg.t4 ? ((inds && inds[16]) || makeInd(D, 16)) : null, out = []; let busyTo = -1;
+    for (let k = 21; k < X.K; k++) {
+      const i0 = X.s + 4*k + 4; if (i0 >= n) break; if (D.t0 + i0*M15 < startTs - 3*864e5) continue;
+      const up = X.C[k] > X.hh[k] && !(X.C[k-1] > X.hh[k-1]), dn = X.C[k] < X.ll[k] && !(X.C[k-1] < X.ll[k-1]);
+      if (!(up || dn) || X.vr[k] === null || X.vr[k] < 2 || X.vr[k] > 5) continue;
+      const d = up ? 1 : -1; if (i0 <= busyTo) continue;
+      if (cfg.wick) { const rng = X.H[k] - X.L[k]; if (!(rng > 0)) continue; const cp = d === 1 ? (X.C[k] - X.L[k])/rng : (X.H[k] - X.C[k])/rng; if (cp >= 0.5) continue; }
+      if (cfg.t4) { const q = Math.floor(i0/16) - 1; if (q < 200 || q >= I16.n) continue; if (!(d*(I16.C[q] - I16.ema200[q]) > 0 && d*(I16.ema50[q] - I16.ema200[q]) > 0)) continue; }
+      const px = D.o[i0], stop = px*(1 - d*0.012), tgt = px*(1 + d*cfg.tp); let ox = null, why = null, xi = null;
+      for (let j = i0; j < n; j++) {
+        if (j > i0 && d*(D.o[j] - stop) <= 0) { ox = D.o[j]; why = "STOP"; xi = j; break; }
+        if (j > i0 && d*(D.o[j] - tgt) >= 0) { ox = D.o[j]; why = "TGT_GAP"; xi = j; break; }
+        if (d === 1 ? D.l[j] <= stop : D.h[j] >= stop) { ox = stop; why = "STOP"; xi = j; break; }
+        if (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt) { ox = tgt; why = "TARGET"; xi = j; break; }
+      }
+      const open = ox === null; busyTo = open ? n : xi;
+      if (D.t0 + i0*M15 < startTs) continue;
+      out.push(open ? { name, d, e: i0, x: n - 1, rawIn: px, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt } : { name, d, e: i0, x: xi, rawIn: px, rawOut: ox, why, open: false, stop, target: tgt });
+    }
+    return out;
+  } });
+  return { strats: [mk("VB فوري 2-5× | 1.2", { tp: 0.012 }), mk("VB فوري 2-5× + ترند4h | 1.2", { tp: 0.012, t4: true }), mk("VB ذيل | 1.2", { tp: 0.012, wick: true }),
+    mk("VB ذيل + ترند4h | 1.2", { tp: 0.012, wick: true, t4: true }), mk("VB ذيل + ترند4h | هدف 2.4", { tp: 0.024, wick: true, t4: true })] };
+})();
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
   "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
-  "Bagheri IG Ether 15m (كما هي)", "Bagheri IG Ether ساعة (كما هي)", "Bagheri IG Ether 4h (كما هي)", "⭐ S15 دخول على إغلاق 15m"];
+  "Bagheri IG Ether 15m (كما هي)", "⭐ S15 دخول على إغلاق 15m"];   // 17/11: Bagheri ساعة و4h انشالوا (إشارتين بالسنة — طلب المستخدم)
 const STRATS_ALL = [
   S("V33 B3 TRAIL فوري", 16, sigV33(3), 1.5, 2.25, 96, "v33trail"),
   S("V33 B3 TRAIL 15m", 16, sigV33(3), 1.5, 2.25, 96, "v33trail", null, "conf15"),
@@ -2726,18 +2904,25 @@ const STRATS_ALL = [
   ...WAVE.strats,
   ...BAGHERI.strats,
   ...S15E.strats,
+  ...RSNIPER.strats,
+  ...VBRK.strats,
+  ...VBLAB.strats,   // مختبر بس (مش بـ PLATFORM_KEEP)
 ];
 for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% وقف 0.6%"), tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), tpWrap(b, 0.012, null, "هدف 1.2% وقف أصلي"));
-for (const b of TP_BASES) STRATS_ALL.push(timingWrap(b, "calm"), timingWrap(b, "limit"), timingWrap(b, "confirm"));
+for (const b of TP_BASES) STRATS_ALL.push(timingWrap(b, "calm"), timingWrap(b, "limit"), timingWrap(b, "limit6"), timingWrap(b, "limit8"), timingWrap(b, "confirm"));
 for (const b of ["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"]) STRATS_ALL.push(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"));
+for (const b of TP_BASES) STRATS_ALL.push(trendWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), trendWrap(timingWrap(b, "limit")));
+for (const b of TP_BASES) STRATS_ALL.push(capitWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), capitWrap(timingWrap(b, "limit6")));   // 17/11 فلتر استسلام   // 17/11 فلتر ترند
 
 // نسخ فحص (جان، Turtle Soup...): بتشتغل بمختبر السيرفر بس — المنصة بالمتصفح ما بتحسبها (أسرع، وما بتلوّث الحساب)
 const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جان (فكرة المستخدم)", "تقاطع مراوح جان (فكرة المستخدم)", "تقاطع مراوح جان v2 (طريقة المستخدم)",
   "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)", "London Breakout", "12/26-IT (AbdulRahimShama)", "Wave Rider v1"]);
 // المنصة (المتصفح): بس الـ8 اللي إلهم فرصة حسب المختبر (⭐ + 🧪) — الباقي انشال من المنصة (طلب المستخدم 16/11)
 // 16/11 16:40: المنصة بتشغّل بس نسخ "هدف 1.2% / وقف 1.2%" من كل الاستراتيجيات (طلب المستخدم) — الأصلية بالمختبر بس
-const PLATFORM_KEEP = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% تأكيد 15m"]),
-  ...["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"].map(b => b + " | هدف 1.2% وقف 1.2%")]);   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
+const PLATFORM_KEEP = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% ليمت 0.6%", b + " | 1.2% ليمت 0.8%"]),   // 17/11 03:55: «تأكيد 15m» انلغت من المنصة (طلب المستخدم — دخول متأخر على أسوأ سعر)
+  ...["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"].map(b => b + " | هدف 1.2% وقف 1.2%"),
+  ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"]), "Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", "كسر+فوليوم+ريتست ساعة | 1.2%", "كسر+فوليوم+ريتست ساعة | وقف شمعة الكسر 2R",
+  ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر استسلام", b + " | 1.2% ليمت 0.6% + فلتر استسلام"])]);   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
