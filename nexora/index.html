@@ -40,7 +40,7 @@ svg.chart{width:100%;height:190px;background:var(--card);border-radius:12px;disp
 #feed{max-height:220px;overflow:auto}   /* 17/11: الأحداث تحت الشارت، والشارت بعرض الصفحة */
 .panel{background:var(--card);border-radius:12px;padding:10px}
 #chart15{width:100%;height:280px;display:block}
-#lwc{width:100%;height:600px;direction:ltr}@media(max-width:700px){#lwc{height:460px}}
+#lwc{width:100%;height:600px;direction:ltr;position:relative}@media(max-width:700px){#lwc{height:460px}}
 .lwbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}.lwbar button{padding:3px 10px;font-size:12px;border-radius:8px;background:#1f2430;color:#cbd5e1;border:1px solid #2a3140;cursor:pointer}.lwbar button.on{background:#2563eb;color:#fff;border-color:#2563eb}.lwbar label{font-size:12px;color:#9ca3af;display:flex;gap:3px;align-items:center}
 .px{font-size:26px;font-weight:800;font-family:ui-monospace,monospace;direction:ltr;display:inline-block}
 .cd{font-family:ui-monospace,monospace;font-size:18px;direction:ltr;display:inline-block}
@@ -212,7 +212,7 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
         <div class="mut">الشمعة الجاية بتسكّر بعد <span class="cd" id="cd">--:--</span> <button class="sec" id="snd" style="padding:5px 10px;font-size:12px;margin-inline-start:6px">🔕 الصوت</button></div>
       </div>
       <div class="lwbar" id="lwbar" style="display:none"><span class="mut">الفريم:</span><button data-tf="1">15د</button><button data-tf="4">ساعة</button><button data-tf="16">4 ساعات</button>
-        <span class="mut" style="margin-inline-start:8px">إظهار:</span><label><input type="checkbox" data-lw="trades" checked>الصفقات</label><label><input type="checkbox" data-lw="zones" checked>المناطق</label><label><input type="checkbox" data-lw="ema" checked>EMA50/200</label><label><input type="checkbox" data-lw="vol" checked>الفوليوم</label></div>
+        <span class="mut" style="margin-inline-start:8px">إظهار:</span><label><input type="checkbox" data-lw="trades" checked>الصفقات</label><label><input type="checkbox" data-lw="zones" checked>المناطق</label><label><input type="checkbox" data-lw="ema" checked>EMA50/200</label><label><input type="checkbox" data-lw="vol" checked>الفوليوم</label><label><input type="checkbox" data-lw="eq" checked>قيعان/قمم متكررة</label><label><input type="checkbox" data-lw="vp" checked>بروفايل الفوليوم</label><label><input type="checkbox" data-lw="ob" checked>دفتر الأوامر</label></div>
       <div id="lwc" style="display:none"></div>
       <canvas id="chart15"></canvas>
       <div class="mut">اسحب الشارت لورا أو اعمل زوم بالعجلة/الإصبع. خطوط الصفقات المفتوحة: <span style="color:#e5e7eb">— دخول</span> · <span class="neg">— وقف</span> · <span class="pos">— هدف</span> · ▲ لونغ ▼ شورت · <span style="color:#f87171">▭ مقاومة/عرض</span> · <span style="color:#4ade80">▭ دعم/طلب</span></div>
@@ -833,17 +833,6 @@ const S15 = (() => {
     return { pend: out, atr: P.atr[kLast], ema: P.ema[kLast] };
   }
   const sig = v2 => (I, i) => { const h = hitsAt(prep(I), I, i, v2); return h.length ? h[0].side : 0; };
-  // نظام التقلب: ATR(14) الحالي ÷ متوسط ATR لآخر n شمعة (مختبر: sp.volR = {n, max} أو {n, min}؛ بدونه ما في أي تغيير)
-  const volMemo = new WeakMap();
-  function volRatio(I, P, k, n) {
-    if (!volMemo.has(I)) volMemo.set(I, {}); const mm = volMemo.get(I);
-    if (!mm[n]) { const out = new Array(I.n).fill(null); let sum = 0, cnt = 0;
-      for (let j = 0; j < I.n; j++) { const a = P.atr[j]; if (a !== null) { sum += a; cnt++; }
-        const old = j - n >= 0 ? P.atr[j - n] : null; if (old !== null) { sum -= old; cnt--; }
-        if (cnt === n && a !== null) out[j] = a / (sum / n); }
-      mm[n] = out; }
-    return mm[n][k];
-  }
   // آخر تمويل معروف لحد وقت ts (D.fund من المختبر: [{t, rate}] مرتبة)
   function fundAt(D, ts) { const F = D.fund; if (!F || !F.length) return null; let lo = 0, hi = F.length - 1, r = -1;
     while (lo <= hi) { const mid = (lo + hi) >> 1; if (F[mid].t <= ts) { r = mid; lo = mid + 1; } else hi = mid - 1; } return r < 0 || ts - F[r].t > 864e5 ? null : F[r].rate; }   // تمويل قديم (أكتر من يوم) = ما في معلومة
@@ -903,7 +892,6 @@ const S15 = (() => {
       if (h.length && sp.fundF) { const r = fundAt(D, D.t0 + (k+1)*m*900000); h = h.filter(x => fundOk(sp, r, x.side)); }
       if (h.length && sp.gannF && m === 16) h = h.filter(x => GDEC.near(I, k, x.side, sp.gannF));
       if (h.length && sp.fibT && m === 16) { const w = fibTimeWin(I, k, sp.fibT.set || "A"); if (sp.fibT.inside ? !w : w) h = []; }
-      if (h.length && sp.volR) { const r = volRatio(I, P, k, sp.volR.n || 100); if (r !== null && ((sp.volR.max && r > sp.volR.max) || (sp.volR.min && r < sp.volR.min))) h = []; }
       if (!h.length) continue;
       const blocked = pos !== null || closedHere || k <= busy || k === n - 1 || D.t0 + (k+1)*m*900000 <= startTs || (k+1)*m >= D.o.length;
       if (!blocked) pend = [h[0], k];
@@ -4186,9 +4174,10 @@ function renderZones() {
     (Zn.inside.length ? Zn.inside.map(z => row(z, "in")).join("") + "<br>" : "") +
     (Zn.above.length ? Zn.above.map(z => row(z, "res")).join("") : '<span class="mut">ما في مقاومة قوية قريبة فوق</span>') + "<br>" +
     (Zn.below.length ? Zn.below.map(z => row(z, "sup")).join("") : '<span class="mut">ما في دعم قوي قريب تحت</span>');
+  try { if (LW.chart) el.innerHTML += extraBox(); } catch (e) {}
 }
 // 17/11: شارت TradingView (Lightweight Charts 4.2.3, Apache-2.0 — lib/) — زوم وسحب، محور وقت، فوليوم، EMA، المناطق، الصفقات. لو المكتبة ما حمّلت → الشارت القديم
-const LW = { chart: null, cs: null, vs: null, e50: null, e200: null, lines: [], key: "", lineKey: "", tf: 1, show: { trades: true, zones: true, ema: true, vol: true }, ok: typeof LightweightCharts !== "undefined" };
+const LW = { chart: null, cs: null, vs: null, e50: null, e200: null, lines: [], key: "", lineKey: "", tf: 1, show: { trades: true, zones: true, ema: true, vol: true, eq: true, vp: true, ob: true }, ok: typeof LightweightCharts !== "undefined" };
 try { const v = JSON.parse(localStorage.getItem("nexora_lw") || "null"); if (v) { LW.tf = v.tf || 1; Object.assign(LW.show, v.show || {}); } } catch (e) {}
 const TZS = () => -new Date().getTimezoneOffset()*60;   // الشارت بيعرض UTC → منزيح للوقت المحلي
 function lwInit() {
@@ -4199,11 +4188,13 @@ function lwInit() {
     LW.chart = LightweightCharts.createChart(el, { autoSize: false, width: el.clientWidth || 600, height: el.clientHeight || 400, layout: { background: { color: "transparent" }, textColor: "#9ca3af", fontSize: 11 },
       grid: { vertLines: { color: "#1a1f2b" }, horzLines: { color: "#1a1f2b" } }, crosshair: { mode: 0 }, rightPriceScale: { borderColor: "#2a3140" },
       timeScale: { borderColor: "#2a3140", timeVisible: true, secondsVisible: false, rightOffset: 6 } });
+    LW.ov = document.createElement("canvas"); LW.ov.style.cssText = "position:absolute;left:0;top:0;pointer-events:none;z-index:3";   // بروفايل الفوليوم فوق الشارت
     LW.cs = LW.chart.addCandlestickSeries({ upColor: "#22c55e", downColor: "#ef4444", borderVisible: false, wickUpColor: "#22c55e", wickDownColor: "#ef4444" });
     LW.vs = LW.chart.addHistogramSeries({ priceFormat: { type: "volume" }, priceScaleId: "vol", lastValueVisible: false, priceLineVisible: false });
     LW.chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
     LW.e50 = LW.chart.addLineSeries({ color: "#eab308", lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false, title: "EMA50" });
     LW.e200 = LW.chart.addLineSeries({ color: "#a855f7", lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false, title: "EMA200" });
+    el.appendChild(LW.ov); LW.chart.timeScale().subscribeVisibleLogicalRangeChange(() => { try { lwOverlay(); } catch (e) {} });
     const save = () => { try { localStorage.setItem("nexora_lw", JSON.stringify({ tf: LW.tf, show: LW.show })); } catch (e) {} };
     $("lwbar").querySelectorAll("button[data-tf]").forEach(b => b.onclick = () => { LW.tf = +b.dataset.tf; LW.key = ""; save(); drawChart(); });
     $("lwbar").querySelectorAll("input[data-lw]").forEach(c => { c.checked = !!LW.show[c.dataset.lw]; c.onchange = () => { LW.show[c.dataset.lw] = c.checked; LW.key = ""; LW.lineKey = ""; save(); drawChart(); }; });
@@ -4222,6 +4213,65 @@ function lwBars(D, m, sym) {   // شموع الفريم المختار (مسكّ
     if (last && last.time === T) { last.high = Math.max(last.high, fh); last.low = Math.min(last.low, fl); last.close = fc; }
     else if (!last || T > last.time) { out.push({ time: T, open: fo, high: fh, low: fl, close: fc }); vol.push(F && F.v ? F.v : 0); } }
   return { bars: out, vol };
+}
+
+// 17/11: أدوات عرض بس (ما بتأثر على الصفقات): قيعان/قمم متكررة · بروفايل الفوليوم · جدران دفتر الأوامر (Bybit)
+const EQ_MEMO = {}, VP_MEMO = {};
+function eqLevels(sym) {
+  const c = CACHE && CACHE.bySym[sym]; if (!c || c.D.stub) return null; const D = c.D, n = D.c.length, key = n + "|" + D.c[n-1];
+  if (EQ_MEMO[sym] && EQ_MEMO[sym].key === key) return EQ_MEMO[sym].r;
+  const from = Math.max(7, n - 384), L = 6; let a = 0; for (let i = n - 14; i < n; i++) a += D.h[i] - D.l[i]; a /= 14;
+  const tol = Math.max(D.c[n-1]*0.0015, a*0.5), hs = [], ls = [];
+  for (let i = from; i < n - L; i++) { let H = true, Lo = true; for (let j = i - L; j <= i + L; j++) { if (j === i) continue; if (D.h[j] >= D.h[i]) H = false; if (D.l[j] <= D.l[i]) Lo = false; } if (H) hs.push({ v: D.h[i], t: D.t0 + i*M15 }); if (Lo) ls.push({ v: D.l[i], t: D.t0 + i*M15 }); }
+  const clus = arr => { arr.sort((x, y) => x.v - y.v); const C = []; for (const p of arr) { const g = C[C.length-1]; if (g && p.v - g.hi <= tol) { g.hi = p.v; g.n++; g.sum += p.v; g.last = Math.max(g.last, p.t); } else C.push({ lo: p.v, hi: p.v, n: 1, sum: p.v, last: p.t }); } return C.filter(g => g.n >= 3).map(g => ({ v: g.sum/g.n, lo: g.lo, hi: g.hi, n: g.n, last: g.last })); };
+  const r = { lows: clus(ls), highs: clus(hs) }; EQ_MEMO[sym] = { key, r }; return r;
+}
+function volProfile(sym) {
+  const c = CACHE && CACHE.bySym[sym]; if (!c || c.D.stub || !c.D.v) return null; const D = c.D, n = D.c.length, key = n + "|" + D.c[n-1];
+  if (VP_MEMO[sym] && VP_MEMO[sym].key === key) return VP_MEMO[sym].r;
+  const from = Math.max(0, n - 288); let lo = Infinity, hi = -Infinity; for (let i = from; i < n; i++) { lo = Math.min(lo, D.l[i]); hi = Math.max(hi, D.h[i]); }
+  const NB = 40, w = (hi - lo)/NB || 1, bins = new Array(NB).fill(0);
+  for (let i = from; i < n; i++) { const b0 = Math.min(NB - 1, Math.floor((D.l[i] - lo)/w)), b1 = Math.min(NB - 1, Math.floor((D.h[i] - lo)/w)), k = b1 - b0 + 1; for (let b = b0; b <= b1; b++) bins[b] += (D.v[i] || 0)/k; }
+  let poc = 0; for (let b = 1; b < NB; b++) if (bins[b] > bins[poc]) poc = b;
+  const tot = bins.reduce((x, y) => x + y, 0); let a = poc, z = poc, acc = bins[poc];
+  while (acc < tot*0.7 && (a > 0 || z < NB - 1)) { const L = a > 0 ? bins[a-1] : -1, U = z < NB - 1 ? bins[z+1] : -1; if (U >= L) { z++; acc += bins[z]; } else { a--; acc += bins[a]; } }
+  const r = { lo, w, bins, poc: lo + (poc + 0.5)*w, vah: lo + (z + 1)*w, val: lo + a*w, max: bins[poc], pocI: poc, a, z }; VP_MEMO[sym] = { key, r }; return r;
+}
+const OB = { sym: null, t: 0, walls: null, busy: false };
+async function obPoll() {
+  if (!LW.chart || !LW.show.ob || !CSYM || OB.busy) return; if (!$("lwc") || !$("lwc").clientWidth) return;
+  if (OB.sym === CSYM && Date.now() - OB.t < 3000) return; OB.busy = true;
+  try {
+    const mp = BYBIT_MAP[CSYM], bs = mp ? mp[0] : CSYM, f = mp ? mp[1] : 1;
+    const j = await (await fetch(`https://api.bybit.com/v5/market/orderbook?category=linear&symbol=${bs}&limit=500`)).json();
+    const B = (j.result && j.result.b || []).map(x => [x[0]*f, x[1]/f]), A = (j.result && j.result.a || []).map(x => [x[0]*f, x[1]/f]);
+    if (!B.length || !A.length) throw 0; const mid = (B[0][0] + A[0][0])/2, bw = mid*0.0005;
+    const agg = (L) => { const m = new Map(); for (const [p, q] of L) { const k = Math.round(p/bw); m.set(k, (m.get(k) || 0) + p*q); } return [...m.entries()].map(([k, v]) => ({ p: k*bw, v })); };
+    const bb = agg(B), aa = agg(A), avg = [...bb, ...aa].reduce((x, y) => x + y.v, 0)/Math.max(1, bb.length + aa.length);
+    const top = L => L.filter(x => x.v >= 3*avg).sort((x, y) => y.v - x.v).slice(0, 2);
+    OB.walls = { bids: top(bb), asks: top(aa), lo: B[B.length-1][0], hi: A[A.length-1][0], bidTot: bb.reduce((x, y) => x + y.v, 0), askTot: aa.reduce((x, y) => x + y.v, 0) };
+    OB.sym = CSYM; OB.t = Date.now(); LW.lineKey = "";
+  } catch (e) { OB.walls = null; OB.sym = CSYM; OB.t = Date.now(); }
+  OB.busy = false;
+}
+const fmtUsd = v => v >= 1e6 ? (v/1e6).toFixed(1) + "M" : (v/1e3).toFixed(0) + "K";
+function lwOverlay() {   // هيستوغرام بروفايل الفوليوم على يمين الشارت
+  if (!LW.ov || !LW.chart) return; const el = $("lwc"), w = el.clientWidth, h = el.clientHeight, dpr = window.devicePixelRatio || 1;
+  if (LW.ov.width !== w*dpr || LW.ov.height !== h*dpr) { LW.ov.width = w*dpr; LW.ov.height = h*dpr; LW.ov.style.width = w + "px"; LW.ov.style.height = h + "px"; }
+  const g = LW.ov.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+  if (!LW.show.vp) return; const P = volProfile(CSYM); if (!P) return;
+  const ps = LW.chart.priceScale("right").width(), right = w - ps - 2, maxW = (w - ps)*0.22;
+  for (let b = 0; b < P.bins.length; b++) { const y1 = LW.cs.priceToCoordinate(P.lo + (b + 1)*P.w), y2 = LW.cs.priceToCoordinate(P.lo + b*P.w); if (y1 === null || y2 === null) continue;
+    const bw = maxW*P.bins[b]/P.max; g.fillStyle = b === P.pocI ? "rgba(249,115,22,.45)" : (b >= P.a && b <= P.z ? "rgba(148,163,184,.28)" : "rgba(148,163,184,.12)"); g.fillRect(right - bw, Math.min(y1, y2) + 0.5, bw, Math.max(1, Math.abs(y2 - y1) - 1)); }
+}
+function extraBox() {   // سطور تحت الشارت
+  const px = pxOf(CSYM) || (CACHE.bySym[CSYM] && CACHE.bySym[CSYM].D.c.slice(-1)[0]); if (!px) return ""; const pc = v => (v/px - 1)*100, sg = x => `<b class="num ${x >= 0 ? "pos" : "neg"}">${(x >= 0 ? "+" : "") + x.toFixed(2)}%</b>`;
+  let out = "";
+  if (LW.show.eq) { const E = eqLevels(CSYM); if (E) { const fl = [...E.lows, ...E.highs].filter(x => x.v < px).sort((a, b) => b.v - a.v).slice(0, 2), ce = [...E.lows, ...E.highs].filter(x => x.v > px).sort((a, b) => a.v - b.v).slice(0, 2);
+    out += `<br><b>🔁 قيعان/قمم متكررة</b> <span class="mut">(آخر 4 أيام، 3 لمسات وأكتر = غالباً أوامر معلّقة)</span>: ` + (ce.map(x => `<span style="color:#f87171">سقف ${fp(x.v)} — لمس ${x.n} مرات ${sg(pc(x.v))}</span>`).join(" · ") || '<span class="mut">ما في سقف متكرر فوق</span>') + " · " + (fl.map(x => `<span style="color:#4ade80">أرضية ${fp(x.v)} — لمس ${x.n} مرات ${sg(pc(x.v))}</span>`).join(" · ") || '<span class="mut">ما في أرضية متكررة تحت</span>'); } }
+  if (LW.show.vp) { const P = volProfile(CSYM); if (P) out += `<br><b>📊 بروفايل الفوليوم (آخر 3 أيام)</b>: أكتر سعر انتداول (POC) <b class="num" style="color:#fb923c">${fp(P.poc)}</b> ${sg(pc(P.poc))} · منطقة القيمة (70% من التداول) <span class="num">${fp(P.val)}–${fp(P.vah)}</span>`; }
+  if (LW.show.ob) { const W = OB.sym === CSYM ? OB.walls : null; out += `<br><b>🧱 دفتر الأوامر هلأ (Bybit)</b> <span class="mut">(أوامر معلّقة قريبة من السعر — ممكن تنشال قبل ما تتنفذ)</span>: ` + (W ? [...W.asks.map(x => `<span style="color:#f87171">بيع ${fmtUsd(x.v)}$ عند ${fp(x.p)} ${sg(pc(x.p))}</span>`), ...W.bids.map(x => `<span style="color:#4ade80">شراء ${fmtUsd(x.v)}$ عند ${fp(x.p)} ${sg(pc(x.p))}</span>`)].join(" · ") + ` · <span class="mut">المجموع: شراء ${fmtUsd(W.bidTot)}$ / بيع ${fmtUsd(W.askTot)}$ (بين ${fp(W.lo)} و${fp(W.hi)})</span>` : '<span class="mut">عم بجيب الدفتر…</span>'); }
+  return out;
 }
 function drawChartLW() {
   if (!lwInit()) return false;
@@ -4258,7 +4308,9 @@ function drawChartLW() {
   // خطوط: الصفقات المفتوحة (مجمّعة) + المناطق
   const open = RESULT.trades.filter(t => t.sym === CSYM && t.open), px = pxOf(CSYM) || (B.length ? B[B.length-1].close : 0);
   let Zn = null; try { if (LW.show.zones) Zn = zonesNear(CSYM, px); } catch (e) {}
-  const lk = CSYM + "|" + open.map(t => t.name + t.e + t.stop + t.target).join(",") + "|" + (Zn ? [...Zn.above, ...Zn.below, ...Zn.inside].map(z => z.lo + "-" + z.hi).join(",") : "") + JSON.stringify(LW.show);
+  let E = null, P = null; try { if (LW.show.eq) E = eqLevels(CSYM); if (LW.show.vp) P = volProfile(CSYM); } catch (e) {}
+  const W = LW.show.ob && OB.sym === CSYM ? OB.walls : null;
+  const lk = CSYM + "|" + open.map(t => t.name + t.e + t.stop + t.target).join(",") + "|" + (Zn ? [...Zn.above, ...Zn.below, ...Zn.inside].map(z => z.lo + "-" + z.hi).join(",") : "") + JSON.stringify(LW.show) + "|" + (E ? E.lows.length + "," + E.highs.length + "," + (E.lows[0] || {}).v : "") + "|" + (P ? P.poc : "") + "|" + OB.t;
   if (lk !== LW.lineKey) {
     for (const pl of LW.lines) try { LW.cs.removePriceLine(pl); } catch (e) {}
     LW.lines = [];
@@ -4273,9 +4325,14 @@ function drawChartLW() {
       const tl = role === "res" ? (z.kinds.has("عرض") ? "عرض" : "مقاومة") : role === "sup" ? (z.kinds.has("طلب") ? "طلب" : "دعم") : "منطقة";   // كلمة وحدة (العربي المخلوط بأرقام بيتخربط بالشارت)
       add(z.hi, col, 3, role === "sup" ? "" : tl, z.tf4 ? 2 : 1); add(z.lo, col, 3, role === "sup" ? tl : "", z.tf4 ? 2 : 1);
     }
+    if (E) { const px0 = px; for (const x of [...E.lows, ...E.highs].filter(x => Math.abs(x.v/px0 - 1) < 0.06)) add(x.v, x.v < px0 ? "#22d3ee" : "#f472b6", 0, (x.v < px0 ? "LOW x" : "HIGH x") + x.n, 1); }   // قيعان/قمم متكررة (أسماء لاتيني: العربي مع أرقام بيتخربط بالشارت)
+    if (P) { add(P.poc, "#fb923c", 2, "POC", 1); add(P.vah, "rgba(148,163,184,.7)", 2, "VAH", 1); add(P.val, "rgba(148,163,184,.7)", 2, "VAL", 1); }
+    if (W) { for (const x of W.bids) add(x.p, "#16a34a", 0, "BUY " + fmtUsd(x.v), 2); for (const x of W.asks) add(x.p, "#dc2626", 0, "SELL " + fmtUsd(x.v), 2); }
     LW.lineKey = lk;
   }
   try { renderZones(); } catch (e) {}
+  try { lwOverlay(); } catch (e) {}
+  obPoll();
   return true;
 }
 function drawChart() {
