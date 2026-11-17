@@ -2859,6 +2859,32 @@ function timingWrap(baseName, mode) {
   };
   return { name, mult: (STRATS_ALL.find(x => x.name === baseName) || {}).mult || 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "TP 1.2% wrap" };
 }
+// 17/11: فلتر ترند (طلب المستخدم) — على شمعة 4 ساعات المسكّرة قبل الدخول (ما في معلومة من المستقبل):
+//  • ترند العملة: لونج بس إذا السعر فوق EMA200 و EMA50 فوق EMA200، شورت بس إذا العكس، غير هيك ما في دخول
+//  • سوق عرضي: ADX(14) أقل من 20 = ما في دخول
+//  • ترند السوق (بيتكوين 4h): ما في شورت والبيتكوين فوق EMA50، وما في لونج وهو تحتها
+function trendOk(D, inds, e, d) {
+  const I = inds && inds[16]; if (!I) return false;
+  const k = Math.floor(e/16) - 1; if (k < 200 || k >= I.n) return false;
+  const c = I.C[k], e50 = I.ema50[k], e200 = I.ema200[k], adx = I.adx[k];
+  if (adx === null || adx < 20) return false;
+  if (d === 1 && !(c > e200 && e50 > e200)) return false;
+  if (d === -1 && !(c < e200 && e50 < e200)) return false;
+  const B = D.btcS;
+  if (B) { const kb = Math.floor((D.t0 + e*M15 - B.t0)/H4) - 1; const st = kb >= 0 && kb < B.st.length ? B.st[kb] : 0;
+    if (st === 0) return false; if (st !== d) return false; }
+  return true;
+}
+function btcStateOf(D) {   // +1 = بيتكوين فوق EMA50 على 4h، -1 = تحتها (شموع مسكّرة بس)
+  const n = Math.floor(D.o.length/16), C = []; for (let i = 0; i < n; i++) C.push(D.c[i*16 + 15]);
+  const E = ema(C, 50), st = new Int8Array(n); for (let i = 50; i < n; i++) st[i] = C[i] > E[i] ? 1 : -1;
+  return { t0: D.t0, st };
+}
+function trendWrap(inner) {
+  const name = inner.name + " + فلتر ترند";
+  const run = (D, inds, sp, startTs) => inner.run(D, inds, inner, startTs).filter(t => trendOk(D, inds, t.e, t.d)).map(t => ({ ...t, name }));
+  return { ...inner, name, run, src: "1.2% + فلتر ترند (4h + بيتكوين)" };
+}
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
   "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
   "Bagheri IG Ether 15m (كما هي)", "Bagheri IG Ether ساعة (كما هي)", "Bagheri IG Ether 4h (كما هي)", "⭐ S15 دخول على إغلاق 15m"];
@@ -2912,6 +2938,7 @@ const STRATS_ALL = [
 for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% وقف 0.6%"), tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), tpWrap(b, 0.012, null, "هدف 1.2% وقف أصلي"));
 for (const b of TP_BASES) STRATS_ALL.push(timingWrap(b, "calm"), timingWrap(b, "limit"), timingWrap(b, "confirm"));
 for (const b of ["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"]) STRATS_ALL.push(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"));
+for (const b of TP_BASES) STRATS_ALL.push(trendWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), trendWrap(timingWrap(b, "limit")));   // 17/11 فلتر ترند
 
 // نسخ فحص (جان، Turtle Soup...): بتشتغل بمختبر السيرفر بس — المنصة بالمتصفح ما بتحسبها (أسرع، وما بتلوّث الحساب)
 const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جان (فكرة المستخدم)", "تقاطع مراوح جان (فكرة المستخدم)", "تقاطع مراوح جان v2 (طريقة المستخدم)",
@@ -2919,7 +2946,8 @@ const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جا�
 // المنصة (المتصفح): بس الـ8 اللي إلهم فرصة حسب المختبر (⭐ + 🧪) — الباقي انشال من المنصة (طلب المستخدم 16/11)
 // 16/11 16:40: المنصة بتشغّل بس نسخ "هدف 1.2% / وقف 1.2%" من كل الاستراتيجيات (طلب المستخدم) — الأصلية بالمختبر بس
 const PLATFORM_KEEP = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% تأكيد 15m"]),
-  ...["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"].map(b => b + " | هدف 1.2% وقف 1.2%")]);   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
+  ...["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"].map(b => b + " | هدف 1.2% وقف 1.2%"),
+  ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند", b + " | 1.2% ليمت 0.4% + فلتر ترند"])]);   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
@@ -3347,12 +3375,14 @@ function withProv(c) {
   else return D;
   return { t0: D.t0, sym: D.sym, prov: true, o: D.o.concat([o]), h: D.h.concat([h]), l: D.l.concat([l]), c: D.c.concat([cl]), v: D.v ? D.v.concat([v]) : undefined, m5: D.m5, s5ck: D.s5ck };
 }
+let BTC_S = null;
 function computeOne(c, startTs, prev) {   // نفس الحساب بدون Workers (احتياط)
   if (prev) { c.raw = prev.raw.filter(t => !M5N.has(t.name)); for (const sp of STRATS) if (sp.m5) for (const t of evaluate(c.D, null, sp, startTs)) c.raw.push(t); }
-  else { const DP = withProv(c), inds = { 1: makeInd(DP, 1), 4: makeInd(DP, 4), 16: makeInd(DP, 16) }; for (const sp of STRATS) if (sp.mult && !inds[sp.mult]) inds[sp.mult] = makeInd(DP, sp.mult); c.raw = []; for (const sp of STRATS) for (const t of evaluate(DP, inds, sp, startTs)) c.raw.push(t); }
+  else { const DP = withProv(c); DP.btcS = BTC_S; const inds = { 1: makeInd(DP, 1), 4: makeInd(DP, 4), 16: makeInd(DP, 16) }; for (const sp of STRATS) if (sp.mult && !inds[sp.mult]) inds[sp.mult] = makeInd(DP, sp.mult); c.raw = []; for (const sp of STRATS) for (const t of evaluate(DP, inds, sp, startTs)) c.raw.push(t); }
 }
 async function computeAll(coins, startTs, prevOf, st) {
   const P = pool(); let done = 0;
+  { const b = coins.find(x => x.sym === "BTCUSDT"); BTC_S = b && b.D && !b.D.stub && b.D.o.length > 1000 ? btcStateOf(b.D) : null; }
   const tick = () => st(`⚙️ بحسب الاستراتيجيات… ${done}/${coins.length}${P.length ? ` (${P.length} معالجات مع بعض)` : ""}`);
   tick();
   if (!P.length) { for (const c of coins) { computeOne(c, startTs, prevOf(c)); done++; tick(); await sleep(5); } return; }
@@ -3360,7 +3390,7 @@ async function computeAll(coins, startTs, prevOf, st) {
   await Promise.all(P.map(w => (async () => {
     while (queue.length) {
       const c = queue.shift(), prev = prevOf(c);
-      const DP = withProv(c), D = { t0: DP.t0, sym: DP.sym, prov: !!DP.prov, o: DP.o, h: DP.h, l: DP.l, c: DP.c, v: DP.v, m5: DP.m5, s5ck: DP.s5ck };   // + الشمعة الحية + فوليوم واسم العملة
+      const DP = withProv(c), D = { t0: DP.t0, sym: DP.sym, prov: !!DP.prov, o: DP.o, h: DP.h, l: DP.l, c: DP.c, v: DP.v, m5: DP.m5, s5ck: DP.s5ck, btcS: BTC_S };   // + الشمعة الحية + فوليوم واسم العملة
       const res = await new Promise(r => { w.onmessage = ev => r(ev.data); w.onerror = ev => r({ err: ev.message || "worker" }); w.postMessage({ id: c.sym, D, startTs, only5: !!prev }); });
       if (res.err) { computeOne(c, startTs, prev); }
       else { c.raw = prev ? prev.raw.filter(t => !M5N.has(t.name)).concat(res.raw) : res.raw; if (res.ck) { CK[c.sym] = res.ck; c.D.s5ck = res.ck; } }
