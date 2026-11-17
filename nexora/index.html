@@ -2938,6 +2938,7 @@ const RSNIPER = (() => {
       let m = 0; for (let k = i-19; k <= i; k++) m += c[k]; m /= 20; let v = 0; for (let k = i-19; k <= i; k++) v += (c[k]-m)**2; const sd = Math.sqrt(v/20);
       const rsi = al[i] === 0 ? 100 : (ag[i] === 0 ? 0 : 100 - 100/(1 + ag[i]/al[i]));
       const d = l[i] <= m - 2*sd && rsi <= 30 ? 1 : (h[i] >= m + 2*sd && rsi >= 70 ? -1 : 0); if (!d) continue;
+      if (sp.volMin) { if (!D.v || i < 21) continue; let va = 0; for (let k = i - 20; k < i; k++) va += D.v[k]; if (!(va > 0 && D.v[i]/(va/20) >= sp.volMin)) continue; }   // مختبر: فوليوم شمعة الإشارة
       if (tf4) { const k = Math.floor((i + 1)/16) - 1; if (k < 200 || k >= I16.n || !(d*(I16.C[k] - I16.ema200[k]) > 0)) continue; }
       const stop = d === 1 ? l[i] - atr[i]*0.5 : h[i] + atr[i]*0.5, tgt = m;
       if (!(d*(c[i] - stop) > 0)) continue;
@@ -3045,6 +3046,51 @@ const VBLAB = (() => {
   return { strats: [mk("VB فوري 2-5× | 1.2", { tp: 0.012 }), mk("VB فوري 2-5× + ترند4h | 1.2", { tp: 0.012, t4: true }), mk("VB ذيل | 1.2", { tp: 0.012, wick: true }),
     mk("VB ذيل + ترند4h | 1.2", { tp: 0.012, wick: true, t4: true }), mk("VB ذيل + ترند4h | هدف 2.4", { tp: 0.024, wick: true, t4: true })] };
 })();
+
+// 17/11 مختبر بس: الفوليوم كتأكيد تاني — RSI رجوع من التشبع / بولنجر رجوع لجوا الباند (15m، هدف ووقف 1.2%) مع/بدون قفزة فوليوم ≥3× بآخر 3 شموع
+const MRV_MEMO = new WeakMap();
+function mrvFeat(D) {
+  if (MRV_MEMO.has(D)) return MRV_MEMO.get(D);
+  const c = D.c, n = c.length, rma = (x, p) => { const o = new Array(x.length).fill(null); let s = 0, k = 0, v = null; for (let i = 0; i < x.length; i++) { if (x[i] === null) continue; if (v === null) { s += x[i]; k++; if (k === p) { v = s/p; o[i] = v; } } else { v = (v*(p-1) + x[i])/p; o[i] = v; } } return o; };
+  const ch = c.map((x, i) => i ? x - c[i-1] : null), ag = rma(ch.map(x => x === null ? null : Math.max(x, 0)), 14), al = rma(ch.map(x => x === null ? null : Math.max(-x, 0)), 14);
+  const rsi = ag.map((g, i) => g === null ? null : (al[i] === 0 ? 100 : 100 - 100/(1 + g/al[i])));
+  const bu = new Array(n).fill(null), bl = new Array(n).fill(null), vr = new Array(n).fill(null);
+  let s1 = 0, s2 = 0; for (let i = 0; i < n; i++) { s1 += c[i]; s2 += c[i]*c[i]; if (i >= 20) { s1 -= c[i-20]; s2 -= c[i-20]*c[i-20]; } if (i >= 19) { const m = s1/20, sd = Math.sqrt(Math.max(0, s2/20 - m*m)); bu[i] = m + 2*sd; bl[i] = m - 2*sd; } }
+  if (D.v) { let a = 0; for (let i = 0; i < n; i++) { if (i >= 20) { vr[i] = a > 0 ? D.v[i]/(a/20) : null; a -= D.v[i-20]; } a += D.v[i]; } }
+  const R = { rsi, bu, bl, vr }; MRV_MEMO.set(D, R); return R;
+}
+const MRVLAB = (() => {
+  const mk = (name, kind, spike) => ({ name, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "مختبر: الفوليوم كتأكيد تاني (17/11)", run: (D, inds, sp, startTs) => {
+    if (spike && !D.v) return [];
+    const F = mrvFeat(D), n = D.o.length, last = D.prov ? n - 2 : n - 1, out = []; let busyTo = -1;
+    let i0 = 30; while (i0 < n && D.t0 + i0*M15 < startTs - 5*864e5) i0++;
+    for (let i = Math.max(30, i0); i <= last && i < n - 1; i++) {
+      if (i <= busyTo) continue;
+      let d = 0;
+      if (kind === "rsi") { if (F.rsi[i-1] === null) continue; d = F.rsi[i-1] < 30 && F.rsi[i] >= 30 ? 1 : (F.rsi[i-1] > 70 && F.rsi[i] <= 70 ? -1 : 0); }
+      else { if (F.bl[i-1] === null) continue; d = D.c[i-1] < F.bl[i-1] && D.c[i] > F.bl[i] ? 1 : (D.c[i-1] > F.bu[i-1] && D.c[i] < F.bu[i] ? -1 : 0); }
+      if (!d) continue;
+      if (spike) { const pv = Math.max(F.vr[i] || 0, F.vr[i-1] || 0, F.vr[i-2] || 0); if (pv < spike) continue; }
+      const e = i + 1, px = D.o[e], stop = px*(1 - d*0.012), tgt = px*(1 + d*0.012); let ox = null, why = null, xi = null;
+      for (let j = e; j < n; j++) {
+        if (j > e && d*(D.o[j] - stop) <= 0) { ox = D.o[j]; why = "STOP"; xi = j; break; }
+        if (j > e && d*(D.o[j] - tgt) >= 0) { ox = D.o[j]; why = "TGT_GAP"; xi = j; break; }
+        if (d === 1 ? D.l[j] <= stop : D.h[j] >= stop) { ox = stop; why = "STOP"; xi = j; break; }
+        if (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt) { ox = tgt; why = "TARGET"; xi = j; break; }
+      }
+      const open = ox === null; busyTo = open ? n : xi;
+      if (D.t0 + e*M15 < startTs) continue;
+      out.push(open ? { name, d, e, x: n - 1, rawIn: px, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt } : { name, d, e, x: xi, rawIn: px, rawOut: ox, why, open: false, stop, target: tgt });
+    }
+    return out;
+  } });
+  return { strats: [mk("RSI رجوع 15m | 1.2", "rsi", 0), mk("RSI رجوع 15m + فوليوم ≥3× | 1.2", "rsi", 3), mk("بولنجر رجوع 15m | 1.2", "bb", 0), mk("بولنجر رجوع 15m + فوليوم ≥3× | 1.2", "bb", 3)] };
+})();
+// مختبر بس: فلتر "فوليوم هادي" لاستراتيجيات الترند (شمعة الإشارة 15m أقل من معدل آخر 20)
+function quietWrap(inner) {
+  const name = inner.name + " + فوليوم هادي";
+  return { ...inner, name, run: (D, inds, sp, startTs) => { if (!D.v) return []; const F = mrvFeat(D); return inner.run(D, inds, inner, startTs).filter(t => { const v = F.vr[t.e - 1]; return v !== null && v < 1; }).map(t => ({ ...t, name })); }, src: "مختبر: فوليوم هادي (17/11)" };
+}
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
   "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
   "Bagheri IG Ether 15m (كما هي)", "⭐ S15 دخول على إغلاق 15m"];   // 17/11: Bagheri ساعة و4h انشالوا (إشارتين بالسنة — طلب المستخدم)
@@ -3097,11 +3143,14 @@ const STRATS_ALL = [
   ...RSNIPER.strats,
   ...VBRK.strats,
   ...VBLAB.strats,   // مختبر بس (مش بـ PLATFORM_KEEP)
+  ...MRVLAB.strats,   // مختبر بس
+  { ...RSNIPER.strats[0], name: "Range Sniper + فوليوم ≥5× (مختبر)", volMin: 5 },
 ];
 for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% وقف 0.6%"), tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), tpWrap(b, 0.012, null, "هدف 1.2% وقف أصلي"));
 for (const b of TP_BASES) STRATS_ALL.push(timingWrap(b, "calm"), timingWrap(b, "limit"), timingWrap(b, "limit6"), timingWrap(b, "limit8"), timingWrap(b, "confirm"));
 for (const b of ["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"]) STRATS_ALL.push(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"));
 for (const b of TP_BASES) STRATS_ALL.push(trendWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), trendWrap(timingWrap(b, "limit")));
+for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(quietWrap(timingWrap(b, "limit6")));   // مختبر بس
 for (const b of TP_BASES) STRATS_ALL.push(capitWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), capitWrap(timingWrap(b, "limit6")));   // 17/11 فلتر استسلام   // 17/11 فلتر ترند
 
 // نسخ فحص (جان، Turtle Soup...): بتشتغل بمختبر السيرفر بس — المنصة بالمتصفح ما بتحسبها (أسرع، وما بتلوّث الحساب)
