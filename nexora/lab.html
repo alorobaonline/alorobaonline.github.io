@@ -643,17 +643,6 @@ const S15 = (() => {
     return { pend: out, atr: P.atr[kLast], ema: P.ema[kLast] };
   }
   const sig = v2 => (I, i) => { const h = hitsAt(prep(I), I, i, v2); return h.length ? h[0].side : 0; };
-  // نظام التقلب: ATR(14) الحالي ÷ متوسط ATR لآخر n شمعة (مختبر: sp.volR = {n, max} أو {n, min}؛ بدونه ما في أي تغيير)
-  const volMemo = new WeakMap();
-  function volRatio(I, P, k, n) {
-    if (!volMemo.has(I)) volMemo.set(I, {}); const mm = volMemo.get(I);
-    if (!mm[n]) { const out = new Array(I.n).fill(null); let sum = 0, cnt = 0;
-      for (let j = 0; j < I.n; j++) { const a = P.atr[j]; if (a !== null) { sum += a; cnt++; }
-        const old = j - n >= 0 ? P.atr[j - n] : null; if (old !== null) { sum -= old; cnt--; }
-        if (cnt === n && a !== null) out[j] = a / (sum / n); }
-      mm[n] = out; }
-    return mm[n][k];
-  }
   // آخر تمويل معروف لحد وقت ts (D.fund من المختبر: [{t, rate}] مرتبة)
   function fundAt(D, ts) { const F = D.fund; if (!F || !F.length) return null; let lo = 0, hi = F.length - 1, r = -1;
     while (lo <= hi) { const mid = (lo + hi) >> 1; if (F[mid].t <= ts) { r = mid; lo = mid + 1; } else hi = mid - 1; } return r < 0 || ts - F[r].t > 864e5 ? null : F[r].rate; }   // تمويل قديم (أكتر من يوم) = ما في معلومة
@@ -713,7 +702,6 @@ const S15 = (() => {
       if (h.length && sp.fundF) { const r = fundAt(D, D.t0 + (k+1)*m*900000); h = h.filter(x => fundOk(sp, r, x.side)); }
       if (h.length && sp.gannF && m === 16) h = h.filter(x => GDEC.near(I, k, x.side, sp.gannF));
       if (h.length && sp.fibT && m === 16) { const w = fibTimeWin(I, k, sp.fibT.set || "A"); if (sp.fibT.inside ? !w : w) h = []; }
-      if (h.length && sp.volR) { const r = volRatio(I, P, k, sp.volR.n || 100); if (r !== null && ((sp.volR.max && r > sp.volR.max) || (sp.volR.min && r < sp.volR.min))) h = []; }
       if (!h.length) continue;
       const blocked = pos !== null || closedHere || k <= busy || k === n - 1 || D.t0 + (k+1)*m*900000 <= startTs || (k+1)*m >= D.o.length;
       if (!blocked) pend = [h[0], k];
@@ -2923,6 +2911,63 @@ function posWrap(inner, minPos) {
   const name = inner.name + " + موقع دخول ≥" + Math.round(minPos*100) + "%";
   return { ...inner, name, run: (D, inds, sp, startTs) => inner.run(D, inds, inner, startTs).filter(t => posOk(D, t.e, t.d, t.rawIn, minPos)).map(t => ({ ...t, name })), src: "مختبر: شرط موقع الدخول بمدى 24 ساعة (17/11)" };
 }
+
+// 17/11 مختبر بس: أرضيات/سقوف متكررة (قيعان/قمم 15m انلمست 4 مرات+ بآخر 4 أيام)
+const PIV_MEMO = new WeakMap();
+function pivOf(D) {   // قمم/قيعان 6/6 — القاع j بيتأكد بس بعد ما تسكّر الشمعة j+6
+  if (PIV_MEMO.has(D)) return PIV_MEMO.get(D);
+  const n = D.o.length, L = 6, lows = [], highs = [], ar = new Array(n).fill(null); let a = 0;
+  for (let i = 0; i < n; i++) { a += D.h[i] - D.l[i]; if (i >= 14) a -= D.h[i-14] - D.l[i-14]; if (i >= 13) ar[i] = a/14; }
+  for (let i = L; i < n - L; i++) { let H = true, Lo = true; for (let j = i - L; j <= i + L; j++) { if (j === i) continue; if (D.h[j] >= D.h[i]) H = false; if (D.l[j] <= D.l[i]) Lo = false; } if (Lo) lows.push(i); if (H) highs.push(i); }
+  const R = { lows, highs, ar }; PIV_MEMO.set(D, R); return R;
+}
+function levelNear(D, P, arr, upto, lo, hi) {   // قيعان/قمم مأكدة (j+6 ≤ upto) بآخر 384 شمعة وسعرها بين lo و hi
+  let n = 0, mn = Infinity, mx = -Infinity, sum = 0; const isLow = arr === P.lows;
+  for (let q = arr.length - 1; q >= 0; q--) { const j = arr[q]; if (j + 6 > upto) continue; if (j < upto - 384) break; const v = isLow ? D.l[j] : D.h[j]; if (v >= lo && v <= hi) { n++; sum += v; mn = Math.min(mn, v); mx = Math.max(mx, v); } }
+  return { n, v: n ? sum/n : null, mn, mx };
+}
+function pocOf(D, upto) { const from = Math.max(0, upto - 287); let lo = Infinity, hi = -Infinity; for (let i = from; i <= upto; i++) { lo = Math.min(lo, D.l[i]); hi = Math.max(hi, D.h[i]); }
+  const NB = 40, w = (hi - lo)/NB || 1e-12, b = new Array(NB).fill(0); for (let i = from; i <= upto; i++) { const b0 = Math.min(NB-1, Math.floor((D.l[i]-lo)/w)), b1 = Math.min(NB-1, Math.floor((D.h[i]-lo)/w)), k = b1 - b0 + 1; for (let x = b0; x <= b1; x++) b[x] += (D.v ? D.v[i] || 0 : 1)/k; }
+  let p = 0; for (let x = 1; x < NB; x++) if (b[x] > b[p]) p = x; return lo + (p + 0.5)*w; }
+const FLOORLAB = (() => {
+  const name = "ارتداد أرضية/سقف 15m (مختبر)";
+  const run = (D, inds, sp, startTs) => {
+    const P = pivOf(D), I4 = (inds && inds[4]) || makeInd(D, 4), n = D.o.length, last = D.prov ? n - 2 : n - 1, out = []; let busyTo = -1;
+    let i0 = 400; while (i0 < n && D.t0 + i0*M15 < startTs - 3*864e5) i0++;
+    for (let i = i0; i <= last && i < n - 1; i++) {
+      if (i <= busyTo) continue;
+      const k = Math.floor((i + 1)/4) - 1; if (k < 30 || I4.adx[k] === null || I4.adx[k] >= 20) continue;
+      const d = D.c[i] > D.o[i] ? 1 : (D.c[i] < D.o[i] ? -1 : 0); if (!d) continue;
+      const tol = Math.max(D.c[i]*0.0015, (P.ar[i] || 0)*0.5);
+      const ext = d === 1 ? D.l[i] : D.h[i];
+      const Lv = d === 1 ? levelNear(D, P, P.lows, i, ext - tol, ext + 1.5*tol) : levelNear(D, P, P.highs, i, ext - 1.5*tol, ext + tol);   // ذيل الشمعة لمس الأرضية/السقف
+      if (Lv.n < 4) continue;
+      if (!(d*(D.c[i] - Lv.v) > 0)) continue;   // سكّرت راجعة فوق الأرضية (أو تحت السقف)
+      const poc = pocOf(D, i), e = i + 1, px = D.o[e];
+      const stop = d === 1 ? Math.min(Lv.mn, D.l[i]) - 0.1*(P.ar[i] || 0) : Math.max(Lv.mx, D.h[i]) + 0.1*(P.ar[i] || 0), tgt = poc;
+      const risk = d*(px - stop), rew = d*(tgt - px); if (!(risk > 0) || !(rew >= risk) || risk/px > 0.05) continue;
+      let ox = null, why = null, xi = null;
+      for (let j = e; j < n; j++) {
+        if (j > e && d*(D.o[j] - stop) <= 0) { ox = D.o[j]; why = "STOP"; xi = j; break; }
+        if (j > e && d*(D.o[j] - tgt) >= 0) { ox = D.o[j]; why = "TGT_GAP"; xi = j; break; }
+        if (d === 1 ? D.l[j] <= stop : D.h[j] >= stop) { ox = stop; why = "STOP"; xi = j; break; }
+        if (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt) { ox = tgt; why = "TARGET"; xi = j; break; }
+        if (j - e >= 96 && !(D.prov && j === n - 1)) { ox = D.c[j]; why = "TIME"; xi = j; break; }   // أقصى 24 ساعة
+      }
+      const open = ox === null; busyTo = open ? n : xi;
+      if (D.t0 + e*M15 < startTs) continue;
+      out.push(open ? { name, d, e, x: n - 1, rawIn: px, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt } : { name, d, e, x: xi, rawIn: px, rawOut: ox, why, open: false, stop, target: tgt });
+    }
+    return out;
+  };
+  return { strats: [{ name, mult: 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "مختبر: ارتداد من أرضية/سقف متكرر بسوق عرضي، هدف POC (17/11)" }] };
+})();
+// قاعدة تجنب: ما في شورت إذا في أرضية (4 لمسات+) أقرب من 1.2% تحت سعر الدخول — ولا لونج إذا في سقف أقرب من 1.2% فوقه
+function floorAvoidWrap(inner) {
+  const name = inner.name + " + تجنب الأرضية";
+  return { ...inner, name, run: (D, inds, sp, startTs) => { const P = pivOf(D); return inner.run(D, inds, inner, startTs).filter(t => {
+    const px = t.rawIn, up = t.e - 1, L = t.d === -1 ? levelNear(D, P, P.lows, up, px*(1 - 0.012), px) : levelNear(D, P, P.highs, up, px, px*(1 + 0.012)); return L.n < 4; }).map(t => ({ ...t, name })); }, src: "مختبر: تجنب الأرضية القريبة (17/11)" };
+}
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
   "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
   "Bagheri IG Ether 15m (كما هي)", "⭐ S15 دخول على إغلاق 15m"];   // 17/11: Bagheri ساعة و4h انشالوا (إشارتين بالسنة — طلب المستخدم)
@@ -2976,6 +3021,7 @@ const STRATS_ALL = [
   ...VBRK.strats,
   ...VBLAB.strats,   // مختبر بس (مش بـ PLATFORM_KEEP)
   ...MRVLAB.strats,   // مختبر بس
+  ...FLOORLAB.strats,   // مختبر بس
   { ...RSNIPER.strats[0], name: "Range Sniper + فوليوم ≥5× (مختبر)", volMin: 5 },
 ];
 for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% وقف 0.6%"), tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), tpWrap(b, 0.012, null, "هدف 1.2% وقف أصلي"));
@@ -2984,6 +3030,7 @@ for (const b of ["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + 
 for (const b of TP_BASES) STRATS_ALL.push(trendWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), trendWrap(timingWrap(b, "limit")));
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(quietWrap(timingWrap(b, "limit6")));   // مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(posWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), 0.4), posWrap(timingWrap(b, "limit6"), 0.4));   // مختبر بس
+for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(floorAvoidWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), floorAvoidWrap(timingWrap(b, "limit6")));   // مختبر بس
 for (const b of TP_BASES) STRATS_ALL.push(capitWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), capitWrap(timingWrap(b, "limit6")));   // 17/11 فلتر استسلام   // 17/11 فلتر ترند
 
 // نسخ فحص (جان، Turtle Soup...): بتشتغل بمختبر السيرفر بس — المنصة بالمتصفح ما بتحسبها (أسرع، وما بتلوّث الحساب)
