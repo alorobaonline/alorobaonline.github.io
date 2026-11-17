@@ -163,6 +163,7 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
 <section class="tab on" data-t="acc">
   <h2>💼 الحساب الوهمي <span class="mut" id="accNote"></span> <button class="sec" onclick="document.getElementById('copyBoard').click()" style="padding:5px 10px;font-size:12px">📋 انسخ الملخص لـ Claude</button></h2>
   <div id="sumBox" style="display:none;margin:8px 0"><div id="sumMsg" class="mut" style="margin-bottom:6px"></div><textarea id="sumTxt" readonly style="width:100%;height:180px;direction:ltr;text-align:left;background:#0b0e14;color:#e5e7eb;border:1px solid #333;border-radius:8px;font-family:ui-monospace,monospace;font-size:12px"></textarea></div>
+  <div id="mkt" class="card" style="margin:8px 0;line-height:1.9"></div>
   <div class="acc" id="acc"></div>
   <h2>📊 المجموع <span class="mut" id="scope"></span></h2>
   <div class="periods" id="periodsA"></div>
@@ -2830,7 +2831,8 @@ function atr15Of(D) {
   ATR15_MEMO.set(D, a); return a;
 }
 function timingWrap(baseName, mode) {
-  const label = { calm: "1.2% هادئة", limit: "1.2% ليمت 0.4%", confirm: "1.2% تأكيد 15m" }[mode], name = `${baseName} | ${label}`;
+  const label = { calm: "1.2% هادئة", limit: "1.2% ليمت 0.4%", limit6: "1.2% ليمت 0.6%", limit8: "1.2% ليمت 0.8%", confirm: "1.2% تأكيد 15m" }[mode], name = `${baseName} | ${label}`;
+  const depth = { limit: 0.004, limit6: 0.006, limit8: 0.008 }[mode];   // 17/11: ليمت أعمق للسوق العرضي (طلب المستخدم)
   const run = (D, inds, sp, startTs) => {
     const base = STRATS_ALL.find(x => x.name === baseName); if (!base) return [];
     const src = evaluate(D, inds, base, startTs), n = D.o.length, out = [], A = atr15Of(D), seen = new Set();
@@ -2838,7 +2840,7 @@ function timingWrap(baseName, mode) {
       const k0 = t.e + "|" + t.d; if (seen.has(k0)) continue; seen.add(k0);   // نص صفقة = نفس الدخول
       const d = t.d; let e = null, ei = null;
       if (mode === "calm") { const a = A[t.e - 1]; if (a === null || a/D.c[t.e - 1] > 0.004) continue; e = t.rawIn; ei = t.e; }   // ضجيج 15m أكبر من 0.4% = ما بندخل
-      else if (mode === "limit") { const lim = t.rawIn*(1 - d*0.004);   // ليمت أحسن بـ0.4%، صالح ساعة (4 شموع)
+      else if (depth) { const lim = t.rawIn*(1 - d*depth);   // ليمت أحسن بـ0.4%، صالح ساعة (4 شموع)
         for (let j = t.e; j < Math.min(n, t.e + 4); j++) if (d === 1 ? D.l[j] <= lim : D.h[j] >= lim) { e = d === 1 ? Math.min(lim, D.o[j]) : Math.max(lim, D.o[j]); ei = j; break; }
         if (e === null) continue; }
       else { for (let j = t.e; j < Math.min(n - 1, t.e + 4); j++) if (d*(D.c[j] - D.o[j]) > 0) { ei = j + 1; e = D.o[j + 1]; break; }   // أول شمعة 15m بتسكّر باتجاه الصفقة → دخول على اللي بعدها
@@ -2954,7 +2956,7 @@ const STRATS_ALL = [
   ...S15E.strats,
 ];
 for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% وقف 0.6%"), tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), tpWrap(b, 0.012, null, "هدف 1.2% وقف أصلي"));
-for (const b of TP_BASES) STRATS_ALL.push(timingWrap(b, "calm"), timingWrap(b, "limit"), timingWrap(b, "confirm"));
+for (const b of TP_BASES) STRATS_ALL.push(timingWrap(b, "calm"), timingWrap(b, "limit"), timingWrap(b, "limit6"), timingWrap(b, "limit8"), timingWrap(b, "confirm"));
 for (const b of ["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"]) STRATS_ALL.push(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"));
 for (const b of TP_BASES) STRATS_ALL.push(trendWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), trendWrap(timingWrap(b, "limit")));   // 17/11 فلتر ترند
 
@@ -2963,7 +2965,7 @@ const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جا�
   "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)", "London Breakout", "12/26-IT (AbdulRahimShama)", "Wave Rider v1"]);
 // المنصة (المتصفح): بس الـ8 اللي إلهم فرصة حسب المختبر (⭐ + 🧪) — الباقي انشال من المنصة (طلب المستخدم 16/11)
 // 16/11 16:40: المنصة بتشغّل بس نسخ "هدف 1.2% / وقف 1.2%" من كل الاستراتيجيات (طلب المستخدم) — الأصلية بالمختبر بس
-const PLATFORM_KEEP = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%"]),   // 17/11 03:55: «تأكيد 15m» انلغت من المنصة (طلب المستخدم — دخول متأخر على أسوأ سعر)
+const PLATFORM_KEEP = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% ليمت 0.6%", b + " | 1.2% ليمت 0.8%"]),   // 17/11 03:55: «تأكيد 15m» انلغت من المنصة (طلب المستخدم — دخول متأخر على أسوأ سعر)
   ...["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"].map(b => b + " | هدف 1.2% وقف 1.2%"),
   ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"])]);   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
@@ -3315,7 +3317,7 @@ function recalc() {
     return { ...money(t, c.D, Q, c.funding, pxOf(c.sym)), sym: c.sym }; }));
   const cl = Q => capTrades(all(Q)).filter(t => !t.open).map(t => ({ xTs: t.xTs, net: t.net }));
   RESULT = { trades: capTrades(all(P)), startTs: CACHE.startTs, P, mkCl: cl(PM), tkCl: cl(PT), upd: CACHE.upd };
-  render();
+  render(); try { renderMkt(); } catch (e) {}
   try { if (document.querySelector('section.tab.on[data-t="real"]')) renderReal(); } catch (e) { console.warn(e); }
 }
 
@@ -3844,6 +3846,46 @@ function connectWS() {
 
 // تحديث خفيف: السعر + الحساب + المفتوحة + الشارت (بدون إعادة حساب كل الصفقات)
 const LIVE_CLOSED = {};   // الصفقات اللي سكّرت بالسعر الحي — بتضل مسكّرة حتى لو الحساب الجاي ما شاف الشمعة كاملة
+
+// 17/11: لوحة حالة السوق (طلب المستخدم) — المؤشرات من الشموع المسكّرة (كل 15د)، والسعر والتغيّر حي كل ثانية
+let MKT = null, MKT_K = null;
+function mktBase() {
+  const key = CACHE && CACHE.upd + "|" + CACHE.coins.length; if (MKT && MKT_K === key) return MKT;
+  const b = CACHE.bySym.BTCUSDT; if (!b || b.D.stub || b.D.o.length < 3300) return null;
+  const st = (I) => { const k = I.n - 1; return { c: I.C[k], e50: I.ema50[k], e200: I.ema200[k], adx: I.adx[k] }; };
+  const h1 = st(makeInd(b.D, 4)), h4 = st(makeInd(b.D, 16));
+  const coins = []; for (const c of CACHE.coins) { const D = c.D; if (D.stub || D.o.length < 3300) continue;
+    const a = st(makeInd(D, 4)), f = st(makeInd(D, 16)), n = D.c.length;
+    coins.push({ sym: c.sym, up1: a.c > a.e200 && a.e50 > a.e200, dn1: a.c < a.e200 && a.e50 < a.e200, flat1: a.adx !== null && a.adx < 20, up4: f.c > f.e200, ref1: D.c[n-4], ref4: D.c[n-16] }); }
+  MKT = { h1, h4, coins, btcRef1: b.D.c[b.D.c.length-4], btcRef4: b.D.c[b.D.c.length-16] }; MKT_K = key; return MKT;
+}
+function renderMkt() {
+  const el = $("mkt"); if (!el || !CACHE) return;
+  let M = null; try { M = mktBase(); } catch (e) {}
+  if (!M) { el.innerHTML = '<span class="mut">🧭 حالة السوق: بستنى بيانات البيتكوين…</span>'; return; }
+  const px = pxOf("BTCUSDT") || M.h1.c, f0 = x => x.toLocaleString("en-US", { maximumFractionDigits: 0 }), pc = (a, b) => 100*(a/b - 1);
+  const sg = x => `<b class="num ${x >= 0 ? "pos" : "neg"}">${(x >= 0 ? "+" : "") + x.toFixed(2)}%</b>`;
+  const tr = (h) => px > h.e50 && h.e50 > h.e200 ? 1 : (px < h.e50 && h.e50 < h.e200 ? -1 : 0);
+  const t1 = tr(M.h1), t4 = tr(M.h4), flat = M.h1.adx !== null && M.h1.adx < 20;
+  const lab = t => t === 1 ? '<b class="pos">طالع 📈</b>' : t === -1 ? '<b class="neg">نازل 📉</b>' : '<b style="color:#f59e0b">مخربط ↔️</b>';
+  const str = a => a === null ? "" : a >= 40 ? "قوي جداً" : a >= 25 ? "قوي" : a >= 20 ? "متوسط" : "ضعيف (عرضي)";
+  let verdict;
+  if (t4 === -1 && t1 === -1) verdict = "📉 السوق نازل — الشورت مع الترند، اللونج عكسه";
+  else if (t4 === -1) verdict = "↗️ ارتداد جوا ترند نازل — لسا ما قلب الترند الكبير. الشورتات بنسخ الفلتر ممكن تطلع بالخروج المبكر إذا سكّرت الساعة فوق EMA50";
+  else if (t4 === 1 && t1 === 1) verdict = "📈 السوق طالع — اللونج مع الترند، الشورت عكسه";
+  else if (t4 === 1) verdict = "↘️ تصحيح جوا ترند طالع";
+  else verdict = "↔️ السوق بدون اتجاه واضح";
+  if (flat) verdict += " · ⚠️ عرضي على الساعة (ADX تحت 20): الوقوف القريبة بتنضرب، الليمت أحسن";
+  const C = M.coins, nc = C.length, live = C.map(c => { const p = pxOf(c.sym); return p ? { ch1: pc(p, c.ref1), ch4: pc(p, c.ref4) } : null; }).filter(Boolean);
+  const ch4s = live.map(x => x.ch4).sort((a, b) => a - b), med4 = ch4s.length ? ch4s[ch4s.length >> 1] : 0, up1n = live.filter(x => x.ch1 > 0).length;
+  const d50 = pc(M.h1.e50, px);
+  el.innerHTML = `<div style="font-size:15px;margin-bottom:4px">🧭 <b>حالة السوق</b> — ${verdict}</div>` +
+    `<div>₿ البيتكوين <b class="num">${f0(px)}</b> · ساعة ${sg(pc(px, M.btcRef1))} · 4 ساعات ${sg(pc(px, M.btcRef4))}</div>` +
+    `<div>⏱️ ترند الساعة: ${lab(t1)} <span class="mut">(قوة ${M.h1.adx === null ? "—" : M.h1.adx.toFixed(0)} ${str(M.h1.adx)} · EMA50 ${f0(M.h1.e50)} · EMA200 ${f0(M.h1.e200)})</span></div>` +
+    `<div>🕓 ترند 4 ساعات: ${lab(t4)} <span class="mut">(قوة ${M.h4.adx === null ? "—" : M.h4.adx.toFixed(0)} ${str(M.h4.adx)} · EMA50 ${f0(M.h4.e50)} · EMA200 ${f0(M.h4.e200)})</span></div>` +
+    `<div>🎯 خط القلبة على الساعة: <b class="num">${f0(M.h1.e50)}</b> — ${px > M.h1.e50 ? `البيتكوين <b class="pos">فوقه</b> هلأ (بيتأكد مع إغلاق شمعة الساعة)` : `بدّه ${sg(d50)} ليوصله`} · على 4 ساعات: <b class="num">${f0(M.h4.e50)}</b> ${px > M.h4.e50 ? '<b class="pos">(فوقه)</b>' : `(بدّه ${sg(pc(M.h4.e50, px))})`}</div>` +
+    `<div>🪙 العملات (${nc}): ترند الساعة <b class="pos">${C.filter(c => c.up1).length} طالعة</b> · <b class="neg">${C.filter(c => c.dn1).length} نازلة</b> · ${C.filter(c => c.flat1).length} عرضية · فوق EMA200 على 4 ساعات: <b>${C.filter(c => c.up4).length}</b> · طالعة بآخر ساعة: <b>${up1n}/${live.length}</b> · متوسط آخر 4 ساعات ${sg(med4)}</div>`;
+}
 function lightUpdate() {
   if (!CACHE || !RESULT) return;
   const P = RESULT.P;
@@ -3857,7 +3899,7 @@ function lightUpdate() {
     }
     return { ...money(t, c.D, P, c.funding, px), sym: t.sym }; });
   if (closedNow) { try { render(); } catch (e) {} return; }
-  renderAccount(); renderCards(); drawChart(); updateLiveHeader();
+  renderAccount(); renderCards(); drawChart(); updateLiveHeader(); try { renderMkt(); } catch (e) {}
   if (Date.now() - LAST_RADAR > 10000) { LAST_RADAR = Date.now(); radar(); }
 }
 
