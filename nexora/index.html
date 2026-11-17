@@ -4256,6 +4256,9 @@ async function bridgeSend() {
   brRender();
 }
 setInterval(bridgeSend, 30000);
+// 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
+const BUILD = "2026-11-17-2100";
+setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
 // 17/11 14:55: خطة حقيقي — MACD 5m (طلب المستخدم). نفس محرك المنصة بالزبط (MACDP.pending = نفس الشروط، بس بيرجّع الليمتات اللي لسا صالحة)
