@@ -2647,8 +2647,8 @@ function atr15Of(D) {
     v = v === null ? tr : (v*13 + tr)/14; if (i >= 14) a[i] = v; }
   ATR15_MEMO.set(D, a); return a;
 }
-function timingWrap(baseName, mode) {
-  const label = { calm: "1.2% هادئة", limit: "1.2% ليمت 0.4%", limit6: "1.2% ليمت 0.6%", limit8: "1.2% ليمت 0.8%", confirm: "1.2% تأكيد 15m" }[mode], name = `${baseName} | ${label}`;
+function timingWrap(baseName, mode, tp = 0.012) {   // 17/11 18:16: tp قابل للتغيير (1.5% طلب المستخدم)
+  const P = (tp*100).toFixed(1) + "%", label = { calm: P + " هادئة", limit: P + " ليمت 0.4%", limit6: P + " ليمت 0.6%", limit8: P + " ليمت 0.8%", confirm: P + " تأكيد 15m" }[mode], name = `${baseName} | ${label}`;
   const depth = { limit: 0.004, limit6: 0.006, limit8: 0.008 }[mode];   // 17/11: ليمت أعمق للسوق العرضي (طلب المستخدم)
   const run = (D, inds, sp, startTs) => {
     const base = STRATS_ALL.find(x => x.name === baseName); if (!base) return [];
@@ -2662,7 +2662,7 @@ function timingWrap(baseName, mode) {
         if (e === null) continue; }
       else { for (let j = t.e; j < Math.min(n - 1, t.e + 4); j++) if (d*(D.c[j] - D.o[j]) > 0) { ei = j + 1; e = D.o[j + 1]; break; }   // أول شمعة 15m بتسكّر باتجاه الصفقة → دخول على اللي بعدها
         if (e === null) continue; }
-      const tgt = e*(1 + d*0.012), stop = e*(1 - d*0.012);
+      const tgt = e*(1 + d*tp), stop = e*(1 - d*0.012);
       let px = null, why = null, xi = null;
       for (let j = ei; j < n; j++) {
         if (j > ei && d*(D.o[j] - stop) <= 0) { px = D.o[j]; why = "STOP"; xi = j; break; }
@@ -3063,7 +3063,10 @@ const MACDP = (() => {
     mk("MACD v1.1 ساعة · ليمت 0.8% · لونج 1.2% شورت 1%", 60, 0.008, 0.012, 0.010), mk("MACD v1.1 15m · ليمت 0.8% · هدف 1.2%", 15, 0.008, 0.012, 0.012), mk("MACD v1.1 5m · ليمت 0.8% · هدف 1.2%", 5, 0.008, 0.012, 0.012),
     mk("MACD v1.1 5m · ليمت 0.8% · شورت · هدف 1.2% وقف 1.2%", 5, 0.008, 0.012, 0.012, { shortOnly: true, fixStop: 0.012 }),   // 17/11 17:26: مختبر بس
     ...[0, 0.002, 0.004].map(dp => mk(`MACD v1.1 5m · ${dp ? "ليمت " + (dp*100).toFixed(1) + "%" : "بدون ليمت"} · شورت · هدف 1.2% وقف 1.2%`, 5, dp, 0.012, 0.012, { shortOnly: true, fixStop: 0.012 })),
-    ...[0, 0.004, 0.008].map(dp => mk(`MACD v1.1 5m · عكس الشورت → لونج · ${dp ? "ليمت " + (dp*100).toFixed(1) + "%" : "بدون ليمت"} · هدف 1.2% وقف 1.2%`, 5, dp, 0.012, 0.012, { invert: true, longOnly: true, fixStop: 0.012 }))];   // 17/11 17:41: مختبر بس   // 17/11 17:34: فحص شورت بليمت أصغر (مختبر بس)
+    ...[0, 0.004, 0.008].map(dp => mk(`MACD v1.1 5m · عكس الشورت → لونج · ${dp ? "ليمت " + (dp*100).toFixed(1) + "%" : "بدون ليمت"} · هدف 1.2% وقف 1.2%`, 5, dp, 0.012, 0.012, { invert: true, longOnly: true, fixStop: 0.012 })),
+    mk("MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.5% وقف 1.2%", 5, 0.008, 0.015, 0.015, { longOnly: true, fixStop: 0.012 }),   // 17/11 18:16: هدف 1.5% (طلب المستخدم)
+    mk("MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.5% وقف 1.2%", 15, 0.008, 0.015, 0.015, { longOnly: true, fixStop: 0.012 }),
+    mk("MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.5% وقف 1.5ATR", 60, 0.008, 0.015, 0.015, { longOnly: true })];   // 17/11 17:41: مختبر بس   // 17/11 17:34: فحص شورت بليمت أصغر (مختبر بس)
   const pending = (D, startTs) => { const p = []; strats[0].run(D, null, strats[0], startTs, p); return p; };   // 17/11 14:55: خطة حقيقي — MACD 5m
   return { strats, pending };
 })();
@@ -3129,6 +3132,9 @@ for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.012, 0.006, "هدف 1.2% �
 for (const b of TP_BASES) STRATS_ALL.push(timingWrap(b, "calm"), timingWrap(b, "limit"), timingWrap(b, "limit6"), timingWrap(b, "limit8"), timingWrap(b, "confirm"));
 for (const b of ["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"]) STRATS_ALL.push(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"));
 for (const b of TP_BASES) STRATS_ALL.push(trendWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), trendWrap(timingWrap(b, "limit")));
+// 17/11 18:16 (طلب المستخدم): كل المنصة هدف 1.5% ووقف 1.2% — نفس النسخ بس الهدف 1.5% (نسخ 1.2% بتضل بالمختبر)
+for (const b of TP_BASES) STRATS_ALL.push(tpWrap(b, 0.015, 0.012, "هدف 1.5% وقف 1.2%"), ...["calm", "limit", "limit6", "limit8"].map(m => timingWrap(b, m, 0.015)), trendWrap(tpWrap(b, 0.015, 0.012, "هدف 1.5% وقف 1.2%")), trendWrap(timingWrap(b, "limit", 0.015)));
+for (const b of ["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"]) STRATS_ALL.push(tpWrap(b, 0.015, 0.012, "هدف 1.5% وقف 1.2%"));
 // 17/11 13:59: Lux ليمت 1% · هدف 1% · وقف 1.5% (كود المستخدم) — الليمت صالح 4 شموع 15m، صفقة وحدة بالمرة على العملة، الوقف قبل الهدف بنفس الشمعة
 //  + تصليح شمعة التنفيذ: ما في هدف (ولا فجوة افتتاح) على الشمعة اللي تعبّى فيها الليمت
 // 17/11 17:19: اتجاه واحد بس (مختبر) — لفحص الشورت لحاله قبل ربطه بالحقيقي
@@ -3196,14 +3202,18 @@ const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جا�
   "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)", "London Breakout", "12/26-IT (AbdulRahimShama)", "Wave Rider v1"]);
 // المنصة (المتصفح): بس الـ8 اللي إلهم فرصة حسب المختبر (⭐ + 🧪) — الباقي انشال من المنصة (طلب المستخدم 16/11)
 // 16/11 16:40: المنصة بتشغّل بس نسخ "هدف 1.2% / وقف 1.2%" من كل الاستراتيجيات (طلب المستخدم) — الأصلية بالمختبر بس
-const PLATFORM_KEEP = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% ليمت 0.6%", b + " | 1.2% ليمت 0.8%"]),   // 17/11 03:55: «تأكيد 15m» انلغت من المنصة (طلب المستخدم — دخول متأخر على أسوأ سعر)
+const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% ليمت 0.6%", b + " | 1.2% ليمت 0.8%"]),   // 17/11 03:55: «تأكيد 15m» انلغت من المنصة (طلب المستخدم — دخول متأخر على أسوأ سعر)
   ...["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"].map(b => b + " | هدف 1.2% وقف 1.2%"),
   ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"]), "Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", ...MACDP.strats.slice(0, 3).map(s => s.name), LUX_L10,   // MACD v1.1 (17/11 12:19) · 17/11: كسر+فوليوم+ريتست انشالت من المنصة (خسرت من التصفير وعلى السنتين) — بالمختبر بس
 ]);   // 17/11 07:45: نسخ "فلتر استسلام" (فوليوم) انشالت من المنصة — بالمختبر بس (طلب المستخدم)   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
+// 17/11 18:16 (طلب المستخدم): المنصة كلها على هدف 1.5% ووقف 1.2% — بنبدّل اسم كل نسخة 1.2% بنسختها 1.5% (Range Sniper وLux ليمت 1% بأهدافهم الأصلية)
+const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
+const PLAT_TP15 = false;   // ← بعد ما نشوف فحص التصفير
+const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 const PLATFORM_NOVOL = s => s.name.startsWith("WAVE ") || s.name.startsWith("⭐ S15 دخول 15m + فوليوم");
 // 17/11 10:45: V42 على المنصة بنسخة وحدة بس — ليمت 0.8% · هدف 1.2% · وقف 1.2% (طلب المستخدم، الأحسن من التصفير) — باقي نسخ V42 بالمختبر بس
-const V42_KEEP = "V42 4H SHORT b0 | 1.2% ليمت 0.8%";
+const V42_KEEP = PLAT_TP15 ? "V42 4H SHORT b0 | 1.5% ليمت 0.8%" : "V42 4H SHORT b0 | 1.2% ليمت 0.8%";   // 17/11 18:16: هدف 1.5%
 const PLATFORM_V42OFF = s => s.name.startsWith("V42 4H SHORT b0 |") && s.name !== V42_KEEP;
 const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name) && !PLATFORM_NOVOL(s) && !PLATFORM_V42OFF(s));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
