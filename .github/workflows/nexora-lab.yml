@@ -60,4 +60,4 @@ jobs:
         run: |
           git config user.name "nexora-lab-bot"
           git config user.email "nexora-lab-bot@users.noreply.github.com"
-          ONLY=${{ matrix.id }} node nexora-lab/runner.js
+          ONLY=${{ matrix.id }} node --max-old-space-size=12000 nexora-lab/runner.js
