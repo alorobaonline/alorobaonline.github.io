@@ -3264,8 +3264,13 @@ async function loadFunding(sym, fromTs, D) {
   return out.filter(f => f.t >= fromTs).map(f => f.mark ? f : { ...f, mark: D.c[Math.min(D.c.length-1, Math.max(0, Math.floor((f.t - D.t0)/M15)))] });
 }
 
+// 17/11: عقود بحالة SETTLING على بايننس فيوتشرز (عم تنشال، ما بتقدر تفتح عليها) — طالعين من المنصة
+const DELISTED = new Set(["TONUSDT", "IPUSDT"]);
+// أسماء مختلفة على Bybit (السعر الحي): [اسم Bybit، ضرب السعر]
+const BYBIT_MAP = { "1000SATSUSDT": ["10000SATSUSDT", 0.1], "1000SHIBUSDT": ["SHIB1000USDT", 1], "PUMPUSDT": ["PUMPFUNUSDT", 1], "TURBOUSDT": ["1000TURBOUSDT", 0.001] };
+const BYBIT_REV = Object.fromEntries(Object.entries(BYBIT_MAP).map(([k, [b, f]]) => [b, [k, f]]));
 async function topCoins(nc) {   // قائمة العملات محفوظة: ما بنسأل بايننس عنها إلا كل 6 ساعات (ولو حاظرة منستعمل المحفوظة)
-  if (nc >= 100) return DEFAULT_TOP.slice(0, nc);   // 100+ = نفس الـ102 عملة تبع المختبر (كلها ببيانات السيرفر)
+  if (nc >= 100) return DEFAULT_TOP.filter(x => !DELISTED.has(x)).slice(0, nc);   // 100+ = نفس الـ102 عملة تبع المختبر (كلها ببيانات السيرفر)
   let cached = null; try { cached = JSON.parse(localStorage.getItem("nexora_top") || "null"); } catch (e) {}
   if (cached && cached.list.length >= nc && Date.now() - cached.at < 6*3600e3) return cached.list.slice(0, nc);
   try { const list = await topCoinsLive(Math.max(nc, 60)); try { localStorage.setItem("nexora_top", JSON.stringify({ at: Date.now(), list })); } catch (e) {} return list.slice(0, nc); }
@@ -3802,15 +3807,15 @@ function connectBybitWS() {
   try {
     BWS = new WebSocket("wss://stream.bybit.com/v5/public/linear");
     BWS.onopen = () => {
-      for (let i = 0; i < COINS.length; i += 10) BWS.send(JSON.stringify({ op: "subscribe", args: COINS.slice(i, i + 10).map(x => "tickers." + x) }));
-      for (let i = 0; i < COINS.length; i += 10) BWS.send(JSON.stringify({ op: "subscribe", args: COINS.slice(i, i + 10).map(x => "kline.15." + x) }));
+      for (let i = 0; i < COINS.length; i += 10) BWS.send(JSON.stringify({ op: "subscribe", args: COINS.slice(i, i + 10).map(x => "tickers." + (BYBIT_MAP[x] ? BYBIT_MAP[x][0] : x)) }));
+      for (let i = 0; i < COINS.length; i += 10) BWS.send(JSON.stringify({ op: "subscribe", args: COINS.slice(i, i + 10).map(x => "kline.15." + (BYBIT_MAP[x] ? BYBIT_MAP[x][0] : x)) }));
       BWS_PING = setInterval(() => { try { BWS.send(JSON.stringify({ op: "ping" })); } catch (e) {} }, 20000);
     };
     BWS.onmessage = ev => {
       let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
-      if (m.topic && m.topic.startsWith("kline.15.") && Array.isArray(m.data) && m.data[0]) { const k = m.data[0]; FORMB[m.topic.slice(9)] = { t: +k.start, o: +k.open, h: +k.high, l: +k.low, c: +k.close, v: +k.volume }; return; }
+      if (m.topic && m.topic.startsWith("kline.15.") && Array.isArray(m.data) && m.data[0]) { const k = m.data[0], bs = m.topic.slice(9), mp = BYBIT_REV[bs], sy = mp ? mp[0] : bs, f = mp ? mp[1] : 1; FORMB[sy] = { t: +k.start, o: k.open*f, h: k.high*f, l: k.low*f, c: k.close*f, v: k.volume/f }; return; }
       const d = m.data; if (!m.topic || !d || d.lastPrice === undefined) return;
-      const sym = m.topic.slice(8), px = +d.lastPrice; if (!(px > 0)) return;
+      const bs = m.topic.slice(8), mp = BYBIT_REV[bs], sym = mp ? mp[0] : bs, px = d.lastPrice*(mp ? mp[1] : 1); if (!(px > 0)) return;
       const now = Date.now(); BWS_LAST = now;
       if (!(WS_LAST && now - WS_LAST < 5000)) { LIVE[sym] = px; LIVE_T[sym] = LAST_PX_T = now; }   // بايننس ساكت → Bybit هو السعر الحي
       if (now - LAST_LIGHT > 1000) { LAST_LIGHT = now; lightUpdate(); }
