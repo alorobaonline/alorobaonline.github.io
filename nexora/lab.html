@@ -3067,7 +3067,7 @@ const MACDP = (() => {
     mk("MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.5% وقف 1.2%", 5, 0.008, 0.015, 0.015, { longOnly: true, fixStop: 0.012 }),   // 17/11 18:16: هدف 1.5% (طلب المستخدم)
     mk("MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.5% وقف 1.2%", 15, 0.008, 0.015, 0.015, { longOnly: true, fixStop: 0.012 }),
     mk("MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.5% وقف 1.5ATR", 60, 0.008, 0.015, 0.015, { longOnly: true })];   // 17/11 17:41: مختبر بس   // 17/11 17:34: فحص شورت بليمت أصغر (مختبر بس)
-  const pending = (D, startTs) => { const p = []; strats[0].run(D, null, strats[0], startTs, p); return p; };   // 17/11 14:55: خطة حقيقي — MACD 5m
+  const pending = (D, startTs, name) => { const sp = (name && strats.find(x => x.name === name)) || strats[0]; const p = []; sp.run(D, null, sp, startTs, p); return p; };   // 17/11 18:40: الاسم اختياري (المنصة على نسخة 1.5%)   // 17/11 14:55: خطة حقيقي — MACD 5m
   return { strats, pending };
 })();
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
@@ -3208,7 +3208,7 @@ const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% �
 ]);   // 17/11 07:45: نسخ "فلتر استسلام" (فوليوم) انشالت من المنصة — بالمختبر بس (طلب المستخدم)   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 // 17/11 18:16 (طلب المستخدم): المنصة كلها على هدف 1.5% ووقف 1.2% — بنبدّل اسم كل نسخة 1.2% بنسختها 1.5% (Range Sniper وLux ليمت 1% بأهدافهم الأصلية)
 const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
-const PLAT_TP15 = false;   // ← بعد ما نشوف فحص التصفير
+const PLAT_TP15 = true;   // 17/11 18:40: المستخدم اختار يبدّل كل المنصة لـ1.5% فوراً (نسخ 1.2% بالمختبر)
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 const PLATFORM_NOVOL = s => s.name.startsWith("WAVE ") || s.name.startsWith("⭐ S15 دخول 15m + فوليوم");

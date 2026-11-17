@@ -236,7 +236,7 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
   <h3 style="margin-top:14px">⏳ صفقات محتملة — صار سحب سيولة، وناطرين كسر الهيكل</h3>
   <div class="mut" style="margin-bottom:6px">الصفقة بتفتح <b>إذا سكّرت شمعة 4 ساعات</b> ورا سعر الشرط قبل آخر موعد (إلا إذا نفس الشمعة عملت سحب جديد). الدخول على افتتاح الشمعة اللي بعدها. الوقف والهدف تقريبيين (بيتحددوا بالـATR لحظة الإغلاق). الباهت = بعيد أكثر من 10% عن الشرط، أو وقفه بعيد أكثر من 15% (⚠️).</div>
   <div id="realPend"></div>
-  <h2 style="margin-top:22px">⚡ MACD v1.1 5m — لونج بس · ليمت 0.8% · هدف 1.2% · وقف 1.2% <span class="mut">(المنصة ما بتفتح ولا صفقة — إنت بتحط الليمت بإيدك)</span></h2>
+  <h2 style="margin-top:22px">⚡ MACD v1.1 5m — لونج بس · ليمت 0.8% · هدف 1.5% · وقف 1.2% <span class="mut">(المنصة ما بتفتح ولا صفقة — إنت بتحط الليمت بإيدك)</span></h2>
   <div id="realM5Clock" class="card" style="font-size:15px"></div>
   <h3 style="margin-top:14px">⏳ ليمت شراء لازم ينحط هلأ</h3>
   <div class="mut" style="margin-bottom:6px">إشارة طلعت على شمعة 5 دقايق مسكّرة: حط <b>Limit Buy</b> على سعر الليمت، ومعه الهدف والوقف. إذا ما تعبّى لحد «يلغى الساعة» — <b>الغيه</b>. الصفقة الوحدة على العملة: إذا في صفقة مفتوحة على نفس العملة، المنصة ما بتعطي إشارة جديدة.</div>
@@ -3268,7 +3268,7 @@ const MACDP = (() => {
     mk("MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.5% وقف 1.2%", 5, 0.008, 0.015, 0.015, { longOnly: true, fixStop: 0.012 }),   // 17/11 18:16: هدف 1.5% (طلب المستخدم)
     mk("MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.5% وقف 1.2%", 15, 0.008, 0.015, 0.015, { longOnly: true, fixStop: 0.012 }),
     mk("MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.5% وقف 1.5ATR", 60, 0.008, 0.015, 0.015, { longOnly: true })];   // 17/11 17:41: مختبر بس   // 17/11 17:34: فحص شورت بليمت أصغر (مختبر بس)
-  const pending = (D, startTs) => { const p = []; strats[0].run(D, null, strats[0], startTs, p); return p; };   // 17/11 14:55: خطة حقيقي — MACD 5m
+  const pending = (D, startTs, name) => { const sp = (name && strats.find(x => x.name === name)) || strats[0]; const p = []; sp.run(D, null, sp, startTs, p); return p; };   // 17/11 18:40: الاسم اختياري (المنصة على نسخة 1.5%)   // 17/11 14:55: خطة حقيقي — MACD 5m
   return { strats, pending };
 })();
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
@@ -3409,7 +3409,7 @@ const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% �
 ]);   // 17/11 07:45: نسخ "فلتر استسلام" (فوليوم) انشالت من المنصة — بالمختبر بس (طلب المستخدم)   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 // 17/11 18:16 (طلب المستخدم): المنصة كلها على هدف 1.5% ووقف 1.2% — بنبدّل اسم كل نسخة 1.2% بنسختها 1.5% (Range Sniper وLux ليمت 1% بأهدافهم الأصلية)
 const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
-const PLAT_TP15 = false;   // ← بعد ما نشوف فحص التصفير
+const PLAT_TP15 = true;   // 17/11 18:40: المستخدم اختار يبدّل كل المنصة لـ1.5% فوراً (نسخ 1.2% بالمختبر)
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 const PLATFORM_NOVOL = s => s.name.startsWith("WAVE ") || s.name.startsWith("⭐ S15 دخول 15m + فوليوم");
@@ -4229,21 +4229,21 @@ function renderReal() {
 }
 setInterval(() => { if (document.querySelector('section.tab.on[data-t="real"]')) renderReal(); }, 30000);
 // 17/11 14:55: خطة حقيقي — MACD 5m (طلب المستخدم). نفس محرك المنصة بالزبط (MACDP.pending = نفس الشروط، بس بيرجّع الليمتات اللي لسا صالحة)
-const M5NAME = "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", M5PEND = new WeakMap();
+const M5NAME = P15("MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%"), M5PEND = new WeakMap();   // 17/11 18:40: نفس نسخة المنصة (هدف 1.5% إذا مفعّل)
 function renderRealM5() {
   if (!$("realM5Pend") || !CACHE) return;
   const P = RESULT ? RESULT.P : params($("makerEntry").checked), now = Date.now(), M5ms = 300000, next = Math.ceil(now/M5ms)*M5ms;
-  $("realM5Clock").innerHTML = `⏰ إغلاق شمعة الـ5 دقايق الجاية: <b>${tm(next)}</b> — بعد <b>${left(next - now)}</b> <span class="mut">(المنصة بتحدّث الـ5 دقايق لحالها؛ الصفقة = ${P.notional}$ — الهدف ${(P.notional*0.012).toFixed(2)}$ والوقف ${(P.notional*0.012).toFixed(2)}$ قبل العمولة)</span>`;
+  $("realM5Clock").innerHTML = `⏰ إغلاق شمعة الـ5 دقايق الجاية: <b>${tm(next)}</b> — بعد <b>${left(next - now)}</b> <span class="mut">(المنصة بتحدّث الـ5 دقايق لحالها؛ الصفقة = ${P.notional}$ — الهدف ${(P.notional*(PLAT_TP15 ? 0.015 : 0.012)).toFixed(2)}$ والوقف ${(P.notional*0.012).toFixed(2)}$ قبل العمولة)</span>`;
   const openSyms = new Set((RESULT ? RESULT.trades : []).filter(t => t.name === M5NAME && t.open).map(t => t.sym));
   const rows = []; let noData = 0;
   for (const c of CACHE.coins) {
     const m = c.D.m5; if (c.D.stub || !m) { noData++; continue; }
-    let e = M5PEND.get(m); if (!e || e.len !== m.c.length) { let p = []; try { p = MACDP.pending(c.D, CACHE.startTs); } catch (er) {} e = { len: m.c.length, p }; M5PEND.set(m, e); }
+    let e = M5PEND.get(m); if (!e || e.len !== m.c.length) { let p = []; try { p = MACDP.pending(c.D, CACHE.startTs, PLATFORM_KEEP.has(M5NAME) ? M5NAME : undefined); } catch (er) {} e = { len: m.c.length, p }; M5PEND.set(m, e); }
     for (const q of e.p) if (q.until > now && !openSyms.has(c.sym)) rows.push({ sym: c.sym, ...q, px: pxOf(c.sym) });
   }
   const dOf = r => r.px ? (r.px/r.lim - 1)*100 : Infinity;   // 17/11: الأقرب لليمت فوق (طلب المستخدم)
   rows.sort((a, b) => dOf(a) - dOf(b) || b.sigTs - a.sigTs);
-  $("realM5Pend").innerHTML = rows.length ? `<div class="wrap"><table><tr><th>العملة</th><th>الأمر</th><th>سعر الليمت</th><th>السعر هلأ</th><th>بعيد عن الليمت</th><th>الهدف (+1.2%)</th><th>الوقف (−1.2%)</th><th>الإشارة</th><th>يلغى الساعة</th></tr>${rows.map(r => {
+  $("realM5Pend").innerHTML = rows.length ? `<div class="wrap"><table><tr><th>العملة</th><th>الأمر</th><th>سعر الليمت</th><th>السعر هلأ</th><th>بعيد عن الليمت</th><th>الهدف</th><th>الوقف (−1.2%)</th><th>الإشارة</th><th>يلغى الساعة</th></tr>${rows.map(r => {
     const dist = r.px ? (r.px/r.lim - 1)*100 : null, hit = dist !== null && dist <= 0;
     return `<tr style="${hit ? "background:#14321f;" : ""}"><td><b>${cn(r.sym)}</b></td><td>🟢 Limit Buy</td><td><b class="num">${fp(r.lim)}</b>${r.approx ? ' <span class="mut" title="الشمعة اللي بعد الإشارة لسا ما سكّرت — الليمت محسوب من آخر سعر وبيتعدّل شوي على افتتاحها">≈</span>' : ""}</td><td>${r.px ? fp(r.px) : "—"}</td><td>${dist === null ? "—" : hit ? "✅ وصل الليمت" : dist.toFixed(2) + "%"}</td><td><span class="num pos">${fp(r.tgt)}</span></td><td><span class="num neg">${fp(r.stop)}</span></td><td>${tm(r.sigTs)}</td><td><b>${tm(r.until)}</b> <span class="mut">(${left(r.until - now)})</span></td></tr>`; }).join("")}</table></div>` : `<div class="mut">ما في ليمت لازم ينحط هلأ${noData ? ` <span class="mut">(${noData} عملة بدون بيانات 5د لسا)</span>` : ""}.</div>`;
   const op = (RESULT ? RESULT.trades : []).filter(t => t.name === M5NAME && t.open).sort((a, b) => b.eTs - a.eTs);
