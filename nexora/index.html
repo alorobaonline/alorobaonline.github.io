@@ -144,7 +144,7 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
   <button data-t="coins">🪙 العملات</button>
   <button data-t="live">⚡ لايف</button>
   <button data-t="journal">📓 دفتر القرارات</button>
-  <button data-t="real">🎯 خطة حقيقي</button>
+  <button data-t="real">🎯 الحساب الحقيقي</button>
   <button data-t="rep">🧾 من التصفير</button>
 </nav>
 <details id="settings"><summary style="cursor:pointer;margin-top:10px;color:#cfd3da">⚙️ الإعدادات والفترة (اضغط لتفتح)</summary>
@@ -246,27 +246,16 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
   <div class="wrap"><table id="repH"></table></div>
 </section>
 <section class="tab" data-t="real">
-  <h2>🎯 خطة التداول الحقيقي — ⭐ S15 V2 4h <span class="mut">(المنصة ما بتفتح ولا صفقة — إنت بتفتح بإيدك)</span></h2>
-  <div class="card" style="font-size:14px;margin-bottom:10px"><b>🔌 ربط الحساب الحقيقي</b> <span class="mut">(برنامج <code>mirror_start</code> على هالكمبيوتر — كل صفقة بتنفتح بالمنصة بتنفتح على بايننس)</span>
-    <div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button id="brBtn" class="sec"></button><span id="brStat" class="mut"></span></div></div>
-  <div id="realClock" class="card" style="font-size:15px"></div>
-  <h3 style="margin-top:14px">✅ إشارات مؤكدة — ادخل على افتتاح الشمعة</h3>
-  <div id="realConf"></div>
-  <h3 style="margin-top:14px">⏳ صفقات محتملة — صار سحب سيولة، وناطرين كسر الهيكل</h3>
-  <div class="mut" style="margin-bottom:6px">الصفقة بتفتح <b>إذا سكّرت شمعة 4 ساعات</b> ورا سعر الشرط قبل آخر موعد (إلا إذا نفس الشمعة عملت سحب جديد). الدخول على افتتاح الشمعة اللي بعدها. الوقف والهدف تقريبيين (بيتحددوا بالـATR لحظة الإغلاق). الباهت = بعيد أكثر من 10% عن الشرط، أو وقفه بعيد أكثر من 15% (⚠️).</div>
-  <div id="realPend"></div>
-  <h2 style="margin-top:22px">⚡ MACD v1.1 5m — لونج بس · ليمت 0.8% · هدف 1.2% · وقف 1.2% <span class="mut">(المنصة ما بتفتح ولا صفقة — إنت بتحط الليمت بإيدك)</span></h2>
-  <div id="realM5Clock" class="card" style="font-size:15px"></div>
-  <h3 style="margin-top:14px">⏳ ليمت شراء لازم ينحط هلأ</h3>
-  <div class="mut" style="margin-bottom:6px">إشارة طلعت على شمعة 5 دقايق مسكّرة: حط <b>Limit Buy</b> على سعر الليمت، ومعه الهدف والوقف. إذا ما تعبّى لحد «يلغى الساعة» — <b>الغيه</b>. الصفقة الوحدة على العملة: إذا في صفقة مفتوحة على نفس العملة، المنصة ما بتعطي إشارة جديدة.</div>
-  <div id="realM5Pend"></div>
-  <h3 style="margin-top:14px">📌 صفقات MACD 5m مفتوحة هلأ (تعبّى الليمت)</h3>
-  <div id="realM5Open"></div>
-  <h3 style="margin-top:14px">🛑 قاعدة التوقف لـ MACD 5m</h3>
-  <div id="realM5Kill"></div>
-  <h3 style="margin-top:14px">🛑 قاعدة التوقف (حطها قبل ما تبلّش)</h3>
-  <div class="bar"><label>تاريخ بداية التداول الحقيقي<input type="date" id="realStart"></label></div>
-  <div id="realKill"></div>
+  <h2>🎯 الحساب الحقيقي <span class="mut">(برنامج المرآة على كمبيوترك — بيحسب لحاله وبيفتح بايننس)</span></h2>
+  <div id="rlMirror" class="card" style="font-size:14px"></div>
+  <div id="rlCfg" class="card" style="font-size:14px;margin-top:8px"></div>
+  <h3 style="margin-top:14px">📌 الصفقات الحقيقية المفتوحة <span class="mut" id="rlOpenN"></span></h3>
+  <div class="wrap"><table id="rlOpen"></table></div>
+  <h3 style="margin-top:14px">🔎 صفقات المنصة لاستراتيجيات الحقيقي (آخر 24 ساعة) — فاتت ولا لأ وليش</h3>
+  <div class="wrap"><table id="rlMiss"></table></div>
+  <h3 style="margin-top:14px">📋 القائمة بالترتيب — نتيجتها على المنصة من التصفير + قاعدة التوقف</h3>
+  <div class="wrap"><table id="rlList"></table></div>
+  <div class="mut" style="margin-top:6px">قاعدة التوقف: 🛑 وقّف إذا <b>PF تحت 0.9 بعد 100 صفقة</b> · 🟡 انتبه إذا PF تحت 1 (بعد 20 صفقة) أو التراجع من القمة أكبر من 40$ (بحجم 200$) · 🟢 كمّل · ⏳ أقل من 20 صفقة (بيجمع بيانات). القرار إلك — الجدول بس بينبّه.</div>
 </section>
 <section class="tab" data-t="journal">
   <h2>📓 دفتر القرارات <span class="mut">(كل ما تغيّر تصنيف استراتيجية اكتب ليش — بعد شهر بترجع بتشوف قراراتك كانت مبنية على أرقام ولا على شعور)</span></h2>
@@ -4952,7 +4941,7 @@ const STAR = "⭐ S15 V2 4h R2.5 h40", IND16 = new WeakMap();
 const ind16 = D => { if (!IND16.has(D) || IND16.get(D).len !== D.c.length) IND16.set(D, { len: D.c.length, I: makeInd(D, 16) }); return IND16.get(D).I; };
 const TM_F = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }), tm = ts => TM_F.format(new Date(ts));
 const left = ms => { const m = Math.max(0, Math.round(ms/60000)); return m >= 60 ? `${Math.floor(m/60)}س ${m%60}د` : `${m}د`; };
-function renderReal() {
+function renderRealOld() {   // 18/11: القديم (S15 يدوي) — ما عاد مستعمل
   if (!$("realClock") || !CACHE) return;
   try { renderRealM5(); } catch (e) { console.warn(e); }   // 17/11: MACD 5m بنفس التبويب
   const P = RESULT ? RESULT.P : params($("makerEntry").checked), H4ms = 4*3600e3, now = Date.now(), next = Math.ceil(now/H4ms)*H4ms;
@@ -4994,9 +4983,75 @@ function renderReal() {
   $("realKill").innerHTML = `<div class="wrap"><table><tr><th>الصفقات من البداية</th><th>الصافي</th><th>PF</th><th>أقصى تراجع</th><th>الحكم</th></tr><tr><td>${n}</td><td>${usd(eq)}</td><td>${n ? (pf >= 99 ? "∞" : pf.toFixed(2)) : "—"}</td><td>−${dd.toFixed(2)}$ <span class="mut">(حد التوقف ${ddLim.toFixed(0)}$)</span></td><td>${stopPF || stopDD ? "🛑 <b>وقّف وراجع</b> — " + (stopDD ? "التراجع أكبر من 1.5× أكبر تراجع بالفحص" : "بعد 100 صفقة PF تحت 0.9") : n < 100 ? `🟢 كمّل — ${100 - n} صفقة لأول حكم على الـPF` : "🟢 كمّل"}</td></tr></table>
   <div class="mut" style="margin-top:6px">القاعدة (متفق عليها قبل): وقّف إذا <b>بعد 100 صفقة PF تحت 0.9</b>، أو إذا <b>التراجع تعدّى 1.5× أكبر تراجع بالفحص</b> (434$ على 200$ للصفقة → ${ddTest.toFixed(0)}$ على حجمك). المتوقع من الفحص: PF تقريباً 1.1–1.5، وفترات ضعيفة ممكن تطول لـ8 شهور.</div>`;
 }
-setInterval(() => { if (document.querySelector('section.tab.on[data-t="real"]')) renderReal(); }, 30000);
+// 18/11 (طلب المستخدم): 🎯 الحساب الحقيقي — بيسأل برنامج المرآة على نفس الكمبيوتر (127.0.0.1) عن صفقاته، وبيقارنها بالمنصة
+const MIRROR_URL = "http://127.0.0.1:8787";
+const MIRROR_ALLOW0 = ["Range Sniper 15m + ترند 4h", "Range Sniper 15m (كما هي)", "☁️ بوت إيشيموكو 4h + BTC (ichibot)", "V42 4H SHORT b0 | 1.2% ليمت 0.8%", "⭐ S15 V2 4h R2.5 h40 | 1.2% ليمت 0.8%",
+  "🔊 بوت كسر فوليوم + Chandelier 4h (volbot)", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8% + لا تلحق", "MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR",
+  "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق"];
+let MIR = null, MIR_T = 0, MIR_ERR = "";
+async function mirFetch() {
+  try { const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 2500); const r = await fetch(MIRROR_URL + "/state", { signal: ctl.signal }); clearTimeout(tm); MIR = await r.json(); MIR_T = Date.now(); MIR_ERR = ""; }
+  catch (e) { MIR_ERR = String(e.message || e); if (Date.now() - MIR_T > 60000) MIR = null; }
+}
+async function mirConfig(j) {
+  try { const r = await fetch(MIRROR_URL + "/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(j) }); await r.json(); } catch (e) { alert0("ما قدرت أوصل للمرآة"); }
+  await mirFetch(); renderReal();
+}
+function alert0(m) { const el = $("rlMirror"); if (el) el.insertAdjacentHTML("beforeend", `<div class="neg">${m}</div>`); }
+const shortN = n => n.replace("#8 Lux Trendline+TRAMA+Chandelier", "Lux").replace(" · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", "").replace(" · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR", "");
+const WHY_AR = { full: "الخانات مليانة", busy: "العملة فيها صفقة تانية للبرنامج", manual: "في صفقة/أمر إلك على العملة", small: "أقل صفقة ببايننس أكبر من حجمنا", moved: "السعر سبق الوقف/الهدف",
+  nobal: "الرصيد ما بيكفي", old: "انفتحت بالمنصة قبل ما يشوفها البرنامج", paused: "⏸️ موقوف", norule: "العملة مش ببايننس فيوتشرز", nopx: "ما في سعر", x: "عم تنفتح…", notallowed: "مش بالقائمة" };
+function renderReal() {
+  if (!$("rlMirror")) return;
+  const now = Date.now(), M = MIR, allow = M ? M.allow : MIRROR_ALLOW0, num = (x, d = 6) => x == null || !Number.isFinite(+x) ? "—" : (+x).toPrecision(d).replace(/\.?0+$/, "");
+  // أ) حالة المرآة
+  if (M) {
+    const age = Math.round((now - M.at)/1000), br = M.brain;
+    $("rlMirror").innerHTML = `<b>${age < 30 ? "🟢 المرآة متصلة" : "🟡 آخر رد من " + age + " ثانية"}</b> · ${M.dry ? "🧪 تجربة (ولا أمر حقيقي)" : "💰 حقيقي"} · ${M.source === "brain" ? "بتحسب لحالها" : "من المنصة"}` +
+      ` · آخر حساب: <b>${br ? tm(br.at) : "—"}</b>${br ? ` <span class="mut">(نسخة ${br.build} · ${br.secs} ث)</span>` : ""}` +
+      `<br>الرصيد المتاح: <b class="num">${M.avail == null ? "—" : M.avail.toFixed(2)} USDT</b> · مفتوحة: <b>${M.pos.length} / ${M.cfg.maxOpen}</b> · أهداف <b class="pos">${M.stats.tp}</b> · وقوف <b class="neg">${M.stats.sl}</b> · سكّرت مع المنصة ${M.stats.mirror}` +
+      ` · ${M.paused ? '<b style="color:#f59e0b">⏸️ موقوف — ما بيفتح صفقات جديدة (المفتوحة محمية)</b>' : '<b class="pos">▶️ بيفتح صفقات</b>'}`;
+  } else $("rlMirror").innerHTML = `<b>⚪ المرآة مش متصلة</b> <span class="mut">— هالقسم بيشتغل بس لما المنصة تكون مفتوحة على نفس الكمبيوتر اللي عليه البرنامج (mirror_start). الباقي تحت من المنصة نفسها.${MIR_ERR ? " (" + MIR_ERR + ")" : ""}</span>`;
+  const C = M ? M.cfg : { notional: 60, lev: 20, maxOpen: 12, hybrid: 0.003 };
+  $("rlCfg").innerHTML = `⚙️ <b>الإعدادات:</b> هامش ${(C.notional/C.lev).toFixed(2)}$ × ${C.lev}x (صفقة ${C.notional}$) · البوتات القديمة 5x (صفقة 15$) · حد ${C.maxOpen} صفقات · دخول مختلط ${(100*C.hybrid).toFixed(1)}% · ليمت بينلغي بعد 15 دقيقة` +
+    (M ? `<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label>أقصى صفقات مفتوحة <input type="number" id="rlMax" min="1" max="30" value="${C.maxOpen}" style="width:70px"></label><button id="rlMaxBtn" class="sec">💾 احفظ</button>` +
+      `<button id="rlPauseBtn" class="sec">${M.paused ? "▶️ رجّع يفتح صفقات" : "⏸️ وقّف فتح صفقات جديدة"}</button><span class="mut">بالتلغرام كمان: /status /pause /resume /max 8 /close BTC /closeall /hold BTC</span></div>` : "");
+  // ب) المفتوحة بالحقيقي + المقابلة بالمنصة
+  const T = RESULT ? RESULT.trades : [], byKey = new Map(T.map(t => [`${t.name}|${t.sym}|${t.eTs}`, t]));
+  if (M) {
+    $("rlOpenN").textContent = `(${M.pos.length} من ${M.cfg.maxOpen})`;
+    $("rlOpen").innerHTML = `<tr><th>العملة</th><th>اتجاه</th><th>الاستراتيجية</th><th>دخول حقيقي</th><th>الوقف</th><th>الهدف</th><th>السعر هلأ</th><th>ربح/خسارة تقريبي</th><th>بالمنصة</th></tr>` +
+      (M.pos.map(p => { const t = byKey.get(p.key), px = pxOf(p.sym), sp = (M.special || {})[p.name], notl = sp ? sp.notional : C.notional, ent = p.fill || p.lim;
+        const pnl = px && ent && !p.pending ? p.d*(px/ent - 1)*notl : null;
+        return `<tr><td><b>${cn(p.sym)}</b>${p.hold ? " ✋" : ""}</td><td><span class="tag ${p.d === 1 ? "L" : "S"}">${p.d === 1 ? "LONG" : "SHORT"}</span></td><td class="nm">${shortN(p.name)}</td>` +
+          `<td class="num">${p.pending ? "⏳ ليمت " + num(p.lim) : num(ent)}</td><td class="num">${num(p.stop)}</td><td class="num">${p.target ? num(p.target) : "—"}</td><td class="num">${px ? num(px) : "—"}</td>` +
+          `<td>${pnl == null ? "—" : usd(pnl)}</td><td>${t ? (t.open ? `مفتوحة · دخول ${num(t.rawIn)} · ${usd(t.net)}` : `سكّرت (${t.why}) ${usd(t.net)}`) : '<span class="mut">—</span>'}</td></tr>`; }).join("") ||
+       `<tr><td colspan="9" class="mut">ما في صفقات حقيقية مفتوحة هلأ</td></tr>`);
+  } else { $("rlOpenN").textContent = ""; $("rlOpen").innerHTML = `<tr><td class="mut">المرآة مش متصلة</td></tr>`; }
+  // ج) صفقات المنصة لاستراتيجيات الحقيقي آخر 24 ساعة
+  const cut = now - 24*3600e3, recent = T.filter(t => allow.includes(t.name) && t.eTs >= cut).sort((a, b) => b.eTs - a.eTs);
+  const real = M ? new Set(M.pos.map(p => p.key)) : new Set();
+  $("rlMiss").innerHTML = `<tr><th>وقت الدخول</th><th>العملة</th><th>اتجاه</th><th>الاستراتيجية</th><th>بالمنصة</th><th>بالحقيقي</th></tr>` +
+    (recent.map(t => { const k = `${t.name}|${t.sym}|${t.eTs}`, why = M ? M.seen[k] : null;
+      const r = real.has(k) ? '<b class="pos">✅ مفتوحة</b>' : !M ? '<span class="mut">؟</span>' : why === "opened" ? "✅ فاتت (وسكّرت)" : why ? `<span style="color:#f59e0b">${why.startsWith("err") ? "خطأ: " + why.slice(5, 60) : (WHY_AR[why] || why)}</span>` : '<span class="mut">ما شافها (المرآة كانت طافية؟)</span>';
+      return `<tr><td class="mut">${dt(t.eTs)}</td><td><b>${cn(t.sym)}</b></td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td class="nm">${shortN(t.name)}</td><td>${t.open ? "مفتوحة " : ""}${usd(t.net)}</td><td>${r}</td></tr>`; }).join("") ||
+     `<tr><td colspan="6" class="mut">ما في صفقات بآخر 24 ساعة</td></tr>`);
+  // د) القائمة بالترتيب + قاعدة التوقف
+  const R = new Map(repData().map(r => [r.name, r]));
+  const dd = name => { const cl = T.filter(t => t.name === name && !t.open).sort((a, b) => a.xTs - b.xTs); let eq = 0, pk = 0, cur = 0; for (const t of cl) { eq += t.net; pk = Math.max(pk, eq); } cur = pk - eq; return cur; };
+  $("rlList").innerHTML = `<tr><th>#</th><th>الاستراتيجية</th><th>صفقات</th><th>ربح%</th><th>الصافي</th><th>PF</th><th>تحت القمة</th><th>مفتوحة (منصة)</th><th>الحكم</th></tr>` +
+    allow.map((nm, i) => { const r = R.get(nm) || { n: 0, win: 0, net: 0, pf: 0, o: 0, onet: 0 }, d0 = dd(nm), sc = RESULT ? RESULT.P.notional/200 : 1;
+      const v = r.n >= 100 && r.pf < 0.9 ? "🛑 وقّف وراجع" : r.n < 20 ? "⏳ بيجمع بيانات" : (r.pf < 1 || d0 > 40*sc) ? "🟡 انتبه" : "🟢 كمّل";
+      return `<tr><td class="num">${i + 1}</td><td class="nm">${nm}</td><td class="num">${r.n}</td><td class="num">${r.n ? Math.round(100*r.win) + "%" : "—"}</td><td>${r.n ? usd(r.net) : "—"}</td><td class="num">${r.n ? (r.pf >= 99 ? "∞" : r.pf.toFixed(2)) : "—"}</td><td>${d0 > 0 ? usd(-d0) : "0"}</td><td>${r.o ? r.o + " · " + usd(r.onet) : "—"}</td><td>${v}</td></tr>`; }).join("");
+}
+document.addEventListener("click", e => {
+  const id = e.target && e.target.id;
+  if (id === "rlMaxBtn") { const m = Math.round(+$("rlMax").value); if (m >= 1 && m <= 30) mirConfig({ maxOpen: m }); }
+  if (id === "rlPauseBtn" && MIR) mirConfig({ paused: !MIR.paused });
+});
+setInterval(async () => { if (!SLEEPING && document.querySelector('section.tab.on[data-t="real"]')) { await mirFetch(); renderReal(); } }, 10000);
 // 17/11 18:57: 🔌 ربط الحساب الحقيقي — المنصة بتبعت الصفقات المفتوحة لبرنامج المرآة على نفس الكمبيوتر (127.0.0.1). المنصة نفسها ما بتفتح ولا صفقة.
-let BR_ON = false; try { BR_ON = localStorage.getItem("nexora_bridge") === "1"; } catch (e) {}
+let BR_ON = true;   // 18/11: المقارنة مع المرآة دايماً شغالة (المرآة بتحسب لحالها — اللقطة للمقارنة بس)
 let BR_LAST = { t: 0, ok: null, msg: "" };
 function brRender() {
   if (!$("brBtn")) return;
@@ -5015,7 +5070,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0630";
+const BUILD = "2026-11-18-0700";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
@@ -5116,7 +5171,7 @@ function showTab(t) {
   document.querySelectorAll("section.tab").forEach(s => s.classList.toggle("on", s.dataset.t === t));
   try { localStorage.setItem("nexora_tab", t); } catch (e) {}
   if (t === "live") setTimeout(() => { drawChart(); radar(); }, 0);
-  if (t === "real") setTimeout(renderReal, 0);
+  if (t === "real") setTimeout(async () => { renderReal(); await mirFetch(); renderReal(); }, 0);
   if (t === "rep") setTimeout(renderRep, 0);
 }
 
@@ -5640,8 +5695,6 @@ function startTsOf() { const v = $("start").value, t = new Date(v + "T00:00:00")
   $("run").onclick = () => { SEEN = null; run(); };
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showTab(b.dataset.t));
   ["cAllCats", "cSort"].forEach(id => $(id).addEventListener("change", () => RESULT && renderCoins(RESULT.trades, RESULT.P)));
-  try { $("realStart").value = localStorage.getItem("nexora_real_start") || ""; } catch (e) {}
-  $("realStart").addEventListener("change", () => { try { localStorage.setItem("nexora_real_start", $("realStart").value); } catch (e) {} renderReal(); });
   try { const t0 = localStorage.getItem("nexora_tab"); if (t0) showTab(t0); } catch (e) {}
   loadSrv(); setInterval(loadSrv, 30*60000);
   ["notional", "maker", "taker", "slip", "bnb", "makerEntry", "balance", "lev", "maxOpen"].forEach(id => $(id).addEventListener("change", recalc));
