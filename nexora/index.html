@@ -5043,7 +5043,7 @@ async function mirConfig(j) {
 function alert0(m) { const el = $("rlMirror"); if (el) el.insertAdjacentHTML("beforeend", `<div class="neg">${m}</div>`); }
 const shortN = n => n.replace("#8 Lux Trendline+TRAMA+Chandelier", "Lux").replace(" · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", "").replace(" · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR", "");
 const WHY_AR = { full: "الخانات مليانة", busy: "العملة فيها صفقة تانية للبرنامج", manual: "في صفقة/أمر إلك على العملة", small: "أقل صفقة ببايننس أكبر من حجمنا", moved: "السعر سبق الوقف/الهدف",
-  nobal: "الرصيد ما بيكفي", tight: "الوقف أقرب من 0.3% (عمولة أكبر من الربح المتوقع)", old: "انفتحت بالمنصة قبل ما يشوفها البرنامج", paused: "⏸️ موقوف", norule: "العملة مش ببايننس فيوتشرز", nopx: "ما في سعر", x: "عم تنفتح…", notallowed: "مش بالقائمة" };
+  nobal: "الرصيد ما بيكفي", trend: "عكس قاعدة الترند (لونج والعملة طالعة على الساعة / شورت عكس 4h)", tight: "الوقف أقرب من 0.3% (عمولة أكبر من الربح المتوقع)", old: "انفتحت بالمنصة قبل ما يشوفها البرنامج", paused: "⏸️ موقوف", norule: "العملة مش ببايننس فيوتشرز", nopx: "ما في سعر", x: "عم تنفتح…", notallowed: "مش بالقائمة" };
 function renderReal() {
   if (!$("rlMirror")) return;
   const now = Date.now(), M = MIR, allow = M ? M.allow : MIRROR_ALLOW0, num = (x, d = 6) => x == null || !Number.isFinite(+x) ? "—" : (+x).toPrecision(d).replace(/\.?0+$/, "");
@@ -5112,7 +5112,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-1710";
+const BUILD = "2026-11-18-1725";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
