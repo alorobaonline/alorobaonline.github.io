@@ -5030,7 +5030,7 @@ function renderReal() {
       (M.pos.map(p => { const t = byKey.get(p.key), px = pxOf(p.sym), sp = (M.special || {})[p.name], notl = sp ? sp.notional : C.notional, ent = p.fill || p.lim;
         const pnl = px && ent && !p.pending ? p.d*(px/ent - 1)*notl : null;
         return `<tr><td><b>${cn(p.sym)}</b>${p.hold ? " ✋" : ""}</td><td><span class="tag ${p.d === 1 ? "L" : "S"}">${p.d === 1 ? "LONG" : "SHORT"}</span></td><td class="nm">${shortN(p.name)}</td>` +
-          `<td class="num">${p.pending ? "⏳ ليمت " + num(p.lim) : num(ent)}</td><td class="num">${num(p.stop)}</td><td class="num">${p.target ? num(p.target) : "—"}</td><td class="num">${px ? num(px) : "—"}</td>` +
+          `<td class="num">${p.pending ? (p.pre ? "🎣 ليمت مسبق " : "⏳ ليمت ") + num(p.lim) : num(ent)}</td><td class="num">${num(p.stop)}</td><td class="num">${p.target ? num(p.target) : "—"}</td><td class="num">${px ? num(px) : "—"}</td>` +
           `<td>${pnl == null ? "—" : usd(pnl)}</td><td>${t ? (t.open ? `مفتوحة · دخول ${num(t.rawIn)}${ent && t.rawIn && !p.pending ? ` <span style="color:${p.d*(ent/t.rawIn - 1) > 0.0005 ? "#f59e0b" : "#94a3b8"}">(${p.d*(ent/t.rawIn - 1) > 0 ? "أغلى" : "أرخص"} ${(100*Math.abs(ent/t.rawIn - 1)).toFixed(2)}%)</span>` : ""} · ${usd(t.net)}` : `سكّرت (${t.why}) ${usd(t.net)}`) : '<span class="mut">—</span>'}</td></tr>`; }).join("") ||
        `<tr><td colspan="9" class="mut">ما في صفقات حقيقية مفتوحة هلأ</td></tr>`);
   } else { $("rlOpenN").textContent = ""; $("rlOpen").innerHTML = `<tr><td class="mut">المرآة مش متصلة</td></tr>`; }
@@ -5076,7 +5076,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0710";
+const BUILD = "2026-11-18-1010";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
