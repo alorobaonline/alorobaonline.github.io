@@ -212,6 +212,15 @@ function applyBreadth(job, per) {
     BR[lb] = { dn, tot }; }
   const brAt = (lb, ts) => { const g = Math.round((ts - t0)/M15), b = BR[lb]; return g >= 0 && g < N && b.tot[g] >= 20 ? b.dn[g]/b.tot[g] : null; };
   const trendOf = (I, m, i) => { const k = Math.floor((i + 1)/m) - 1; return k >= 50 && k < I.n && I.ema50[k] != null ? (I.C[k] > I.ema50[k] ? 1 : -1) : 0; };
+  if (cfg.buckets) {   // 19/11: تقرير بس — كل استراتيجية مقسومة حسب الاتجاه × حالة السوق (نسبة العملات النازلة بآخر lb شمعة)
+    const lb = cfg.buckets.lb, [c1, c2] = cfg.buckets.cuts, lab = b => b < c1 ? "سوق طالع" : b < c2 ? "سوق مختلط" : "سوق نازل", out = [];
+    for (const name of job.strategies) for (const d of [1, -1]) for (const m of ["سوق طالع", "سوق مختلط", "سوق نازل"]) out.push(`${name} ⟨${d === 1 ? "لونج" : "شورت"} · ${m}⟩`);
+    for (const s of syms) { const P = per[s], D = P.D;
+      for (const name of job.strategies) for (const t of (P.raw[name] || [])) { const b = brAt(lb, D.t0 + t.e*M15); if (b === null) continue;
+        const k = `${name} ⟨${t.d === 1 ? "لونج" : "شورت"} · ${lab(b)}⟩`; (P.raw[k] = P.raw[k] || []).push(t); }
+      for (const k of out) P.raw[k] = P.raw[k] || []; }
+    return out.filter(k => syms.some(s => per[s].raw[k].length));
+  }
   const names = [], combo = job.combo ? job.combo.name : null, tags = ["", " | ترند"];
   for (const lb of cfg.lookbacks) for (const th of cfg.thr) tags.push(` | ترند + لونج لا إذا ${Math.round(th*100)}%+ نازلة ${lb/4}س`);
   for (const name of job.strategies) for (const tag of tags) names.push(name + tag);
