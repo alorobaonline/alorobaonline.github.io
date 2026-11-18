@@ -3632,7 +3632,7 @@ STRATS_ALL.push(...OLDB.strats);
 // 17/11 23:08 (طلب المستخدم): ichibot و volbot على المنصة — كما هم + نسخة ليمت 0.6% · هدف 2% · وقف 1.2% (هي اللي بتنفتح بالحقيقي)
 const OLD_ICHI = OLDB.strats[1].name, OLD_VOL = OLDB.strats[3].name;
 STRATS_ALL.push(timingWrap(OLD_ICHI, "limit6", 0.02, 0.012), timingWrap(OLD_VOL, "limit6", 0.02, 0.012));
-const OLD_KEEP = [OLD_ICHI, OLD_VOL, ...OLDB.strats.slice(5).map(x => x.name)];   // 18/11 00:49 (طلب المستخدم): كل البوتات القديمة الباقية على المنصة يجمعوا معلومات من التصفير   // 18/11 00:17 (طلب المستخدم): + فيبو 0.618 و الشموع 4h كما هم   // 17/11 23:16: كما هم بشروطهم بس (نسخ الليمت 0.6% بالمختبر — خسرت على السنتين)
+const OLD_KEEP = [OLD_ICHI, OLD_VOL, ...OLDB.strats.slice(5).filter(x => !x.name.includes("(s17bot)")).map(x => x.name)];   // 18/11 04:58 (طلب المستخدم): S17 انشال من المنصة (−680$ من التصفير) — بالمختبر   // 18/11 00:49 (طلب المستخدم): كل البوتات القديمة الباقية على المنصة يجمعوا معلومات من التصفير   // 18/11 00:17 (طلب المستخدم): + فيبو 0.618 و الشموع 4h كما هم   // 17/11 23:16: كما هم بشروطهم بس (نسخ الليمت 0.6% بالمختبر — خسرت على السنتين)
 // 18/11 (فكرة المستخدم): 🎯 كسر أرضية/سقف مكررة + ريتست فاشل — 15m
 // المستوى: قاع (أو قمة) انلمس ≥5 مرات بآخر 3 أيام (قيعان/قمم مؤكدة بشمعتين كل جهة، ضمن ±0.15% من بعض)
 // الكسر: إغلاق 15m تحت المستوى (وكانت اللي قبلها فوقه) + تحت VAL (بروفايل فوليوم آخر 96 شمعة، 70%) + فوليوم ≥1.5× معدل 20
@@ -3791,7 +3791,10 @@ const PLATFORM_NOVOL = s => s.name.startsWith("WAVE ") || s.name.startsWith("⭐
 // 17/11 10:45: V42 على المنصة بنسخة وحدة بس — ليمت 0.8% · هدف 1.2% · وقف 1.2% (طلب المستخدم، الأحسن من التصفير) — باقي نسخ V42 بالمختبر بس
 const V42_KEEP = PLAT_TP15 ? "V42 4H SHORT b0 | 1.5% ليمت 0.8%" : "V42 4H SHORT b0 | 1.2% ليمت 0.8%";   // 17/11 18:16: هدف 1.5%
 const PLATFORM_V42OFF = s => s.name.startsWith("V42 4H SHORT b0 |") && s.name !== V42_KEEP;
-const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name) && !PLATFORM_NOVOL(s) && !PLATFORM_V42OFF(s) && !PLATFORM_DROP.has(s.name));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
+// 18/11 04:58 (طلب المستخدم): عيلة S15 على المنصة بنسختين بس (كانوا ~25 نسخة على نفس الصفقات) — الباقي بالمختبر
+const S15_KEEP = new Set(["⭐ S15 V2 4h R2.5 h40 | 1.2% ليمت 0.8%", "⭐ S15 V2 4h R2.5 h40 | هدف 1.2% وقف 1.2%"]);
+const PLATFORM_S15OFF = s => /S15/.test(s.name) && !S15_KEEP.has(s.name);
+const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name) && !PLATFORM_NOVOL(s) && !PLATFORM_V42OFF(s) && !PLATFORM_DROP.has(s.name) && !PLATFORM_S15OFF(s));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
   const first = (i+1)*16, last = Math.min(first+16, D.o.length);
