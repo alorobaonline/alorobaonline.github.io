@@ -4128,6 +4128,7 @@ const FWF = {
   e200in3: (D, t, i) => 100*t.d*(D.c[i]/fwE200(D)[i] - 1) <= 3,   // ما ندخل إذا السعر بعيد >3% عن EMA200 (15m) باتجاه الصفقة
   calmAtr: (D, t, i) => { const a = fwI1(D).atr[i]; return a == null || 100*a/D.c[i] <= 0.8; },   // ما ندخل إذا ATR 15m > 0.8%
   against1h: (D, t, i) => { const I = fwI4(D), k = Math.floor((i + 1)/4) - 1; if (k < 50 || I.ema50[k] == null) return true; return (I.C[k] > I.ema50[k] ? 1 : -1) !== t.d; },   // بس لما العملة عكس الصفقة على الساعة
+  stopMin3: (D, t, i) => Math.abs(t.rawIn - (+t.stop))/t.rawIn >= 0.003,   // وقف بعيد ≥0.3% عن الدخول (الأقرب = العمولة بتاكل الربح)
   oiNotDown: (D, t, i) => { if (!D.oi) return true; const ts = D.t0 + t.e*M15, a = oiAt(D.oi, ts - 3600e3), b = oiAt(D.oi, ts - 5*3600e3); return !(a && b && a < b*0.98); },   // ما ندخل إذا OI نازل >2%
 };
 function featWrap(baseName, tag, keep) {
@@ -4143,7 +4144,8 @@ const FEAT_WRAPS = [
   ["🎯 كسر أرضية/سقف مكررة + ريتست 15m (BTC)", "تقلب هادي", FWF.calmAtr],
   ["MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "عكس ترند الساعة", FWF.against1h],
   ["MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "تقلب هادي", FWF.calmAtr],
-  ["Range Sniper 15m (كما هي)", "OI مش نازل", FWF.oiNotDown]];
+  ["Range Sniper 15m (كما هي)", "OI مش نازل", FWF.oiNotDown],
+  ["Range Sniper 15m (كما هي)", "وقف ≥0.3%", FWF.stopMin3], ["Range Sniper 15m + ترند 4h", "وقف ≥0.3%", FWF.stopMin3]];   // 18/11: نفس قاعدة الحقيقي الجديدة (تجميع معلومات)
 for (const [b, tag, f] of FEAT_WRAPS) STRATS_ALL.push(featWrap(b, tag, f));
 // 18/11: نسخ أسرع للعائلات النادرة (نفس المنطق، فريم أصغر = إشارات أكتر للتجميع)
 for (const b of ["S16 SMC A 1h", "S16 SMC B 1h (CHoCH)", "IT1226 ساعة لونج+شورت", "IT1226 4h لونج+شورت"]) STRATS_ALL.push(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"));
@@ -5041,7 +5043,7 @@ async function mirConfig(j) {
 function alert0(m) { const el = $("rlMirror"); if (el) el.insertAdjacentHTML("beforeend", `<div class="neg">${m}</div>`); }
 const shortN = n => n.replace("#8 Lux Trendline+TRAMA+Chandelier", "Lux").replace(" · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", "").replace(" · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR", "");
 const WHY_AR = { full: "الخانات مليانة", busy: "العملة فيها صفقة تانية للبرنامج", manual: "في صفقة/أمر إلك على العملة", small: "أقل صفقة ببايننس أكبر من حجمنا", moved: "السعر سبق الوقف/الهدف",
-  nobal: "الرصيد ما بيكفي", old: "انفتحت بالمنصة قبل ما يشوفها البرنامج", paused: "⏸️ موقوف", norule: "العملة مش ببايننس فيوتشرز", nopx: "ما في سعر", x: "عم تنفتح…", notallowed: "مش بالقائمة" };
+  nobal: "الرصيد ما بيكفي", tight: "الوقف أقرب من 0.3% (عمولة أكبر من الربح المتوقع)", old: "انفتحت بالمنصة قبل ما يشوفها البرنامج", paused: "⏸️ موقوف", norule: "العملة مش ببايننس فيوتشرز", nopx: "ما في سعر", x: "عم تنفتح…", notallowed: "مش بالقائمة" };
 function renderReal() {
   if (!$("rlMirror")) return;
   const now = Date.now(), M = MIR, allow = M ? M.allow : MIRROR_ALLOW0, num = (x, d = 6) => x == null || !Number.isFinite(+x) ? "—" : (+x).toPrecision(d).replace(/\.?0+$/, "");
@@ -5110,7 +5112,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-1235";
+const BUILD = "2026-11-18-1710";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
