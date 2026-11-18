@@ -109,6 +109,10 @@ tr.sel{background:rgba(167,139,250,.14)} tr.grp td{background:rgba(255,255,255,.
 .modal .box{background:#17152e;border-radius:18px}
 #realClock{border-color:rgba(167,139,250,.35)}
 section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(52,245,161,.09)}
+#repT th,#repT td,#repR th,#repR td,#repH th,#repH td{text-align:center;white-space:nowrap;padding:6px 10px;border-left:1px solid rgba(255,255,255,.05)}
+#repT td.nm,#repR td.nm,#repT th:first-child,#repR th:first-child{text-align:right}
+#repT tr.tot td,#repR tr.tot td{background:rgba(255,255,255,.05);font-weight:700}
+#repT tr.zero td{opacity:.55}
 .logo{width:30px;height:30px;border-radius:10px;display:inline-grid;place-items:center;font-weight:800;color:#0b0a1f;background:conic-gradient(from 200deg,#34f5a1,#a78bfa,#38bdf8,#34f5a1);box-shadow:0 0 18px rgba(167,139,250,.55)}
 .px{background:linear-gradient(90deg,#fff,#cdbcff);-webkit-background-clip:text;background-clip:text;color:transparent}
 
@@ -4904,7 +4908,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0545";
+const BUILD = "2026-11-18-0600";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
@@ -4968,19 +4972,20 @@ function repData() {
 function renderRep() {
   if (!$("repT") || !RESULT) return;
   const k = $("repSort").value, rows = repData().sort((x, y) => (y[k] - x[k]) || (y.net - x.net));
-  const tot = rows.reduce((s, r) => ({ n: s.n + r.n, w: s.w + r.w, gp: s.gp + r.gp, gl: s.gl + r.gl, net: s.net + r.net, o: s.o + r.o, onet: s.onet + r.onet }), { n: 0, w: 0, gp: 0, gl: 0, net: 0, o: 0, onet: 0 });
+  rows.sort((x, y) => (y.n > 0) - (x.n > 0));   // اللي ما سكّرلها ولا صفقة بالآخر (sort ثابت)
+  const tot = rows.reduce((s, r) => ({ n: s.n + r.n, w: s.w + r.w, gp: s.gp + r.gp, gl: s.gl + r.gl, net: s.net + r.net, o: s.o + r.o, onet: s.onet + r.onet, Ln: s.Ln + r.Ln, Lnet: s.Lnet + r.Lnet, Sn: s.Sn + r.Sn, Snet: s.Snet + r.Snet }), { n: 0, w: 0, gp: 0, gl: 0, net: 0, o: 0, onet: 0, Ln: 0, Lnet: 0, Sn: 0, Snet: 0 });
   const pf = x => x >= 99 ? "∞" : x.toFixed(2), pc = x => Math.round(100*x) + "%", cnt = (n, v) => n ? `${n} · ${usd(v)}` : '<span class="mut">—</span>';
   $("repNote").textContent = `(من ${dt(RESULT.startTs)} · ${rows.length} استراتيجية · الأرقام بحجم ${RESULT.P.notional}$ للصفقة بعد العمولة والتمويل)`;
-  $("repT").innerHTML = `<tr><th>الاستراتيجية</th><th>مسكّرة</th><th>ربح%</th><th>الصافي</th><th>PF</th><th>متوسط ربح</th><th>متوسط خسارة</th><th>لونج</th><th>شورت</th><th>مفتوحة</th><th class="hc">آخر صفقة</th></tr>` +
-    `<tr style="font-weight:700"><td>المجموع</td><td class="num">${tot.n}</td><td class="num">${tot.n ? pc(tot.w/tot.n) : "—"}</td><td>${usd(tot.net)}</td><td class="num">${pf(tot.gl ? tot.gp/tot.gl : 99)}</td><td></td><td></td><td></td><td></td><td>${cnt(tot.o, tot.onet)}</td><td class="hc"></td></tr>` +
-    rows.map(r => `<tr><td class="nm">${r.name}</td><td class="num">${r.n}</td><td class="num">${r.n ? pc(r.win) : "—"}</td><td>${r.n ? usd(r.net) : '<span class="mut">—</span>'}</td><td class="num">${r.n ? pf(r.pf) : "—"}</td><td>${r.w ? usd(r.avgW) : '<span class="mut">—</span>'}</td><td>${r.n - r.w ? usd(-r.avgL) : '<span class="mut">—</span>'}</td><td>${cnt(r.Ln, r.Lnet)}</td><td>${cnt(r.Sn, r.Snet)}</td><td>${cnt(r.o, r.onet)}</td><td class="hc mut">${r.last ? dt(r.last) : ""}</td></tr>`).join("");
+  $("repT").innerHTML = `<tr><th>الاستراتيجية</th><th>مسكّرة</th><th>ربح%</th><th>الصافي</th><th>PF</th><th>متوسط ربح</th><th>متوسط خسارة</th><th>لونج</th><th>شورت</th><th>مفتوحة</th><th>آخر صفقة</th></tr>` +
+    `<tr class="tot"><td class="nm">المجموع</td><td class="num">${tot.n}</td><td class="num">${tot.n ? pc(tot.w/tot.n) : "—"}</td><td>${usd(tot.net)}</td><td class="num">${pf(tot.gl ? tot.gp/tot.gl : 99)}</td><td>${tot.w ? usd(tot.gp/tot.w) : "—"}</td><td>${tot.n - tot.w ? usd(-tot.gl/(tot.n - tot.w)) : "—"}</td><td>${cnt(tot.Ln, tot.Lnet)}</td><td>${cnt(tot.Sn, tot.Snet)}</td><td>${cnt(tot.o, tot.onet)}</td><td class="mut">—</td></tr>` +
+    rows.map(r => `<tr class="${r.n ? "" : "zero"}"><td class="nm">${r.name}</td><td class="num">${r.n}</td><td class="num">${r.n ? pc(r.win) : "—"}</td><td>${r.n ? usd(r.net) : '<span class="mut">—</span>'}</td><td class="num">${r.n ? pf(r.pf) : "—"}</td><td>${r.w ? usd(r.avgW) : '<span class="mut">—</span>'}</td><td>${r.n - r.w ? usd(-r.avgL) : '<span class="mut">—</span>'}</td><td>${cnt(r.Ln, r.Lnet)}</td><td>${cnt(r.Sn, r.Snet)}</td><td>${cnt(r.o, r.onet)}</td><td class="mut">${r.last ? dt(r.last) : ""}</td></tr>`).join("");
   // حسب حالة السوق وقت الدخول
   const now = regimeAt(Date.now()), lab = Object.fromEntries(REGIMES);
   $("repNow").innerHTML = `حالة السوق هلأ: <b>${now ? lab[now] : "—"}</b>`;
   const cell = x => x && x.n ? `${x.n} · ${usd(x.net)} <span class="mut">${Math.round(100*x.w/x.n)}%</span>` : '<span class="mut">—</span>';
   const allR = {}; for (const r of rows) for (const [k2, x] of Object.entries(r.rg)) { const y = allR[k2] || (allR[k2] = { n: 0, w: 0, net: 0 }); y.n += x.n; y.w += x.w; y.net += x.net; }
   $("repR").innerHTML = `<tr><th>الاستراتيجية</th>${REGIMES.map(([, l]) => `<th>${l}</th>`).join("")}</tr>` +
-    `<tr style="font-weight:700"><td>المجموع</td>${REGIMES.map(([k2]) => `<td>${cell(allR[k2])}</td>`).join("")}</tr>` +
+    `<tr class="tot"><td class="nm">المجموع</td>${REGIMES.map(([k2]) => `<td>${cell(allR[k2])}</td>`).join("")}</tr>` +
     rows.filter(r => r.n).map(r => `<tr><td class="nm">${r.name}</td>${REGIMES.map(([k2]) => `<td>${cell(r.rg[k2])}</td>`).join("")}</tr>`).join("");
   // حسب ساعة الدخول (بتوقيت المستخدم)
   const H = Array.from({ length: 24 }, () => ({ n: 0, w: 0, net: 0 }));
