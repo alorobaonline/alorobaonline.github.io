@@ -4760,7 +4760,7 @@ function brRender() {
   $("brStat").textContent = !BR_ON ? "المنصة ما بتبعت إشي." : !BR_LAST.t ? "بستنى أول إرسال…" : `${BR_LAST.ok ? "✅" : "❌"} ${BR_LAST.msg} · ${dt(BR_LAST.t)}`;
 }
 async function bridgeSend() {
-  if (!BR_ON || !RESULT || !CACHE) return;
+  if (!BR_ON || !RESULT || !CACHE || SLEEPING) return;   // نايمة = نتايج قديمة، ما بنبعتها للمقارنة
   const complete = CACHE.coins.length >= 90 && !CACHE.coins.some(c => c.D.stub) && $("status").textContent.startsWith("✅");
   const open = RESULT.trades.filter(t => t.open).map(t => ({ key: `${t.name}|${t.sym}|${t.eTs}`, name: t.name, sym: t.sym, d: t.d, stop: t.stop, target: Number.isFinite(t.target) ? t.target : null, eTs: t.eTs, px: pxOf(t.sym) || t.fillOut, lim: !!t.lim, in: t.rawIn }));   // lim/in: المرآة بتدخل ليمت على نفس سعر المنصة
   try {
@@ -4771,7 +4771,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0310";
+const BUILD = "2026-11-18-0240";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
@@ -4815,7 +4815,7 @@ function showTab(t) {
 
 // ===================== لايف: WebSocket + شارت + رادار + صوت =====================
 let WS_LAST = 0;
-setInterval(() => { if (COINS && (!WS || WS.readyState > 1 || Date.now() - WS_LAST > 30000)) { WS_KEY = ""; connectWS(); } }, 10000);   // حارس: إذا البث سكت 30 ثانية، اتصل من جديد
+setInterval(() => { if (!SLEEPING && COINS && (!WS || WS.readyState > 1 || Date.now() - WS_LAST > 30000)) { WS_KEY = ""; connectWS(); } }, 10000);   // حارس: إذا البث سكت 30 ثانية، اتصل من جديد
 let WS = null, SOUND = false, LAST_LIGHT = 0, LAST_RADAR = 0, AUDIO = null, WS_KEY = "";
 const TFN = { 1: "15m", 4: "1h", 16: "4h" };
 
@@ -4838,7 +4838,7 @@ function feed(html) {
 // بث أسعار لحظي من Bybit (ثانية بثانية) — شغال دايماً جنب بايننس، لأنه بث بايننس أحياناً بيكون ساكت أو محظور
 let BWS = null, BWS_KEY = "", BWS_PING = null, BWS_LAST = 0;
 function connectBybitWS() {
-  if (!COINS) return;
+  if (!COINS || SLEEPING) return;
   const key = COINS.join(","); if (BWS && BWS_KEY === key && BWS.readyState <= 1) return;
   try { if (BWS) { BWS.onclose = null; BWS.close(); } } catch (e) {}
   clearInterval(BWS_PING); BWS_KEY = key;
@@ -4863,7 +4863,7 @@ function connectBybitWS() {
   } catch (e) {}
 }
 function connectWS() {
-  if (!COINS) return;
+  if (!COINS || SLEEPING) return;
   connectBybitWS();
   const key = COINS.join(","); if (WS && WS_KEY === key && WS.readyState <= 1) return;
   try { if (WS) { WS.onclose = null; WS.close(); } } catch (e) {}
@@ -4947,6 +4947,7 @@ function lightUpdate() {
 }
 
 function updateLiveHeader() {
+  if (SLEEPING) return;
   const px = pxOf(CSYM), F = FORM[CSYM];
   if (px) {
     $("lpx").textContent = fp(px);
@@ -5289,7 +5290,25 @@ async function pollPrices(force) {   // السعر الحي مستقل عن ال
     for (const x of await r.json()) if (set.has(x.symbol)) { LIVE[x.symbol] = +x.price; LIVE_T[x.symbol] = now; }
     LAST_PX_T = now; lightUpdate(); } } catch (e) {}
 }
+// 18/11: 😴 وضع النوم — لما التبويب يكون مخفي أكتر من دقيقة: بنسكّر بث الأسعار ومعالجات الحساب وما بنحسب (المرآة صارت تحسب لحالها).
+// أول ما ترجع للتبويب: بنتصل من جديد وبنحسب على آخر الشموع (الصفقات الورقية بتنحسب من الشموع، فما بيضيع إشي)
+let SLEEPING = false, SLEEP_T = null;
+function goSleep() {
+  if (!document.hidden || SLEEPING) return; SLEEPING = true;
+  try { if (WS) { WS.onclose = null; WS.close(); } } catch (e) {} WS = null; WS_KEY = "";
+  try { if (BWS) { BWS.onclose = null; BWS.close(); } } catch (e) {} BWS = null; BWS_KEY = ""; clearInterval(BWS_PING);
+  if (!BUSY && POOL && POOL.length) { for (const w of POOL) { try { w.terminate(); } catch (e) {} } POOL = null; }
+  console.log("😴 المنصة نايمة (التبويب مخفي)");
+}
+document.addEventListener("visibilitychange", () => {
+  clearTimeout(SLEEP_T);
+  if (document.hidden) { SLEEP_T = setTimeout(goSleep, 60000); return; }
+  if (!SLEEPING) return; SLEEPING = false; console.log("☀️ المنصة صحيت");
+  try { connectWS(); } catch (e) {}
+  try { updateLiveHeader(); if (RESULT && CACHE && !BUSY && Date.now() >= RESULT.upd + M15 + 20000) { LAST_TRY = 0; liveTick(); } } catch (e) {}
+});
 async function liveTick() {
+  if (SLEEPING) return;   // 18/11: التبويب مخفي → المنصة نايمة (ما بتحسب ولا بتسحب أسعار)
   await pollPrices();
   if (!CACHE || BUSY) { updateLiveHeader(); return; }
   const now = Date.now(), nextClose = RESULT.upd + M15 + 20000;
