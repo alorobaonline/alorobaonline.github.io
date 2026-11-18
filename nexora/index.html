@@ -141,6 +141,7 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
   <button data-t="live">⚡ لايف</button>
   <button data-t="journal">📓 دفتر القرارات</button>
   <button data-t="real">🎯 خطة حقيقي</button>
+  <button data-t="rep">🧾 من التصفير</button>
 </nav>
 <details id="settings"><summary style="cursor:pointer;margin-top:10px;color:#cfd3da">⚙️ الإعدادات والفترة (اضغط لتفتح)</summary>
 <div class="bar">
@@ -227,6 +228,16 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
   </div>
   <h2>📡 رادار الإشارات <span class="mut">(للعملة المختارة — لو الشمعة سكّرت على السعر الحالي. استراتيجيات الـ5 دقايق وV63 وTurtle Soup ومروحة جان مش بالرادار، بس صفقاتها بتطلع عادي)</span></h2>
   <div class="wrap"><table class="radar" id="radar"></table></div>
+</section>
+<section class="tab" data-t="rep">
+  <h2>🧾 تقرير من التصفير <span class="mut" id="repNote"></span></h2>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+    <label class="mut">ترتيب <select id="repSort"><option value="net">الصافي</option><option value="pf">PF</option><option value="n">عدد الصفقات</option><option value="win">نسبة الربح</option></select></label>
+    <button id="repCsv" class="sec">⬇️ تنزيل CSV</button>
+  </div>
+  <div class="wrap"><table id="repT"></table></div>
+  <h3 style="margin-top:14px">🕐 الصافي حسب ساعة الدخول <span class="mut">(بتوقيتك — كل الاستراتيجيات، الصفقات المسكّرة)</span></h3>
+  <div class="wrap"><table id="repH"></table></div>
 </section>
 <section class="tab" data-t="real">
   <h2>🎯 خطة التداول الحقيقي — ⭐ S15 V2 4h <span class="mut">(المنصة ما بتفتح ولا صفقة — إنت بتفتح بإيدك)</span></h2>
@@ -4374,6 +4385,7 @@ function recalc() {
   render(); try { renderMkt(); renderZones(); } catch (e) {}
   try { bridgeSend(); } catch (e) {}   // 🔌 ربط الحساب الحقيقي
   try { if (document.querySelector('section.tab.on[data-t="real"]')) renderReal(); } catch (e) { console.warn(e); }
+  try { if (document.querySelector('section.tab.on[data-t="rep"]')) renderRep(); } catch (e) { console.warn(e); }
 }
 
 const CK = {}, NEED_M5 = STRATS.some(s => s.m5 || s.needV);
@@ -4850,7 +4862,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0505";
+const BUILD = "2026-11-18-0520";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
@@ -4884,12 +4896,51 @@ function renderRealM5() {
 }
 
 
+// 18/11 (طلب المستخدم): 🧾 تقرير من التصفير — لكل استراتيجية + حسب ساعة اليوم + CSV
+function repData() {
+  const T = RESULT ? RESULT.trades : [], g = new Map();
+  for (const t of T) {
+    let a = g.get(t.name); if (!a) g.set(t.name, a = { name: t.name, n: 0, w: 0, gp: 0, gl: 0, net: 0, Ln: 0, Lnet: 0, Sn: 0, Snet: 0, o: 0, onet: 0, last: 0 });
+    a.last = Math.max(a.last, t.eTs);
+    if (t.open) { a.o++; a.onet += t.net; continue; }
+    a.n++; a.net += t.net; if (t.net > 0) { a.w++; a.gp += t.net; } else a.gl -= t.net;
+    if (t.d === 1) { a.Ln++; a.Lnet += t.net; } else { a.Sn++; a.Snet += t.net; }
+  }
+  return [...g.values()].map(a => ({ ...a, pf: a.gl ? a.gp/a.gl : (a.gp ? 99 : 0), win: a.n ? a.w/a.n : 0, avgW: a.w ? a.gp/a.w : 0, avgL: a.n - a.w ? a.gl/(a.n - a.w) : 0 }));
+}
+function renderRep() {
+  if (!$("repT") || !RESULT) return;
+  const k = $("repSort").value, rows = repData().sort((x, y) => (y[k] - x[k]) || (y.net - x.net));
+  const tot = rows.reduce((s, r) => ({ n: s.n + r.n, w: s.w + r.w, gp: s.gp + r.gp, gl: s.gl + r.gl, net: s.net + r.net, o: s.o + r.o, onet: s.onet + r.onet }), { n: 0, w: 0, gp: 0, gl: 0, net: 0, o: 0, onet: 0 });
+  const pf = x => x >= 99 ? "∞" : x.toFixed(2), pc = x => Math.round(100*x) + "%", cnt = (n, v) => n ? `${n} · ${usd(v)}` : '<span class="mut">—</span>';
+  $("repNote").textContent = `(من ${dt(RESULT.startTs)} · ${rows.length} استراتيجية · الأرقام بحجم ${RESULT.P.notional}$ للصفقة بعد العمولة والتمويل)`;
+  $("repT").innerHTML = `<tr><th>الاستراتيجية</th><th>مسكّرة</th><th>ربح%</th><th>الصافي</th><th>PF</th><th>متوسط ربح</th><th>متوسط خسارة</th><th>لونج</th><th>شورت</th><th>مفتوحة</th><th class="hc">آخر صفقة</th></tr>` +
+    `<tr style="font-weight:700"><td>المجموع</td><td class="num">${tot.n}</td><td class="num">${tot.n ? pc(tot.w/tot.n) : "—"}</td><td>${usd(tot.net)}</td><td class="num">${pf(tot.gl ? tot.gp/tot.gl : 99)}</td><td></td><td></td><td></td><td></td><td>${cnt(tot.o, tot.onet)}</td><td class="hc"></td></tr>` +
+    rows.map(r => `<tr><td class="nm">${r.name}</td><td class="num">${r.n}</td><td class="num">${r.n ? pc(r.win) : "—"}</td><td>${r.n ? usd(r.net) : '<span class="mut">—</span>'}</td><td class="num">${r.n ? pf(r.pf) : "—"}</td><td>${r.w ? usd(r.avgW) : '<span class="mut">—</span>'}</td><td>${r.n - r.w ? usd(-r.avgL) : '<span class="mut">—</span>'}</td><td>${cnt(r.Ln, r.Lnet)}</td><td>${cnt(r.Sn, r.Snet)}</td><td>${cnt(r.o, r.onet)}</td><td class="hc mut">${r.last ? dt(r.last) : ""}</td></tr>`).join("");
+  // حسب ساعة الدخول (بتوقيت المستخدم)
+  const H = Array.from({ length: 24 }, () => ({ n: 0, w: 0, net: 0 }));
+  for (const t of RESULT.trades) if (!t.open) { const h = new Date(t.eTs).getHours(); H[h].n++; H[h].net += t.net; if (t.net > 0) H[h].w++; }
+  $("repH").innerHTML = `<tr><th>الساعة</th>${H.map((_, h) => `<th>${String(h).padStart(2, "0")}</th>`).join("")}</tr>` +
+    `<tr><td>الصفقات</td>${H.map(x => `<td class="num">${x.n || ""}</td>`).join("")}</tr>` +
+    `<tr><td>ربح%</td>${H.map(x => `<td class="num">${x.n ? Math.round(100*x.w/x.n) : ""}</td>`).join("")}</tr>` +
+    `<tr><td>الصافي</td>${H.map(x => `<td>${x.n ? usd(x.net) : ""}</td>`).join("")}</tr>`;
+}
+function repCsv() {
+  const rows = repData().sort((x, y) => y.net - x.net), q = x => `"${String(x).replace(/"/g, '""')}"`;
+  const lines = [["الاستراتيجية", "مسكّرة", "ربح%", "الصافي", "PF", "متوسط ربح", "متوسط خسارة", "لونج عدد", "لونج صافي", "شورت عدد", "شورت صافي", "مفتوحة", "مفتوحة صافي"].map(q).join(",")]
+    .concat(rows.map(r => [r.name, r.n, (100*r.win).toFixed(1), r.net.toFixed(2), r.pf >= 99 ? "inf" : r.pf.toFixed(2), r.avgW.toFixed(2), r.avgL.toFixed(2), r.Ln, r.Lnet.toFixed(2), r.Sn, r.Snet.toFixed(2), r.o, r.onet.toFixed(2)].map(q).join(",")));
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" }));
+  a.download = `nexora_report_${new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-")}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+document.addEventListener("change", e => { if (e.target && e.target.id === "repSort") renderRep(); });
+document.addEventListener("click", e => { if (e.target && e.target.id === "repCsv") repCsv(); });
 function showTab(t) {
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
   document.querySelectorAll("section.tab").forEach(s => s.classList.toggle("on", s.dataset.t === t));
   try { localStorage.setItem("nexora_tab", t); } catch (e) {}
   if (t === "live") setTimeout(() => { drawChart(); radar(); }, 0);
   if (t === "real") setTimeout(renderReal, 0);
+  if (t === "rep") setTimeout(renderRep, 0);
 }
 
 // ===================== لايف: WebSocket + شارت + رادار + صوت =====================
