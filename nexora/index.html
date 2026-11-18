@@ -130,7 +130,7 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
   <span class="kv">Equity <b id="tbEq">—</b></span>
   <span class="kv">ربح المفتوحة <b id="tbDay">—</b></span>
   <span class="kv">مفتوحة <b id="tbOpen">—</b></span>
-  <span class="kv">تحت القمة <b id="tbDD">—</b></span>
+  <span class="kv">من التصفير <b id="tbDD">—</b></span>
   <span class="kv" style="margin-inline-start:auto"><a href="lab.html" style="color:#a78bfa;font-weight:700;text-decoration:none">🔬 المختبر</a></span>
 </div>
 <nav class="tabs" id="tabs">
@@ -4460,7 +4460,7 @@ function renderAccount() {
     const today = closed.filter(t => t.xTs >= day0.getTime()).reduce((s, t) => s + t.net, 0) + unreal;
     const f2s = x => (x >= 0 ? "+" : "") + x.toFixed(2) + "$";
     $("tbEq").textContent = (B + realized).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });   // 18/11 (طلب المستخدم): ثابت — بيتغيّر بس لما تسكّر صفقة (الحي جنبه بالأخضر/الأحمر) $("tbDay").textContent = f2s(unreal); $("tbDay").style.color = unreal >= 0 ? "var(--pos)" : "var(--neg)";
-    $("tbOpen").textContent = open.length; $("tbDD").textContent = cur ? "−" + cur.toFixed(2) + "$" : "0";
+    $("tbOpen").textContent = open.length; $("tbDD").textContent = f2s(realized); $("tbDD").style.color = realized >= 0 ? "var(--pos)" : "var(--neg)";   // 18/11 (طلب المستخدم): صافي الصفقات المسكّرة من التصفير — ثابت، بيتغيّر بس لما تسكّر صفقة
     const ratio = worst ? Math.min(1, cur/worst) : 0;
     $("ddBox").innerHTML = `<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:6px"><span>هلأ تحت أعلى رصيد بـ <b class="num neg">${cur.toFixed(2)}$</b></span><span class="mut">أسوأ تراجع صار من البداية: <b class="num">${worst.toFixed(2)}$</b></span></div>
       <div class="meter"><i style="width:${(100*ratio).toFixed(1)}%"></i></div>
@@ -4771,7 +4771,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0415";
+const BUILD = "2026-11-18-0420";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
