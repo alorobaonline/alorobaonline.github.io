@@ -4063,7 +4063,7 @@ const idb = (() => {
 const MEM = {};
 // يكمّل الشموع الناقصة: القديمة (لو رجعت تاريخ البداية لورا) والجديدة، بدون ما يعيد تحميل الموجود
 let LAST_REQ = 0;
-async function paced() { const w = LAST_REQ - Date.now(); LAST_REQ = Math.max(Date.now(), LAST_REQ) + 150; if (w > 0) await sleep(w); }
+async function paced(wt = 5) { const w = LAST_REQ - Date.now(); LAST_REQ = Math.max(Date.now(), LAST_REQ) + 30*wt; if (w > 0) await sleep(w); }   // 18/11: المسافة حسب وزن الطلب عند بايننس (limit صغير = وزن 1 = 30ms بدل 150ms)
 // مصادر احتياط للشموع (لما بايننس حاظرة): Bybit ثم OKX — نفس العقود الدائمة، فروق سعر صغيرة جداً
 async function altKlines(sym, interval, t, limit) {
   const mins = interval === "15m" ? 15 : interval === "5m" ? 5 : 60, now = Date.now();
@@ -4106,14 +4106,16 @@ async function fillKlines(sym, interval, step, width, st, fromTs, prog) {
   if (!st.fx1118 && st.t.length) { const c = await repairRows(sym, interval, step, width, st, Math.max(Date.UTC(2026, 10, 15), st.t[0]), st.t[st.t.length-1]); if (c !== false) { st.fx1118 = 1; added += c + 51; } }   // مرة وحدة: من 15/11 (شموع بديلة قديمة بدون علامة) — +51 = احفظ
   if (st.alt && st.alt.length) { const keep = []; for (const [a, b] of st.alt) { const c = await repairRows(sym, interval, step, width, st, a, b); if (c === false) keep.push([a, b]); else added += c + 51; } st.alt = keep; }
   const grab = async (from, until) => { const T = [], V = []; let t = from;
-    while (t < until) { await paced();
+    while (t < until) {
+      const lim = Math.max(2, Math.min(1000, Math.ceil((Math.min(until, Date.now()) - t)/step) + 2)), wt = lim < 100 ? 1 : lim < 500 ? 2 : 5;   // 18/11: بنطلب قد ما بدنا بس
+      await paced(wt);
       let r;
-      try { r = await getJSON("/fapi/v1/klines", { symbol: sym, interval, startTime: t, limit: 1000 }); }
+      try { r = await getJSON("/fapi/v1/klines", { symbol: sym, interval, startTime: t, limit: lim }); }
       catch (e) { if (e.message !== "RATE") throw e; r = await altKlines(sym, interval, t, 1000); if (!r) break; if (r.length) (st.alt = st.alt || []).push([r[0][0], r[r.length-1][0]]); }   // 18/11: شموع من مصدر بديل بتنعلّم وبتتصلّح من بايننس بعدين
       if (!r.length) break;
       for (const k of r) if (k[6] < now && k[0] < until) { T.push(k[0]); for (let q = 1; q <= width; q++) V.push(+k[q]); }
       t = r[r.length-1][0] + step; prog && prog(new Date(r[r.length-1][0]).toISOString().slice(0, 10));
-      if (r.length < 1000) break; }
+      if (r.length < lim) break; }
     return [T, V]; };
   if (st.t.length && st.t[0] > fromTs + step) {   // ناقص من الأول
     const [T, V] = await grab(fromTs, st.t[0]); st.t = T.concat(st.t); st.v = V.concat(st.v); added += T.length; }
@@ -4769,7 +4771,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0300";
+const BUILD = "2026-11-18-0310";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
