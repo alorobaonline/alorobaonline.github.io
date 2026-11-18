@@ -4990,7 +4990,7 @@ const MIRROR_ALLOW0 = ["Range Sniper 15m + ترند 4h", "Range Sniper 15m (كم
   "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق"];
 let MIR = null, MIR_T = 0, MIR_ERR = "";
 async function mirFetch() {
-  try { const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 2500); const r = await fetch(MIRROR_URL + "/state", { signal: ctl.signal }); clearTimeout(tm); MIR = await r.json(); MIR_T = Date.now(); MIR_ERR = ""; }
+  try { const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 2500); const r = await fetch(MIRROR_URL + "/state", { signal: ctl.signal }); clearTimeout(tm); if (r.status === 404) { MIR = null; MIR_ERR = "المرآة شغالة بس نسختها قديمة — حط nexora_mirror.js الجديد ورجّع شغّلها"; return; } MIR = await r.json(); MIR_T = Date.now(); MIR_ERR = ""; }
   catch (e) { MIR_ERR = String(e.message || e); if (Date.now() - MIR_T > 60000) MIR = null; }
 }
 async function mirConfig(j) {
@@ -5070,7 +5070,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0700";
+const BUILD = "2026-11-18-0705";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
