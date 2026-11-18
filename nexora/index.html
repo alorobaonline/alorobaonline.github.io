@@ -4059,7 +4059,7 @@ const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جا�
 // 16/11 16:40: المنصة بتشغّل بس نسخ "هدف 1.2% / وقف 1.2%" من كل الاستراتيجيات (طلب المستخدم) — الأصلية بالمختبر بس
 const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% ليمت 0.6%", b + " | 1.2% ليمت 0.8%"]),   // 17/11 03:55: «تأكيد 15m» انلغت من المنصة (طلب المستخدم — دخول متأخر على أسوأ سعر)
   ...["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"].map(b => b + " | هدف 1.2% وقف 1.2%"),
-  ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"]), "Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", "Range Sniper 15m (كما هي) + فلتر BTC", "Range Sniper 15m + ترند 4h + فلتر BTC", "🎯 كسر أرضية/سقف مكررة + ريتست 15m (BTC)", "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + خروج ATR", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + خروج ATR", ...MACDP.strats.slice(0, 3).map(s => s.name), LUX_L10, ...OLD_KEEP,   // MACD v1.1 (17/11 12:19) · 17/11: كسر+فوليوم+ريتست انشالت من المنصة (خسرت من التصفير وعلى السنتين) — بالمختبر بس
+  ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"]), "Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", "Range Sniper 15m (كما هي) + فلتر BTC", "Range Sniper 15m + ترند 4h + فلتر BTC", "🎯 كسر أرضية/سقف مكررة + ريتست 15m (BTC)", "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + خروج ATR", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + خروج ATR", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8% + لا تلحق", "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", ...MACDP.strats.slice(0, 3).map(s => s.name), LUX_L10, ...OLD_KEEP,   // MACD v1.1 (17/11 12:19) · 17/11: كسر+فوليوم+ريتست انشالت من المنصة (خسرت من التصفير وعلى السنتين) — بالمختبر بس
 ]);   // 17/11 07:45: نسخ "فلتر استسلام" (فوليوم) انشالت من المنصة — بالمختبر بس (طلب المستخدم)   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 // 17/11 18:16 (طلب المستخدم): المنصة كلها على هدف 1.5% ووقف 1.2% — بنبدّل اسم كل نسخة 1.2% بنسختها 1.5% (Range Sniper وLux ليمت 1% بأهدافهم الأصلية)
 const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
@@ -4067,7 +4067,8 @@ const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المس�
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 // 17/11 19:53 (طلب المستخدم): الخسرانين من التصفير انشالوا من المنصة — بالمختبر بس
-const PLATFORM_DROP = new Set(["#8 Lux Trendline+TRAMA+Chandelier | هدف 1.2% وقف 1.2%", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% هادئة", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.4%",
+const PLATFORM_DROP = new Set(["#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8%", "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%",   // 18/11 05:50 (طلب المستخدم): انستبدلوا بنسخ «لا تلحق» — الأصليات بالمختبر
+  "#8 Lux Trendline+TRAMA+Chandelier | هدف 1.2% وقف 1.2%", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% هادئة", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.4%",
   "⭐ S15 دخول على إغلاق 15m | هدف 1.2% وقف 1.2%", "⭐ S15 دخول على إغلاق 15m | 1.2% ليمت 0.4%", "⭐ S15 دخول على إغلاق 15m | 1.2% ليمت 0.6%", "⭐ S15 دخول على إغلاق 15m | 1.2% ليمت 0.8%",
   "#8 Lux Trendline+TRAMA+Chandelier | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.4% + فلتر ترند ساعة", "⭐ S15 دخول 15m + بُعد ATR | هدف 1.2% وقف 1.2%",
   "⭐ S15 دخول على إغلاق 15m | هدف 1.2% وقف 1.2% + فلتر ترند ساعة"]);
@@ -4460,6 +4461,14 @@ function recalc() {
 
 const CK = {}, NEED_M5 = STRATS.some(s => s.m5 || s.needV);
 const M5N = new Set(STRATS.filter(s => s.m5).map(s => s.name));
+// 18/11: الصفقات المفتوحة (Open Interest) كل ساعة لكل عملة — لنسخ «لا تلحق» (شرط اللونج). مخزنة بالذاكرة، بتتحدّث كل ساعة
+const OIMEM = {};
+async function loadOI(sym) {
+  const m = OIMEM[sym]; if (m && Date.now() - m.at < 60*60000) return m.oi;
+  try { const r = await (await fetch(`https://fapi.binance.com/futures/data/openInterestHist?symbol=${sym}&period=1h&limit=100`)).json();
+    if (Array.isArray(r) && r.length) { const oi = { T: r.map(x => x.timestamp), V: r.map(x => +x.sumOpenInterest) }; OIMEM[sym] = { at: Date.now(), oi }; return oi; } } catch (e) {}
+  return m ? m.oi : null;
+}
 async function run(silent, only5) {
   const st = m => { if (!silent) $("status").textContent = m; };
   try {
@@ -4537,7 +4546,7 @@ function withProv(c) {
 let BTC_S = null, BTC4 = null;
 function computeOne(c, startTs, prev) {   // نفس الحساب بدون Workers (احتياط)
   if (prev) { c.raw = prev.raw.filter(t => !M5N.has(t.name)); for (const sp of STRATS) if (sp.m5) for (const t of evaluate(c.D, null, sp, startTs)) c.raw.push(t); }
-  else { const DP = withProv(c); DP.btcS = BTC_S; DP.btc4 = BTC4; const inds = { 1: makeInd(DP, 1), 4: makeInd(DP, 4), 16: makeInd(DP, 16) }; for (const sp of STRATS) if (sp.mult && !inds[sp.mult]) inds[sp.mult] = makeInd(DP, sp.mult); c.raw = []; for (const sp of STRATS) for (const t of evaluate(DP, inds, sp, startTs)) c.raw.push(t); }
+  else { const DP = withProv(c); DP.btcS = BTC_S; DP.btc4 = BTC4; DP.oi = c.D.oi; const inds = { 1: makeInd(DP, 1), 4: makeInd(DP, 4), 16: makeInd(DP, 16) }; for (const sp of STRATS) if (sp.mult && !inds[sp.mult]) inds[sp.mult] = makeInd(DP, sp.mult); c.raw = []; for (const sp of STRATS) for (const t of evaluate(DP, inds, sp, startTs)) c.raw.push(t); }
 }
 let PROG_T = 0;
 function progressive(c, startTs) {   // 17/11: كل عملة بتخلص بتنعرض فوراً (إذا في نتيجة سابقة لنفس الفترة)
@@ -4547,6 +4556,7 @@ function progressive(c, startTs) {   // 17/11: كل عملة بتخلص بتنع
 }
 async function computeAll(coins, startTs, prevOf, st) {
   const P = pool(); let done = 0;
+  { const q = coins.filter(c => c.D && !c.D.stub); await Promise.all(Array.from({ length: 4 }, async () => { while (q.length) { const c = q.shift(); c.D.oi = await loadOI(c.sym); } })); }   // 18/11: OI لنسخ «لا تلحق»
   { const b = coins.find(x => x.sym === "BTCUSDT"); BTC_S = b && b.D && !b.D.stub && b.D.o.length > 400 ? btcStateOf(b.D) : null; }
   { const b = coins.find(x => x.sym === "BTCUSDT"); BTC4 = null; if (b && b.D && !b.D.stub) { const B = OLDB.bars4(b.D); BTC4 = { C: B.C, T: B.C.map((_, i) => b.D.t0 + (i + 1)*16*M15) }; } }   // 17/11: بيتكوين 4h لبوتات التلغرام القديمة
   const tick = () => st(`⚙️ بحسب الاستراتيجيات… ${done}/${coins.length}${P.length ? ` (${P.length} معالجات مع بعض)` : ""}`);
@@ -4556,7 +4566,7 @@ async function computeAll(coins, startTs, prevOf, st) {
   await Promise.all(P.map(w => (async () => {
     while (queue.length) {
       const c = queue.shift(), prev = prevOf(c);
-      const DP = withProv(c), D = { t0: DP.t0, sym: DP.sym, prov: !!DP.prov, o: DP.o, h: DP.h, l: DP.l, c: DP.c, v: DP.v, m5: DP.m5, s5ck: DP.s5ck, btcS: BTC_S, btc4: BTC4 };   // + الشمعة الحية + فوليوم واسم العملة
+      const DP = withProv(c), D = { t0: DP.t0, sym: DP.sym, prov: !!DP.prov, o: DP.o, h: DP.h, l: DP.l, c: DP.c, v: DP.v, m5: DP.m5, s5ck: DP.s5ck, btcS: BTC_S, btc4: BTC4, oi: c.D.oi };   // + الشمعة الحية + فوليوم واسم العملة
       const res = await new Promise(r => { w.onmessage = ev => r(ev.data); w.onerror = ev => r({ err: ev.message || "worker" }); w.postMessage({ id: c.sym, D, startTs, only5: !!prev }); });
       if (res.err) { computeOne(c, startTs, prev); }
       else { c.raw = prev ? prev.raw.filter(t => !M5N.has(t.name)).concat(res.raw) : res.raw; if (res.ck) { CK[c.sym] = res.ck; c.D.s5ck = res.ck; } }
@@ -4932,7 +4942,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0550";
+const BUILD = "2026-11-18-0600b";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
