@@ -113,6 +113,7 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
 #repT td.nm,#repR td.nm,#repT th:first-child,#repR th:first-child{text-align:right}
 #repT tr.tot td,#repR tr.tot td{background:rgba(255,255,255,.05);font-weight:700}
 #repT tr.zero td{opacity:.55}
+.flt th,.flt td{display:table-cell;padding:4px 8px;text-align:center;white-space:nowrap;border-left:1px solid rgba(255,255,255,.05)}.flt td.nm{text-align:right}
 .logo{width:30px;height:30px;border-radius:10px;display:inline-grid;place-items:center;font-weight:800;color:#0b0a1f;background:conic-gradient(from 200deg,#34f5a1,#a78bfa,#38bdf8,#34f5a1);box-shadow:0 0 18px rgba(167,139,250,.55)}
 .px{background:linear-gradient(90deg,#fff,#cdbcff);-webkit-background-clip:text;background-clip:text;color:transparent}
 
@@ -200,6 +201,11 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
   <div class="wrap"><table id="repR"></table></div>
   <h3 style="margin-top:14px">🕐 الصافي حسب ساعة الدخول <span class="mut">(بتوقيتك — كل الاستراتيجيات، الصفقات المسكّرة)</span></h3>
   <div class="wrap"><table id="repH"></table></div>
+  </details>
+  <details id="flabBox" style="margin-top:14px"><summary style="cursor:pointer;color:#cfd3da;font-weight:700">🔬 مختبر الفلاتر — شو بيفرق بين الصفقات الرابحة والخاسرة؟ <span class="mut">(اضغط لتفتح)</span></summary>
+  <div class="mut" style="margin:6px 0">كل صفقة مسكّرة من التصفير بتنسجّل معها 13 معلومة لحظة الدخول (بيتكوين، ترند العملة، تقلب، فوليوم، RSI، OI، الجلسة…). هون بتشوف وين الربح ووين الخسارة، وأي فلتر كان رح يقوّي الاستراتيجية. الاستراتيجيات القليلة بتستعير فلاتر من كل الصفقات. ⚠️ الأرقام من نفس البيانات — الفلتر لازم يثبت على صفقات جاية قبل ما نعتمده.</div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0"><select id="flabSel" style="max-width:100%"></select><button id="flabCsv" class="sec">⬇️ الصفقات مع المعلومات CSV</button></div>
+  <div id="flabOut"></div>
   </details>
   <p class="mut"><b>حكم السيرفر</b> = نتيجة الفحص على بيانات بايننس الحقيقية من 8/2024: ✅ ربحت بالتدريب والاختبار بدليل قوي · 🟡 ربحت بس الدليل ضعيف · ❌ خسرت. <b>لايف مقابل الفحص</b> = هل صفقاتها على المنصة ماشية زي ما توقع الفحص (بدري للحكم قبل 20 صفقة).<br><b>قبل العمولة/صفقة</b> = متوسط ربح الصفقة لو ما في عمولة. <b>العمولة أكلت</b> = كم % من هالربح راح عمولة. العمولة: الدخول Taker (إلا إذا اخترت Maker) والوقف Taker مع سليبج، الهدف Maker. التمويل الحقيقي من بايننس.</p>
 </section>
@@ -4851,6 +4857,7 @@ function render() {
   // الصفقات
   TT_DATA = { trades, since }; renderTradesT();
   if ($("repBox").open) renderRep();
+  if ($("flabBox").open) renderFlab();
   }
   if (vis("journal")) renderJournal();
   if (vis("coins")) renderCoins(trades, P);
@@ -5062,7 +5069,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-1045";
+const BUILD = "2026-11-18-1100";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
@@ -5154,6 +5161,95 @@ function repCsv() {
   a.download = `nexora_report_${new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-")}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
 document.addEventListener("toggle", e => { if (e.target && e.target.id === "repBox" && e.target.open) renderRep(); }, true);
+// ===================== 18/11 (طلب المستخدم): 🔬 مختبر الفلاتر — تجميع معلومات لحظة الدخول لكل صفقة =====================
+//  كل المعلومات من شموع مسكّرة قبل الدخول (ما في نظر للمستقبل). الهدف: نلاقي فلتر بيقوّي الاستراتيجيات الضعيفة/القليلة
+const FEAT_DEF = [["dir", "↕️ الاتجاه"], ["btcReg", "🧭 حالة البيتكوين (4h)"], ["btc1", "₿ ترند البيتكوين (ساعة)"], ["c4", "🪙 ترند العملة (4h)"], ["c1", "🪙 ترند العملة (ساعة)"],
+  ["adx", "💪 قوة ترند العملة (ADX ساعة)"], ["atr", "🌊 تقلب العملة (ATR 15m)"], ["vol", "🔊 فوليوم شمعة الإشارة ÷ متوسط 20"], ["rsi", "📶 RSI 15m باتجاه الصفقة"],
+  ["mv", "🏃 حركة آخر 4 ساعات باتجاه الصفقة"], ["e200", "📏 بعد السعر عن EMA200 (15m) باتجاه الصفقة"], ["oi", "📊 الصفقات المفتوحة OI (آخر 4 ساعات)"], ["ses", "🕐 الجلسة (بتوقيتك)"]];
+const FMEMO = new Map(), FIND = new WeakMap();
+function fRsi(C) { const out = new Float64Array(C.length).fill(NaN); let g = 0, l = 0;
+  for (let i = 1; i < C.length; i++) { const d = C[i] - C[i-1], up = Math.max(d, 0), dn = Math.max(-d, 0);
+    if (i <= 14) { g += up; l += dn; if (i === 14) { g /= 14; l /= 14; out[i] = l === 0 ? 100 : 100 - 100/(1 + g/l); } }
+    else { g = (g*13 + up)/14; l = (l*13 + dn)/14; out[i] = l === 0 ? 100 : 100 - 100/(1 + g/l); } }
+  return out; }
+function fInds(D) { let x = FIND.get(D); if (!x) { x = { 1: makeInd(D, 1), 4: makeInd(D, 4), 16: makeInd(D, 16), rsi: fRsi(D.c) }; FIND.set(D, x); } return x; }
+function featOf(t) {
+  const key = t.name + "|" + t.sym + "|" + t.eTs; if (FMEMO.has(key)) return FMEMO.get(key);
+  const c = CACHE && CACHE.bySym[t.sym]; if (!c || !c.D || c.D.stub) return null;
+  const D = c.D, i = Math.round((t.eTs - D.t0)/M15) - 1; if (i < 300 || i >= D.c.length) return null;   // i = آخر شمعة مسكّرة قبل الدخول
+  const X = fInds(D), d = t.d, px = D.c[i], f = {}, W = "مع الصفقة", A = "ضد الصفقة";
+  const kk = m => { const k = Math.floor((i + 1)/m) - 1; return k >= 50 ? k : -1; };
+  const tr = (I, m) => { const k = kk(m); return k < 0 || k >= I.n || I.ema50[k] == null ? "na" : ((I.C[k] > I.ema50[k] ? 1 : -1) === d ? W : A); };
+  f.dir = d === 1 ? "لونج" : "شورت";
+  { const r = regimeAt(t.eTs); f.btcReg = r ? Object.fromEntries(REGIMES)[r] : "na"; }
+  { const b = CACHE.bySym.BTCUSDT; if (b && !b.D.stub) { const bi = Math.round((t.eTs - b.D.t0)/M15) - 1, BI = fInds(b.D)[4], k = Math.floor((bi + 1)/4) - 1;
+      f.btc1 = k >= 50 && k < BI.n && BI.ema50[k] != null ? ((BI.C[k] > BI.ema50[k] ? 1 : -1) === d ? W : A) : "na"; } else f.btc1 = "na"; }
+  f.c4 = tr(X[16], 16); f.c1 = tr(X[4], 4);
+  { const k = kk(4), a = k >= 0 && k < X[4].n ? X[4].adx[k] : null; f.adx = a == null ? "na" : a < 20 ? "ضعيف <20" : a < 30 ? "متوسط 20-30" : "قوي >30"; }
+  { const a = X[1].atr[i], r = a != null ? 100*a/px : null; f.atr = r == null ? "na" : r < 0.4 ? "هادية <0.4%" : r < 0.8 ? "عادية 0.4-0.8%" : "عالية >0.8%"; }
+  { let sm = 0; for (let j = i - 20; j < i; j++) sm += D.v[j] || 0; const r = sm > 0 ? (D.v[i] || 0)/(sm/20) : null;
+    f.vol = r == null ? "na" : r < 0.8 ? "ضعيف <0.8×" : r < 1.5 ? "عادي 0.8-1.5×" : r < 3 ? "عالي 1.5-3×" : "انفجار >3×"; }
+  { let r = X.rsi[i]; if (!isFinite(r)) f.rsi = "na"; else { if (d === -1) r = 100 - r; f.rsi = r < 30 ? "<30 (عكس الحركة)" : r < 50 ? "30-50" : r < 70 ? "50-70" : ">70 (ملاحقة)"; } }
+  { const m = 100*d*(px/D.c[i-16] - 1); f.mv = m < -2 ? "ضدها >2%" : m < 0 ? "ضدها 0-2%" : m < 2 ? "معها 0-2%" : "معها >2% (ملاحقة)"; }
+  { const e = X[1].ema200[i]; if (e == null) f.e200 = "na"; else { const r = 100*d*(px/e - 1); f.e200 = r < -3 ? "ضدها >3%" : r < 0 ? "ضدها 0-3%" : r < 3 ? "معها 0-3%" : "معها >3%"; } }
+  { const O = D.oi; if (!O) f.oi = "na"; else { const a = oiAt(O, t.eTs - 3600e3), b0 = oiAt(O, t.eTs - 5*3600e3); f.oi = a && b0 ? (a > b0*1.02 ? "طالع >2%" : a < b0*0.98 ? "نازل >2%" : "ثابت ±2%") : "na"; } }
+  { const h = new Date(t.eTs).getHours(); f.ses = h >= 2 && h < 9 ? "آسيا 02-09" : h >= 9 && h < 15 ? "أوروبا 09-15" : h >= 15 && h < 23 ? "أمريكا 15-23" : "ليل 23-02"; }
+  FMEMO.set(key, f); return f;
+}
+const flFam = n => n.split(" | ")[0].split(" + ")[0].replace(/ \(كما هي\)$/, "");
+const flSt = a => { let n = 0, w = 0, net = 0, gp = 0, gl = 0; for (const x of a) { n++; net += x.t.net; if (x.t.net > 0) { w++; gp += x.t.net; } else gl -= x.t.net; } return { n, w, net, pf: gl ? gp/gl : (gp ? 99 : 0) }; };
+function flFilters(rows, minKeep) {   // كل فلتر = نشيل «خانة» وحدة من معلومة وحدة — قديش كان الصافي بيتغيّر
+  const base = flSt(rows), out = [];
+  for (const [k, lab] of FEAT_DEF) { const B = new Map(); for (const x of rows) { const v = x.f[k]; if (!B.has(v)) B.set(v, []); B.get(v).push(x); }
+    for (const [v, a] of B) { if (v === "na" || a.length < 3 || rows.length - a.length < minKeep) continue; const s0 = flSt(a);
+      out.push({ k, lab, v, cut: s0.n, cutNet: s0.net, keep: rows.length - a.length, keepNet: base.net - s0.net, d: -s0.net }); } }
+  return out.sort((a, b) => b.d - a.d);
+}
+function renderFlab() {
+  const box = $("flabOut"), sel = $("flabSel"); if (!box || !RESULT || !CACHE) return;
+  if (CACHE.coins.some(c => c.D.stub)) { box.innerHTML = '<div class="mut">⏳ بستنى المنصة تخلص تحميل الشموع (بعد أول حساب كامل)…</div>'; return; }
+  const all = RESULT.trades.filter(t => !t.open), cnt = new Map(), fcnt = new Map();
+  for (const t of all) { cnt.set(t.name, (cnt.get(t.name) || 0) + 1); const f = flFam(t.name); fcnt.set(f, (fcnt.get(f) || 0) + 1); }
+  const cur = sel.value || "__all";
+  if (!sel.options.length || sel.dataset.n !== String(all.length)) {
+    sel.innerHTML = `<option value="__all">كل الاستراتيجيات (${all.length} صفقة)</option><optgroup label="عائلات">` + [...fcnt].sort((a, b) => b[1] - a[1]).map(([f, n]) => `<option value="fam:${f}">${f} (${n})</option>`).join("") +
+      `</optgroup><optgroup label="استراتيجية وحدة">` + STRATS.map(sp => `<option value="${sp.name}">${sp.name} (${cnt.get(sp.name) || 0})</option>`).join("") + `</optgroup>`;
+    sel.value = cur; sel.dataset.n = String(all.length); }
+  const scope = sel.value, pick = scope === "__all" ? all : scope.startsWith("fam:") ? all.filter(t => flFam(t.name) === scope.slice(4)) : all.filter(t => t.name === scope);
+  const rows = pick.map(t => ({ t, f: featOf(t) })).filter(x => x.f), base = flSt(rows);
+  const pfs = x => x >= 99 ? "∞" : x.toFixed(2);
+  let h = `<div class="card" style="margin:6px 0">📦 <b>${rows.length}</b> صفقة مسكّرة · ربح ${rows.length ? Math.round(100*base.w/base.n) : 0}% · الصافي ${usd(base.net)} · PF <b>${pfs(base.pf)}</b></div>`;
+  if (!rows.length) { box.innerHTML = h + '<div class="mut">ما في صفقات مسكّرة لهالاختيار لسا — رح تنجمع مع الوقت.</div>'; return; }
+  // فلاتر مرشحة
+  const few = rows.length < 30;
+  const F = flFilters(rows, Math.max(3, Math.ceil(rows.length*0.4))).filter(x => x.d > 0).slice(0, 6);
+  h += `<h3 style="margin-top:10px">🧪 فلاتر مرشحة ${few ? '<span class="mut">(الصفقات قليلة — خدها كإشارة بس)</span>' : ""}</h3>`;
+  h += F.length ? `<div class="wrap"><table class="flt"><tr><th>الفلتر (ما ندخل لما…)</th><th>بنشيل</th><th>صافيهن</th><th>بيضل</th><th>الصافي بعد الفلتر</th></tr>` + F.map(x => `<tr><td class="nm">${x.lab}: <b>${x.v}</b></td><td class="num">${x.cut}</td><td>${usd(x.cutNet)}</td><td class="num">${x.keep}</td><td>${usd(x.keepNet)} <span class="mut">(${x.d >= 0 ? "+" : ""}${x.d.toFixed(1)}$)</span></td></tr>`).join("") + `</table></div>` : '<div class="mut">ما في فلتر واحد بيحسّن — الخسارة موزّعة.</div>';
+  // للقليلة: فلاتر مستعارة من كل الصفقات
+  if (few && scope !== "__all") {
+    const allRows = all.map(t => ({ t, f: featOf(t) })).filter(x => x.f), G = flFilters(allRows, Math.ceil(allRows.length*0.5)).filter(x => x.d > 0).slice(0, 6);
+    h += `<h3 style="margin-top:10px">🤝 فلاتر مستعارة من كل الصفقات (${allRows.length}) — شو كانت رح تعمل بهالاستراتيجية</h3><div class="wrap"><table class="flt"><tr><th>الفلتر (من كل المنصة)</th><th>بيحسّن المنصة</th><th>هون: بيشيل</th><th>هون: الصافي بعده</th></tr>` +
+      G.map(x => { const cut = rows.filter(r => r.f[x.k] === x.v), s0 = flSt(cut); return `<tr><td class="nm">${x.lab}: <b>${x.v}</b></td><td>+${x.d.toFixed(0)}$</td><td class="num">${s0.n} (${usd(s0.net)})</td><td>${usd(base.net - s0.net)}</td></tr>`; }).join("") + `</table></div>`;
+  }
+  // جداول كل معلومة
+  h += `<h3 style="margin-top:10px">📋 كل معلومة: وين الربح ووين الخسارة</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:8px">`;
+  for (const [k, lab] of FEAT_DEF) { const B = new Map(); for (const x of rows) { const v = x.f[k]; if (!B.has(v)) B.set(v, []); B.get(v).push(x); }
+    if (B.size === 1 && B.has("na")) continue;
+    h += `<div class="panel"><b>${lab}</b><table class="flt" style="width:100%;margin-top:4px"><tr><th></th><th>صفقات</th><th>ربح%</th><th>الصافي</th><th>PF</th></tr>` +
+      [...B].sort((a, b) => b[1].length - a[1].length).map(([v, a]) => { const q = flSt(a); return `<tr style="${q.n >= 5 && q.pf < 0.8 ? "background:rgba(248,113,113,.12)" : q.n >= 5 && q.pf > 2 ? "background:rgba(52,211,153,.10)" : ""}"><td class="nm">${v === "na" ? '<span class="mut">ما في معلومة</span>' : v}</td><td class="num">${q.n}</td><td class="num">${Math.round(100*q.w/q.n)}%</td><td>${usd(q.net)}</td><td class="num">${pfs(q.pf)}</td></tr>`; }).join("") + `</table></div>`; }
+  box.innerHTML = h + `</div>`;
+}
+function flabCsv() {
+  const all = RESULT.trades.filter(t => !t.open).map(t => ({ t, f: featOf(t) })).filter(x => x.f), q = x => `"${String(x).replace(/"/g, '""')}"`;
+  const lines = [["الاستراتيجية", "العملة", "الدخول", "الخروج", "السبب", "الصافي", ...FEAT_DEF.map(x => x[1])].map(q).join(",")]
+    .concat(all.map(({ t, f }) => [t.name, t.sym, new Date(t.eTs).toISOString(), new Date(t.xTs).toISOString(), t.why, t.net.toFixed(2), ...FEAT_DEF.map(x => f[x[0]])].map(q).join(",")));
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8" }));
+  a.download = `nexora_features_${new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-")}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+document.addEventListener("toggle", e => { if (e.target && e.target.id === "flabBox" && e.target.open) setTimeout(renderFlab, 0); }, true);
+document.addEventListener("change", e => { if (e.target && e.target.id === "flabSel") renderFlab(); });
+document.addEventListener("click", e => { if (e.target && e.target.id === "flabCsv") flabCsv(); });
+
 document.addEventListener("click", e => { if (e.target && e.target.id === "repCsv") repCsv(); });
 function showTab(t) {
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
