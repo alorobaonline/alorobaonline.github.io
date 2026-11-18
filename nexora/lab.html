@@ -3708,6 +3708,46 @@ const LVLBRK = (() => {
     { name: "🎯 كسر أرضية/سقف مكررة + ريتست 15m (بدون فلتر BTC)", mult: 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "نفسها بدون فلتر البيتكوين (طلب المستخدم 18/11)" }] };
 })();
 STRATS_ALL.push(...LVLBRK.strats);
+// 18/11 (خطة المستخدم — الخروج): نسخ بنفس دخول الاستراتيجية الأصلية بالزبط، بس خروج مختلف (مختبر لحد ما ينفحصوا من التصفير)
+//  • "خروج ATR": وقف وهدف = 1× ATR(14) على الساعة (آخر شمعة ساعة مسكّرة قبل الدخول) — بدل 1.2% ثابت لكل العملات
+//  • "خروج بالوقت 12س": نفس وقف وهدف الأصلية + إذا ما ضرب ولا واحد خلال 12 ساعة (48 شمعة) بنسكّر على الإغلاق
+// دخول ليمت: الهدف ما بينحسب بشمعة التعبئة (نفس قاعدة المنصة)
+const EXITW_I4 = new WeakMap();
+function exitWrap(baseName, mode) {
+  const name = baseName + (mode === "atr" ? " + خروج ATR" : " + خروج بالوقت 12س");
+  const run = (D, inds, sp, startTs) => {
+    const base = STRATS_ALL.find(x => x.name === baseName); if (!base) return [];
+    const src = evaluate(D, inds, base, startTs).slice().sort((a, b) => a.e - b.e), n = D.o.length, out = [], seen = new Set();
+    let I4 = inds && inds[4]; if (!I4) { if (!EXITW_I4.has(D)) EXITW_I4.set(D, makeInd(D, 4)); I4 = EXITW_I4.get(D); }
+    let busy = -1;
+    for (const t of src) {
+      const k0 = t.e + "|" + t.d; if (seen.has(k0)) continue; seen.add(k0);
+      if (t.e <= busy) continue;
+      const d = t.d, e = t.e, entry = +t.rawIn; if (!(entry > 0)) continue;
+      let stop = t.stop, tgt = t.target, H = Infinity;
+      if (mode === "atr") { const k = Math.floor(e/4) - 1, A = k >= 0 && k < I4.n ? I4.atr[k] : null; if (!(A > 0)) continue; stop = entry - d*A; tgt = entry + d*A; }
+      else H = 48;
+      if (!Number.isFinite(stop)) continue;
+      let px = null, why = null, xi = null;
+      for (let j = e; j < n; j++) {
+        if (j > e && d*(D.o[j] - stop) <= 0) { px = D.o[j]; why = "STOP"; xi = j; break; }
+        if (j > e && Number.isFinite(tgt) && d*(D.o[j] - tgt) >= 0) { px = D.o[j]; why = "TGT_GAP"; xi = j; break; }
+        if (d === 1 ? D.l[j] <= stop : D.h[j] >= stop) { px = stop; why = "STOP"; xi = j; break; }
+        if (Number.isFinite(tgt) && !(t.lim && j === e) && (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt)) { px = tgt; why = "TARGET"; xi = j; break; }
+        if (j - e + 1 >= H && !(D.prov && j === n - 1)) { px = D.c[j]; why = "TIME"; xi = j; break; }
+      }
+      const w = t.w || 1, lim = !!t.lim;
+      if (px !== null) { out.push({ name, d, e, x: xi, rawIn: entry, rawOut: px, why, open: false, stop, target: tgt, ...(lim ? { lim } : {}), ...(w !== 1 ? { w } : {}) }); busy = xi; }
+      else { out.push({ name, d, e, x: n - 1, rawIn: entry, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt, ...(lim ? { lim } : {}), ...(w !== 1 ? { w } : {}) }); busy = n - 1; }
+    }
+    return out;
+  };
+  return { name, mult: (STRATS_ALL.find(x => x.name === baseName) || {}).mult || 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "exit wrap (" + mode + ")" };
+}
+const EXIT_BASES = ["V42 4H SHORT b0 | 1.2% ليمت 0.8%", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8%", "⭐ S15 V2 4h R2.5 h40 | 1.2% ليمت 0.8%",
+  "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", "MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR"];
+for (const b of EXIT_BASES) STRATS_ALL.push(exitWrap(b, "atr"), exitWrap(b, "time"));   // مختبر بس
+
 // 17/11 17:19: اتجاه واحد بس (مختبر) — لفحص الشورت لحاله قبل ربطه بالحقيقي
 function dirOnlyWrap(baseName, d) {
   const name = baseName + (d === 1 ? " | لونج بس" : " | شورت بس");
