@@ -3962,7 +3962,8 @@ function exitWrap(baseName, mode) {
     }
     return out;
   };
-  return { name, mult: (STRATS_ALL.find(x => x.name === baseName) || {}).mult || 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "exit wrap (" + mode + ")" };
+  const B0 = STRATS_ALL.find(x => x.name === baseName) || {};
+  return { name, mult: B0.mult || 1, ...(B0.m5 ? { m5: true } : {}), sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "exit wrap (" + mode + ")" };   // m5: بيحتاج شموع 5د زي الأصلية
 }
 const EXIT_BASES = ["V42 4H SHORT b0 | 1.2% ليمت 0.8%", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8%", "⭐ S15 V2 4h R2.5 h40 | 1.2% ليمت 0.8%",
   "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", "MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR"];
@@ -3985,7 +3986,8 @@ function noChaseWrap(baseName) {
       return !(a && b && a > b);
     }).map(t => ({ ...t, name }));
   };
-  return { name, mult: (STRATS_ALL.find(x => x.name === baseName) || {}).mult || 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "no-chase filter (price 4h + OI)" };
+  const B0 = STRATS_ALL.find(x => x.name === baseName) || {};
+  return { name, mult: B0.mult || 1, ...(B0.m5 ? { m5: true } : {}), sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "no-chase filter (price 4h + OI)" };   // m5: بيحتاج شموع 5د زي الأصلية
 }
 const NOCHASE_BASES = ["Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%",
   "MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR", "V42 4H SHORT b0 | 1.2% ليمت 0.8%", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8%"];
@@ -4942,7 +4944,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0600b";
+const BUILD = "2026-11-18-0610b";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
