@@ -5051,11 +5051,13 @@ function renderReal() {
   const C = M ? M.cfg : { notional: 60, lev: 20, maxOpen: 12, hybrid: 0.003 };
   if (M) {
     const age = Math.round((now - M.at)/1000), br = M.brain;
-    $("rlMirror").innerHTML = `<b>${age < 30 ? "🟢 متصلة" : "🟡 آخر رد من " + age + " ثانية"}</b> · ${M.dry ? "🧪 تجربة" : "💰 حقيقي"} · ${M.paused ? '<b style="color:#f59e0b">⏸️ موقوفة (المفتوحة محمية)</b>' : '<b class="pos">▶️ بتفتح صفقات</b>'}` +
+    $("rlMirror").innerHTML = `<b>${age < 30 ? "🟢 متصلة" : "🟡 آخر رد من " + age + " ثانية"}</b> · ${M.dry ? "🧪 تجربة" : "💰 حقيقي"} · ${M.paused ? '<b style="color:#f59e0b">⏸️ موقوفة (المفتوحة محمية)</b>' : M.dayStop ? '<b style="color:#f59e0b">🧯 وقف يومي (لحد 02:00 — «رجّعها تفتح» بتلغيه)</b>' : '<b class="pos">▶️ بتفتح صفقات</b>'}` +
       ` · آخر حساب <b>${br ? tm(br.at) : "—"}</b>` +
       `<br>المتاح <b class="num">${M.avail == null ? "—" : M.avail.toFixed(2)}$</b> · مفتوحة <b>${M.pos.length}</b> · أهداف <b class="pos">${M.stats.tp}</b> · وقوف <b class="neg">${M.stats.sl}</b> · <span class="mut">صفقة ${C.notional}$ × ${C.lev}x</span>` +
-      `<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label>الحد <input type="number" id="rlMax" min="1" max="30" value="${C.maxOpen}" style="width:60px"></label><button id="rlMaxBtn" class="sec">💾 احفظ</button>` +
-      `<button id="rlPauseBtn" class="sec">${M.paused ? "▶️ رجّعها تفتح" : "⏸️ وقّف الجديد"}</button></div>`;
+      `<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label>الحد <input type="number" id="rlMax" min="1" max="30" value="${C.maxOpen}" style="width:60px"></label>` +
+      (C.dayLoss !== undefined ? `<label title="إذا خسارة اليوم (من 02:00) وصلت هالنسبة من الرصيد بيوقف الجديد لحد 02:00 · 0 = مطفي">🧯 وقف يومي <input type="number" id="rlDay" min="0" max="50" value="${C.dayLoss}" style="width:55px">%</label>` : `<span class="mut" style="font-size:12px">🧯 وقف يومي: حدّث ملف المرآة</span>`) +
+      `<button id="rlMaxBtn" class="sec">💾 احفظ</button>` +
+      `<button id="rlPauseBtn" class="sec">${M.paused || M.dayStop ? "▶️ رجّعها تفتح" : "⏸️ وقّف الجديد"}</button></div>`;
   } else $("rlMirror").innerHTML = `<b>⚪ المرآة مش متصلة</b> <span class="mut">— بتشتغل بس لما المنصة مفتوحة على نفس الكمبيوتر اللي عليه البرنامج.${MIR_ERR ? " (" + MIR_ERR + ")" : ""}</span>`;
   // ب) المفتوحة بالحقيقي + المقابلة بالمنصة
   const T = RESULT ? RESULT.trades.filter(t => !EXTRA_COINS.has(t.sym)) : [], byKey = new Map(T.map(t => [`${t.name}|${t.sym}|${t.eTs}`, t]));
@@ -5088,8 +5090,10 @@ function renderReal() {
 }
 document.addEventListener("click", e => {
   const id = e.target && e.target.id;
-  if (id === "rlMaxBtn") { const m = Math.round(+$("rlMax").value); if (m >= 1 && m <= 30) mirConfig({ maxOpen: m }); }
-  if (id === "rlPauseBtn" && MIR) mirConfig({ paused: !MIR.paused });
+  if (id === "rlMaxBtn") { const j = {}, m = Math.round(+$("rlMax").value); if (m >= 1 && m <= 30) j.maxOpen = m;
+    const dl = $("rlDay"); if (dl && dl.value !== "") { const v = Math.round(+dl.value); if (v >= 0 && v <= 50) j.dayLoss = v; }
+    if (Object.keys(j).length) mirConfig(j); }
+  if (id === "rlPauseBtn" && MIR) mirConfig({ paused: MIR.dayStop && !MIR.paused ? false : !MIR.paused });
 });
 setInterval(async () => { if (!SLEEPING && document.querySelector('section.tab.on[data-t="real"]')) { await mirFetch(); renderReal(); } }, 10000);
 // 17/11 18:57: 🔌 ربط الحساب الحقيقي — المنصة بتبعت الصفقات المفتوحة لبرنامج المرآة على نفس الكمبيوتر (127.0.0.1). المنصة نفسها ما بتفتح ولا صفقة.
@@ -5112,7 +5116,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-1825";
+const BUILD = "2026-11-18-1915";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
