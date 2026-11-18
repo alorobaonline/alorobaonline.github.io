@@ -64,7 +64,7 @@ textarea{width:100%;height:120px;background:#0f1115;color:var(--mut);border:1px 
   <textarea id="txt" readonly></textarea>
 </div>
 
-
+<script id="engine">
 // ===================== NEXORA ENGINE (نفس منطق الفحص بالضبط) =====================
 const M15 = 900000, H4 = 16 * M15;
 
@@ -703,6 +703,12 @@ const S15 = (() => {
       if (h.length && sp.fundF) { const r = fundAt(D, D.t0 + (k+1)*m*900000); h = h.filter(x => fundOk(sp, r, x.side)); }
       if (h.length && sp.gannF && m === 16) h = h.filter(x => GDEC.near(I, k, x.side, sp.gannF));
       if (h.length && sp.fibT && m === 16) { const w = fibTimeWin(I, k, sp.fibT.set || "A"); if (sp.fibT.inside ? !w : w) h = []; }
+      if (h.length && sp.volR) {   // نظام التقلب: ATR14 بشمعة الإشارة ÷ متوسط ATR14 لآخر n شمعة (≤max = هادي، ≥min = متوسّع)
+        const nv = sp.volR.n || 100, a0 = P.atr[k]; let sm = 0, c = 0;
+        for (let j = Math.max(0, k - nv + 1); j <= k; j++) if (P.atr[j] !== null && P.atr[j] !== undefined) { sm += P.atr[j]; c++; }
+        if (a0 === null || a0 === undefined || c < nv/2) h = [];
+        else { const rv = a0/(sm/c); if ((sp.volR.max !== undefined && rv > sp.volR.max) || (sp.volR.min !== undefined && rv < sp.volR.min)) h = []; }
+      }
       if (!h.length) continue;
       const blocked = pos !== null || closedHere || k <= busy || k === n - 1 || D.t0 + (k+1)*m*900000 <= startTs || (k+1)*m >= D.o.length;
       if (!blocked) pend = [h[0], k];
@@ -4023,7 +4029,7 @@ function money(t, D, P, funding, lastPrice) {
   const fee = feeIn + feeOut;
   return { ...t, eTs, xTs, fillIn, fillOut, qty, gross, fee, fund, net: gross - fee + fund };
 }
-
+</script>
 
 <script id="lab">
 const LAB_STRATS = STRATS.filter(s => !s.m5 && !s.needV);   // استراتيجيات الـ5 دقايق بس على المنصة هلأ

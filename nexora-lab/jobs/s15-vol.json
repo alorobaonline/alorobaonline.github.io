@@ -1,7 +1,7 @@
 {
  "type": "multi",
  "priority": 79,
- "note": "17/11 (daily run): volatility regime filter on ⭐S15*: ATR14 at the 4h signal bar ÷ mean ATR14 of the last 100 bars; keep only calm (≤x) or only expanded (≥x), x = 0.8/1.0/1.2. 6 rows + base declared before the run; choose on TRAIN only; accept only with neighbour rows on the same side also good.",
+ "note": "18/11 (daily run): RERUN — yesterday volR was not implemented in the engine (all 7 rows came out identical). Same 7 rows, unchanged, declared 17/11 before any result: ATR14 at the 4h signal bar ÷ mean ATR14 of the last 100 bars; keep only calm (≤x) or only expanded (≥x), x = 0.8/1.0/1.2. Choose on TRAIN only; accept only with neighbour rows on the same side also good.",
  "slots": 10,
  "variants": [
   {

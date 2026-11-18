@@ -180,6 +180,15 @@ function jobMulti(job, per, coins) {
     }
     lines.push("");
   }
+  if (job.portGroups) {   // محافظ معرّفة قبل التشغيل: كل استراتيجية بحسابها (slots لحالها)، منجمع الصفقات ومنحسب PF و DD المشترك
+    const stG = tr => { const b = [[], [], []]; for (const t of [...tr].sort((a, z) => a.xTs - z.xTs)) b[E.periodOf(t.eTs)].push(t); return b.map((x, i) => E.statsOf(x, days[i], P.notional)); };
+    const rd = s => s.dd > 0 ? (s.usd/s.dd).toFixed(2) : "-";
+    lines.push("# محافظ (حسابات منفصلة، مجموعة قبل التشغيل) — ربح/DD لكل فترة");
+    for (const g of job.portGroups) { if (!g.every(n => TAKEN[n])) { lines.push(`(missing) ${g.join(" + ")}`); continue; }
+      const s = stG(g.flatMap(n => TAKEN[n]));
+      lines.push(`${g.join(" + ")} | ${E.verdictOf(s)} | ربح/DD ${s.map(rd).join(" / ")}`, "  " + E.PERIODS.map((p, i) => `${p}: ${sP(s[i])}`).join(" | ")); }
+    lines.push("");
+  }
   if (job.variants || job.select) {   // اختيار صادق: الأفضل بالتدريب بس، وبعدين منشوف اختباره وجديده
     const C = job.selectOnly ? SUM.filter(x => job.selectOnly.includes(x.name)) : SUM;
     const ok = C.filter(x => x.s[0].n >= 100).sort((a, b) => b.s[0].usd - a.s[0].usd);
