@@ -3677,7 +3677,7 @@ const LVLBRK = (() => {
         const lv = d === -1 ? level(pl, l, i, -1) : level(ph, h, i, 1); if (!lv) continue;
         const L = lv.L; if (!(d === -1 ? (c[i] < L && c[i-1] >= L) : (c[i] > L && c[i-1] <= L))) continue;
         const A = valueArea(D, i - VWIN, i - 1); if (!A || !(d === -1 ? c[i] < A.val : c[i] > A.vah)) continue;
-        const b = OLDB.btcAt(D, D.t0 + (i + 1)*M15, 600); if (b !== 0 && b !== d) continue;
+        if (sp.btcF) { const b = OLDB.btcAt(D, D.t0 + (i + 1)*M15, sp.btcF); if (b !== 0 && b !== d) continue; }
         // انتظار الريتست
         let j0 = -1;
         for (let j = i + 1; j <= Math.min(i + WAIT, lastSig); j++) {
@@ -3704,7 +3704,8 @@ const LVLBRK = (() => {
     }
     return out;
   }
-  return { strats: [{ name: NAME, mult: 1, sig: () => 0, run, btcF: 600, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "فكرة المستخدم 18/11: كسر مستوى مكرر + VAL + فوليوم + ريتست فاشل" }] };
+  return { strats: [{ name: NAME, mult: 1, sig: () => 0, run, btcF: 600, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "فكرة المستخدم 18/11: كسر مستوى مكرر + VAL + فوليوم + ريتست فاشل" },
+    { name: "🎯 كسر أرضية/سقف مكررة + ريتست 15m (بدون فلتر BTC)", mult: 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "نفسها بدون فلتر البيتكوين (طلب المستخدم 18/11)" }] };
 })();
 STRATS_ALL.push(...LVLBRK.strats);
 // 17/11 17:19: اتجاه واحد بس (مختبر) — لفحص الشورت لحاله قبل ربطه بالحقيقي
