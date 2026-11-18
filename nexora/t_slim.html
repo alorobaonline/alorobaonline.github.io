@@ -4569,7 +4569,9 @@ async function loadOI(sym) {
     if (Array.isArray(r) && r.length) { const oi = { T: r.map(x => x.timestamp), V: r.map(x => +x.sumOpenInterest) }; OIMEM[sym] = { at: Date.now(), oi }; return oi; } } catch (e) {}
   return m ? m.oi : null;
 }
-async function run(silent, only5) {
+let RUN_LOCK = false;   // 18/11: حسابين مع بعض كانوا يتشاركوا المعالجات وتختلط نتايج العملات — هلأ واحد بس بنفس الوقت
+async function run(silent, only5) { if (RUN_LOCK) return; RUN_LOCK = true; try { return await run0(silent, only5); } finally { RUN_LOCK = false; } }
+async function run0(silent, only5) {
   const st = m => { if (!silent) $("status").textContent = m; };
   try {
     $("run").disabled = true;
@@ -4671,7 +4673,7 @@ async function computeAll0(coins, startTs, prevOf, st) {
       const DP = withProv(c), D = { t0: DP.t0, sym: DP.sym, prov: !!DP.prov, o: DP.o, h: DP.h, l: DP.l, c: DP.c, v: DP.v, m5: DP.m5, s5ck: DP.s5ck, btcS: BTC_S, btc4: BTC4, oi: c.D.oi };   // + الشمعة الحية + فوليوم واسم العملة
       const res = await new Promise(r => { const tm = setTimeout(() => r({ err: "timeout" }), 180000);   // 18/11: معالج علق/انقتل → منحسبها هون بدل ما يعلق كل الحساب
         w.onmessage = ev => { clearTimeout(tm); r(ev.data); }; w.onerror = ev => { clearTimeout(tm); r({ err: ev.message || "worker" }); }; w.postMessage({ id: c.sym, D, startTs, only5: !!prev }); });
-      if (res.err) { computeOne(c, startTs, prev); }
+      if (res.err || res.id !== c.sym) { computeOne(c, startTs, prev); }   // 18/11: نتيجة عملة تانية (معالج مشترك بين حسابين) = منحسبها هون
       else { c.raw = prev ? prev.raw.filter(t => !M5N.has(t.name)).concat(res.raw) : res.raw; if (res.ck) { CK[c.sym] = res.ck; c.D.s5ck = res.ck; } }
       progressive(c, startTs); done++; tick();
     }
@@ -5108,7 +5110,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-1215";
+const BUILD = "2026-11-18-1225";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
