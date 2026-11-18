@@ -4654,7 +4654,9 @@ function progressive(c, startTs) {   // 17/11: كل عملة بتخلص بتنع
   const o = CACHE.bySym[c.sym]; o.D = c.D; o.raw = c.raw; o.funding = c.funding;
   if (Date.now() - PROG_T > 1500) { PROG_T = Date.now(); try { recalc(); } catch (e) {} }
 }
-async function computeAll(coins, startTs, prevOf, st) {
+let COMPUTING = 0;   // 18/11: حساب شغّال — النوم ما بيوقف المعالجات بنصه (كان الحساب يعلق للأبد)
+async function computeAll(coins, startTs, prevOf, st) { COMPUTING++; try { await computeAll0(coins, startTs, prevOf, st); } finally { COMPUTING--; } }
+async function computeAll0(coins, startTs, prevOf, st) {
   const P = pool(); let done = 0;
   { const q = coins.filter(c => c.D && !c.D.stub); await Promise.all(Array.from({ length: 4 }, async () => { while (q.length) { const c = q.shift(); c.D.oi = await loadOI(c.sym); } })); }   // 18/11: OI لنسخ «لا تلحق»
   { const b = coins.find(x => x.sym === "BTCUSDT"); BTC_S = b && b.D && !b.D.stub && b.D.o.length > 400 ? btcStateOf(b.D) : null; }
@@ -4667,7 +4669,8 @@ async function computeAll(coins, startTs, prevOf, st) {
     while (queue.length) {
       const c = queue.shift(), prev = prevOf(c);
       const DP = withProv(c), D = { t0: DP.t0, sym: DP.sym, prov: !!DP.prov, o: DP.o, h: DP.h, l: DP.l, c: DP.c, v: DP.v, m5: DP.m5, s5ck: DP.s5ck, btcS: BTC_S, btc4: BTC4, oi: c.D.oi };   // + الشمعة الحية + فوليوم واسم العملة
-      const res = await new Promise(r => { w.onmessage = ev => r(ev.data); w.onerror = ev => r({ err: ev.message || "worker" }); w.postMessage({ id: c.sym, D, startTs, only5: !!prev }); });
+      const res = await new Promise(r => { const tm = setTimeout(() => r({ err: "timeout" }), 180000);   // 18/11: معالج علق/انقتل → منحسبها هون بدل ما يعلق كل الحساب
+        w.onmessage = ev => { clearTimeout(tm); r(ev.data); }; w.onerror = ev => { clearTimeout(tm); r({ err: ev.message || "worker" }); }; w.postMessage({ id: c.sym, D, startTs, only5: !!prev }); });
       if (res.err) { computeOne(c, startTs, prev); }
       else { c.raw = prev ? prev.raw.filter(t => !M5N.has(t.name)).concat(res.raw) : res.raw; if (res.ck) { CK[c.sym] = res.ck; c.D.s5ck = res.ck; } }
       progressive(c, startTs); done++; tick();
@@ -5105,7 +5108,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-1200";
+const BUILD = "2026-11-18-1215";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
@@ -5781,7 +5784,7 @@ function goSleep() {
   if (!document.hidden || SLEEPING) return; SLEEPING = true;
   try { if (WS) { WS.onclose = null; WS.close(); } } catch (e) {} WS = null; WS_KEY = "";
   try { if (BWS) { BWS.onclose = null; BWS.close(); } } catch (e) {} BWS = null; BWS_KEY = ""; clearInterval(BWS_PING);
-  if (!BUSY && POOL && POOL.length) { for (const w of POOL) { try { w.terminate(); } catch (e) {} } POOL = null; }
+  if (!BUSY && !COMPUTING && POOL && POOL.length) { for (const w of POOL) { try { w.terminate(); } catch (e) {} } POOL = null; }
   console.log("😴 المنصة نايمة (التبويب مخفي)");
 }
 document.addEventListener("visibilitychange", () => {
