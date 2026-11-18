@@ -236,6 +236,8 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
     <button id="repCsv" class="sec">⬇️ تنزيل CSV</button>
   </div>
   <div class="wrap"><table id="repT"></table></div>
+  <h3 style="margin-top:14px">🧭 حسب حالة السوق وقت الدخول <span class="mut">(البيتكوين على الساعة: EMA50/200 + ADX) — <span id="repNow"></span></span></h3>
+  <div class="wrap"><table id="repR"></table></div>
   <h3 style="margin-top:14px">🕐 الصافي حسب ساعة الدخول <span class="mut">(بتوقيتك — كل الاستراتيجيات، الصفقات المسكّرة)</span></h3>
   <div class="wrap"><table id="repH"></table></div>
 </section>
@@ -4862,7 +4864,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0520";
+const BUILD = "2026-11-18-0535";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
@@ -4896,15 +4898,30 @@ function renderRealM5() {
 }
 
 
+// 18/11: 🧭 حالة السوق من البيتكوين على الساعة (آخر شمعة ساعة مسكّرة قبل الوقت ts):
+// 📈 ترند صاعد = السعر فوق EMA50 فوق EMA200 و ADX ≥ 25 · 📉 ترند نازل = بالعكس · ↔️ عرضي = ADX تحت 20 · 🌀 مخربط = غير هيك
+const REGIMES = [["up", "📈 ترند صاعد"], ["down", "📉 ترند نازل"], ["range", "↔️ عرضي"], ["mixed", "🌀 مخربط"]];
+let REG_I = null, REG_K = "";
+function regimeAt(ts) {
+  const b = CACHE && CACHE.bySym.BTCUSDT; if (!b || b.D.stub) return null;
+  const key = b.D.t0 + "|" + b.D.c.length; if (REG_K !== key) { REG_I = makeInd(b.D, 4); REG_K = key; }
+  const I = REG_I, k = Math.floor((ts - b.D.t0)/(4*M15)) - 1; if (k < 200 || k >= I.n) return null;
+  const c = I.C[k], e50 = I.ema50[k], e200 = I.ema200[k], adx = I.adx[k]; if (adx === null || e200 === null) return null;
+  if (adx >= 25 && c > e50 && e50 > e200) return "up";
+  if (adx >= 25 && c < e50 && e50 < e200) return "down";
+  if (adx < 20) return "range";
+  return "mixed";
+}
 // 18/11 (طلب المستخدم): 🧾 تقرير من التصفير — لكل استراتيجية + حسب ساعة اليوم + CSV
 function repData() {
   const T = RESULT ? RESULT.trades : [], g = new Map();
   for (const t of T) {
-    let a = g.get(t.name); if (!a) g.set(t.name, a = { name: t.name, n: 0, w: 0, gp: 0, gl: 0, net: 0, Ln: 0, Lnet: 0, Sn: 0, Snet: 0, o: 0, onet: 0, last: 0 });
+    let a = g.get(t.name); if (!a) g.set(t.name, a = { name: t.name, n: 0, w: 0, gp: 0, gl: 0, net: 0, Ln: 0, Lnet: 0, Sn: 0, Snet: 0, o: 0, onet: 0, last: 0, rg: {} });
     a.last = Math.max(a.last, t.eTs);
     if (t.open) { a.o++; a.onet += t.net; continue; }
     a.n++; a.net += t.net; if (t.net > 0) { a.w++; a.gp += t.net; } else a.gl -= t.net;
     if (t.d === 1) { a.Ln++; a.Lnet += t.net; } else { a.Sn++; a.Snet += t.net; }
+    const rg = regimeAt(t.eTs) || "?", x = a.rg[rg] || (a.rg[rg] = { n: 0, w: 0, net: 0 }); x.n++; x.net += t.net; if (t.net > 0) x.w++;
   }
   return [...g.values()].map(a => ({ ...a, pf: a.gl ? a.gp/a.gl : (a.gp ? 99 : 0), win: a.n ? a.w/a.n : 0, avgW: a.w ? a.gp/a.w : 0, avgL: a.n - a.w ? a.gl/(a.n - a.w) : 0 }));
 }
@@ -4917,6 +4934,14 @@ function renderRep() {
   $("repT").innerHTML = `<tr><th>الاستراتيجية</th><th>مسكّرة</th><th>ربح%</th><th>الصافي</th><th>PF</th><th>متوسط ربح</th><th>متوسط خسارة</th><th>لونج</th><th>شورت</th><th>مفتوحة</th><th class="hc">آخر صفقة</th></tr>` +
     `<tr style="font-weight:700"><td>المجموع</td><td class="num">${tot.n}</td><td class="num">${tot.n ? pc(tot.w/tot.n) : "—"}</td><td>${usd(tot.net)}</td><td class="num">${pf(tot.gl ? tot.gp/tot.gl : 99)}</td><td></td><td></td><td></td><td></td><td>${cnt(tot.o, tot.onet)}</td><td class="hc"></td></tr>` +
     rows.map(r => `<tr><td class="nm">${r.name}</td><td class="num">${r.n}</td><td class="num">${r.n ? pc(r.win) : "—"}</td><td>${r.n ? usd(r.net) : '<span class="mut">—</span>'}</td><td class="num">${r.n ? pf(r.pf) : "—"}</td><td>${r.w ? usd(r.avgW) : '<span class="mut">—</span>'}</td><td>${r.n - r.w ? usd(-r.avgL) : '<span class="mut">—</span>'}</td><td>${cnt(r.Ln, r.Lnet)}</td><td>${cnt(r.Sn, r.Snet)}</td><td>${cnt(r.o, r.onet)}</td><td class="hc mut">${r.last ? dt(r.last) : ""}</td></tr>`).join("");
+  // حسب حالة السوق وقت الدخول
+  const now = regimeAt(Date.now()), lab = Object.fromEntries(REGIMES);
+  $("repNow").innerHTML = `حالة السوق هلأ: <b>${now ? lab[now] : "—"}</b>`;
+  const cell = x => x && x.n ? `${x.n} · ${usd(x.net)} <span class="mut">${Math.round(100*x.w/x.n)}%</span>` : '<span class="mut">—</span>';
+  const allR = {}; for (const r of rows) for (const [k2, x] of Object.entries(r.rg)) { const y = allR[k2] || (allR[k2] = { n: 0, w: 0, net: 0 }); y.n += x.n; y.w += x.w; y.net += x.net; }
+  $("repR").innerHTML = `<tr><th>الاستراتيجية</th>${REGIMES.map(([, l]) => `<th>${l}</th>`).join("")}</tr>` +
+    `<tr style="font-weight:700"><td>المجموع</td>${REGIMES.map(([k2]) => `<td>${cell(allR[k2])}</td>`).join("")}</tr>` +
+    rows.filter(r => r.n).map(r => `<tr><td class="nm">${r.name}</td>${REGIMES.map(([k2]) => `<td>${cell(r.rg[k2])}</td>`).join("")}</tr>`).join("");
   // حسب ساعة الدخول (بتوقيت المستخدم)
   const H = Array.from({ length: 24 }, () => ({ n: 0, w: 0, net: 0 }));
   for (const t of RESULT.trades) if (!t.open) { const h = new Date(t.eTs).getHours(); H[h].n++; H[h].net += t.net; if (t.net > 0) H[h].w++; }
