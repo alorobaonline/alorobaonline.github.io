@@ -3836,6 +3836,80 @@ STRATS_ALL.push(...OLDB.strats);
 const OLD_ICHI = OLDB.strats[1].name, OLD_VOL = OLDB.strats[3].name;
 STRATS_ALL.push(timingWrap(OLD_ICHI, "limit6", 0.02, 0.012), timingWrap(OLD_VOL, "limit6", 0.02, 0.012));
 const OLD_KEEP = [OLD_ICHI, OLD_VOL, ...OLDB.strats.slice(5).map(x => x.name)];   // 18/11 00:49 (طلب المستخدم): كل البوتات القديمة الباقية على المنصة يجمعوا معلومات من التصفير   // 18/11 00:17 (طلب المستخدم): + فيبو 0.618 و الشموع 4h كما هم   // 17/11 23:16: كما هم بشروطهم بس (نسخ الليمت 0.6% بالمختبر — خسرت على السنتين)
+// 18/11 (فكرة المستخدم): 🎯 كسر أرضية/سقف مكررة + ريتست فاشل — 15m
+// المستوى: قاع (أو قمة) انلمس ≥5 مرات بآخر 3 أيام (قيعان/قمم مؤكدة بشمعتين كل جهة، ضمن ±0.15% من بعض)
+// الكسر: إغلاق 15m تحت المستوى (وكانت اللي قبلها فوقه) + تحت VAL (بروفايل فوليوم آخر 96 شمعة، 70%) + فوليوم ≥1.5× معدل 20
+// الدخول: خلال 8 شموع، السعر برجع يلمس المستوى من تحت (ضمن 0.1%) وبيسكّر تحته ← دخول على افتتاح الشمعة الجاية · إغلاق فوق المستوى قبلها = الكسر فشل
+// الوقف: فوق هاي شمعة الريتست بـ0.1% · الهدف 2R · فلتر BTC: شورت بس لما البيتكوين مش فوق متوسط 100 يوم، لونج بس لما مش تحته
+const LVLBRK = (() => {
+  const NAME = "🎯 كسر أرضية/سقف مكررة + ريتست 15m (BTC)", LB = 288, TOL = 0.0015, TOUCH = 5, VWIN = 96, WAIT = 8;
+  function valueArea(D, a, b) {   // [a..b] → { val, vah }
+    let lo = Infinity, hi = -Infinity; for (let k = a; k <= b; k++) { if (D.l[k] < lo) lo = D.l[k]; if (D.h[k] > hi) hi = D.h[k]; }
+    if (!(hi > lo)) return null;
+    const NB = 50, w = (hi - lo)/NB, vol = new Float64Array(NB); let tot = 0;
+    for (let k = a; k <= b; k++) { const v = D.v ? D.v[k] || 0 : 1; if (!v) continue; const b0 = Math.min(NB - 1, Math.floor((D.l[k] - lo)/w)), b1 = Math.min(NB - 1, Math.floor((D.h[k] - lo)/w)), per = v/(b1 - b0 + 1); for (let q = b0; q <= b1; q++) vol[q] += per; tot += v; }
+    if (!tot) return null;
+    let poc = 0; for (let q = 1; q < NB; q++) if (vol[q] > vol[poc]) poc = q;
+    let x = poc, y = poc, acc = vol[poc];
+    while (acc < 0.7*tot && (x > 0 || y < NB - 1)) { const dn = x > 0 ? vol[x-1] : -1, up = y < NB - 1 ? vol[y+1] : -1; if (up >= dn) { y++; acc += vol[y]; } else { x--; acc += vol[x]; } }
+    return { val: lo + x*w, vah: lo + (y + 1)*w };
+  }
+  function run(D, inds, sp, startTs) {
+    const { o, h, l, c } = D, v = D.v, n = c.length, lastSig = D.prov ? n - 2 : n - 1, out = [];
+    let lo0 = 0; while (lo0 < n && D.t0 + lo0*M15 < startTs - 5*864e5) lo0++;
+    // قيعان/قمم مؤكدة (شمعتين كل جهة): القاع عند k بينعرف عند k+2
+    const pl = [], ph = [];
+    for (let k = 2; k + 2 < n; k++) {
+      if (l[k] < l[k-1] && l[k] < l[k-2] && l[k] <= l[k+1] && l[k] <= l[k+2]) pl.push(k);
+      if (h[k] > h[k-1] && h[k] > h[k-2] && h[k] >= h[k+1] && h[k] >= h[k+2]) ph.push(k);
+    }
+    const level = (P, arr, i, d) => {   // مستويات اللي الكسر عبرها (بين إغلاق i-1 وإغلاق i)
+      let best = null;
+      for (let q = P.length - 1; q >= 0; q--) { const k = P[q]; if (k + 2 > i - 1) continue; if (k < i - LB) break;
+        const p = arr[k]; if (!(d === -1 ? (p > c[i] && p <= c[i-1]*(1 + TOL)) : (p < c[i] && p >= c[i-1]*(1 - TOL)))) continue;
+        let cnt = 0, s = 0; for (let r = P.length - 1; r >= 0; r--) { const kk = P[r]; if (kk + 2 > i - 1) continue; if (kk < i - LB) break; if (Math.abs(arr[kk]/p - 1) <= TOL) { cnt++; s += arr[kk]; } }
+        if (cnt >= TOUCH && (!best || cnt > best.cnt)) best = { L: s/cnt, cnt };
+      }
+      return best;
+    };
+    let busyTo = -1;
+    for (let i = Math.max(VWIN + 21, lo0); i <= lastSig && i < n - 1; i++) {
+      if (i <= busyTo) continue;
+      let va = 0; for (let k = i - 20; k < i; k++) va += v ? v[k] || 0 : 0; if (!(v && va > 0 && v[i] >= 1.5*va/20)) continue;
+      for (const d of [-1, 1]) {
+        const lv = d === -1 ? level(pl, l, i, -1) : level(ph, h, i, 1); if (!lv) continue;
+        const L = lv.L; if (!(d === -1 ? (c[i] < L && c[i-1] >= L) : (c[i] > L && c[i-1] <= L))) continue;
+        const A = valueArea(D, i - VWIN, i - 1); if (!A || !(d === -1 ? c[i] < A.val : c[i] > A.vah)) continue;
+        const b = OLDB.btcAt(D, D.t0 + (i + 1)*M15, 600); if (b !== 0 && b !== d) continue;
+        // انتظار الريتست
+        let j0 = -1;
+        for (let j = i + 1; j <= Math.min(i + WAIT, lastSig); j++) {
+          if (d === -1 ? c[j] >= L : c[j] <= L) break;   // رجع سكّر فوق/تحت المستوى: الكسر فشل
+          if (d === -1 ? h[j] >= L*(1 - 0.001) : l[j] <= L*(1 + 0.001)) { j0 = j; break; }
+        }
+        if (j0 < 0) continue;
+        const e = j0 + 1; if (e >= n) continue;
+        const entry = o[e], stop = d === -1 ? h[j0]*1.001 : l[j0]*0.999, risk = d*(entry - stop);
+        if (!(risk > 0)) continue;
+        const tgt = entry + d*2*risk;
+        let px = null, why = null, x = null;
+        for (let j = e; j < n; j++) {
+          if (d*(o[j] - stop) <= 0) { px = o[j]; why = "STOP"; x = j; break; }
+          if (j > e && d*(o[j] - tgt) >= 0) { px = o[j]; why = "TGT_GAP"; x = j; break; }
+          if (d === 1 ? l[j] <= stop : h[j] >= stop) { px = stop; why = "STOP"; x = j; break; }
+          if (d === 1 ? h[j] >= tgt : l[j] <= tgt) { px = tgt; why = "TARGET"; x = j; break; }
+        }
+        const open = px === null; busyTo = open ? n : x;
+        if (D.t0 + e*M15 >= startTs) out.push(open ? { name: sp.name, d, e, x: n - 1, rawIn: entry, rawOut: c[n-1], why: "TIME", open: true, stop, target: tgt }
+                                                   : { name: sp.name, d, e, x, rawIn: entry, rawOut: px, why, open: false, stop, target: tgt });
+        break;
+      }
+    }
+    return out;
+  }
+  return { strats: [{ name: NAME, mult: 1, sig: () => 0, run, btcF: 600, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "فكرة المستخدم 18/11: كسر مستوى مكرر + VAL + فوليوم + ريتست فاشل" }] };
+})();
+STRATS_ALL.push(...LVLBRK.strats);
 // 17/11 17:19: اتجاه واحد بس (مختبر) — لفحص الشورت لحاله قبل ربطه بالحقيقي
 function dirOnlyWrap(baseName, d) {
   const name = baseName + (d === 1 ? " | لونج بس" : " | شورت بس");
@@ -4772,7 +4846,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0425";
+const BUILD = "2026-11-18-0440";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
