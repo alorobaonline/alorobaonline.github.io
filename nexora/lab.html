@@ -2506,11 +2506,12 @@ const BAGHERI = (() => {   // Bagheri IG Ether v2 (mbagheri746) — منسوخة
   function run(D, inds, sp, startTs) {
     if (sp.coins && D.sym && !sp.coins.includes(D.sym)) return [];
     const m = sp.mult, I = inds[m]; if (!I || I.n < 300) return [];
-    const { sroc, up, lo, BP, SBOP, sma } = prep(I), { O, H, L, C, n } = I, out = [], TP = 3000*sp.tick, SL = 2200*sp.tick;
+    const { sroc, up, lo, BP, SBOP, sma } = prep(I), { O, H, L, C, n } = I, out = [];
+    const TPof = e => sp.pct ? e*sp.pct[0] : 3000*sp.tick, SLof = e => sp.pct ? e*sp.pct[1] : 2200*sp.tick;   // 18/11: pct = نسخة كل العملات (نفس مسافة ETH كنسبة)
     let pos = null;
     for (let k = 300; k < n; k++) {
       if (pos) {   // أمر الخروج شغال من شمعة الدخول: المسار متل TradingView (الافتتاح ← الطرف الأقرب ← التاني ← الإغلاق)
-        const d = pos.d, tp = pos.e + d*TP, sl = pos.e - d*SL, o = O[k];
+        const d = pos.d, tp = pos.e + d*TPof(pos.e), sl = pos.e - d*SLof(pos.e), o = O[k];
         let px = null, why = null;
         if (k !== pos.k && d*(o - sl) <= 0) { px = o; why = "STOP"; }
         else if (k !== pos.k && d*(o - tp) >= 0) { px = o; why = "TGT_GAP"; }
@@ -2531,11 +2532,12 @@ const BAGHERI = (() => {   // Bagheri IG Ether v2 (mbagheri746) — منسوخة
       if (!L1 && !S1) continue;
       pos = { d: L1 ? 1 : -1, k: k + 1, e: O[k+1] };
     }
-    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.k*m, x: D.o.length - 1, rawIn: pos.e, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop: pos.e - pos.d*2200*sp.tick, target: pos.e + pos.d*3000*sp.tick });
+    if (pos) out.push({ name: sp.name, d: pos.d, e: pos.k*m, x: D.o.length - 1, rawIn: pos.e, rawOut: D.c[D.c.length-1], why: "TIME", open: true, stop: pos.e - pos.d*SLof(pos.e), target: pos.e + pos.d*TPof(pos.e) });
     return out;
   }
   const mk = (name, mult) => ({ name, mult, coins: ["ETHUSDT"], tick: 0.01, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Bagheri IG Ether v2" });
-  return { run, strats: [mk("Bagheri IG Ether 15m (كما هي)", 1), mk("Bagheri IG Ether ساعة (كما هي)", 4), mk("Bagheri IG Ether 4h (كما هي)", 16)] };
+  return { run, strats: [mk("Bagheri IG Ether 15m (كما هي)", 1), mk("Bagheri IG Ether ساعة (كما هي)", 4), mk("Bagheri IG Ether 4h (كما هي)", 16),
+    { ...mk("Bagheri IG 15m كل العملات (هدف 1.7% وقف 1.2%)", 1), coins: null, pct: [0.0167, 0.0122] }] };   // 18/11 (طلب المستخدم — تجميع معلومات): نفس المنطق على كل العملات، الهدف والوقف كنسبة (30$/22$ على ETH ~1800)
 })();
 
 // 16/11: نسخة S15 بتدخل أول ما شمعة 15 دقيقة تسكّر بعد سعر الشرط (بدل ما تستنى إغلاق شمعة الـ4 ساعات) — طلب المستخدم، لايف على المنصة
@@ -3909,7 +3911,38 @@ STRATS_ALL.push(dirOnlyWrap("#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(quietWrap(timingWrap(b, "limit6")));   // مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(posWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), 0.4), posWrap(timingWrap(b, "limit6"), 0.4));   // مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(floorAvoidWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), floorAvoidWrap(timingWrap(b, "limit6")));   // مختبر بس
-for (const b of TP_BASES) STRATS_ALL.push(capitWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), capitWrap(timingWrap(b, "limit6")));   // 17/11 فلتر استسلام   // 17/11 فلتر ترند
+for (const b of TP_BASES) STRATS_ALL.push(capitWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%")), capitWrap(timingWrap(b, "limit6")));
+// 18/11 (طلب المستخدم — «فكّر بتجميع معلومات»): نسخ مع فلتر من «مختبر الفلاتر» جنب الأصلية (الأصلية بتضل) — كل فلتر من شموع مسكّرة قبل الدخول
+const FW_I1 = new WeakMap(), FW_I4 = new WeakMap(), FW_E200 = new WeakMap();
+const fwI1 = D => { let x = FW_I1.get(D.c); if (!x) { x = makeInd(D, 1); FW_I1.set(D.c, x); } return x; };
+const fwI4 = D => { let x = FW_I4.get(D.c); if (!x) { x = makeInd(D, 4); FW_I4.set(D.c, x); } return x; };
+const fwE200 = D => { let x = FW_E200.get(D.c); if (!x) { x = ema(D.c, 200); FW_E200.set(D.c, x); } return x; };
+const FWF = {
+  noChase2: (D, t, i) => 100*t.d*(D.c[i]/D.c[i-16] - 1) <= 2,   // ما ندخل إذا السعر مشي >2% باتجاه الصفقة بآخر 4 ساعات
+  e200in3: (D, t, i) => 100*t.d*(D.c[i]/fwE200(D)[i] - 1) <= 3,   // ما ندخل إذا السعر بعيد >3% عن EMA200 (15m) باتجاه الصفقة
+  calmAtr: (D, t, i) => { const a = fwI1(D).atr[i]; return a == null || 100*a/D.c[i] <= 0.8; },   // ما ندخل إذا ATR 15m > 0.8%
+  against1h: (D, t, i) => { const I = fwI4(D), k = Math.floor((i + 1)/4) - 1; if (k < 50 || I.ema50[k] == null) return true; return (I.C[k] > I.ema50[k] ? 1 : -1) !== t.d; },   // بس لما العملة عكس الصفقة على الساعة
+  oiNotDown: (D, t, i) => { if (!D.oi) return true; const ts = D.t0 + t.e*M15, a = oiAt(D.oi, ts - 3600e3), b = oiAt(D.oi, ts - 5*3600e3); return !(a && b && a < b*0.98); },   // ما ندخل إذا OI نازل >2%
+};
+function featWrap(baseName, tag, keep) {
+  const name = baseName + " + " + tag;
+  const run = (D, inds, sp, startTs) => { const base = STRATS_ALL.find(x => x.name === baseName); if (!base) return [];
+    return evaluate(D, inds, base, startTs).filter(t => { const i = t.e - 1; return i < 300 || keep(D, t, i); }).map(t => ({ ...t, name })); };
+  const B0 = STRATS_ALL.find(x => x.name === baseName) || {};
+  return { name, mult: B0.mult || 1, ...(B0.m5 ? { m5: true } : {}), sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "feature filter 18/11" };
+}
+const FEAT_WRAPS = [
+  ["#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.6%", "بدون ملاحقة 2%", FWF.noChase2],
+  ["#8 Lux Trendline+TRAMA+Chandelier | ليمت 1% · هدف 1% · وقف 1.5%", "قريب من EMA200", FWF.e200in3],
+  ["🎯 كسر أرضية/سقف مكررة + ريتست 15m (BTC)", "تقلب هادي", FWF.calmAtr],
+  ["MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "عكس ترند الساعة", FWF.against1h],
+  ["MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "تقلب هادي", FWF.calmAtr],
+  ["Range Sniper 15m (كما هي)", "OI مش نازل", FWF.oiNotDown]];
+for (const [b, tag, f] of FEAT_WRAPS) STRATS_ALL.push(featWrap(b, tag, f));
+// 18/11: نسخ أسرع للعائلات النادرة (نفس المنطق، فريم أصغر = إشارات أكتر للتجميع)
+for (const b of ["S16 SMC A 1h", "S16 SMC B 1h (CHoCH)", "IT1226 ساعة لونج+شورت", "IT1226 4h لونج+شورت"]) STRATS_ALL.push(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"));
+const PLATFORM_DATA18 = [...FEAT_WRAPS.map(([b, tag]) => b + " + " + tag), ...["S16 SMC A 1h", "S16 SMC B 1h (CHoCH)", "IT1226 ساعة لونج+شورت", "IT1226 4h لونج+شورت"].map(b => b + " | هدف 1.2% وقف 1.2%"), "Bagheri IG 15m كل العملات (هدف 1.7% وقف 1.2%)"];
+   // 17/11 فلتر استسلام   // 17/11 فلتر ترند
 
 // نسخ فحص (جان، Turtle Soup...): بتشتغل بمختبر السيرفر بس — المنصة بالمتصفح ما بتحسبها (أسرع، وما بتلوّث الحساب)
 const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جان (فكرة المستخدم)", "تقاطع مراوح جان (فكرة المستخدم)", "تقاطع مراوح جان v2 (طريقة المستخدم)",
@@ -3923,6 +3956,7 @@ const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% �
 // 17/11 18:16 (طلب المستخدم): المنصة كلها على هدف 1.5% ووقف 1.2% — بنبدّل اسم كل نسخة 1.2% بنسختها 1.5% (Range Sniper وLux ليمت 1% بأهدافهم الأصلية)
 const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
 const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المستخدم — 1.5% طلع أسوأ من التصفير). نسخ 1.5% بالمختبر
+PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n));   // 18/11: نسخ تجميع المعلومات على المنصة
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 // 17/11 19:53 (طلب المستخدم): الخسرانين من التصفير انشالوا من المنصة — بالمختبر بس
