@@ -3978,7 +3978,7 @@ const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جا�
 // 16/11 16:40: المنصة بتشغّل بس نسخ "هدف 1.2% / وقف 1.2%" من كل الاستراتيجيات (طلب المستخدم) — الأصلية بالمختبر بس
 const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% ليمت 0.6%", b + " | 1.2% ليمت 0.8%"]),   // 17/11 03:55: «تأكيد 15m» انلغت من المنصة (طلب المستخدم — دخول متأخر على أسوأ سعر)
   ...["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"].map(b => b + " | هدف 1.2% وقف 1.2%"),
-  ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"]), "Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", "Range Sniper 15m (كما هي) + فلتر BTC", "Range Sniper 15m + ترند 4h + فلتر BTC", ...MACDP.strats.slice(0, 3).map(s => s.name), LUX_L10, ...OLD_KEEP,   // MACD v1.1 (17/11 12:19) · 17/11: كسر+فوليوم+ريتست انشالت من المنصة (خسرت من التصفير وعلى السنتين) — بالمختبر بس
+  ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"]), "Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", "Range Sniper 15m (كما هي) + فلتر BTC", "Range Sniper 15m + ترند 4h + فلتر BTC", "🎯 كسر أرضية/سقف مكررة + ريتست 15m (BTC)", ...MACDP.strats.slice(0, 3).map(s => s.name), LUX_L10, ...OLD_KEEP,   // MACD v1.1 (17/11 12:19) · 17/11: كسر+فوليوم+ريتست انشالت من المنصة (خسرت من التصفير وعلى السنتين) — بالمختبر بس
 ]);   // 17/11 07:45: نسخ "فلتر استسلام" (فوليوم) انشالت من المنصة — بالمختبر بس (طلب المستخدم)   // فلاتر ضد الكسر الوهمي (16/11)   // + 3 طرق توقيت الدخول   // 🧪 تحت المراقبة من 16/11 (مستقلة عن S15، ما انثبتت على العملات الجديدة)
 // 17/11 18:16 (طلب المستخدم): المنصة كلها على هدف 1.5% ووقف 1.2% — بنبدّل اسم كل نسخة 1.2% بنسختها 1.5% (Range Sniper وLux ليمت 1% بأهدافهم الأصلية)
 const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
@@ -4847,7 +4847,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0450";
+const BUILD = "2026-11-18-0500";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
