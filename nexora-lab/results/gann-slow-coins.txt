@@ -1,4 +1,4 @@
-NEXORA LAB (GitHub) | gann-slow-coins | 2026-11-17T12:15:50.864Z | hash=4540533f3b | engine=23d5f2b7 | coins 30 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
+NEXORA LAB (GitHub) | gann-slow-coins | 2026-11-18T12:11:31.821Z | hash=87b89fdf07 | engine=a3bd6078 | coins 30 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
 ## Gann بطيء 8x1 ±1ATR شراء بس | ❌ (maker-entry ❌) | coins+all3 0/30
 تدريب: n=27 -9.15$ PF0.92 win52% gross/t-0.17$ t-0.2 DD85$ | اختبار: n=15 +22.85$ PF1.64 win40% gross/t+1.80$ t0.6 DD17$ | جديدة: n=2 -0.49$ PF0.93 win50% gross/t-0.05$ t-0.0 DD7$
 maker-entry: تدريب: n=27 -6.99$ PF0.94 win52% gross/t-0.17$ t-0.2 DD84$ | اختبار: n=15 +24.05$ PF1.69 win40% gross/t+1.80$ t0.6 DD17$ | جديدة: n=2 -0.33$ PF0.95 win50% gross/t-0.05$ t-0.0 DD7$
