@@ -3747,6 +3747,30 @@ function exitWrap(baseName, mode) {
 const EXIT_BASES = ["V42 4H SHORT b0 | 1.2% ليمت 0.8%", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8%", "⭐ S15 V2 4h R2.5 h40 | 1.2% ليمت 0.8%",
   "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", "MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR"];
 for (const b of EXIT_BASES) STRATS_ALL.push(exitWrap(b, "atr"), exitWrap(b, "time"));   // مختبر بس
+// 18/11 (خطة المستخدم — التمويل/OI): «لا تلحق» — نفس صفقات الاستراتيجية، بس منشيل:
+//  • الشورت إذا السعر نزل بآخر 4 ساعات قبل الدخول (منبيع الارتداد، مش القاع)
+//  • اللونج إذا السعر طلع بآخر 4 ساعات و OI (الصفقات المفتوحة) كمان طلع (لحاق ورا الشرايين الجداد) — بس إذا بيانات OI موجودة (D.oi)
+// من تحليل 1,199 صفقة من التصفير (سوق عرضي). فلتر بعدي على صفقات الأصلية (ما بيعيد ترتيبها)
+function oiAt(O, ts) { if (!O) return null; let lo = 0, hi = O.T.length - 1, j = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (O.T[m] <= ts) { j = m; lo = m + 1; } else hi = m - 1; } return j < 0 ? null : O.V[j]; }
+function noChaseWrap(baseName) {
+  const name = baseName + " + لا تلحق";
+  const run = (D, inds, sp, startTs) => {
+    const base = STRATS_ALL.find(x => x.name === baseName); if (!base) return [];
+    return evaluate(D, inds, base, startTs).filter(t => {
+      const i = t.e - 1; if (i < 16) return true;
+      const px = D.c[i]/D.c[i-16] - 1;
+      if (t.d === -1) return px >= 0;
+      if (px < 0 || !D.oi) return true;
+      const eTs = D.t0 + t.e*M15, a = oiAt(D.oi, eTs - 3600e3), b = oiAt(D.oi, eTs - 5*3600e3);
+      return !(a && b && a > b);
+    }).map(t => ({ ...t, name }));
+  };
+  return { name, mult: (STRATS_ALL.find(x => x.name === baseName) || {}).mult || 1, sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "no-chase filter (price 4h + OI)" };
+}
+const NOCHASE_BASES = ["Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%",
+  "MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR", "V42 4H SHORT b0 | 1.2% ليمت 0.8%", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8%"];
+for (const b of NOCHASE_BASES) STRATS_ALL.push(noChaseWrap(b));   // مختبر بس
+
 
 // 17/11 17:19: اتجاه واحد بس (مختبر) — لفحص الشورت لحاله قبل ربطه بالحقيقي
 function dirOnlyWrap(baseName, d) {
