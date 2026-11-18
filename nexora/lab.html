@@ -3772,6 +3772,44 @@ function noChaseWrap(baseName) {
 const NOCHASE_BASES = ["Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%",
   "MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR", "V42 4H SHORT b0 | 1.2% ليمت 0.8%", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8%"];
 for (const b of NOCHASE_BASES) STRATS_ALL.push(noChaseWrap(b));   // مختبر بس
+// 18/11 (طلب المستخدم — «خلي الربح يركض»): نفس صفقات الاستراتيجية، بس لما توصل الهدف ما بتسكّر:
+//  الوقف بيطلع لربح مضمون (الدخول + نص المسافة للهدف)، وبعدها بيلحق السعر من ورا بمسافة 1× ATR(14) ساعة — ما بينزل أبداً
+//  قبل الهدف: نفس وقف الأصلية · الفحص: الوقف بشمعة بتنفحص قبل ما نطلّعه بأعلى سعرها (محافظ)
+const TRAIL_I4 = new WeakMap();
+function trailWrap(baseName) {
+  const name = baseName + " + وقف متحرك";
+  const run = (D, inds, sp, startTs) => {
+    const base = STRATS_ALL.find(x => x.name === baseName); if (!base) return [];
+    const src = evaluate(D, inds, base, startTs).slice().sort((a, b) => a.e - b.e), n = D.o.length, out = [], seen = new Set();
+    let I4 = inds && inds[4]; if (!I4) { if (!TRAIL_I4.has(D)) TRAIL_I4.set(D, makeInd(D, 4)); I4 = TRAIL_I4.get(D); }
+    const atrAt = j => { const k = Math.floor(j/4) - 1; return k >= 0 && k < I4.n ? I4.atr[k] : null; };
+    let busy = -1;
+    for (const t of src) {
+      const k0 = t.e + "|" + t.d; if (seen.has(k0)) continue; seen.add(k0);
+      if (t.e <= busy) continue;
+      const d = t.d, e = t.e, entry = +t.rawIn, tgt = t.target; let stop = t.stop;
+      if (!(entry > 0) || !Number.isFinite(stop) || !Number.isFinite(tgt)) continue;
+      let on = false, ext = null, px = null, why = null, xi = null;
+      for (let j = e; j < n; j++) {
+        if (j > e && d*(D.o[j] - stop) <= 0) { px = D.o[j]; why = on ? "TRAIL_STOP" : "STOP"; xi = j; break; }
+        if (d === 1 ? D.l[j] <= stop : D.h[j] >= stop) { px = stop; why = on ? "TRAIL_STOP" : "STOP"; xi = j; break; }
+        if (!on && !(t.lim && j === e) && (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt)) { on = true; ext = tgt; const lock = entry + d*0.5*Math.abs(tgt - entry); stop = d === 1 ? Math.max(stop, lock) : Math.min(stop, lock); }
+        if (on) { const hiLo = d === 1 ? D.h[j] : D.l[j]; ext = d === 1 ? Math.max(ext, hiLo) : Math.min(ext, hiLo); const A = atrAt(j);
+          if (A > 0) { const cand = ext - d*A; stop = d === 1 ? Math.max(stop, cand) : Math.min(stop, cand); } }
+      }
+      const lim = !!t.lim;
+      if (px !== null) { out.push({ name, d, e, x: xi, rawIn: entry, rawOut: px, why, open: false, stop, target: NaN, ...(lim ? { lim } : {}) }); busy = xi; }
+      else { out.push({ name, d, e, x: n - 1, rawIn: entry, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: NaN, ...(lim ? { lim } : {}) }); busy = n - 1; }
+    }
+    return out;
+  };
+  const B0 = STRATS_ALL.find(x => x.name === baseName) || {};
+  return { name, mult: B0.mult || 1, ...(B0.m5 ? { m5: true } : {}), sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "trail after target (user 18/11)" };
+}
+const TRAIL_BASES = ["Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", "V42 4H SHORT b0 | 1.2% ليمت 0.8%", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8% + لا تلحق",
+  "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR"];
+for (const b of TRAIL_BASES) STRATS_ALL.push(trailWrap(b));   // مختبر بس
+
 
 
 // 17/11 17:19: اتجاه واحد بس (مختبر) — لفحص الشورت لحاله قبل ربطه بالحقيقي
