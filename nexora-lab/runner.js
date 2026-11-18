@@ -102,7 +102,7 @@ async function universe(coins, strats, withM5) {
     D.fund = F;   // للاستراتيجيات اللي بتستعمل التمويل كفلتر (بس التمويل اللي صار قبل وقت الإشارة)   // فريمات تانية (6 ساعات = 24، 8 ساعات = 32)
     const raw = {}; for (const sp of strats) raw[sp.name] = E.evaluate(D, inds, sp, D.t0).filter(t => !t.open);
     D.m5 = null;   // توفير ذاكرة
-    per[sym] = { D, F, raw }; console.log(sym, D.c.length, "bars", new Date(D.t0 + D.c.length*M15).toISOString());
+    per[sym] = { D, F, raw, I4: inds[4], I16: inds[16] };   // 19/11: ترند العملة (ساعة/4س) لفحص «السوق كله نازل» console.log(sym, D.c.length, "bars", new Date(D.t0 + D.c.length*M15).toISOString());
   }
   return per;
 }
@@ -200,6 +200,39 @@ function jobMulti(job, per, coins) {
   return lines.join("\n");
 }
 
+// ---------- 19/11: «السوق كله نازل» (breadth) — نسبة العملات النازلة بآخر X ساعة قبل الدخول (شموع مسكّرة بس) ----------
+// job.breadth = { lookbacks: [8, 16], thr: [0.7, 0.8] } · بيعمل لكل استراتيجية: «| ترند» (قوانين المرآة) و «| ترند + سوق»
+// قوانين المرآة (18/11): لونج والعملة طالعة على الساعة ← لا · شورت والعملة طالعة على 4 ساعات ← لا · Range لازم مع ترند 4 ساعات
+function applyBreadth(job, per) {
+  const syms = Object.keys(per), cfg = job.breadth, BR = {};
+  const t0 = Math.min(...syms.map(s => per[s].D.t0)), t1 = Math.max(...syms.map(s => per[s].D.t0 + per[s].D.c.length*M15)), N = Math.round((t1 - t0)/M15) + 1;
+  for (const lb of cfg.lookbacks) { const dn = new Float32Array(N), tot = new Float32Array(N);
+    for (const s of syms) { const D = per[s].D, off = Math.round((D.t0 - t0)/M15);
+      for (let i = lb; i < D.c.length; i++) { const g = off + i + 1; if (g >= N) break; tot[g]++; if (D.c[i] < D.c[i - lb]) dn[g]++; } }   // g = وقت الدخول بعد ما الشمعة i سكّرت
+    BR[lb] = { dn, tot }; }
+  const brAt = (lb, ts) => { const g = Math.round((ts - t0)/M15), b = BR[lb]; return g >= 0 && g < N && b.tot[g] >= 20 ? b.dn[g]/b.tot[g] : null; };
+  const trendOf = (I, m, i) => { const k = Math.floor((i + 1)/m) - 1; return k >= 50 && k < I.n && I.ema50[k] != null ? (I.C[k] > I.ema50[k] ? 1 : -1) : 0; };
+  const names = [], combo = job.combo ? job.combo.name : null, tags = ["", " | ترند"];
+  for (const lb of cfg.lookbacks) for (const th of cfg.thr) tags.push(` | ترند + لونج لا إذا ${Math.round(th*100)}%+ نازلة ${lb/4}س`);
+  for (const name of job.strategies) for (const tag of tags) names.push(name + tag);
+  const stats = {};
+  for (const s of syms) { const P = per[s], D = P.D;
+    for (const name of job.strategies) { const raw = P.raw[name] || [];
+      const tr = raw.filter(t => { const i = t.e - 1, c1 = trendOf(P.I4, 4, i), c4 = trendOf(P.I16, 16, i);
+        if (t.d === 1 && c1 === 1) return false; if (t.d === -1 && c4 === 1) return false; if (/^Range/.test(name) && c4 !== t.d) return false; return true; });
+      P.raw[name + " | ترند"] = tr;
+      for (const lb of cfg.lookbacks) for (const th of cfg.thr) {
+        P.raw[name + ` | ترند + لونج لا إذا ${Math.round(th*100)}%+ نازلة ${lb/4}س`] = tr.filter(t => { if (t.d !== 1) return true; const b = brAt(lb, D.t0 + t.e*M15); const k = `${lb}|${th}`; stats[k] = stats[k] || [0, 0]; stats[k][1]++; if (b !== null && b >= th) { stats[k][0]++; return false; } return true; }); }
+    }
+    if (combo) for (const tag of tags) {   // كل الحقيقي مع بعض: صفقة وحدة لكل عملة (زي المرآة)، والأولوية حسب ترتيب القائمة
+      const all = job.strategies.flatMap((n, r) => (P.raw[n + tag] || []).map(t => ({ t, r }))).sort((a, b) => a.t.e - b.t.e || a.r - b.r);
+      const out = []; let busy = -1; for (const { t } of all) { if (t.e <= busy) continue; out.push(t); busy = t.x; } P.raw[combo + tag] = out; }
+  }
+  if (combo) for (const tag of tags) names.push(combo + tag);
+  console.log("breadth: blocked longs", JSON.stringify(stats));
+  return names;
+}
+
 // ---------- نوع 2: اختيار متحرك (شغّل اللي شغال) ----------
 function jobRolling(job, per, coins) {
   const P = Pmain(job), rank = Object.fromEntries(coins.map((c, i) => [c, i])), now = Math.max(...Object.values(per).map(x => x.D.t0 + x.D.c.length*M15));
@@ -281,10 +314,11 @@ if (require.main === module) (async () => {
   const strats = E.STRATS.filter(s => names.includes(s.name));
   const missing = names.filter(n => !strats.find(s => s.name === n)); if (missing.length) console.log("unknown strategies:", missing);
   const t0 = Date.now();
-  for (const { id, job, hash, rf } of todo) try {   // كل فحص: بس عملاته واستراتيجياته (أسرع)
+  for (let { id, job, hash, rf } of todo) try {   // كل فحص: بس عملاته واستراتيجياته (أسرع)
     if (job.coinsFromArchive) { job.coins = await archiveCoins(job.coinsFromArchive); console.log("archive coins:", job.coins.length, job.coins.join(",")); }
     const sub = await universe(job.coins, strats.filter(s => job.strategies.includes(s.name)), !!job.m5);
     let body;
+    if (job.breadth) { const nm = applyBreadth(job, sub); job = { ...job, strategies: nm, slots: job.slots }; }
     if (job.type === "confirm") {   // دمج: صفقة A بتنحسب بس إذا B فاتحة صفقة بنفس الاتجاه على نفس العملة لحظة الدخول
       const names = [];
       for (const [A, B] of job.pairs) { const nm = `${A} ✚ ${B}`; names.push(nm);
@@ -311,4 +345,4 @@ if (require.main === module) (async () => {
   console.log("done in", ((Date.now() - t0)/1000).toFixed(0), "s");
 })().catch(e => { console.error(e); process.exit(1); });
 
-module.exports = { klines, funding, E };
+module.exports = { klines, funding, E, applyBreadth };
