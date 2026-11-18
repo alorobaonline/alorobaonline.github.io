@@ -4029,6 +4029,39 @@ function trailWrap(baseName) {
 const TRAIL_BASES = ["Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", "V42 4H SHORT b0 | 1.2% ليمت 0.8%", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8% + لا تلحق",
   "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR"];
 for (const b of TRAIL_BASES) STRATS_ALL.push(trailWrap(b));   // مختبر بس
+// 18/11 (طلب المستخدم): «نص سكره ووقف على سعر الدخول» — نفس صفقات الاستراتيجية:
+//  قبل الهدف: الصفقة كاملة بوقفها · على الهدف: نص بيسكّر (Maker) والنص التاني وقفه على سعر الدخول (من الشمعة الجاية) · النص التاني بدون هدف
+function halfBEWrap(baseName) {
+  const name = baseName + " + نص على الهدف ووقف دخول";
+  const run = (D, inds, sp, startTs) => {
+    const base = STRATS_ALL.find(x => x.name === baseName); if (!base) return [];
+    const src = evaluate(D, inds, base, startTs).slice().sort((a, b) => a.e - b.e), n = D.o.length, out = [], seen = new Set();
+    let busy = -1;
+    for (const t of src) {
+      const k0 = t.e + "|" + t.d; if (seen.has(k0)) continue; seen.add(k0);
+      if (t.e <= busy) continue;
+      const d = t.d, e = t.e, entry = +t.rawIn, tgt = t.target, lim = !!t.lim, L = lim ? { lim } : {};
+      if (!(entry > 0) || !Number.isFinite(t.stop) || !Number.isFinite(tgt)) continue;
+      let stop = t.stop, half = -1, px = null, why = null, xi = null;
+      for (let j = e; j < n; j++) {
+        if (j > e && d*(D.o[j] - stop) <= 0) { px = D.o[j]; why = half >= 0 ? "BE_STOP" : "STOP"; xi = j; break; }
+        if (d === 1 ? D.l[j] <= stop : D.h[j] >= stop) { px = stop; why = half >= 0 ? "BE_STOP" : "STOP"; xi = j; break; }
+        if (half < 0 && !(lim && j === e) && (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt)) {
+          half = j; out.push({ name, d, e, x: j, rawIn: entry, rawOut: tgt, why: "TARGET", open: false, stop: t.stop, target: tgt, w: 0.5, part: true, ...L });
+          stop = entry;   // الوقف على الدخول من الشمعة الجاية
+        }
+      }
+      const w = half >= 0 ? { w: 0.5 } : {};
+      if (px !== null) { out.push({ name, d, e, x: xi, rawIn: entry, rawOut: px, why, open: false, stop, target: half >= 0 ? NaN : tgt, ...w, ...L }); busy = xi; }
+      else { out.push({ name, d, e, x: n - 1, rawIn: entry, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: half >= 0 ? NaN : tgt, ...w, ...L }); busy = n - 1; }
+    }
+    return out;
+  };
+  const B0 = STRATS_ALL.find(x => x.name === baseName) || {};
+  return { name, mult: B0.mult || 1, ...(B0.m5 ? { m5: true } : {}), sig: () => 0, run, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "half at target + BE (user 18/11)" };
+}
+for (const b of TRAIL_BASES) STRATS_ALL.push(halfBEWrap(b));   // مختبر بس
+
 
 
 
@@ -4982,7 +5015,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-0620";
+const BUILD = "2026-11-18-0630";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
