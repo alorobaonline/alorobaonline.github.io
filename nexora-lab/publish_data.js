@@ -5,10 +5,14 @@ const { klines, funding } = require("./runner.js");
 const OUT = process.env.OUT || "/tmp/nexora-data", DAY = 864e5;
 const COINS = process.env.COINS ? process.env.COINS.split(",") : JSON.parse(fs.readFileSync(path.join(__dirname, "jobs", "s15-improve.json"), "utf8")).coins;
 const D15 = +(process.env.D15 || 420), D5 = +(process.env.D5 || 120);
+// 18/11 (طلب المستخدم — المنصة على 200 عملة لتجميع المعلومات): 100 عملة زيادة بتاريخ أقصر (المنصة بتحمّيها 100 يوم بس) — أخف على المنصة والفرع
+let EXTRA = []; try { EXTRA = JSON.parse(fs.readFileSync(path.join(__dirname, "platform_coins_extra.json"), "utf8")).filter(x => !COINS.includes(x)); } catch (e) {}
+const X15 = 140, X5 = 10;
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const now = Date.now(), from15 = now - D15*DAY, from5 = now - D5*DAY, meta = { updated: new Date().toISOString(), coins: {} };
   const one = async sym => {
+    const ex = EXTRA.includes(sym), from15 = now - (ex ? X15 : D15)*DAY, from5 = now - (ex ? X5 : D5)*DAY;
     try {
       const r15 = [...(await klines(sym, "15m", from15 - 31*DAY)).values()].filter(r => +r[0] >= from15).sort((a, b) => a[0] - b[0]);
       if (!r15.length) { console.log("skip", sym); return; }
@@ -21,6 +25,6 @@ const D15 = +(process.env.D15 || 420), D5 = +(process.env.D5 || 120);
       console.log(sym, r15.length, r5.length);
     } catch (e) { console.log("fail", sym, e.message); }
   };
-  const q = [...COINS]; await Promise.all(Array.from({ length: 6 }, async () => { while (q.length) await one(q.shift()); }));   // 6 عملات مع بعض
+  const q = [...COINS, ...EXTRA]; await Promise.all(Array.from({ length: 6 }, async () => { while (q.length) await one(q.shift()); }));   // 6 عملات مع بعض
   fs.writeFileSync(path.join(OUT, "meta.json"), JSON.stringify(meta));
 })();

@@ -150,7 +150,7 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
 <details id="settings"><summary style="cursor:pointer;margin-top:10px;color:#cfd3da">⚙️ الإعدادات والفترة (اضغط لتفتح)</summary>
 <div class="bar">
   <label>من تاريخ<input type="date" id="start" min="2026-11-16"></label>
-  <label>عدد العملات<input type="number" id="ncoins" value="102" min="1" max="150" step="1"></label>
+  <label>عدد العملات<input type="number" id="ncoins" value="200" min="1" max="200" step="1"></label>
   <label>أقصى صفقات مفتوحة (0 = بلا حد)<input type="number" id="maxOpen" value="0" min="0" step="1"></label>
   <label>رصيد البداية<input type="number" id="balance" value="10000" step="100"></label>
   <label>حجم الصفقة $<input type="number" id="notional" value="200" step="10"></label>
@@ -4500,7 +4500,7 @@ const DELISTED = new Set(["TONUSDT", "IPUSDT", "FETUSDT"]);   // FET: مش مو�
 const BYBIT_MAP = { "1000SATSUSDT": ["10000SATSUSDT", 0.1], "1000SHIBUSDT": ["SHIB1000USDT", 1], "PUMPUSDT": ["PUMPFUNUSDT", 1], "TURBOUSDT": ["1000TURBOUSDT", 0.001] };
 const BYBIT_REV = Object.fromEntries(Object.entries(BYBIT_MAP).map(([k, [b, f]]) => [b, [k, f]]));
 async function topCoins(nc) {   // قائمة العملات محفوظة: ما بنسأل بايننس عنها إلا كل 6 ساعات (ولو حاظرة منستعمل المحفوظة)
-  if (nc >= 100) return DEFAULT_TOP.filter(x => !DELISTED.has(x)).slice(0, nc);   // 100+ = نفس الـ102 عملة تبع المختبر (كلها ببيانات السيرفر)
+  if (nc >= 100) return [...DEFAULT_TOP, ...EXTRA_COINS].filter(x => !DELISTED.has(x)).slice(0, nc);   // 18/11: الـ102 + العملات الزيادة (القائمة الزيادة منفصلة عشان «العقل» بالحقيقي يضل على الـ102)   // 100+ = نفس الـ102 عملة تبع المختبر (كلها ببيانات السيرفر)
   let cached = null; try { cached = JSON.parse(localStorage.getItem("nexora_top") || "null"); } catch (e) {}
   if (cached && cached.list.length >= nc && Date.now() - cached.at < 6*3600e3) return cached.list.slice(0, nc);
   try { const list = await topCoinsLive(Math.max(nc, 60)); try { localStorage.setItem("nexora_top", JSON.stringify({ at: Date.now(), list })); } catch (e) {} return list.slice(0, nc); }
@@ -4511,6 +4511,8 @@ async function topCoins(nc) {   // قائمة العملات محفوظة: ما 
   }
 }
 const DEFAULT_TOP = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "BNBUSDT", "ADAUSDT", "TRXUSDT", "LINKUSDT", "AVAXUSDT", "SUIUSDT", "1000PEPEUSDT", "WLDUSDT", "LTCUSDT", "BCHUSDT", "DOTUSDT", "NEARUSDT", "APTUSDT", "ARBUSDT", "OPUSDT", "UNIUSDT", "AAVEUSDT", "ETCUSDT", "FILUSDT", "ATOMUSDT", "INJUSDT", "TIAUSDT", "SEIUSDT", "ENAUSDT", "ONDOUSDT", "JUPUSDT", "WIFUSDT", "1000BONKUSDT", "1000SHIBUSDT", "TONUSDT", "HBARUSDT", "XLMUSDT", "ICPUSDT", "RENDERUSDT", "FETUSDT", "TAOUSDT", "STXUSDT", "IMXUSDT", "GALAUSDT", "SANDUSDT", "MANAUSDT", "AXSUSDT", "CRVUSDT", "LDOUSDT", "PENDLEUSDT", "RUNEUSDT", "KAVAUSDT", "ZECUSDT", "TRUMPUSDT", "HYPEUSDT", "AKEUSDT", "PUMPUSDT", "ASTERUSDT", "SHELLUSDT", "SOPHUSDT", "EVAAUSDT", "ORDIUSDT", "1000SATSUSDT", "NOTUSDT", "PEOPLEUSDT", "POPCATUSDT", "BOMEUSDT", "ETHFIUSDT", "EIGENUSDT", "ZROUSDT", "STRKUSDT", "DYDXUSDT", "GMXUSDT", "COMPUSDT", "SNXUSDT", "1INCHUSDT", "ALGOUSDT", "EGLDUSDT", "THETAUSDT", "VETUSDT", "XTZUSDT", "KASUSDT", "1000FLOKIUSDT", "JASMYUSDT", "CHZUSDT", "APEUSDT", "BLURUSDT", "MEMEUSDT", "TURBOUSDT", "PNUTUSDT", "VIRTUALUSDT", "MOVEUSDT", "KAITOUSDT", "BERAUSDT", "IPUSDT", "WLFIUSDT", "XMRUSDT", "ENSUSDT", "GRTUSDT", "ARUSDT", "SUSHIUSDT", "CAKEUSDT"];
+// 18/11 (طلب المستخدم — تجميع معلومات): 100 عملة زيادة (الأعلى فوليوم بعد الـ102، موجودة على Bybit، عمرها >60 يوم) — إحماء 100 يوم بس (أخف على الذاكرة). الحساب الحقيقي بيضل على أول 102
+const EXTRA_COINS = new Set(["BREVUSDT", "MMTUSDT", "BLESSUSDT", "BTWUSDT", "HUMAUSDT", "LITUSDT", "PAXGUSDT", "PENGUUSDT", "ARIAUSDT", "CROSSUSDT", "1000LUNCUSDT", "ICNTUSDT", "PIPPINUSDT", "FHEUSDT", "PIEVERSEUSDT", "INITUSDT", "XAUTUSDT", "JCTUSDT", "GRAMUSDT", "VVVUSDT", "RAREUSDT", "QNTUSDT", "ZKPUSDT", "FARTCOINUSDT", "ZILUSDT", "TLMUSDT", "PHAUSDT", "PHAROSUSDT", "XPLUSDT", "SPACEUSDT", "NIGHTUSDT", "AEROUSDT", "USELESSUSDT", "DASHUSDT", "MAGMAUSDT", "PONSUSDT", "ZAMAUSDT", "IDOLUSDT", "TRUSTUSDT", "USUALUSDT", "ONUSDT", "BARDUSDT", "ERAUSDT", "ALLOUSDT", "PYTHUSDT", "SOONUSDT", "MEGAUSDT", "COOKIEUSDT", "LABUSDT", "IRYSUSDT", "JTOUSDT", "POLUSDT", "MUBARAKUSDT", "CAPUSDT", "SKRUSDT", "QUSDT", "GRASSUSDT", "TACUSDT", "FFUSDT", "RIVERUSDT", "MARSCOINUSDT", "ZKCUSDT", "SENTUSDT", "BEATUSDT", "UAIUSDT", "HOMEUSDT", "ZENUSDT", "BMTUSDT", "MELANIAUSDT", "ZKUSDT", "METUSDT", "STABLEUSDT", "LAUSDT", "STEEMUSDT", "BATUSDT", "RLCUSDT", "PRLUSDT", "TAUSDT", "CCUSDT", "MORPHOUSDT", "ZORAUSDT", "MUSDT", "APRUSDT", "HANAUSDT", "BASEDUSDT", "HUSDT", "LYNUSDT", "KITEUSDT", "ENSOUSDT", "SPXUSDT", "CYBERUSDT", "BANANAS31USDT", "CHIPUSDT", "SKYUSDT", "SYRUPUSDT", "BRUSDT", "MONUSDT", "WUSDT", "LUNA2USDT", "LSKUSDT"]);
 async function topCoinsLive(nc) {
   const info = await getJSON("/fapi/v1/exchangeInfo");
   const ok = new Set(info.symbols.filter(s => s.contractType === "PERPETUAL" && s.status === "TRADING" && s.quoteAsset === "USDT").map(s => s.symbol));
@@ -4573,17 +4575,17 @@ async function run(silent, only5) {
     $("run").disabled = true;
     const startTs = startTsOf();
     const warm = 260*24*3600e3;   // فترة الإحماء الأصلية محفوظة دون تغيير
-    const fromTs = Math.floor((startTs - warm)/H4)*H4;
-    const nc = Math.min(150, Math.max(1, +$("ncoins").value || 102));
+    const fromTs = Math.floor((startTs - warm)/H4)*H4, fromX = Math.floor((startTs - 100*864e5)/H4)*H4;   // fromX: العملات الزيادة (إحماء 100 يوم)
+    const nc = Math.min(200, Math.max(1, +$("ncoins").value || 200));
     const startedAt = performance.now();
     if (!silent && CACHE && !CACHE.coins[0].D.stub && CACHE.startTs === startTs && CACHE.coins.length === nc && CACHE.upd >= Math.floor(Date.now()/M15)*M15) { recalc(); st("⚡ النتائج من الذاكرة — بدون تنزيل جديد"); return; }
-    if (!COINS || COINS.length !== (nc >= 100 ? Math.min(nc, DEFAULT_TOP.length - DELISTED.size) : nc) || COINS.some(x => DELISTED.has(x))) { st("🔎 بجيب أعلى العملات حسب حجم التداول…"); COINS = await topCoins(nc); fillCoinSel(); connectWS(); }
+    if (!COINS || COINS.length !== (nc >= 100 ? Math.min(nc, DEFAULT_TOP.length + EXTRA_COINS.size - DELISTED.size) : nc) || COINS.some(x => DELISTED.has(x))) { st("🔎 بجيب أعلى العملات حسب حجم التداول…"); COINS = await topCoins(nc); fillCoinSel(); connectWS(); }
     const coins = [], done = { n: 0 }, failed = [];
     // تحميل: 3 عملات بنفس الوقت عشان ما نتعدى حد بايننس
     const queue = COINS.slice();
     const worker = async () => { while (queue.length) { const sym = queue.shift();
       try { const old = only5 && CACHE && CACHE.startTs === startTs && CACHE.bySym[sym] && !CACHE.bySym[sym].D.stub ? CACHE.bySym[sym] : null;   // 17/11: تحديث الـ5 دقايق ما بيعيد تنزيل الـ15 دقيقة
-        const D = old ? old.D : await loadCandles(sym, fromTs, d => st(`⬇️ ${done.n}/${COINS.length} — ${cn(sym)} ${d}`));
+        const D = old ? old.D : await loadCandles(sym, EXTRA_COINS.has(sym) ? fromX : fromTs, d => st(`⬇️ ${done.n}/${COINS.length} — ${cn(sym)} ${d}`));
         if (D && old) { D.m5 = await loadM5(sym, Math.floor((startTs - 2*864e5)/H4)*H4, () => {}); coins.push({ sym, D, funding: old.funding }); }
         else if (D) { if (!CK[sym]) CK[sym] = (await idb.get("ck_" + sym)) || {}; D.s5ck = CK[sym]; D.m5 = NEED_M5 ? await loadM5(sym, Math.floor((startTs - 2*864e5)/H4)*H4, d => st(`⬇️ ${done.n}/${COINS.length} — ${cn(sym)} 5m ${d}`)) : null;
           const funding = await loadFunding(sym, startTs, D); coins.push({ sym, D, funding }); } } catch (e) { failed.push(`${sym}: ${e.message}`); if (String(e.message).includes("451")) throw e; }
@@ -4679,7 +4681,7 @@ function saveSnap(nc) {
 }
 async function loadSnap() {   // افتح فوراً على آخر نتيجة محفوظة، وبعدين حدّث بالخلفية
   try {
-    const s = await idb.get("snap"), startTs = startTsOf(), nc = Math.min(150, Math.max(1, +$("ncoins").value || 102));
+    const s = await idb.get("snap"), startTs = startTsOf(), nc = Math.min(200, Math.max(1, +$("ncoins").value || 200));
     if (!s || s.startTs !== startTs || s.nc !== nc || !s.coins.length) return false;
     const known = new Set(STRATS.map(x => x.name)), oldVer = s.ver !== ENGINE_VER;   // نسخة محرك أقدم؟ منعرضها لحد ما يخلص الحساب الجديد
     const coins = s.coins.filter(c => !DELISTED.has(c.sym)).map(c => ({ sym: c.sym, raw: c.raw.filter(t => known.has(t.name)), funding: c.funding, D: { stub: true, t0: c.t0, o: [], h: [], l: [], c: [c.last] } }));
@@ -5103,7 +5105,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-18-1130";
+const BUILD = "2026-11-18-1200";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
@@ -5810,7 +5812,7 @@ const RESET_TS = Date.UTC(2026, 10, 16, 13, 45);
 function startTsOf() { const v = $("start").value, t = new Date(v + "T00:00:00").getTime(); return Math.max(Number.isFinite(t) ? t : 0, RESET_TS); }   // ولا صفقة قبل لحظة المسح، مهما كان التاريخ المحفوظ
 (function init() {
   let s = "2026-11-16";
-  try { const v = localStorage.getItem("nexora_start"); if (v && v > s) s = v; localStorage.setItem("nexora_start", s); $("ncoins").value = localStorage.getItem("nexora_nc102") ? (localStorage.getItem("nexora_nc") || 102) : 102; localStorage.setItem("nexora_nc102", "1"); } catch (e) {}   // 16/11: المنصة كلها على 102 عملة (نفس عملات المختبر)
+  try { const v = localStorage.getItem("nexora_start"); if (v && v > s) s = v; localStorage.setItem("nexora_start", s); $("ncoins").value = localStorage.getItem("nexora_nc200") ? (localStorage.getItem("nexora_nc") || 200) : 200; localStorage.setItem("nexora_nc200", "1"); } catch (e) {}   // 16/11: المنصة كلها على 102 عملة (نفس عملات المختبر)
   $("start").value = s;
   $("run").onclick = () => { SEEN = null; run(); };
   document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showTab(b.dataset.t));
