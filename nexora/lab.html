@@ -709,6 +709,7 @@ const S15 = (() => {
         if (a0 === null || a0 === undefined || c < nv/2) h = [];
         else { const rv = a0/(sm/c); if ((sp.volR.max !== undefined && rv > sp.volR.max) || (sp.volR.min !== undefined && rv < sp.volR.min)) h = []; }
       }
+      if (h.length && sp.wkd) { const dd = new Date(D.t0 + k*m*900000).getUTCDay(), we = dd === 0 || dd === 6; if (sp.wkd === "skip" ? we : !we) h = []; }   // نهاية الأسبوع (فتح شمعة الإشارة سبت/أحد UTC): "skip" = بلاها، "only" = بس هي
       if (!h.length) continue;
       const blocked = pos !== null || closedHere || k <= busy || k === n - 1 || D.t0 + (k+1)*m*900000 <= startTs || (k+1)*m >= D.o.length;
       if (!blocked) pend = [h[0], k];
@@ -3941,6 +3942,32 @@ const FEAT_WRAPS = [
   ["Range Sniper 15m (كما هي)", "OI مش نازل", FWF.oiNotDown],
   ["Range Sniper 15m (كما هي)", "وقف ≥0.3%", FWF.stopMin3], ["Range Sniper 15m + ترند 4h", "وقف ≥0.3%", FWF.stopMin3]];   // 18/11: نفس قاعدة الحقيقي الجديدة (تجميع معلومات)
 for (const [b, tag, f] of FEAT_WRAPS) STRATS_ALL.push(featWrap(b, tag, f));
+// 19/11 03:20 (طلب المستخدم): «شورت لونج ماكد فريم 5 دقايق» — MACD 5m بالاتجاهين، فلاتر من فحص التصفير (16-19/11، 102 عملة، 60$: +32.9$ مقابل +1.2$ للأصلية):
+//  لونج = «MACD 5m لونج + لا تلحق» + العملة مش طالعة على الساعة (EMA50) + السعر تحت EMA200 (15د) أو فوقها بأقل من 1%
+//  شورت = «MACD 5m شورت ليمت 0.8%» + RSI(14) على 15د بين 50 و70 (بيع بعد طلعة صغيرة) · صفقة وحدة على العملة بنفس الوقت
+const MACD_LS_NAME = "شورت لونج ماكد فريم 5 دقايق";
+// 19/11 06:50 (طلب المستخدم): «طلعة جماعية» — Range بيبيع الطلعة لما تطلع على عملتين أو أكثر من عملات الحقيقي بنفس الربع ساعة (فحص التصفير: 56 صفقة 66% +35.75$ بدل 85 صفقة 53% +37.71$ على 48$)
+//  + «بلا رجوع»: كمان ما بتفوت إذا في صفقة Range على نفس العملة بآخر 8 ساعات (49 صفقة 73% +36.20$) · بتنحسب بالصفحة بعد كل العملات (مش جوّا المحرك — بدها كل العملات مع بعض)
+const GROUP_BASE = "Range Sniper 15m + ترند 4h + وقف ≥0.3%", GROUP_NAMES = [GROUP_BASE + " + طلعة جماعية", GROUP_BASE + " + طلعة جماعية + بلا رجوع"];
+// 19/11 07:22 (طلب المستخدم): «IT1226 ساعة معكوسة» — لما IT1226 ساعة بتعطي لونج والسوق طالع (أقل من 40% من عملات الحقيقي نازلة بآخر 4 ساعات) ← شورت بنفس السعر، هدف 1.2% وقف 1.2%
+//  (فحص التصفير على شموع 5د: 108 صفقة على عملات الحقيقي، 71% ربح، +21.75$ على 48$) · بتنحسب بالصفحة (بدها كل العملات)
+const INV_BASE = "IT1226 ساعة لونج+شورت | هدف 1.2% وقف 1.2%", INV_NAME = "IT1226 ساعة معكوسة (شورت الطلعة)";
+STRATS_ALL.push({ name: INV_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "IT1226 معكوسة (بتنحسب بالصفحة)" });
+for (const n of GROUP_NAMES) STRATS_ALL.push({ name: n, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Range طلعة جماعية (بتنحسب بالصفحة)" });
+STRATS_ALL.push({ name: MACD_LS_NAME, mult: 0, m5: true, preLim: true, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD 5m لونج+شورت بفلاتر (طلب المستخدم 19/11)",
+  run: (D, inds, sp, startTs) => {
+    const bL = STRATS_ALL.find(x => x.name === "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق"), bS = STRATS_ALL.find(x => x.name === "MACD v1.1 5m · ليمت 0.8% · شورت · هدف 1.2% وقف 1.2%");
+    if (!bL || !bS || !D.c || D.c.length < 400) return [];
+    const I1 = makeInd(D, 1), I4 = makeInd(D, 4), C = D.c, R = new Float64Array(C.length).fill(NaN); let g = 0, l = 0;
+    for (let i = 1; i < C.length; i++) { const d = C[i] - C[i-1], up = Math.max(d, 0), dn = Math.max(-d, 0);
+      if (i <= 14) { g += up; l += dn; if (i === 14) { g /= 14; l /= 14; R[i] = l === 0 ? 100 : 100 - 100/(1 + g/l); } } else { g = (g*13 + up)/14; l = (l*13 + dn)/14; R[i] = l === 0 ? 100 : 100 - 100/(1 + g/l); } }
+    const okL = t => { const i = t.e - 1; if (i < 1 || i >= C.length) return false; const e2 = I1.ema200[i]; if (e2 == null || !(100*(C[i]/e2 - 1) < 1)) return false;
+      const k = Math.floor((i + 1)/4) - 1; return !(k >= 50 && k < I4.n && I4.ema50[k] != null && I4.C[k] > I4.ema50[k]); };
+    const okS = t => { const i = t.e - 1; return i >= 1 && i < C.length && R[i] >= 50 && R[i] < 70; };
+    const all = evaluate(D, inds, bL, startTs).filter(t => t.d === 1 && okL(t)).concat(evaluate(D, inds, bS, startTs).filter(t => t.d === -1 && okS(t))).sort((a, b) => a.e - b.e);
+    const out = []; let busy = -1; for (const t of all) { if (t.e <= busy) continue; out.push({ ...t, name: MACD_LS_NAME }); busy = t.open ? Infinity : t.x; }
+    return out;
+  } });
 // 18/11: نسخ أسرع للعائلات النادرة (نفس المنطق، فريم أصغر = إشارات أكتر للتجميع)
 for (const b of ["S16 SMC A 1h", "S16 SMC B 1h (CHoCH)", "IT1226 ساعة لونج+شورت", "IT1226 4h لونج+شورت"]) STRATS_ALL.push(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"));
 const PLATFORM_DATA18 = [...FEAT_WRAPS.map(([b, tag]) => b + " + " + tag), ...["S16 SMC A 1h", "S16 SMC B 1h (CHoCH)", "IT1226 ساعة لونج+شورت", "IT1226 4h لونج+شورت"].map(b => b + " | هدف 1.2% وقف 1.2%"), "Bagheri IG 15m كل العملات (هدف 1.7% وقف 1.2%)"];
@@ -3958,7 +3985,7 @@ const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% �
 // 17/11 18:16 (طلب المستخدم): المنصة كلها على هدف 1.5% ووقف 1.2% — بنبدّل اسم كل نسخة 1.2% بنسختها 1.5% (Range Sniper وLux ليمت 1% بأهدافهم الأصلية)
 const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
 const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المستخدم — 1.5% طلع أسوأ من التصفير). نسخ 1.5% بالمختبر
-PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n));   // 18/11: نسخ تجميع المعلومات على المنصة
+PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 // 17/11 19:53 (طلب المستخدم): الخسرانين من التصفير انشالوا من المنصة — بالمختبر بس
@@ -3974,7 +4001,7 @@ const PLATFORM_V42OFF = s => s.name.startsWith("V42 4H SHORT b0 |") && s.name !=
 // 18/11 04:58 (طلب المستخدم): عيلة S15 على المنصة بنسختين بس (كانوا ~25 نسخة على نفس الصفقات) — الباقي بالمختبر
 const S15_KEEP = new Set(["⭐ S15 V2 4h R2.5 h40 | 1.2% ليمت 0.8%", "⭐ S15 V2 4h R2.5 h40 | هدف 1.2% وقف 1.2%"]);
 const PLATFORM_S15OFF = s => /S15/.test(s.name) && !S15_KEEP.has(s.name);
-const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name) && !PLATFORM_NOVOL(s) && !PLATFORM_V42OFF(s) && !PLATFORM_DROP.has(s.name) && !PLATFORM_S15OFF(s));   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
+const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name) && !PLATFORM_NOVOL(s) && !PLATFORM_V42OFF(s) && !PLATFORM_DROP.has(s.name) && !PLATFORM_S15OFF(s) && !(s.name.startsWith("IT1226") && s.name !== INV_BASE && s.name !== INV_NAME));   // 19/11 07:31 (طلب المستخدم): كل نسخ IT1226 انمحت من المنصة (خاسرة) — بس «ساعة» الأصلية بتنحسب بالخفا للمعكوسة   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
   const first = (i+1)*16, last = Math.min(first+16, D.o.length);
