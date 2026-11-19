@@ -5073,6 +5073,7 @@ function renderReal() {
       ` · آخر حساب <b>${br ? tm(br.at) : "—"}</b>` +
       `<br>المتاح <b class="num">${M.avail == null ? "—" : M.avail.toFixed(2)}$</b> · مفتوحة <b>${M.pos.length}</b> · أهداف <b class="pos">${M.stats.tp}</b> · وقوف <b class="neg">${M.stats.sl}</b> · <span class="mut">صفقة ${C.notional}$ × ${C.lev}x</span>` +
       `<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label>الحد <input type="number" id="rlMax" min="1" max="30" value="${C.maxOpen}" style="width:60px"></label>` +
+      `<label title="قيمة كل صفقة جديدة بالدولار (الهامش = القيمة ÷ الرافعة) — المفتوحة ما بتتغير">💵 الصفقة <input type="number" id="rlNot" min="10" max="1000" value="${C.notional}" style="width:65px">$ <span class="mut" style="font-size:12px">(هامش ${(C.notional/C.lev).toFixed(2)}$)</span></label>` +
       (C.dayLoss !== undefined ? `<label title="إذا خسارة اليوم (من 02:00) وصلت هالنسبة من الرصيد بيوقف الجديد لحد 02:00 · 0 = مطفي">🧯 وقف يومي <input type="number" id="rlDay" min="0" max="50" value="${C.dayLoss}" style="width:55px">%</label>` : `<span class="mut" style="font-size:12px">🧯 وقف يومي: حدّث ملف المرآة</span>`) +
       `<button id="rlMaxBtn" class="sec">💾 احفظ</button>` +
       `<button id="rlPauseBtn" class="sec">${M.paused || M.dayStop ? "▶️ رجّعها تفتح" : "⏸️ وقّف الجديد"}</button></div>`;
@@ -5109,6 +5110,7 @@ function renderReal() {
 document.addEventListener("click", e => {
   const id = e.target && e.target.id;
   if (id === "rlMaxBtn") { const j = {}, m = Math.round(+$("rlMax").value); if (m >= 1 && m <= 30) j.maxOpen = m;
+    const nt = $("rlNot"); if (nt && nt.value !== "") { const v = Math.round(+nt.value); if (v >= 10 && v <= 1000 && (!MIR || !MIR.cfg || v !== MIR.cfg.notional)) j.notional = v; }
     const dl = $("rlDay"); if (dl && dl.value !== "") { const v = Math.round(+dl.value); if (v >= 0 && v <= 50) j.dayLoss = v; }
     if (Object.keys(j).length) mirConfig(j); }
   if (id === "rlPauseBtn" && MIR) mirConfig({ paused: MIR.dayStop && !MIR.paused ? false : !MIR.paused });
@@ -5134,7 +5136,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-19-0330";
+const BUILD = "2026-11-19-0340";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
