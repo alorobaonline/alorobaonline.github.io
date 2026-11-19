@@ -4206,7 +4206,7 @@ const PLATFORM_V42OFF = s => s.name.startsWith("V42 4H SHORT b0 |") && s.name !=
 // 18/11 04:58 (طلب المستخدم): عيلة S15 على المنصة بنسختين بس (كانوا ~25 نسخة على نفس الصفقات) — الباقي بالمختبر
 const S15_KEEP = new Set(["⭐ S15 V2 4h R2.5 h40 | 1.2% ليمت 0.8%", "⭐ S15 V2 4h R2.5 h40 | هدف 1.2% وقف 1.2%"]);
 const PLATFORM_S15OFF = s => /S15/.test(s.name) && !S15_KEEP.has(s.name);
-const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name) && !PLATFORM_NOVOL(s) && !PLATFORM_V42OFF(s) && !PLATFORM_DROP.has(s.name) && !PLATFORM_S15OFF(s) && !(s.name.startsWith("IT1226") && s.name !== INV_BASE));   // 19/11 07:31 (طلب المستخدم): كل نسخ IT1226 انمحت من المنصة (خاسرة) — بس «ساعة» الأصلية بتنحسب بالخفا للمعكوسة   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
+const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name) && !PLATFORM_NOVOL(s) && !PLATFORM_V42OFF(s) && !PLATFORM_DROP.has(s.name) && !PLATFORM_S15OFF(s) && !(s.name.startsWith("IT1226") && s.name !== INV_BASE && s.name !== INV_NAME));   // 19/11 07:31 (طلب المستخدم): كل نسخ IT1226 انمحت من المنصة (خاسرة) — بس «ساعة» الأصلية بتنحسب بالخفا للمعكوسة   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
   const first = (i+1)*16, last = Math.min(first+16, D.o.length);
@@ -5207,7 +5207,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-19-0740";
+const BUILD = "2026-11-19-0745";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
