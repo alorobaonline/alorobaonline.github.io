@@ -4380,8 +4380,19 @@ async function repairRows(sym, interval, step, width, st, from, to) {
     t = r[r.length-1][0] + step; if (r.length < 1000) break; }
   return n;
 }
+// 19/11: حارس أسعار المصدر البديل (ONUSDT طلع +121,395$ وهمي: شمعة 67.7 بدل 0.11 من Bybit/OKX — عقد تاني بنفس الاسم)
+//  · شموع بديلة بعيدة >50% عن آخر سعر بايننس قبلها = مرفوضة · واللي انخزنت قبل التصليح بتنسطّح على آخر سعر صحيح لحد ما بايننس تكتب فوقها
+const altBad = (ref, rows) => ref > 0 && rows.some(k => [k[1], k[2], k[3], k[4]].some(x => !(+x > 0) || +x > ref*1.5 || +x < ref/1.5));
+function altSanitize(st, width) {
+  if (!st.alt || !st.alt.length || !st.t.length) return 0; let n = 0;
+  for (const [a, b] of st.alt) { let i = st.t.findIndex(x => x >= a); if (i < 0) continue; const ref = i > 0 ? st.v[width*(i-1) + 3] : null; if (!(ref > 0)) continue;
+    for (; i < st.t.length && st.t[i] <= b; i++) { let bad = false; for (let q = 0; q < 4; q++) { const x = st.v[width*i + q]; if (!(x > 0) || x > ref*1.5 || x < ref/1.5) bad = true; }
+      if (bad) { for (let q = 0; q < 4; q++) st.v[width*i + q] = ref; n++; } } }
+  return n;
+}
 async function fillKlines(sym, interval, step, width, st, fromTs, prog) {
   const now = Date.now(); let added = 0;
+  { const z = altSanitize(st, width); if (z) { console.log("⚠️ " + sym + " " + interval + ": " + z + " شمعة بديلة غلط انسطّحت"); added += z; } }
   if (!st.fx1118 && st.t.length) { const c = await repairRows(sym, interval, step, width, st, Math.max(Date.UTC(2026, 10, 15), st.t[0]), st.t[st.t.length-1]); if (c !== false) { st.fx1118 = 1; added += c + 51; } }   // مرة وحدة: من 15/11 (شموع بديلة قديمة بدون علامة) — +51 = احفظ
   if (st.alt && st.alt.length) { const keep = []; for (const [a, b] of st.alt) { const c = await repairRows(sym, interval, step, width, st, a, b); if (c === false) keep.push([a, b]); else added += c + 51; } st.alt = keep; }
   const grab = async (from, until) => { const T = [], V = []; let t = from;
@@ -4390,7 +4401,8 @@ async function fillKlines(sym, interval, step, width, st, fromTs, prog) {
       await paced(wt);
       let r;
       try { r = await getJSON("/fapi/v1/klines", { symbol: sym, interval, startTime: t, limit: lim }); }
-      catch (e) { if (e.message !== "RATE") throw e; r = await altKlines(sym, interval, t, 1000); if (!r) break; if (r.length) (st.alt = st.alt || []).push([r[0][0], r[r.length-1][0]]); }   // 18/11: شموع من مصدر بديل بتنعلّم وبتتصلّح من بايننس بعدين
+      catch (e) { if (e.message !== "RATE") throw e; r = await altKlines(sym, interval, t, 1000); if (!r) break;
+        { const ref = V.length ? V[V.length - width + 3] : (st.t.length ? st.v[st.v.length - width + 3] : null); if (altBad(ref, r)) { console.log("⚠️ " + sym + ": شموع المصدر البديل بعيدة عن سعر بايننس — مرفوضة"); break; } } if (r.length) (st.alt = st.alt || []).push([r[0][0], r[r.length-1][0]]); }   // 18/11: شموع من مصدر بديل بتنعلّم وبتتصلّح من بايننس بعدين
       if (!r.length) break;
       for (const k of r) if (k[6] < now && k[0] < until) { T.push(k[0]); for (let q = 1; q <= width; q++) V.push(+k[q]); }
       t = r[r.length-1][0] + step; prog && prog(new Date(r[r.length-1][0]).toISOString().slice(0, 10));
@@ -5136,7 +5148,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-19-0340";
+const BUILD = "2026-11-19-0410";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
