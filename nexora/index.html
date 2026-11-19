@@ -4567,6 +4567,16 @@ async function topCoinsLive(nc) {
 // ===================== التشغيل والعرض =====================
 let RESULT = null, SEL = null, SORT = { k: "net", dir: -1 }, CACHE = null, SEEN = null, LAST_PX_T = 0, COINS = null, CSYM = "BTCUSDT";
 const LIVE = {}, FORM = {}, LIVE_T = {}; let LAST_POLL = 0;
+// 19/11: حارس أسعار Bybit — بعض العملات اسمها نفسه بس عقد تاني (ONUSDT على Bybit ≈ 69 وعلى بايننس ≈ 0.115 → صفقة وهمية +119,670$)
+//  أي سعر من Bybit بعيد أكتر من 30% عن آخر سعر بايننس للعملة بيترفض
+const BYBIT_BAD = new Set();
+function bybitOk(sym, px) {
+  const c = CACHE && CACHE.bySym && CACHE.bySym[sym], D = c && c.D; let ref = null;
+  if (D && D.c && D.c.length) for (let i = D.c.length - 1; i >= 0 && i >= D.c.length - 50; i--) if (D.c[i] > 0) { ref = D.c[i]; break; }
+  if (!(ref > 0)) return !BYBIT_BAD.has(sym);
+  const ok = px > ref/1.3 && px < ref*1.3; if (!ok && !BYBIT_BAD.has(sym)) { BYBIT_BAD.add(sym); console.log("⚠️ Bybit " + sym + " = " + px + " بعيد عن بايننس " + ref + " — مرفوض"); }
+  return ok;
+}
 const pxOf = sym => LIVE[sym] || (CACHE && CACHE.bySym[sym] ? CACHE.bySym[sym].D.c[CACHE.bySym[sym].D.c.length-1] : null);
 
 function params(makerEntry) {
@@ -4717,7 +4727,9 @@ const FORMB = {};   // شمعة 15m الحية من بث Bybit
 function withProv(c) {
   const D = c.D, n = D.o.length; if (!n || D.stub) return D;
   const t = D.t0 + n*M15; if (Date.now() < t) return D;
-  const F = FORMB[c.sym], px = pxOf(c.sym), prev = D.c[n-1];
+  let F = FORMB[c.sym], px = pxOf(c.sym); const prev = D.c[n-1];
+  const far = x => prev > 0 && x > 0 && (x > prev*1.3 || x < prev/1.3);   // 19/11: سعر حي غلط (بعيد >30% عن آخر شمعة) ما بيدخل الشمعة الحية
+  if (F && (far(F.o) || far(F.c))) F = null; if (far(px)) px = null;
   let o, h, l, cl, v = 0;
   if (F && F.t === t) { o = F.o; h = F.h; l = F.l; cl = F.c; v = F.v || 0; if (px) { h = Math.max(h, px); l = Math.min(l, px); cl = px; } }
   else if (px) { o = prev; h = Math.max(prev, px); l = Math.min(prev, px); cl = px; }
@@ -5208,7 +5220,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-19-0745";
+const BUILD = "2026-11-19-1135";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
@@ -5438,9 +5450,9 @@ function connectBybitWS() {
     };
     BWS.onmessage = ev => {
       let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
-      if (m.topic && m.topic.startsWith("kline.15.") && Array.isArray(m.data) && m.data[0]) { const k = m.data[0], bs = m.topic.slice(9), mp = BYBIT_REV[bs], sy = mp ? mp[0] : bs, f = mp ? mp[1] : 1; FORMB[sy] = { t: +k.start, o: k.open*f, h: k.high*f, l: k.low*f, c: k.close*f, v: k.volume/f }; return; }
+      if (m.topic && m.topic.startsWith("kline.15.") && Array.isArray(m.data) && m.data[0]) { const k = m.data[0], bs = m.topic.slice(9), mp = BYBIT_REV[bs], sy = mp ? mp[0] : bs, f = mp ? mp[1] : 1; if (!bybitOk(sy, k.close*f)) return; FORMB[sy] = { t: +k.start, o: k.open*f, h: k.high*f, l: k.low*f, c: k.close*f, v: k.volume/f }; return; }
       const d = m.data; if (!m.topic || !d || d.lastPrice === undefined) return;
-      const bs = m.topic.slice(8), mp = BYBIT_REV[bs], sym = mp ? mp[0] : bs, px = d.lastPrice*(mp ? mp[1] : 1); if (!(px > 0)) return;
+      const bs = m.topic.slice(8), mp = BYBIT_REV[bs], sym = mp ? mp[0] : bs, px = d.lastPrice*(mp ? mp[1] : 1); if (!(px > 0) || !bybitOk(sym, px)) return;
       const now = Date.now(); BWS_LAST = now;
       if (!(WS_LAST && now - WS_LAST < 5000)) { LIVE[sym] = px; LIVE_T[sym] = LAST_PX_T = now; }   // بايننس ساكت → Bybit هو السعر الحي
       if (now - LAST_LIGHT > 1000) { LAST_LIGHT = now; lightUpdate(); }
@@ -5869,7 +5881,7 @@ async function pollPrices(force) {   // السعر الحي مستقل عن ال
   LAST_POLL = now;
   if (banned()) {   // بايننس حاظرة والبث ساكت: أسعار احتياط من Bybit
     try { const r = await fetch("https://api.bybit.com/v5/market/tickers?category=linear"); if (r.ok) { const j = await r.json(), set = new Set(COINS || []);
-      for (const x of (j.result && j.result.list) || []) if (set.has(x.symbol)) { LIVE[x.symbol] = +x.lastPrice; LIVE_T[x.symbol] = now; }
+      for (const x of (j.result && j.result.list) || []) if (set.has(x.symbol) && bybitOk(x.symbol, +x.lastPrice)) { LIVE[x.symbol] = +x.lastPrice; LIVE_T[x.symbol] = now; }
       LAST_PX_T = now; SRC_NOTE = SRC_NOTE || "Bybit"; lightUpdate(); } } catch (e) {}
     return;
   }
