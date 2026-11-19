@@ -4151,6 +4151,10 @@ for (const [b, tag, f] of FEAT_WRAPS) STRATS_ALL.push(featWrap(b, tag, f));
 //  لونج = «MACD 5m لونج + لا تلحق» + العملة مش طالعة على الساعة (EMA50) + السعر تحت EMA200 (15د) أو فوقها بأقل من 1%
 //  شورت = «MACD 5m شورت ليمت 0.8%» + RSI(14) على 15د بين 50 و70 (بيع بعد طلعة صغيرة) · صفقة وحدة على العملة بنفس الوقت
 const MACD_LS_NAME = "شورت لونج ماكد فريم 5 دقايق";
+// 19/11 06:50 (طلب المستخدم): «طلعة جماعية» — Range بيبيع الطلعة لما تطلع على عملتين أو أكثر من عملات الحقيقي بنفس الربع ساعة (فحص التصفير: 56 صفقة 66% +35.75$ بدل 85 صفقة 53% +37.71$ على 48$)
+//  + «بلا رجوع»: كمان ما بتفوت إذا في صفقة Range على نفس العملة بآخر 8 ساعات (49 صفقة 73% +36.20$) · بتنحسب بالصفحة بعد كل العملات (مش جوّا المحرك — بدها كل العملات مع بعض)
+const GROUP_BASE = "Range Sniper 15m + ترند 4h + وقف ≥0.3%", GROUP_NAMES = [GROUP_BASE + " + طلعة جماعية", GROUP_BASE + " + طلعة جماعية + بلا رجوع"];
+for (const n of GROUP_NAMES) STRATS_ALL.push({ name: n, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Range طلعة جماعية (بتنحسب بالصفحة)" });
 STRATS_ALL.push({ name: MACD_LS_NAME, mult: 0, m5: true, preLim: true, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD 5m لونج+شورت بفلاتر (طلب المستخدم 19/11)",
   run: (D, inds, sp, startTs) => {
     const bL = STRATS_ALL.find(x => x.name === "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق"), bS = STRATS_ALL.find(x => x.name === "MACD v1.1 5m · ليمت 0.8% · شورت · هدف 1.2% وقف 1.2%");
@@ -4182,7 +4186,7 @@ const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% �
 // 17/11 18:16 (طلب المستخدم): المنصة كلها على هدف 1.5% ووقف 1.2% — بنبدّل اسم كل نسخة 1.2% بنسختها 1.5% (Range Sniper وLux ليمت 1% بأهدافهم الأصلية)
 const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
 const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المستخدم — 1.5% طلع أسوأ من التصفير). نسخ 1.5% بالمختبر
-PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة
+PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n));   // 18/11: نسخ تجميع المعلومات على المنصة
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 // 17/11 19:53 (طلب المستخدم): الخسرانين من التصفير انشالوا من المنصة — بالمختبر بس
@@ -4566,6 +4570,17 @@ function params(makerEntry) {
   return P;
 }
 
+// 19/11: نسخ «طلعة جماعية» من صفقات Range (عملات الحقيقي بس): عدد الإشارات بنفس شمعة الدخول ≥2، و«بلا رجوع» = ما في صفقة Range على نفس العملة بآخر 8 ساعات
+function groupDerive(arr) {
+  if (typeof GROUP_BASE === "undefined") return arr;
+  const base = arr.filter(t => t.name === GROUP_BASE && !EXTRA_COINS.has(t.sym)); if (!base.length) return arr;
+  const cnt = new Map(); for (const t of base) cnt.set(t.eTs, (cnt.get(t.eTs) || 0) + 1);
+  const bySym = new Map(); for (const t of base) { if (!bySym.has(t.sym)) bySym.set(t.sym, []); bySym.get(t.sym).push(t.eTs); }
+  const out = [];
+  for (const t of base) { if (cnt.get(t.eTs) < 2) continue; out.push({ ...t, name: GROUP_NAMES[0] });
+    if (!bySym.get(t.sym).some(e => e < t.eTs && t.eTs - e < 8*3600e3)) out.push({ ...t, name: GROUP_NAMES[1] }); }
+  return arr.concat(out);
+}
 // حد أقصى للصفقات المفتوحة بنفس الوقت (0 = بلا حد): الأسبق بالدخول بياخد المكان
 function capTrades(raw) {
   const cap = Math.max(0, Math.floor(+$("maxOpen").value || 0));
@@ -4584,8 +4599,8 @@ function recalc() {
   const P = params($("makerEntry").checked), PM = params(true), PT = params(false);
   const all = (Q) => CACHE.coins.flatMap(c => c.raw.map(t0 => { const lc = t0.open && LIVE_CLOSED[t0.name + "|" + c.sym + "|" + t0.e], t = lc ? { ...t0, open: false, rawOut: lc.px, why: lc.why, x: lc.x } : t0;   // صفقة تسكّرت لايف بين حسابين: بتضل مسكّرة
     return { ...money(t, c.D, Q, c.funding, pxOf(c.sym)), sym: c.sym }; }));
-  const cl = Q => capTrades(all(Q)).filter(t => !t.open).map(t => ({ xTs: t.xTs, net: t.net }));
-  RESULT = { trades: capTrades(all(P)), startTs: CACHE.startTs, P, mkCl: cl(PM), tkCl: cl(PT), upd: CACHE.upd };
+  const cl = Q => capTrades(groupDerive(all(Q))).filter(t => !t.open).map(t => ({ xTs: t.xTs, net: t.net }));
+  RESULT = { trades: capTrades(groupDerive(all(P))), startTs: CACHE.startTs, P, mkCl: cl(PM), tkCl: cl(PT), upd: CACHE.upd };
   render(); try { if (vis("acc")) renderMkt(); if (vis("live")) renderZones(); } catch (e) {}
   try { bridgeSend(); } catch (e) {}   // 🔌 ربط الحساب الحقيقي
   try { if (document.querySelector('section.tab.on[data-t="real"]')) renderReal(); } catch (e) { console.warn(e); }
@@ -5161,7 +5176,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-19-0610";
+const BUILD = "2026-11-19-0700";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
