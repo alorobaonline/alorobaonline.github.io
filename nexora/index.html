@@ -4598,9 +4598,12 @@ function invDerive(arr, Q) {   // 19/11: IT1226 ساعة معكوسة
     try { out.push({ ...money(raw, D, Q, c.funding, pxOf(t.sym)), sym: t.sym }); } catch (er) {} }
   return out;
 }
+// 19/11 07:26 (طلب المستخدم): IT1226 ساعة الأصلية انمحت من المنصة (كلها خاسرة) — بتنحسب بالخفا بس عشان المعكوسة تطلع منها
+const UI_HIDE = new Set([typeof INV_BASE === "undefined" ? "" : INV_BASE]);
+const STRATS_UI = STRATS.filter(s => !UI_HIDE.has(s.name));
 function groupDerive(arr, Q) {
   if (typeof GROUP_BASE === "undefined") return arr;
-  arr = arr.concat(invDerive(arr, Q));
+  arr = arr.concat(invDerive(arr, Q)).filter(t => !UI_HIDE.has(t.name));
   const base = arr.filter(t => t.name === GROUP_BASE && !EXTRA_COINS.has(t.sym)); if (!base.length) return arr;
   const cnt = new Map(); for (const t of base) cnt.set(t.eTs, (cnt.get(t.eTs) || 0) + 1);
   const bySym = new Map(); for (const t of base) { if (!bySym.has(t.sym)) bySym.set(t.sym, []); bySym.get(t.sym).push(t.eTs); }
@@ -4926,7 +4929,7 @@ function render() {
   if (vis("strats")) {
   periodBtns("periodsS");
   // الترتيب، مقسوم فئات
-  const rows = STRATS.map(sp => {
+  const rows = STRATS_UI.map(sp => {
     const c = closed.filter(t => t.name === sp.name).sort((a, b) => a.xTs - b.xTs), os = open.filter(t => t.name === sp.name), o = os.length ? { n: os.length, net: sum(os, "net") } : null;
     let eq = 0, peak = 0, dd = 0, st = 0, mx = 0, gp = 0, gl = 0;
     for (const t of c) { eq += t.net; peak = Math.max(peak, eq); dd = Math.max(dd, peak - eq);
@@ -4985,7 +4988,7 @@ function renderTradesT() {
   const { trades, since } = TT_DATA;
   if (SEL && TF.s !== SEL) TF.s = SEL;
   const base = trades.filter(t => t.open || t.xTs >= since);
-  const names = [...new Set([...STRATS.map(sp => sp.name), ...base.map(t => t.name)])].sort((a, b) => (b.startsWith("⭐") - a.startsWith("⭐")) || a.localeCompare(b));   // كل استراتيجيات المنصة، حتى لو ما إلها صفقات بالفترة المختارة
+  const names = [...new Set([...STRATS_UI.map(sp => sp.name), ...base.map(t => t.name)])].sort((a, b) => (b.startsWith("⭐") - a.startsWith("⭐")) || a.localeCompare(b));   // كل استراتيجيات المنصة، حتى لو ما إلها صفقات بالفترة المختارة
   const coins = [...new Set(base.filter(t => !TF.s || t.name === TF.s).map(t => t.sym))].sort();
   const list = base.filter(t => (!TF.s || t.name === TF.s) && (!TF.c || t.sym === TF.c) && (!TF.d || t.d === +TF.d)
     && (!TF.st || (TF.st === "o" ? t.open : !t.open)) && (!TF.r || (TF.r === "w" ? t.net > 0 : t.net <= 0)));
@@ -5023,7 +5026,7 @@ function renderCoins(trades, P) {
   const closed = trades.filter(t => !t.open && t.xTs >= since), open = trades.filter(t => t.open);
   periodBtns("periodsC");
   const showOff = $("cAllCats").checked;
-  const strs = STRATS.map(s => s.name).filter(n => (showOff || catOf(n) !== "off") && (closed.some(t => t.name === n) || open.some(t => t.name === n)));
+  const strs = STRATS_UI.map(s => s.name).filter(n => (showOff || catOf(n) !== "off") && (closed.some(t => t.name === n) || open.some(t => t.name === n)));
   const coins = [...new Set(trades.map(t => t.sym))];
   const cell = {}; for (const t of closed) { const k = t.sym + "|" + t.name; const c = cell[k] || (cell[k] = { n: 0, net: 0, w: 0 }); c.n++; c.net += t.net; if (t.net > 0) c.w++; }
   const op = {}; for (const t of open) op[t.sym + "|" + t.name] = t;
@@ -5043,7 +5046,7 @@ function renderCoins(trades, P) {
   // تفاصيل العملة المختارة
   if (!COIN_SEL) { $("coinTitle").style.display = "none"; $("coinDet").innerHTML = ""; return; }
   $("coinTitle").style.display = ""; $("coinTitle").innerHTML = `${cn(COIN_SEL)} — كل الاستراتيجيات اللي فاتت فيها <span class="mut">(اضغط على العملة مرة تانية لتسكّر)</span>`;
-  const rows = STRATS.map(sp => { const c = closed.filter(t => t.sym === COIN_SEL && t.name === sp.name), o = open.find(t => t.sym === COIN_SEL && t.name === sp.name);
+  const rows = STRATS_UI.map(sp => { const c = closed.filter(t => t.sym === COIN_SEL && t.name === sp.name), o = open.find(t => t.sym === COIN_SEL && t.name === sp.name);
     if (!c.length && !o) return null; let gp = 0, gl = 0; for (const t of c) { if (t.net > 0) gp += t.net; else gl -= t.net; }
     const last = c.slice().sort((a, b) => b.xTs - a.xTs)[0];
     return { n: sp.name, k: c.length, w: c.filter(t => t.net > 0).length, pf: gl ? gp/gl : (gp ? 99 : 0), net: c.reduce((a, t) => a + t.net, 0), L: c.filter(t => t.d === 1).length, S: c.filter(t => t.d === -1).length, o, last }; }).filter(Boolean).sort((a, b) => b.net - a.net);
@@ -5204,7 +5207,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-19-0730";
+const BUILD = "2026-11-19-0735";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
@@ -5348,7 +5351,7 @@ function renderFlab() {
   const cur = sel.value || "__all";
   if (!sel.options.length || sel.dataset.n !== String(all.length)) {
     sel.innerHTML = `<option value="__all">كل الاستراتيجيات (${all.length} صفقة)</option><optgroup label="عائلات">` + [...fcnt].sort((a, b) => b[1] - a[1]).map(([f, n]) => `<option value="fam:${f}">${f} (${n})</option>`).join("") +
-      `</optgroup><optgroup label="استراتيجية وحدة">` + STRATS.map(sp => `<option value="${sp.name}">${sp.name} (${cnt.get(sp.name) || 0})</option>`).join("") + `</optgroup>`;
+      `</optgroup><optgroup label="استراتيجية وحدة">` + STRATS_UI.map(sp => `<option value="${sp.name}">${sp.name} (${cnt.get(sp.name) || 0})</option>`).join("") + `</optgroup>`;
     sel.value = cur; sel.dataset.n = String(all.length); }
   const scope = sel.value, pick = scope === "__all" ? all : scope.startsWith("fam:") ? all.filter(t => flFam(t.name) === scope.slice(4)) : all.filter(t => t.name === scope);
   const rows = pick.map(t => ({ t, f: featOf(t) })).filter(x => x.f), base = flSt(rows);
