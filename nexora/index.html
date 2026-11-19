@@ -5100,7 +5100,7 @@ function renderReal() {
     $("rlOpen").innerHTML = `<tr><th>العملة</th><th>اتجاه</th><th>الوقت</th><th>الاستراتيجية</th><th>دخول</th><th>الوقف</th><th>الهدف</th><th>ربح/خسارة</th><th>عن المنصة</th></tr>` +
       (rows.map((p, i) => { const t = byKey.get(p.key), px = pxOf(p.sym), sp = (M.special || {})[p.name], notl = sp ? sp.notional : C.notional, ent = p.fill || p.lim;
         const pnl = px && ent && !p.pending ? p.d*(px/ent - 1)*notl : null;
-        const sep = p.pending && (i === 0 || !rows[i-1].pending) ? `<tr><td colspan="9" class="mut" style="text-align:start;background:rgba(245,158,11,.06)">⏳ ليمتات ناطرة تتعبّى (بتنلغى لحالها بعد ساعة من الإشارة · ✕ = الغيها هلأ)</td></tr>` : "";
+        const sep = p.pending && (i === 0 || !rows[i-1].pending) ? `<tr><td colspan="9" class="mut" style="text-align:start;background:rgba(245,158,11,.06)">⏳ ليمتات ناطرة تتعبّى (بتنلغى لحالها بعد 15 دقيقة · ✕ = الغيها هلأ)</td></tr>` : "";
         return sep + `<tr${p.pending ? ' style="opacity:.85"' : ""}><td><b>${cn(p.sym)}</b>${p.hold ? " ✋" : ""}</td><td><span class="tag ${p.d === 1 ? "L" : "S"}">${p.d === 1 ? "LONG" : "SHORT"}</span></td><td style="line-height:1.35">${tcell(p)}</td><td class="nm">${shortN(p.name)}</td>` +
           `<td class="num">${p.pending ? (p.pre ? "🎣 ليمت مسبق " : "⏳ ليمت ") + num(p.lim) + ` <button class="sec rlX" data-s="${p.sym}" title="الغي هالليمت (وما بيرجع يفوت نفس الصفقة لمدة ساعة)" style="padding:1px 7px;margin-inline-start:6px;color:#f87171">✕</button>` : num(ent)}</td><td class="num">${num(p.stop)}</td><td class="num">${p.target ? num(p.target) : "—"}</td>` +
           `<td>${pnl == null ? "—" : usd(pnl)}</td><td>${!t ? '<span class="mut">—</span>' : !t.open ? `<span style="color:#f59e0b">سكّرت بالمنصة (${t.why})</span>` : ent && t.rawIn && !p.pending ? Math.abs(ent/t.rawIn - 1) < 0.0005 ? "نفس السعر" : `<span style="color:${p.d*(ent/t.rawIn - 1) > 0.0005 ? "#f59e0b" : "#94a3b8"}">${p.d*(ent/t.rawIn - 1) > 0 ? "أغلى" : "أرخص"} ${(100*Math.abs(ent/t.rawIn - 1)).toFixed(2)}%</span>` : "نفس الصفقة"}</td></tr>`; }).join("") ||
@@ -5161,7 +5161,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-19-0550";
+const BUILD = "2026-11-19-0600";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
