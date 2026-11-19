@@ -915,6 +915,7 @@ const S15 = (() => {
         if (a0 === null || a0 === undefined || c < nv/2) h = [];
         else { const rv = a0/(sm/c); if ((sp.volR.max !== undefined && rv > sp.volR.max) || (sp.volR.min !== undefined && rv < sp.volR.min)) h = []; }
       }
+      if (h.length && sp.wkd) { const dd = new Date(D.t0 + k*m*900000).getUTCDay(), we = dd === 0 || dd === 6; if (sp.wkd === "skip" ? we : !we) h = []; }   // نهاية الأسبوع (فتح شمعة الإشارة سبت/أحد UTC): "skip" = بلاها، "only" = بس هي
       if (!h.length) continue;
       const blocked = pos !== null || closedHere || k <= busy || k === n - 1 || D.t0 + (k+1)*m*900000 <= startTs || (k+1)*m >= D.o.length;
       if (!blocked) pend = [h[0], k];
