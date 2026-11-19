@@ -4800,7 +4800,7 @@ let PROG_T = 0;
 function progressive(c, startTs) {   // 17/11: كل عملة بتخلص بتنعرض فوراً (إذا في نتيجة سابقة لنفس الفترة)
   if (!CACHE || CACHE.startTs !== startTs || !CACHE.bySym[c.sym] || CACHE.bySym[c.sym].D.stub || !c.raw) return;
   const o = CACHE.bySym[c.sym]; o.D = c.D; o.raw = c.raw; o.funding = c.funding;
-  if (Date.now() - PROG_T > 1500) { PROG_T = Date.now(); try { recalc(); } catch (e) {} }
+  if (Date.now() - PROG_T > 5000) { PROG_T = Date.now(); try { recalc(); } catch (e) {} }   // 19/11 23:40: كل 5 ثواني بدل 1.5 (كانت المنصة تعلق وقت الحساب — 34 مرة بالحسبة)
 }
 let COMPUTING = 0;   // 18/11: حساب شغّال — النوم ما بيوقف المعالجات بنصه (كان الحساب يعلق للأبد)
 async function computeAll(coins, startTs, prevOf, st) { COMPUTING++; try { await computeAll0(coins, startTs, prevOf, st); } finally { COMPUTING--; } }
@@ -5177,8 +5177,8 @@ const MIRROR_ALLOW0 = ["Range Sniper 15m + ترند 4h", "Range Sniper 15m (كم
 let MIR = null, MIR_T = 0, MIR_ERR = "";
 var RL_ALL = false;
 async function mirFetch() {
-  try { const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 2500); const r = await fetch(MIRROR_URL + "/state", { signal: ctl.signal }); clearTimeout(tm); if (r.status === 404) { MIR = null; MIR_ERR = "المرآة شغالة بس نسختها قديمة — حط nexora_mirror.js الجديد ورجّع شغّلها"; return; } MIR = await r.json(); MIR_T = Date.now(); MIR_ERR = ""; }
-  catch (e) { MIR_ERR = String(e.message || e); if (Date.now() - MIR_T > 60000) MIR = null; }
+  try { const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 7000); const r = await fetch(MIRROR_URL + "/state", { signal: ctl.signal }); clearTimeout(tm); if (r.status === 404) { MIR = null; MIR_ERR = "المرآة شغالة بس نسختها قديمة — حط nexora_mirror.js الجديد ورجّع شغّلها"; return; } MIR = await r.json(); MIR_T = Date.now(); MIR_ERR = ""; }
+  catch (e) { MIR_ERR = String(e.message || e); if (Date.now() - MIR_T > 180000) MIR = null; }   // 19/11 23:40: المرآة مشغولة بالحساب ثواني ← ما بنقلب «مش متصلة» فوراً
 }
 async function mirConfig(j) {
   try { const r = await fetch(MIRROR_URL + "/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(j) }); await r.json(); } catch (e) { alert0("ما قدرت أوصل للمرآة"); }
@@ -5188,6 +5188,8 @@ function alert0(m) { const el = $("rlMirror"); if (el) el.insertAdjacentHTML("be
 const shortN = n => n.replace("#8 Lux Trendline+TRAMA+Chandelier", "Lux").replace(" · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2%", "").replace(" · ليمت 0.8% · لونج · هدف 1.2% وقف 1.5ATR", "");
 const WHY_AR = { excluded: "🚫 عملة مستثناة من الحقيقي", full: "الخانات مليانة", busy: "العملة فيها صفقة تانية للبرنامج", manual: "في صفقة/أمر إلك على العملة أو لغيت ليمتها", small: "أقل صفقة ببايننس أكبر من حجمنا", moved: "السعر سبق الوقف/الهدف",
   nobal: "الرصيد ما بيكفي", daystop: "🧯 وقف خسارة يومي (لحد 02:00)", trend: "عكس قاعدة الترند (لونج والعملة طالعة على الساعة / شورت عكس 4h)", tight: "الوقف أقرب من 0.3% (عمولة أكبر من الربح المتوقع)", old: "انفتحت بالمنصة قبل ما يشوفها البرنامج", paused: "⏸️ موقوف", norule: "العملة مش ببايننس فيوتشرز", nopx: "ما في سعر", x: "عم تنفتح…", notallowed: "مش بالقائمة" };
+// 19/11 23:40: بنغيّر الجدول بس إذا تغيّر محتواه (كان كل 10 ثواني ينرسم من جديد ← الكبسات بتضيع والسكرول بينط)
+function setHTML(el, h) { if (el && el.__h !== h) { el.__h = h; el.innerHTML = h; } }
 function renderReal() {
   if (!$("rlMirror")) return;
   const now = Date.now(), M = MIR, allow = M ? M.allow : MIRROR_ALLOW0, num = (x, d = 6) => x == null || !Number.isFinite(+x) ? "—" : (+x).toPrecision(d).replace(/\.?0+$/, "");
@@ -5195,15 +5197,17 @@ function renderReal() {
   const C = M ? M.cfg : { notional: 60, lev: 20, maxOpen: 12, hybrid: 0.003 };
   if (M) {
     const age = Math.round((now - M.at)/1000), br = M.brain;
-    $("rlMirror").innerHTML = `<b>${age < 30 ? "🟢 متصلة" : "🟡 آخر رد من " + age + " ثانية"}</b> · ${M.dry ? "🧪 تجربة" : "💰 حقيقي"} · ${M.paused ? '<b style="color:#f59e0b">⏸️ موقوفة (المفتوحة محمية)</b>' : M.dayStop ? '<b style="color:#f59e0b">🧯 وقف يومي (لحد 02:00 — «رجّعها تفتح» بتلغيه)</b>' : '<b class="pos">▶️ بتفتح صفقات</b>'}` +
+    const stH = `<b>${age < 30 ? "🟢 متصلة" : "🟡 آخر رد من " + age + " ثانية"}</b> · ${M.dry ? "🧪 تجربة" : "💰 حقيقي"} · ${M.paused ? '<b style="color:#f59e0b">⏸️ موقوفة (المفتوحة محمية)</b>' : M.dayStop ? '<b style="color:#f59e0b">🧯 وقف يومي (لحد 02:00 — «رجّعها تفتح» بتلغيه)</b>' : '<b class="pos">▶️ بتفتح صفقات</b>'}` +
       ` · آخر حساب <b>${br ? tm(br.at) : "—"}</b>` +
-      `<br>المتاح <b class="num">${M.avail == null ? "—" : M.avail.toFixed(2)}$</b> · مفتوحة <b>${M.pos.length}</b> · أهداف <b class="pos">${M.stats.tp}</b> · وقوف <b class="neg">${M.stats.sl}</b> · <span class="mut">صفقة ${C.notional}$ × ${C.lev}x</span>` +
-      `<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label>الحد <input type="number" id="rlMax" min="1" max="30" value="${C.maxOpen}" style="width:60px"></label>` +
+      `<br>المتاح <b class="num">${M.avail == null ? "—" : M.avail.toFixed(2)}$</b> · مفتوحة <b>${M.pos.length}</b> · أهداف <b class="pos">${M.stats.tp}</b> · وقوف <b class="neg">${M.stats.sl}</b> · <span class="mut">صفقة ${C.notional}$ × ${C.lev}x</span>`;
+    const ctlH = `<div id="rlCtl" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label>الحد <input type="number" id="rlMax" min="1" max="30" value="${C.maxOpen}" style="width:60px"></label>` +
       `<label title="قيمة كل صفقة جديدة بالدولار (الهامش = القيمة ÷ الرافعة) — المفتوحة ما بتتغير">💵 الصفقة <input type="number" id="rlNot" min="10" max="1000" value="${C.notional}" style="width:65px">$ <span class="mut" style="font-size:12px">(هامش ${(C.notional/C.lev).toFixed(2)}$)</span></label>` +
       (C.dayLoss !== undefined ? `<label title="إذا خسارة اليوم (من 02:00) وصلت هالنسبة من الرصيد بيوقف الجديد لحد 02:00 · 0 = مطفي">🧯 وقف يومي <input type="number" id="rlDay" min="0" max="50" value="${C.dayLoss}" style="width:55px">%</label>` : `<span class="mut" style="font-size:12px">🧯 وقف يومي: حدّث ملف المرآة</span>`) +
       `<button id="rlMaxBtn" class="sec">💾 احفظ</button>` +
       `<button id="rlPauseBtn" class="sec">${M.paused || M.dayStop ? "▶️ رجّعها تفتح" : "⏸️ وقّف الجديد"}</button></div>`;
-  } else $("rlMirror").innerHTML = `<b>⚪ المرآة مش متصلة</b> <span class="mut">— بتشتغل بس لما المنصة مفتوحة على نفس الكمبيوتر اللي عليه البرنامج.${MIR_ERR ? " (" + MIR_ERR + ")" : ""}</span>`;
+    { const box = $("rlMirror"); let a = $("rlStat"), b = $("rlCtlBox"); if (!a || !b) { box.innerHTML = `<div id="rlStat"></div><div id="rlCtlBox"></div>`; box.__h = null; a = $("rlStat"); b = $("rlCtlBox"); }
+      setHTML(a, stH); if (!b.contains(document.activeElement)) setHTML(b, ctlH); }   // الخانات ما بتنمسح وانت عم تكتب فيها
+  } else setHTML($("rlMirror"), `<b>⚪ المرآة مش متصلة</b> <span class="mut">— بتشتغل بس لما المنصة مفتوحة على نفس الكمبيوتر اللي عليه البرنامج.${MIR_ERR ? " (" + MIR_ERR + ")" : ""}</span>`);
   // ب) المفتوحة بالحقيقي + المقابلة بالمنصة
   const T = RESULT ? RESULT.trades.filter(t => !EXTRA_COINS.has(t.sym)) : [], byKey = new Map(T.map(t => [`${t.name}|${t.sym}|${t.eTs}`, t]));
   if (M) {
@@ -5211,33 +5215,33 @@ function renderReal() {
     const hh = ts => ts ? DT_T.format(new Date(ts)) : "—";
     const tcell = p => !p.at ? "—" : p.pending ? `<span class="mut">⏳ من ${hh(p.at)}</span>${p.until && p.until - now < 864e5 ? `<br><b style="color:#f59e0b">باقي ~${hm(p.until - now)}</b>` : ""}` : `🕒 ${hh(p.protAt || p.at)}<br><span class="mut">صارلها ${hm(now - (p.protAt || p.at))}</span>`;
     const rows = M.pos.slice().sort((a, b) => (a.pending ? 1 : 0) - (b.pending ? 1 : 0) || (a.protAt || a.at) - (b.protAt || b.at));
-    $("rlOpen").innerHTML = `<tr><th>العملة</th><th>اتجاه</th><th>الوقت</th><th>الاستراتيجية</th><th>دخول</th><th>الوقف</th><th>الهدف</th><th>ربح/خسارة</th><th>عن المنصة</th></tr>` +
+    setHTML($("rlOpen"), `<tr><th>العملة</th><th>اتجاه</th><th>الوقت</th><th>الاستراتيجية</th><th>دخول</th><th>الوقف</th><th>الهدف</th><th>ربح/خسارة</th><th>عن المنصة</th></tr>` +
       (rows.map((p, i) => { const t = byKey.get(p.key), px = pxOf(p.sym), sp = (M.special || {})[p.name], notl = sp ? sp.notional : C.notional, ent = p.fill || p.lim;
         const pnl = px && ent && !p.pending ? p.d*(px/ent - 1)*notl : null;
         const sep = p.pending && (i === 0 || !rows[i-1].pending) ? `<tr><td colspan="9" class="mut" style="text-align:start;background:rgba(245,158,11,.06)">⏳ ليمتات ناطرة تتعبّى (بتنلغى لحالها بعد 15 دقيقة · ✕ = الغيها هلأ)</td></tr>` : "";
         return sep + `<tr${p.pending ? ' style="opacity:.85"' : ""}><td><b>${cn(p.sym)}</b>${p.hold ? " ✋" : ""}</td><td><span class="tag ${p.d === 1 ? "L" : "S"}">${p.d === 1 ? "LONG" : "SHORT"}</span></td><td style="line-height:1.35">${tcell(p)}</td><td class="nm">${shortN(p.name)}</td>` +
           `<td class="num">${p.pending ? (p.pre ? "🎣 ليمت مسبق " : "⏳ ليمت ") + num(p.lim) + ` <button class="sec rlX" data-s="${p.sym}" title="الغي هالليمت (وما بيرجع يفوت نفس الصفقة لمدة ساعة)" style="padding:1px 7px;margin-inline-start:6px;color:#f87171">✕</button>` : num(ent)}</td><td class="num">${num(p.stop)}</td><td class="num">${p.target ? num(p.target) : "—"}</td>` +
           `<td>${pnl == null ? "—" : usd(pnl)}</td><td>${!t ? '<span class="mut">—</span>' : !t.open ? `<span style="color:#f59e0b">سكّرت بالمنصة (${t.why})</span>` : ent && t.rawIn && !p.pending ? Math.abs(ent/t.rawIn - 1) < 0.0005 ? "نفس السعر" : `<span style="color:${p.d*(ent/t.rawIn - 1) > 0.0005 ? "#f59e0b" : "#94a3b8"}">${p.d*(ent/t.rawIn - 1) > 0 ? "أغلى" : "أرخص"} ${(100*Math.abs(ent/t.rawIn - 1)).toFixed(2)}%</span>` : "نفس الصفقة"}</td></tr>`; }).join("") ||
-       `<tr><td colspan="9" class="mut">ما في صفقات حقيقية مفتوحة هلأ</td></tr>`);
-  } else { $("rlOpen").innerHTML = `<tr><td class="mut">المرآة مش متصلة</td></tr>`; }
+       `<tr><td colspan="9" class="mut">ما في صفقات حقيقية مفتوحة هلأ</td></tr>`));
+  } else { setHTML($("rlOpen"), `<tr><td class="mut">المرآة مش متصلة</td></tr>`); }
   // ج) صفقات المنصة لاستراتيجيات الحقيقي آخر 24 ساعة
   const real = M ? new Set(M.pos.map(p => p.key)) : new Set();
   const cut = Math.max(now - 24*3600e3, M && M.since ? M.since : 0), recent = T.filter(t => allow.includes(t.name) && t.eTs >= cut && !real.has(`${t.name}|${t.sym}|${t.eTs}`) && !(M && ["opened", "busy"].includes(M.seen[`${t.name}|${t.sym}|${t.eTs}`]))).sort((a, b) => b.eTs - a.eTs);   // اللي فاتت بتطلع بجدول المفتوحة / بعدد الأهداف والوقوف — هون بس اللي ما فاتت
   { const el = $("rlMissSince"); if (el) el.textContent = M && M.since && M.since > now - 24*3600e3 ? `(من ${dt(M.since)} — لما اشتغلت قائمة الحقيقي الحالية)` : "(آخر 24 ساعة)"; }
-  $("rlMiss").innerHTML = `<tr><th>وقت الدخول</th><th>العملة</th><th>اتجاه</th><th>الاستراتيجية</th><th>بالمنصة</th><th>بالحقيقي</th></tr>` +
+  setHTML($("rlMiss"), `<tr><th>وقت الدخول</th><th>العملة</th><th>اتجاه</th><th>الاستراتيجية</th><th>بالمنصة</th><th>بالحقيقي</th></tr>` +
     (recent.slice(0, RL_ALL ? 300 : 8).map(t => { const k = `${t.name}|${t.sym}|${t.eTs}`, why = M ? M.seen[k] : null;
       const r = real.has(k) ? '<b class="pos">✅ مفتوحة</b>' : !M ? '<span class="mut">؟</span>' : why === "opened" ? "✅ فاتت (وسكّرت)" : why ? `<span style="color:#f59e0b">${why.startsWith("err") ? "خطأ: " + why.slice(5, 60) : (WHY_AR[why] || why)}</span>` : '<span class="mut">ما شافها (المرآة كانت طافية؟)</span>';
       return `<tr><td class="mut">${dt(t.eTs)}</td><td><b>${cn(t.sym)}</b></td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td class="nm">${shortN(t.name)}</td><td>${t.open ? "مفتوحة " : ""}${usd(t.net)}</td><td>${r}</td></tr>`; }).join("") ||
      `<tr><td colspan="6" class="mut">✅ كل صفقات المنصة من هالفترة فاتت بالحقيقي</td></tr>`) +
     (M ? (n => n ? `<tr><td colspan="6" class="mut">+ ${n} إشارة مكررة على عملة فيها صفقة أصلاً (نسختين Range على نفس العملة) — مش مخفية عنك، بس ما إلها داعي هون</td></tr>` : "")(T.filter(t => allow.includes(t.name) && t.eTs >= cut && M.seen[`${t.name}|${t.sym}|${t.eTs}`] === "busy").length) : "") +
-    (recent.length > 8 ? `<tr><td colspan="6"><button class="sec" onclick="RL_ALL=!RL_ALL;renderReal()">${RL_ALL ? "🔼 خفّف (آخر 8 بس)" : `📜 اعرض الكل (${recent.length})`}</button></td></tr>` : "");   // 18/11 (طلب المستخدم): آخر 8 بس، والباقي بكبسة
+    (recent.length > 8 ? `<tr><td colspan="6"><button class="sec" onclick="RL_ALL=!RL_ALL;renderReal()">${RL_ALL ? "🔼 خفّف (آخر 8 بس)" : `📜 اعرض الكل (${recent.length})`}</button></td></tr>` : ""));   // 18/11 (طلب المستخدم): آخر 8 بس، والباقي بكبسة
   // د) القائمة بالترتيب + قاعدة التوقف
   const R = new Map(repData(true).map(r => [r.name, r]));
   const dd = name => { const cl = T.filter(t => t.name === name && !t.open).sort((a, b) => a.xTs - b.xTs); let eq = 0, pk = 0, cur = 0; for (const t of cl) { eq += t.net; pk = Math.max(pk, eq); } cur = pk - eq; return cur; };
-  $("rlList").innerHTML = `<tr><th>#</th><th>الاستراتيجية</th><th>صفقات</th><th>ربح%</th><th>الصافي</th><th>PF</th><th>تحت القمة</th><th>الحكم</th></tr>` +
+  setHTML($("rlList"), `<tr><th>#</th><th>الاستراتيجية</th><th>صفقات</th><th>ربح%</th><th>الصافي</th><th>PF</th><th>تحت القمة</th><th>الحكم</th></tr>` +
     allow.map((nm, i) => { const r = R.get(nm) || { n: 0, win: 0, net: 0, pf: 0, o: 0, onet: 0 }, d0 = dd(nm), sc = RESULT ? RESULT.P.notional/200 : 1;
       const v = r.n >= 100 && r.pf < 0.9 ? "🛑 وقّف وراجع" : r.n < 20 ? "⏳ بيجمع بيانات" : (r.pf < 1 || d0 > 40*sc) ? "🟡 انتبه" : "🟢 كمّل";
-      return `<tr><td class="num">${i + 1}</td><td class="nm">${nm}</td><td class="num">${r.n}</td><td class="num">${r.n ? Math.round(100*r.win) + "%" : "—"}</td><td>${r.n ? usd(r.net) : "—"}</td><td class="num">${r.n ? (r.pf >= 99 ? "∞" : r.pf.toFixed(2)) : "—"}</td><td>${d0 > 0 ? usd(-d0) : "0"}</td><td>${v}</td></tr>`; }).join("");
+      return `<tr><td class="num">${i + 1}</td><td class="nm">${nm}</td><td class="num">${r.n}</td><td class="num">${r.n ? Math.round(100*r.win) + "%" : "—"}</td><td>${r.n ? usd(r.net) : "—"}</td><td class="num">${r.n ? (r.pf >= 99 ? "∞" : r.pf.toFixed(2)) : "—"}</td><td>${d0 > 0 ? usd(-d0) : "0"}</td><td>${v}</td></tr>`; }).join(""));
 }
 document.addEventListener("click", e => {
   const id = e.target && e.target.id;
@@ -5275,7 +5279,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-19-2310";
+const BUILD = "2026-11-19-2345";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
@@ -5583,6 +5587,7 @@ function renderMkt() {
     `<div>🎯 خط القلبة على الساعة: <b class="num">${f0(M.h1.e50)}</b> — ${px > M.h1.e50 ? `البيتكوين <b class="pos">فوقه</b> هلأ (بيتأكد مع إغلاق شمعة الساعة)` : `بدّه ${sg(d50)} ليوصله`} · على 4 ساعات: <b class="num">${f0(M.h4.e50)}</b> ${px > M.h4.e50 ? '<b class="pos">(فوقه)</b>' : `(بدّه ${sg(pc(M.h4.e50, px))})`}</div>` +
     `<div>🪙 العملات (${nc}): ترند الساعة <b class="pos">${C.filter(c => c.up1).length} طالعة</b> · <b class="neg">${C.filter(c => c.dn1).length} نازلة</b> · ${C.filter(c => c.flat1).length} عرضية · فوق EMA200 على 4 ساعات: <b>${C.filter(c => c.up4).length}</b> · طالعة بآخر ساعة: <b>${up1n}/${live.length}</b> · متوسط آخر 4 ساعات ${sg(med4)}</div>`;
 }
+let LIGHT_ACC_T = 0;
 function lightUpdate() {
   if (!CACHE || !RESULT) return;
   const P = RESULT.P;
@@ -5596,7 +5601,8 @@ function lightUpdate() {
     }
     return { ...money(t, c.D, P, c.funding, px), sym: t.sym }; });
   if (closedNow) { try { render(); } catch (e) {} return; }
-  renderAccount(); renderCards(); updateLiveHeader(); try { if (vis("acc")) renderMkt(); } catch (e) {}
+  { const now2 = Date.now(), vA = vis("acc") || vis("open"); if (vA || now2 - LIGHT_ACC_T > 15000) { LIGHT_ACC_T = now2; renderAccount(); } }   // 19/11 23:40: الحساب/المفتوحة بس لما يكونوا ظاهرين (كان كل ثانية حتى بتبويب الحقيقي = تعليق)
+  renderCards(); updateLiveHeader(); try { if (vis("acc")) renderMkt(); } catch (e) {}
   if (vis("live")) { drawChart(); try { renderZones(); } catch (e) {} if (Date.now() - LAST_RADAR > 10000) { LAST_RADAR = Date.now(); radar(); } }
 }
 
