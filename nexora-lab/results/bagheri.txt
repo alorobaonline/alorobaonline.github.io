@@ -1,8 +1,8 @@
-NEXORA LAB (GitHub) | bagheri | 2026-11-18T11:55:15.958Z | hash=0b3d9e550a | engine=a3bd6078 | coins 1 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
+NEXORA LAB (GitHub) | bagheri | 2026-11-19T11:53:23.350Z | hash=ebebf00ad9 | engine=4447d0eb | coins 1 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
 ## Bagheri IG Ether 15m (كما هي) | ❌ (maker-entry ❌) | coins+all3 0/1
-تدريب: n=95 -33.67$ PF0.67 win38% gross/t-0.15$ t-1.9 DD44$ | اختبار: n=47 +5.97$ PF1.11 win49% gross/t+0.33$ t0.4 DD15$ | جديدة: n=15 -5.21$ PF0.72 win40% gross/t-0.14$ t-0.6 DD6$
-maker-entry: تدريب: n=95 -26.07$ PF0.73 win38% gross/t-0.15$ t-1.5 DD39$ | اختبار: n=47 +9.73$ PF1.19 win49% gross/t+0.33$ t0.6 DD14$ | جديدة: n=15 -4.01$ PF0.78 win40% gross/t-0.14$ t-0.5 DD6$
-quarters 3/10: 2024Q3 n7 +6.72 (L-0.02/S+6.74) | 2024Q4 n18 -12.17 (L-8.46/S-3.71) | 2025Q1 n20 -16.88 (L-12.59/S-4.29) | 2025Q2 n12 -3.44 (L-7.99/S+4.55) | 2025Q3 n19 -4.40 (L-4.02/S-0.38) | 2025Q4 n22 -1.50 (L+3.76/S-5.27) | 2026Q1 n20 +0.47 (L+3.23/S-2.76) | 2026Q2 n19 +5.32 (L-4.17/S+9.49) | 2026Q3 n9 -1.37 (L-2.56/S+1.19) | 2026Q4 n11 -5.66 (L-8.66/S+3.00)
+تدريب: n=95 -33.67$ PF0.67 win38% gross/t-0.15$ t-1.9 DD44$ | اختبار: n=47 +5.97$ PF1.11 win49% gross/t+0.33$ t0.4 DD15$ | جديدة: n=16 -7.87$ PF0.63 win38% gross/t-0.28$ t-0.9 DD9$
+maker-entry: تدريب: n=95 -26.07$ PF0.73 win38% gross/t-0.15$ t-1.5 DD39$ | اختبار: n=47 +9.73$ PF1.19 win49% gross/t+0.33$ t0.6 DD14$ | جديدة: n=16 -6.59$ PF0.68 win38% gross/t-0.28$ t-0.8 DD8$
+quarters 3/10: 2024Q3 n7 +6.72 (L-0.02/S+6.74) | 2024Q4 n18 -12.17 (L-8.46/S-3.71) | 2025Q1 n20 -16.88 (L-12.59/S-4.29) | 2025Q2 n12 -3.44 (L-7.99/S+4.55) | 2025Q3 n19 -4.40 (L-4.02/S-0.38) | 2025Q4 n22 -1.50 (L+3.76/S-5.27) | 2026Q1 n20 +0.47 (L+3.23/S-2.76) | 2026Q2 n19 +5.32 (L-4.17/S+9.49) | 2026Q3 n9 -1.37 (L-2.56/S+1.19) | 2026Q4 n12 -8.32 (L-11.32/S+3.00)
 
 ## Bagheri IG Ether ساعة (كما هي) | ❌ (maker-entry ❌) | coins+all3 0/1
 تدريب: n=26 -5.51$ PF0.79 win42% gross/t-0.01$ t-0.6 DD19$ | اختبار: n=11 +16.25$ PF3.60 win73% gross/t+1.66$ t2.1 DD2$ | جديدة: n=2 +4.29$ PFinf win100% gross/t+2.31$ t38.3 DD0$
