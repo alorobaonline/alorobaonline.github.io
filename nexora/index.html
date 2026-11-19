@@ -248,7 +248,7 @@ section[data-t="real"] table tr[style*="background:#14321f"] td{background:rgba(
   <div id="rlMirror" class="card" style="font-size:14px"></div>
   <h3 style="margin-top:14px">📌 الصفقات الحقيقية المفتوحة</h3>
   <div class="wrap"><table id="rlOpen"></table></div>
-  <h3 style="margin-top:14px">🔎 صفقات المنصة اللي ما فاتت بالحقيقي (آخر 24 ساعة) — وليش</h3>
+  <h3 style="margin-top:14px">🔎 صفقات المنصة اللي ما فاتت بالحقيقي <span id="rlMissSince" class="mut" style="font-size:13px">(آخر 24 ساعة)</span> — وليش</h3>
   <div class="wrap"><table id="rlMiss"></table></div>
   <h3 style="margin-top:14px">📋 القائمة بالترتيب — نتيجتها على المنصة من التصفير (على عملات الحقيقي الـ102) + قاعدة التوقف</h3>
   <div class="wrap"><table id="rlList"></table></div>
@@ -5103,12 +5103,13 @@ function renderReal() {
   } else { $("rlOpen").innerHTML = `<tr><td class="mut">المرآة مش متصلة</td></tr>`; }
   // ج) صفقات المنصة لاستراتيجيات الحقيقي آخر 24 ساعة
   const real = M ? new Set(M.pos.map(p => p.key)) : new Set();
-  const cut = now - 24*3600e3, recent = T.filter(t => allow.includes(t.name) && t.eTs >= cut && !real.has(`${t.name}|${t.sym}|${t.eTs}`) && !(M && ["opened", "busy"].includes(M.seen[`${t.name}|${t.sym}|${t.eTs}`]))).sort((a, b) => b.eTs - a.eTs);   // اللي فاتت بتطلع بجدول المفتوحة / بعدد الأهداف والوقوف — هون بس اللي ما فاتت
+  const cut = Math.max(now - 24*3600e3, M && M.since ? M.since : 0), recent = T.filter(t => allow.includes(t.name) && t.eTs >= cut && !real.has(`${t.name}|${t.sym}|${t.eTs}`) && !(M && ["opened", "busy"].includes(M.seen[`${t.name}|${t.sym}|${t.eTs}`]))).sort((a, b) => b.eTs - a.eTs);   // اللي فاتت بتطلع بجدول المفتوحة / بعدد الأهداف والوقوف — هون بس اللي ما فاتت
+  { const el = $("rlMissSince"); if (el) el.textContent = M && M.since && M.since > now - 24*3600e3 ? `(من ${dt(M.since)} — لما اشتغلت قائمة الحقيقي الحالية)` : "(آخر 24 ساعة)"; }
   $("rlMiss").innerHTML = `<tr><th>وقت الدخول</th><th>العملة</th><th>اتجاه</th><th>الاستراتيجية</th><th>بالمنصة</th><th>بالحقيقي</th></tr>` +
     (recent.slice(0, RL_ALL ? 300 : 8).map(t => { const k = `${t.name}|${t.sym}|${t.eTs}`, why = M ? M.seen[k] : null;
       const r = real.has(k) ? '<b class="pos">✅ مفتوحة</b>' : !M ? '<span class="mut">؟</span>' : why === "opened" ? "✅ فاتت (وسكّرت)" : why ? `<span style="color:#f59e0b">${why.startsWith("err") ? "خطأ: " + why.slice(5, 60) : (WHY_AR[why] || why)}</span>` : '<span class="mut">ما شافها (المرآة كانت طافية؟)</span>';
       return `<tr><td class="mut">${dt(t.eTs)}</td><td><b>${cn(t.sym)}</b></td><td><span class="tag ${t.d === 1 ? "L" : "S"}">${t.d === 1 ? "LONG" : "SHORT"}</span></td><td class="nm">${shortN(t.name)}</td><td>${t.open ? "مفتوحة " : ""}${usd(t.net)}</td><td>${r}</td></tr>`; }).join("") ||
-     `<tr><td colspan="6" class="mut">✅ كل صفقات المنصة بآخر 24 ساعة فاتت بالحقيقي</td></tr>`) +
+     `<tr><td colspan="6" class="mut">✅ كل صفقات المنصة من هالفترة فاتت بالحقيقي</td></tr>`) +
     (M ? (n => n ? `<tr><td colspan="6" class="mut">+ ${n} إشارة مكررة على عملة فيها صفقة أصلاً (نسختين Range على نفس العملة) — مش مخفية عنك، بس ما إلها داعي هون</td></tr>` : "")(T.filter(t => allow.includes(t.name) && t.eTs >= cut && M.seen[`${t.name}|${t.sym}|${t.eTs}`] === "busy").length) : "") +
     (recent.length > 8 ? `<tr><td colspan="6"><button class="sec" onclick="RL_ALL=!RL_ALL;renderReal()">${RL_ALL ? "🔼 خفّف (آخر 8 بس)" : `📜 اعرض الكل (${recent.length})`}</button></td></tr>` : "");   // 18/11 (طلب المستخدم): آخر 8 بس، والباقي بكبسة
   // د) القائمة بالترتيب + قاعدة التوقف
@@ -5155,7 +5156,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-19-0530";
+const BUILD = "2026-11-19-0540";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
