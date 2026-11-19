@@ -4174,6 +4174,35 @@ STRATS_ALL.push({ name: MACD_LS_NAME, mult: 0, m5: true, preLim: true, sig: () =
     const out = []; let busy = -1; for (const t of all) { if (t.e <= busy) continue; out.push({ ...t, name: MACD_LS_NAME }); busy = t.open ? Infinity : t.x; }
     return out;
   } });
+// 19/11 22:20 (طلب المستخدم): قنوات دعم/مقاومة — «Support Resistance Channels» (LonesomeTheBlue، الإعدادات الأصلية: قمم/قيعان 10 · عرض 5% من مدى 300 شمعة · أقوى 6 · 290 شمعة لورا) على 15د
+//  بتنحسب على آخر شمعة 15د مسكّرة قبل الدخول (القنوات بتتحدّث بس لما تتأكد قمة/قاع جديدة — زي المؤشر) · المسافة من سعر الدخول لأقرب حافة قناة باتجاه الصفقة
+//  ① بلا شورت مفتوح: الشورت بس إذا جوّا قناة أو في دعم تحت بأقل من 1.2% (فحص التصفير: 457 صفقة 61% +48.82$ بدل 560 58% +40.73$ على 48$)
+//  ③ حيط قريب: لازم قناة باتجاه الصفقة على بُعد أقل من 0.6% والسعر مش جوّا قناة (149 صفقة 69% +29.22$) — هاي اللي على الحقيقي
+function srChannels(H, L, b, prd = 10, W = 5, loop = 290, maxn = 6) {
+  if (b < 300 + loop + 2*prd || b >= H.length) return null;
+  const isPH = j => { const c = j - prd; for (let k = 1; k <= prd; k++) { if (!(H[c] > H[c-k]) || H[c] < H[c+k]) return false; } return true; };
+  const isPL = j => { const c = j - prd; for (let k = 1; k <= prd; k++) { if (!(L[c] < L[c-k]) || L[c] > L[c+k]) return false; } return true; };
+  let lb = -1; for (let j = b; j > b - 300; j--) if (isPH(j) || isPL(j)) { lb = j; break; } if (lb < 0) return null;
+  const pv = []; for (let j = lb; j >= lb - loop; j--) { if (isPH(j)) pv.push(H[j-prd]); else if (isPL(j)) pv.push(L[j-prd]); }
+  let hh = -Infinity, ll = Infinity; for (let j = lb - 299; j <= lb; j++) { hh = Math.max(hh, H[j]); ll = Math.min(ll, L[j]); } const cw = (hh - ll)*W/100;
+  const sr = pv.map(v => { let lo = v, hi = v, n = 0; for (const c of pv) { const w = c <= hi ? hi - c : c - lo; if (w <= cw) { if (c <= hi) lo = Math.min(lo, c); else hi = Math.max(hi, c); n += 20; } } return { hi, lo, s: n }; });
+  for (let x = 0; x <= loop; x++) { const h = H[lb-x], l = L[lb-x]; for (const r of sr) { if (h <= r.hi && h >= r.lo) r.s++; if (l <= r.hi && l >= r.lo) r.s++; } }
+  const out = [], st = sr.map(r => r.s);
+  for (let it = 0; it < sr.length && out.length < maxn; it++) { let bv = -1, bi = -1; for (let y = 0; y < sr.length; y++) if (st[y] > bv && st[y] >= 20) { bv = st[y]; bi = y; } if (bi < 0) break;
+    const r = sr[bi]; out.push(r); for (let y = 0; y < sr.length; y++) if ((sr[y].hi <= r.hi && sr[y].hi >= r.lo) || (sr[y].lo <= r.hi && sr[y].lo >= r.lo)) st[y] = -1; }
+  return out;
+}
+function srWall(D, t) { const ch = srChannels(D.h, D.l, t.e - 1); if (!ch) return null; const p = t.rawIn; let inC = false, wall = Infinity;
+  for (const r of ch) { if (r.lo <= p && p <= r.hi) inC = true; else if (t.d === 1 ? r.lo > p : r.hi < p) wall = Math.min(wall, t.d === 1 ? 100*(r.lo/p - 1) : 100*(1 - r.hi/p)); }
+  return { inC, wall }; }
+const SR_NAMES = [MACD_LS_NAME + " + قنوات ① بلا شورت مفتوح", MACD_LS_NAME + " + قنوات ③ حيط قريب"];
+SR_NAMES.forEach((name, v) => STRATS_ALL.push({ name, mult: 0, m5: true, preLim: true, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "شورت لونج ماكد + Support Resistance Channels (طلب المستخدم 19/11)",
+  run: (D, inds, sp, startTs) => {
+    const base = STRATS_ALL.find(x => x.name === MACD_LS_NAME); if (!base) return [];
+    return evaluate(D, inds, base, startTs).filter(t => { const f = srWall(D, t);
+      if (v === 0) return t.d === 1 || !f || f.inC || f.wall < 1.2;
+      return !!f && !f.inC && f.wall < 0.6; }).map(t => ({ ...t, name }));
+  } }));
 // 18/11: نسخ أسرع للعائلات النادرة (نفس المنطق، فريم أصغر = إشارات أكتر للتجميع)
 for (const b of ["S16 SMC A 1h", "S16 SMC B 1h (CHoCH)", "IT1226 ساعة لونج+شورت", "IT1226 4h لونج+شورت"]) STRATS_ALL.push(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"));
 const PLATFORM_DATA18 = [...FEAT_WRAPS.map(([b, tag]) => b + " + " + tag), ...["S16 SMC A 1h", "S16 SMC B 1h (CHoCH)", "IT1226 ساعة لونج+شورت", "IT1226 4h لونج+شورت"].map(b => b + " | هدف 1.2% وقف 1.2%"), "Bagheri IG 15m كل العملات (هدف 1.7% وقف 1.2%)"];
@@ -4191,7 +4220,7 @@ const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% �
 // 17/11 18:16 (طلب المستخدم): المنصة كلها على هدف 1.5% ووقف 1.2% — بنبدّل اسم كل نسخة 1.2% بنسختها 1.5% (Range Sniper وLux ليمت 1% بأهدافهم الأصلية)
 const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
 const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المستخدم — 1.5% طلع أسوأ من التصفير). نسخ 1.5% بالمختبر
-PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة
+PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); SR_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 // 17/11 19:53 (طلب المستخدم): الخسرانين من التصفير انشالوا من المنصة — بالمختبر بس
@@ -5220,7 +5249,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-19-1135";
+const BUILD = "2026-11-19-2225";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
