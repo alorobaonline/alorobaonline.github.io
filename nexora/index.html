@@ -4228,6 +4228,52 @@ const RANGE_24_NAME = "Range Sniper 15m + ترند 4h + وقف ≥0.3% + شور�
 STRATS_ALL.push({ name: RANGE_24_NAME, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Range + فلتر 24 ساعة (خطة الخسارات الأقل 19/11)",
   run: (D, inds, sp, startTs) => { const base = STRATS_ALL.find(x => x.name === "Range Sniper 15m + ترند 4h + وقف ≥0.3%"); if (!base) return [];
     return evaluate(D, inds, base, startTs).filter(t => { const i = t.e - 1; if (t.d !== -1 || i < 96) return true; return !(100*(D.c[i]/D.c[i-96] - 1) < -0.46); }).map(t => ({ ...t, name: RANGE_24_NAME })); } });
+// 20/11 01:40 (طلب المستخدم): دايفرجنس Squeeze Momentum Oscillator [AlgoAlpha] على 15د (نفس الكود: زخم 10 · سوينغ 20 · بيفوت 15/1)
+//  لونج = السعر قاع أوطى + الخط الأبيض (z-score) قاع أعلى · شورت = العكس · دخول ماركت على فتح الشمعة اللي بعد التأكيد · هدف 1.2% وقف 2.5%
+//  بلا لونج إذا البيتكوين على بُعد ≤0.3% من أوطى سعر إله بآخر 12 ساعة (يوم 18/11: ‎−36$ ← ‎−6.5$)
+//  فحص التصفير: 746 صفقة 79% (158 خسارة) +121.75$ على 48$ · «جماعي 15+» (16 عملة أو أكثر نفس الإشارة بنفس الشمعة) بتنحسب بالصفحة
+const DIV_NAME = "دايفرجنس AlgoAlpha 15د · وقف 2.5% + بلا لونج على قاع BTC", DIV_RAW = "دايفرجنس AlgoAlpha 15د (كل الإشارات — مخفي)", DIV15_NAME = "دايفرجنس AlgoAlpha 15د · جماعي 15+ · وقف 2.5% + بلا لونج على قاع BTC";
+function aaDivSignals(D, startTs) {   // إشارات الدايفرجنس (شموع مسكّرة بس) → [{ i, d, btcLow }]
+  const n0 = D.prov ? D.o.length - 1 : D.o.length, from = Math.max(0, Math.floor((startTs - D.t0)/M15) - 2500); if (n0 - from < 400) return [];
+  const H = D.h.slice(from, n0), L = D.l.slice(from, n0), C = D.c.slice(from, n0), n = C.length;
+  const pe = (x, p) => { const a = 2/(p + 1), o = new Float64Array(x.length).fill(NaN); let v = NaN; for (let i = 0; i < x.length; i++) { const y = x[i]; if (!Number.isFinite(y)) { o[i] = v; continue; } v = Number.isFinite(v) ? a*y + (1 - a)*v : y; o[i] = v; } return o; };
+  const wm = (x, p) => { const o = new Float64Array(x.length).fill(NaN), den = p*(p + 1)/2; for (let i = p - 1; i < x.length; i++) { let s = 0, ok = true; for (let k = 0; k < p; k++) { const y = x[i-k]; if (!Number.isFinite(y)) { ok = false; break; } s += y*(p - k); } if (ok) o[i] = s/den; } return o; };
+  const hm = (x, p) => { const a = wm(x, Math.floor(p/2)), b = wm(x, p), d = new Float64Array(x.length); for (let i = 0; i < x.length; i++) d[i] = 2*a[i] - b[i]; return wm(d, Math.floor(Math.sqrt(p))); };
+  const len = 10, Lg = 20, hl = new Float64Array(n), lo = new Float64Array(n), hi = new Float64Array(n);
+  for (let i = 0; i < n; i++) { hl[i] = H[i] - L[i]; let a = Infinity, b = -Infinity; for (let k = Math.max(0, i - len + 1); k <= i; k++) { a = Math.min(a, L[k]); b = Math.max(b, H[k]); } lo[i] = a; hi[i] = b; }
+  const el = pe(lo, len), eh = pe(hi, len), v1 = new Float64Array(n); let dd = 0;
+  for (let i = 0; i < n; i++) { if (i > 0 && C[i] > eh[i] && C[i-1] <= eh[i-1]) dd = 1; if (i > 0 && C[i] < el[i] && C[i-1] >= el[i-1]) dd = -1; v1[i] = C[i] - (dd === 1 ? el[i] : eh[i]); }
+  const v2 = hm(v1, len), e2 = pe(hl, len*2), vf = new Float64Array(n); for (let i = 0; i < n; i++) vf[i] = (v2[i]/e2[i]*100)/8;
+  const z0 = new Float64Array(n).fill(NaN); for (let i = Lg - 1; i < n; i++) { let s = 0, q = 0, ok = true; for (let k = 0; k < Lg; k++) { const y = vf[i-k]; if (!Number.isFinite(y)) { ok = false; break; } s += y; q += y*y; } if (ok) { const m = s/Lg, sd = Math.sqrt(Math.max(0, q/Lg - m*m)); z0[i] = (vf[i] - m)/sd; } }
+  const x = pe(z0, Lg); for (let i = 0; i < n; i++) x[i] *= 66;
+  const isPL = c => { for (let k = 1; k <= 15; k++) if (!(x[c] < x[c-k])) return false; return x[c] <= x[c+1]; }, isPH = c => { for (let k = 1; k <= 15; k++) if (!(x[c] > x[c-k])) return false; return x[c] >= x[c+1]; };
+  const B = D.btc15, out = []; let pl = -1, ph = -1; const iS = Math.floor((startTs - D.t0)/M15) - from;
+  for (let j = 60; j < n; j++) { const c = j - 1; if (!Number.isFinite(x[c-15]) || !Number.isFinite(x[j])) continue; let d = 0;
+    if (isPL(c)) { if (pl >= 0 && j >= iS && (j - 1) - (pl + 1) <= 80 && x[c] > x[pl] && L[c] < L[pl]) d = 1; pl = c; }
+    if (isPH(c)) { if (ph >= 0 && j >= iS && (j - 1) - (ph + 1) <= 80 && x[c] < x[ph] && H[c] > H[ph]) d = -1; ph = c; }
+    if (!d) continue; const i = j + from;
+    let btcLow = false; if (B) { const bi = Math.floor((D.t0 + (i + 1)*M15 - B.t0)/M15) - 1; if (bi >= 48 && bi < B.c.length) { let m = Infinity; for (let k = bi - 48; k <= bi; k++) m = Math.min(m, B.l[k]); btcLow = B.c[bi] <= m*1.003; } else btcLow = null; }
+    out.push({ i, d, btcLow }); }
+  return out;
+}
+function aaDivRun(D, sigs, startTs, name, busyOn) {   // ماركت على فتح الشمعة اللي بعد · هدف 1.2% وقف 2.5% · الوقف بيربح التعادل بنفس الشمعة
+  const out = []; let busy = -1, N = D.o.length;
+  for (const s of sigs) { if (busyOn && s.i <= busy) continue; const d = s.d, e = s.i + 1; if (e >= N) continue; const eTs = D.t0 + e*M15; if (eTs < startTs) continue;
+    const px = D.o[e], stop = px*(1 - d*0.025), target = px*(1 + d*0.012); let ox = null, xi = null, why = null;
+    for (let k = e; k < N; k++) { if (D.prov && k === N - 1 && k > e) { /* الشمعة الحية: بس لمسة الوقف/الهدف */ }
+      if (k > e && d*(D.o[k] - stop) <= 0) { ox = D.o[k]; xi = k; why = "STOP"; break; }
+      if (k > e && d*(D.o[k] - target) >= 0) { ox = D.o[k]; xi = k; why = "TGT_GAP"; break; }
+      if (d === 1 ? D.l[k] <= stop : D.h[k] >= stop) { ox = stop; xi = k; why = "INIT_STOP"; break; }
+      if (d === 1 ? D.h[k] >= target : D.l[k] <= target) { ox = target; xi = k; why = "TARGET"; break; } }
+    const open = ox === null; busy = open ? Infinity : xi;
+    out.push(open ? { name, d, e, x: N - 1, rawIn: px, rawOut: D.c[N-1], why: "TIME", open: true, stop, target, btcLow: s.btcLow } : { name, d, e, x: xi, rawIn: px, rawOut: ox, why, open: false, stop, target, btcLow: s.btcLow }); }
+  return out;
+}
+STRATS_ALL.push({ name: DIV_NAME, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Squeeze Momentum Oscillator [AlgoAlpha] — دايفرجنس 15د (طلب المستخدم 20/11)",
+  run: (D, inds, sp, startTs) => { if (!D.btc15) return []; return aaDivRun(D, aaDivSignals(D, startTs).filter(s => !(s.d === 1 && s.btcLow !== false)), startTs, DIV_NAME, true); } });
+STRATS_ALL.push({ name: DIV_RAW, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "دايفرجنس AlgoAlpha — كل الإشارات بدون تزاحم (للجماعي بالصفحة)",
+  run: (D, inds, sp, startTs) => { if (!D.btc15) return []; return aaDivRun(D, aaDivSignals(D, startTs), startTs, DIV_RAW, false); } });
+STRATS_ALL.push({ name: DIV15_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "دايفرجنس جماعي 15+ (بتنحسب بالصفحة)" });
 // 18/11: نسخ أسرع للعائلات النادرة (نفس المنطق، فريم أصغر = إشارات أكتر للتجميع)
 for (const b of ["S16 SMC A 1h", "S16 SMC B 1h (CHoCH)", "IT1226 ساعة لونج+شورت", "IT1226 4h لونج+شورت"]) STRATS_ALL.push(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"));
 const PLATFORM_DATA18 = [...FEAT_WRAPS.map(([b, tag]) => b + " + " + tag), ...["S16 SMC A 1h", "S16 SMC B 1h (CHoCH)", "IT1226 ساعة لونج+شورت", "IT1226 4h لونج+شورت"].map(b => b + " | هدف 1.2% وقف 1.2%"), "Bagheri IG 15m كل العملات (هدف 1.7% وقف 1.2%)"];
@@ -4245,7 +4291,7 @@ const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% �
 // 17/11 18:16 (طلب المستخدم): المنصة كلها على هدف 1.5% ووقف 1.2% — بنبدّل اسم كل نسخة 1.2% بنسختها 1.5% (Range Sniper وLux ليمت 1% بأهدافهم الأصلية)
 const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
 const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المستخدم — 1.5% طلع أسوأ من التصفير). نسخ 1.5% بالمختبر
-PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); SR_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); LS_NAMES.forEach(x => PLATFORM_KEEP12.add(x[0])); PLATFORM_KEEP12.add(RANGE_24_NAME); PLATFORM_KEEP12.add(INV2_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة
+PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); SR_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); LS_NAMES.forEach(x => PLATFORM_KEEP12.add(x[0])); PLATFORM_KEEP12.add(RANGE_24_NAME); PLATFORM_KEEP12.add(DIV_NAME); PLATFORM_KEEP12.add(DIV_RAW); PLATFORM_KEEP12.add(DIV15_NAME); PLATFORM_KEEP12.add(INV2_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 // 17/11 19:53 (طلب المستخدم): الخسرانين من التصفير انشالوا من المنصة — بالمختبر بس
@@ -4665,11 +4711,19 @@ function invDerive(arr, Q) {   // 19/11: IT1226 ساعة معكوسة · 23:00: 
   return out;
 }
 // 19/11 07:26 (طلب المستخدم): IT1226 ساعة الأصلية انمحت من المنصة (كلها خاسرة) — بتنحسب بالخفا بس عشان المعكوسة تطلع منها
-const UI_HIDE = new Set([typeof INV_BASE === "undefined" ? "" : INV_BASE]);
+const UI_HIDE = new Set([typeof INV_BASE === "undefined" ? "" : INV_BASE, typeof DIV_RAW === "undefined" ? "" : DIV_RAW]);
 const STRATS_UI = STRATS.filter(s => !UI_HIDE.has(s.name));
+function divDerive(arr) {   // 20/11: دايفرجنس جماعي 15+ — 16 عملة أو أكثر بنفس الإشارة على نفس الشمعة (من كل الإشارات) + بلا لونج على قاع BTC · صفقة وحدة بالمرة لكل عملة
+  if (typeof DIV_RAW === "undefined") return [];
+  const raw = arr.filter(t => t.name === DIV_RAW); if (!raw.length) return [];
+  const cnt = new Map(); for (const t of raw) { const k = t.eTs + "|" + t.d; cnt.set(k, (cnt.get(k) || 0) + 1); }
+  const by = new Map(); for (const t of raw) { if (cnt.get(t.eTs + "|" + t.d) < 16 || (t.d === 1 && t.btcLow !== false)) continue; if (!by.has(t.sym)) by.set(t.sym, []); by.get(t.sym).push(t); }
+  const out = []; for (const a of by.values()) { let busy = -1; for (const t of a.sort((x, y) => x.eTs - y.eTs)) { if (t.eTs <= busy) continue; out.push({ ...t, name: DIV15_NAME }); busy = t.open ? Infinity : t.xTs; } }
+  return out;
+}
 function groupDerive(arr, Q) {
   if (typeof GROUP_BASE === "undefined") return arr;
-  arr = arr.concat(invDerive(arr, Q)).filter(t => !UI_HIDE.has(t.name));
+  arr = arr.concat(invDerive(arr, Q), divDerive(arr)).filter(t => !UI_HIDE.has(t.name));
   const base = arr.filter(t => t.name === GROUP_BASE && !EXTRA_COINS.has(t.sym)); if (!base.length) return arr;
   const cnt = new Map(); for (const t of base) cnt.set(t.eTs, (cnt.get(t.eTs) || 0) + 1);
   const bySym = new Map(); for (const t of base) { if (!bySym.has(t.sym)) bySym.set(t.sym, []); bySym.get(t.sym).push(t.eTs); }
@@ -4791,10 +4845,10 @@ function withProv(c) {
   else return D;
   return { t0: D.t0, sym: D.sym, prov: true, o: D.o.concat([o]), h: D.h.concat([h]), l: D.l.concat([l]), c: D.c.concat([cl]), v: D.v ? D.v.concat([v]) : undefined, m5: D.m5, s5ck: D.s5ck };
 }
-let BTC_S = null, BTC4 = null;
+let BTC_S = null, BTC4 = null, BTC15 = null;   // 20/11: BTC15 = شموع بيتكوين 15د من قبل التصفير بيوم (فلتر قاع BTC للدايفرجنس)
 function computeOne(c, startTs, prev) {   // نفس الحساب بدون Workers (احتياط)
   if (prev) { c.raw = prev.raw.filter(t => !M5N.has(t.name)); for (const sp of STRATS) if (sp.m5) for (const t of evaluate(c.D, null, sp, startTs)) c.raw.push(t); }
-  else { const DP = withProv(c); DP.btcS = BTC_S; DP.btc4 = BTC4; DP.oi = c.D.oi; const inds = { 1: makeInd(DP, 1), 4: makeInd(DP, 4), 16: makeInd(DP, 16) }; for (const sp of STRATS) if (sp.mult && !inds[sp.mult]) inds[sp.mult] = makeInd(DP, sp.mult); c.raw = []; for (const sp of STRATS) for (const t of evaluate(DP, inds, sp, startTs)) c.raw.push(t); }
+  else { const DP = withProv(c); DP.btcS = BTC_S; DP.btc4 = BTC4; DP.btc15 = BTC15; DP.oi = c.D.oi; const inds = { 1: makeInd(DP, 1), 4: makeInd(DP, 4), 16: makeInd(DP, 16) }; for (const sp of STRATS) if (sp.mult && !inds[sp.mult]) inds[sp.mult] = makeInd(DP, sp.mult); c.raw = []; for (const sp of STRATS) for (const t of evaluate(DP, inds, sp, startTs)) c.raw.push(t); }
 }
 let PROG_T = 0;
 function progressive(c, startTs) {   // 17/11: كل عملة بتخلص بتنعرض فوراً (إذا في نتيجة سابقة لنفس الفترة)
@@ -4808,6 +4862,7 @@ async function computeAll0(coins, startTs, prevOf, st) {
   const P = pool(); let done = 0;
   { const q = coins.filter(c => c.D && !c.D.stub); await Promise.all(Array.from({ length: 4 }, async () => { while (q.length) { const c = q.shift(); c.D.oi = await loadOI(c.sym); } })); }   // 18/11: OI لنسخ «لا تلحق»
   { const b = coins.find(x => x.sym === "BTCUSDT"); BTC_S = b && b.D && !b.D.stub && b.D.o.length > 400 ? btcStateOf(b.D) : null; }
+  { const b = coins.find(x => x.sym === "BTCUSDT"); BTC15 = null; if (b && b.D && !b.D.stub) { const k0 = Math.max(0, Math.floor((startTs - 2*864e5 - b.D.t0)/M15)); BTC15 = { t0: b.D.t0 + k0*M15, l: b.D.l.slice(k0), c: b.D.c.slice(k0) }; } }
   { const b = coins.find(x => x.sym === "BTCUSDT"); BTC4 = null; if (b && b.D && !b.D.stub) { const B = OLDB.bars4(b.D); BTC4 = { C: B.C, T: B.C.map((_, i) => b.D.t0 + (i + 1)*16*M15) }; } }   // 17/11: بيتكوين 4h لبوتات التلغرام القديمة
   const tick = () => st(`⚙️ بحسب الاستراتيجيات… ${done}/${coins.length}${P.length ? ` (${P.length} معالجات مع بعض)` : ""}`);
   tick();
@@ -4816,7 +4871,7 @@ async function computeAll0(coins, startTs, prevOf, st) {
   await Promise.all(P.map(w => (async () => {
     while (queue.length) {
       const c = queue.shift(), prev = prevOf(c);
-      const DP = withProv(c), D = { t0: DP.t0, sym: DP.sym, prov: !!DP.prov, o: DP.o, h: DP.h, l: DP.l, c: DP.c, v: DP.v, m5: DP.m5, s5ck: DP.s5ck, btcS: BTC_S, btc4: BTC4, oi: c.D.oi };   // + الشمعة الحية + فوليوم واسم العملة
+      const DP = withProv(c), D = { t0: DP.t0, sym: DP.sym, prov: !!DP.prov, o: DP.o, h: DP.h, l: DP.l, c: DP.c, v: DP.v, m5: DP.m5, s5ck: DP.s5ck, btcS: BTC_S, btc4: BTC4, btc15: BTC15, oi: c.D.oi };   // + الشمعة الحية + فوليوم واسم العملة
       const res = await new Promise(r => { const tm = setTimeout(() => r({ err: "timeout" }), 180000);   // 18/11: معالج علق/انقتل → منحسبها هون بدل ما يعلق كل الحساب
         w.onmessage = ev => { clearTimeout(tm); r(ev.data); }; w.onerror = ev => { clearTimeout(tm); r({ err: ev.message || "worker" }); }; w.postMessage({ id: c.sym, D, startTs, only5: !!prev }); });
       if (res.err || res.id !== c.sym) { computeOne(c, startTs, prev); }   // 18/11: نتيجة عملة تانية (معالج مشترك بين حسابين) = منحسبها هون
@@ -5279,7 +5334,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-19-2345";
+const BUILD = "2026-11-20-0145";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
