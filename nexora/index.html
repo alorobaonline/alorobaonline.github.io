@@ -4154,6 +4154,10 @@ const MACD_LS_NAME = "شورت لونج ماكد فريم 5 دقايق";
 // 19/11 06:50 (طلب المستخدم): «طلعة جماعية» — Range بيبيع الطلعة لما تطلع على عملتين أو أكثر من عملات الحقيقي بنفس الربع ساعة (فحص التصفير: 56 صفقة 66% +35.75$ بدل 85 صفقة 53% +37.71$ على 48$)
 //  + «بلا رجوع»: كمان ما بتفوت إذا في صفقة Range على نفس العملة بآخر 8 ساعات (49 صفقة 73% +36.20$) · بتنحسب بالصفحة بعد كل العملات (مش جوّا المحرك — بدها كل العملات مع بعض)
 const GROUP_BASE = "Range Sniper 15m + ترند 4h + وقف ≥0.3%", GROUP_NAMES = [GROUP_BASE + " + طلعة جماعية", GROUP_BASE + " + طلعة جماعية + بلا رجوع"];
+// 19/11 07:22 (طلب المستخدم): «IT1226 ساعة معكوسة» — لما IT1226 ساعة بتعطي لونج والسوق طالع (أقل من 40% من عملات الحقيقي نازلة بآخر 4 ساعات) ← شورت بنفس السعر، هدف 1.2% وقف 1.2%
+//  (فحص التصفير على شموع 5د: 108 صفقة على عملات الحقيقي، 71% ربح، +21.75$ على 48$) · بتنحسب بالصفحة (بدها كل العملات)
+const INV_BASE = "IT1226 ساعة لونج+شورت | هدف 1.2% وقف 1.2%", INV_NAME = "IT1226 ساعة معكوسة (شورت الطلعة)";
+STRATS_ALL.push({ name: INV_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "IT1226 معكوسة (بتنحسب بالصفحة)" });
 for (const n of GROUP_NAMES) STRATS_ALL.push({ name: n, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Range طلعة جماعية (بتنحسب بالصفحة)" });
 STRATS_ALL.push({ name: MACD_LS_NAME, mult: 0, m5: true, preLim: true, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD 5m لونج+شورت بفلاتر (طلب المستخدم 19/11)",
   run: (D, inds, sp, startTs) => {
@@ -4186,7 +4190,7 @@ const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% �
 // 17/11 18:16 (طلب المستخدم): المنصة كلها على هدف 1.5% ووقف 1.2% — بنبدّل اسم كل نسخة 1.2% بنسختها 1.5% (Range Sniper وLux ليمت 1% بأهدافهم الأصلية)
 const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
 const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المستخدم — 1.5% طلع أسوأ من التصفير). نسخ 1.5% بالمختبر
-PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n));   // 18/11: نسخ تجميع المعلومات على المنصة
+PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 // 17/11 19:53 (طلب المستخدم): الخسرانين من التصفير انشالوا من المنصة — بالمختبر بس
@@ -4571,8 +4575,32 @@ function params(makerEntry) {
 }
 
 // 19/11: نسخ «طلعة جماعية» من صفقات Range (عملات الحقيقي بس): عدد الإشارات بنفس شمعة الدخول ≥2، و«بلا رجوع» = ما في صفقة Range على نفس العملة بآخر 8 ساعات
-function groupDerive(arr) {
+const INV_MEMO = new Map(), BR_MEMO = new Map();
+function mktDownFrac(ts) {   // نسبة عملات الحقيقي (أول 102) اللي نازلة بآخر 4 ساعات قبل الدخول (شموع مسكّرة)
+  if (BR_MEMO.has(ts)) return BR_MEMO.get(ts); let dn = 0, tot = 0;
+  for (const s of DEFAULT_TOP.slice(0, 102)) { const c = CACHE && CACHE.bySym[s]; if (!c || !c.D || c.D.stub) continue; const D = c.D, i = Math.round((ts - D.t0)/M15) - 1, j = i - 16; if (j < 0 || i >= D.c.length) continue; tot++; if (D.c[i] < D.c[j]) dn++; }
+  const v = tot >= 50 ? dn/tot : null; if (v !== null && ts < Date.now() - 3600e3) BR_MEMO.set(ts, v); return v;
+}
+function invDerive(arr, Q) {   // 19/11: IT1226 ساعة معكوسة
+  if (typeof INV_BASE === "undefined" || !Q) return [];
+  const out = [];
+  for (const t of arr) { if (t.name !== INV_BASE || t.d !== 1 || EXTRA_COINS.has(t.sym)) continue;
+    const c = CACHE.bySym[t.sym]; if (!c || !c.D || c.D.stub) continue; const f = mktDownFrac(t.eTs); if (f === null || f >= 0.4) continue;
+    const key = t.sym + "|" + t.eTs; let r = INV_MEMO.get(key);
+    if (!r) { const D = c.D, m = D.m5, e = t.rawIn, tp = e*0.988, sl = e*1.012; r = { open: true };
+      const S = m && m.o.length ? { t0: m.t0, st: 300000, h: m.h, l: m.l } : { t0: D.t0, st: M15, h: D.h, l: D.l };
+      for (let j = Math.max(0, Math.floor((t.eTs - S.t0)/S.st)); j < S.h.length; j++) {
+        if (S.h[j] >= sl) { r = { open: false, out: sl, why: "STOP", ts: S.t0 + j*S.st }; break; }   // نفس الشمعة = وقف (محافظ)
+        if (S.l[j] <= tp) { r = { open: false, out: tp, why: "TARGET", ts: S.t0 + j*S.st }; break; } }
+      if (!r.open) INV_MEMO.set(key, r); }
+    const D = c.D, x = r.open ? D.o.length - 1 : Math.min(D.o.length - 1, Math.floor((r.ts - D.t0)/M15));
+    const raw = { name: INV_NAME, d: -1, e: t.e, x, rawIn: t.rawIn, rawOut: r.open ? D.c[D.c.length-1] : r.out, why: r.open ? "TIME" : r.why, open: r.open, stop: t.rawIn*1.012, target: t.rawIn*0.988 };
+    try { out.push({ ...money(raw, D, Q, c.funding, pxOf(t.sym)), sym: t.sym }); } catch (er) {} }
+  return out;
+}
+function groupDerive(arr, Q) {
   if (typeof GROUP_BASE === "undefined") return arr;
+  arr = arr.concat(invDerive(arr, Q));
   const base = arr.filter(t => t.name === GROUP_BASE && !EXTRA_COINS.has(t.sym)); if (!base.length) return arr;
   const cnt = new Map(); for (const t of base) cnt.set(t.eTs, (cnt.get(t.eTs) || 0) + 1);
   const bySym = new Map(); for (const t of base) { if (!bySym.has(t.sym)) bySym.set(t.sym, []); bySym.get(t.sym).push(t.eTs); }
@@ -4599,8 +4627,8 @@ function recalc() {
   const P = params($("makerEntry").checked), PM = params(true), PT = params(false);
   const all = (Q) => CACHE.coins.flatMap(c => c.raw.map(t0 => { const lc = t0.open && LIVE_CLOSED[t0.name + "|" + c.sym + "|" + t0.e], t = lc ? { ...t0, open: false, rawOut: lc.px, why: lc.why, x: lc.x } : t0;   // صفقة تسكّرت لايف بين حسابين: بتضل مسكّرة
     return { ...money(t, c.D, Q, c.funding, pxOf(c.sym)), sym: c.sym }; }));
-  const cl = Q => capTrades(groupDerive(all(Q))).filter(t => !t.open).map(t => ({ xTs: t.xTs, net: t.net }));
-  RESULT = { trades: capTrades(groupDerive(all(P))), startTs: CACHE.startTs, P, mkCl: cl(PM), tkCl: cl(PT), upd: CACHE.upd };
+  const cl = Q => capTrades(groupDerive(all(Q), Q)).filter(t => !t.open).map(t => ({ xTs: t.xTs, net: t.net }));
+  RESULT = { trades: capTrades(groupDerive(all(P), P)), startTs: CACHE.startTs, P, mkCl: cl(PM), tkCl: cl(PT), upd: CACHE.upd };
   render(); try { if (vis("acc")) renderMkt(); if (vis("live")) renderZones(); } catch (e) {}
   try { bridgeSend(); } catch (e) {}   // 🔌 ربط الحساب الحقيقي
   try { if (document.querySelector('section.tab.on[data-t="real"]')) renderReal(); } catch (e) { console.warn(e); }
@@ -5176,7 +5204,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-19-0700";
+const BUILD = "2026-11-19-0730";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
