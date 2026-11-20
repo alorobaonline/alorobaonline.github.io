@@ -1,4 +1,4 @@
-NEXORA LAB (GitHub) | wave-v2 | 2026-11-19T12:00:20.933Z | hash=718b51c9b8 | engine=4447d0eb | coins 9 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $1000/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
+NEXORA LAB (GitHub) | wave-v2 | 2026-11-20T12:00:01.729Z | hash=ca3f6aeb32 | engine=05efefc8 | coins 9 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $1000/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
 ## WAVE v2 4h (كما هي) | ❌ (maker-entry ❌) | coins+all3 0/9
 تدريب: n=305 -946.17$ PF0.95 win39% gross/t+0.12$ t-0.4 DD4583$ | اختبار: n=93 -1137.89$ PF0.81 win38% gross/t-9.37$ t-1.0 DD2489$ | جديدة: n=47 +367.49$ PF1.13 win43% gross/t+11.03$ t0.4 DD1942$
 maker-entry: تدريب: n=305 -760.62$ PF0.96 win39% gross/t+0.12$ t-0.3 DD4460$ | اختبار: n=93 -1075.08$ PF0.82 win38% gross/t-9.37$ t-0.9 DD2449$ | جديدة: n=47 +393.57$ PF1.14 win43% gross/t+11.03$ t0.4 DD1930$
