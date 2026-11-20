@@ -710,6 +710,7 @@ const S15 = (() => {
         else { const rv = a0/(sm/c); if ((sp.volR.max !== undefined && rv > sp.volR.max) || (sp.volR.min !== undefined && rv < sp.volR.min)) h = []; }
       }
       if (h.length && sp.wkd) { const dd = new Date(D.t0 + k*m*900000).getUTCDay(), we = dd === 0 || dd === 6; if (sp.wkd === "skip" ? we : !we) h = []; }   // نهاية الأسبوع (فتح شمعة الإشارة سبت/أحد UTC): "skip" = بلاها، "only" = بس هي
+      if (h.length && sp.hrs) { const hr = new Date(D.t0 + k*m*900000).getUTCHours(); if (!sp.hrs.includes(hr)) h = []; }   // جلسة: ساعة فتح شمعة الإشارة UTC لازم تكون بالقائمة (20/11)
       if (!h.length) continue;
       const blocked = pos !== null || closedHere || k <= busy || k === n - 1 || D.t0 + (k+1)*m*900000 <= startTs || (k+1)*m >= D.o.length;
       if (!blocked) pend = [h[0], k];
@@ -3100,7 +3101,7 @@ const MACDP = (() => {
     mk("MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.5% وقف 1.2%", 15, 0.008, 0.015, 0.015, { longOnly: true, fixStop: 0.012 }),
     mk("MACD v1.1 ساعة · ليمت 0.8% · لونج · هدف 1.5% وقف 1.5ATR", 60, 0.008, 0.015, 0.015, { longOnly: true })];   // 17/11 17:41: مختبر بس   // 17/11 17:34: فحص شورت بليمت أصغر (مختبر بس)
   const pending = (D, startTs, name) => { const sp = (name && strats.find(x => x.name === name)) || strats[0]; const p = []; sp.run(D, null, sp, startTs, p); return p; };   // 17/11 18:40: الاسم اختياري (المنصة على نسخة 1.5%)   // 17/11 14:55: خطة حقيقي — MACD 5m
-  return { strats, pending };
+  return { strats, pending, mk };   // 19/11 23:00: mk للنسخ الجديدة (وقف 2%/2.5%)
 })();
 const TP_BASES = ["S15 Sweep+MSS V2 4h", "⭐ S15 V2 4h R2.5 h40", "⭐ S15 مخاطرة ثابتة", "S15 مخاطرة + وقف متحرك 2ATR", "S16 SMC A 4h", "S16 SMC B 4h (CHoCH)",
   "V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier", "IT1226 يومي لونج+شورت", "WAVE v2 4h عملات مختارة",
@@ -3948,15 +3949,19 @@ for (const [b, tag, f] of FEAT_WRAPS) STRATS_ALL.push(featWrap(b, tag, f));
 const MACD_LS_NAME = "شورت لونج ماكد فريم 5 دقايق";
 // 19/11 06:50 (طلب المستخدم): «طلعة جماعية» — Range بيبيع الطلعة لما تطلع على عملتين أو أكثر من عملات الحقيقي بنفس الربع ساعة (فحص التصفير: 56 صفقة 66% +35.75$ بدل 85 صفقة 53% +37.71$ على 48$)
 //  + «بلا رجوع»: كمان ما بتفوت إذا في صفقة Range على نفس العملة بآخر 8 ساعات (49 صفقة 73% +36.20$) · بتنحسب بالصفحة بعد كل العملات (مش جوّا المحرك — بدها كل العملات مع بعض)
-const GROUP_BASE = "Range Sniper 15m + ترند 4h + وقف ≥0.3%", GROUP_NAMES = [GROUP_BASE + " + طلعة جماعية", GROUP_BASE + " + طلعة جماعية + بلا رجوع"];
+const GROUP_BASE = "Range Sniper 15m + ترند 4h + وقف ≥0.3%", GROUP_NAMES = [GROUP_BASE + " + طلعة جماعية", GROUP_BASE + " + طلعة جماعية + بلا رجوع", GROUP_BASE + " + طلعة جماعية 10+"];   // 20/11 08:10: 10+ = 10 عملات حقيقية أو أكثر بنفس الشمعة (فحص التصفير: 33 صفقة 91% +30.11$ — الحقيقي)
 // 19/11 07:22 (طلب المستخدم): «IT1226 ساعة معكوسة» — لما IT1226 ساعة بتعطي لونج والسوق طالع (أقل من 40% من عملات الحقيقي نازلة بآخر 4 ساعات) ← شورت بنفس السعر، هدف 1.2% وقف 1.2%
 //  (فحص التصفير على شموع 5د: 108 صفقة على عملات الحقيقي، 71% ربح، +21.75$ على 48$) · بتنحسب بالصفحة (بدها كل العملات)
 const INV_BASE = "IT1226 ساعة لونج+شورت | هدف 1.2% وقف 1.2%", INV_NAME = "IT1226 ساعة معكوسة (شورت الطلعة)";
+const INV2_NAME = "IT1226 ساعة معكوسة (شورت الطلعة) · وقف 2%";   // 19/11 23:00: نفس المعكوسة بوقف 2% (فحص التصفير على شموع 5د: 70% ← 84% ربح، خسارات 39 ← 21)
+STRATS_ALL.push({ name: INV2_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "IT1226 معكوسة وقف 2% (بتنحسب بالصفحة)" });
 STRATS_ALL.push({ name: INV_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "IT1226 معكوسة (بتنحسب بالصفحة)" });
 for (const n of GROUP_NAMES) STRATS_ALL.push({ name: n, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Range طلعة جماعية (بتنحسب بالصفحة)" });
-STRATS_ALL.push({ name: MACD_LS_NAME, mult: 0, m5: true, preLim: true, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD 5m لونج+شورت بفلاتر (طلب المستخدم 19/11)",
+// 19/11 23:00: نفس «شورت لونج ماكد» كدالة (أسماء القواعد + فلتر زيادة اختياري) — الأصلية بنفس النتيجة بالزبط
+function lsMake(name, bLn, bSn, extra, src) {
+  return { name, mult: 0, m5: true, preLim: true, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: src || "MACD 5m لونج+شورت بفلاتر (طلب المستخدم 19/11)",
   run: (D, inds, sp, startTs) => {
-    const bL = STRATS_ALL.find(x => x.name === "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق"), bS = STRATS_ALL.find(x => x.name === "MACD v1.1 5m · ليمت 0.8% · شورت · هدف 1.2% وقف 1.2%");
+    const bL = STRATS_ALL.find(x => x.name === bLn), bS = STRATS_ALL.find(x => x.name === bSn);
     if (!bL || !bS || !D.c || D.c.length < 400) return [];
     const I1 = makeInd(D, 1), I4 = makeInd(D, 4), C = D.c, R = new Float64Array(C.length).fill(NaN); let g = 0, l = 0;
     for (let i = 1; i < C.length; i++) { const d = C[i] - C[i-1], up = Math.max(d, 0), dn = Math.max(-d, 0);
@@ -3964,10 +3969,110 @@ STRATS_ALL.push({ name: MACD_LS_NAME, mult: 0, m5: true, preLim: true, sig: () =
     const okL = t => { const i = t.e - 1; if (i < 1 || i >= C.length) return false; const e2 = I1.ema200[i]; if (e2 == null || !(100*(C[i]/e2 - 1) < 1)) return false;
       const k = Math.floor((i + 1)/4) - 1; return !(k >= 50 && k < I4.n && I4.ema50[k] != null && I4.C[k] > I4.ema50[k]); };
     const okS = t => { const i = t.e - 1; return i >= 1 && i < C.length && R[i] >= 50 && R[i] < 70; };
-    const all = evaluate(D, inds, bL, startTs).filter(t => t.d === 1 && okL(t)).concat(evaluate(D, inds, bS, startTs).filter(t => t.d === -1 && okS(t))).sort((a, b) => a.e - b.e);
-    const out = []; let busy = -1; for (const t of all) { if (t.e <= busy) continue; out.push({ ...t, name: MACD_LS_NAME }); busy = t.open ? Infinity : t.x; }
+    const ok = t => !extra || extra(D, t, I1, I4);
+    const all = evaluate(D, inds, bL, startTs).filter(t => t.d === 1 && okL(t) && ok(t)).concat(evaluate(D, inds, bS, startTs).filter(t => t.d === -1 && okS(t) && ok(t))).sort((a, b) => a.e - b.e);
+    const out = []; let busy = -1; for (const t of all) { if (t.e <= busy) continue; out.push({ ...t, name }); busy = t.open ? Infinity : t.x; }
     return out;
-  } });
+  } };
+}
+STRATS_ALL.push(lsMake(MACD_LS_NAME, "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "MACD v1.1 5m · ليمت 0.8% · شورت · هدف 1.2% وقف 1.2%"));
+// 19/11 22:20 (طلب المستخدم): قنوات دعم/مقاومة — «Support Resistance Channels» (LonesomeTheBlue، الإعدادات الأصلية: قمم/قيعان 10 · عرض 5% من مدى 300 شمعة · أقوى 6 · 290 شمعة لورا) على 15د
+//  بتنحسب على آخر شمعة 15د مسكّرة قبل الدخول (القنوات بتتحدّث بس لما تتأكد قمة/قاع جديدة — زي المؤشر) · المسافة من سعر الدخول لأقرب حافة قناة باتجاه الصفقة
+//  ① بلا شورت مفتوح: الشورت بس إذا جوّا قناة أو في دعم تحت بأقل من 1.2% (فحص التصفير: 457 صفقة 61% +48.82$ بدل 560 58% +40.73$ على 48$)
+//  ③ حيط قريب: لازم قناة باتجاه الصفقة على بُعد أقل من 0.6% والسعر مش جوّا قناة (149 صفقة 69% +29.22$) — هاي اللي على الحقيقي
+function srChannels(H, L, b, prd = 10, W = 5, loop = 290, maxn = 6) {
+  if (b < 300 + loop + 2*prd || b >= H.length) return null;
+  const isPH = j => { const c = j - prd; for (let k = 1; k <= prd; k++) { if (!(H[c] > H[c-k]) || H[c] < H[c+k]) return false; } return true; };
+  const isPL = j => { const c = j - prd; for (let k = 1; k <= prd; k++) { if (!(L[c] < L[c-k]) || L[c] > L[c+k]) return false; } return true; };
+  let lb = -1; for (let j = b; j > b - 300; j--) if (isPH(j) || isPL(j)) { lb = j; break; } if (lb < 0) return null;
+  const pv = []; for (let j = lb; j >= lb - loop; j--) { if (isPH(j)) pv.push(H[j-prd]); else if (isPL(j)) pv.push(L[j-prd]); }
+  let hh = -Infinity, ll = Infinity; for (let j = lb - 299; j <= lb; j++) { hh = Math.max(hh, H[j]); ll = Math.min(ll, L[j]); } const cw = (hh - ll)*W/100;
+  const sr = pv.map(v => { let lo = v, hi = v, n = 0; for (const c of pv) { const w = c <= hi ? hi - c : c - lo; if (w <= cw) { if (c <= hi) lo = Math.min(lo, c); else hi = Math.max(hi, c); n += 20; } } return { hi, lo, s: n }; });
+  for (let x = 0; x <= loop; x++) { const h = H[lb-x], l = L[lb-x]; for (const r of sr) { if (h <= r.hi && h >= r.lo) r.s++; if (l <= r.hi && l >= r.lo) r.s++; } }
+  const out = [], st = sr.map(r => r.s);
+  for (let it = 0; it < sr.length && out.length < maxn; it++) { let bv = -1, bi = -1; for (let y = 0; y < sr.length; y++) if (st[y] > bv && st[y] >= 20) { bv = st[y]; bi = y; } if (bi < 0) break;
+    const r = sr[bi]; out.push(r); for (let y = 0; y < sr.length; y++) if ((sr[y].hi <= r.hi && sr[y].hi >= r.lo) || (sr[y].lo <= r.hi && sr[y].lo >= r.lo)) st[y] = -1; }
+  return out;
+}
+function srWall(D, t) { const ch = srChannels(D.h, D.l, t.e - 1); if (!ch) return null; const p = t.rawIn; let inC = false, wall = Infinity;
+  for (const r of ch) { if (r.lo <= p && p <= r.hi) inC = true; else if (t.d === 1 ? r.lo > p : r.hi < p) wall = Math.min(wall, t.d === 1 ? 100*(r.lo/p - 1) : 100*(1 - r.hi/p)); }
+  return { inC, wall }; }
+const SR_NAMES = [MACD_LS_NAME + " + قنوات ① بلا شورت مفتوح", MACD_LS_NAME + " + قنوات ③ حيط قريب"];
+SR_NAMES.forEach((name, v) => STRATS_ALL.push({ name, mult: 0, m5: true, preLim: true, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "شورت لونج ماكد + Support Resistance Channels (طلب المستخدم 19/11)",
+  run: (D, inds, sp, startTs) => {
+    const base = STRATS_ALL.find(x => x.name === MACD_LS_NAME); if (!base) return [];
+    return evaluate(D, inds, base, startTs).filter(t => { const f = srWall(D, t);
+      if (v === 0) return t.d === 1 || !f || f.inC || f.wall < 1.2;
+      return !!f && !f.inC && f.wall < 0.6; }).map(t => ({ ...t, name }));
+  } }));
+// 19/11 23:00 (خطة المستخدم «صفقات كثيرة وخسارات أقل بكثير») — فحص التصفير على محرك المنصة (48$):
+//  الأصلية 561 صفقة 58% (235 خسارة) +41.5$ · وقف 2% 520 صفقة 71% (152 خسارة) +58.0$ · وقف 2% + بلا شورت فوق EMA200 بـ3% 462 صفقة 74% (121 خسارة) +72.5$ · وقف 2.5% + نفس الفلتر 443 صفقة 78% (99 خسارة) +72.3$
+//  (الهدف ضل 1.2% · كل وحدة تحسّنت بنصّي الفترة) — الشورت على عملة طايرة فوق EMA200 (15د) بأكثر من 3% أكثر شي خسر
+function macd5Base(dir, sl) {   // قاعدة MACD 5m بوقف ثابت (لونج = + لا تلحق)
+  const nm = `MACD v1.1 5m · ليمت 0.8% · ${dir === 1 ? "لونج" : "شورت"} · هدف 1.2% وقف ${sl.toFixed(1)}%`;
+  if (!STRATS_ALL.some(x => x.name === nm)) STRATS_ALL.push(MACDP.mk(nm, 5, 0.008, 0.012, 0.012, dir === 1 ? { longOnly: true, fixStop: sl/100 } : { shortOnly: true, fixStop: sl/100 }));
+  if (dir === -1) return nm;
+  if (!STRATS_ALL.some(x => x.name === nm + " + لا تلحق")) STRATS_ALL.push(noChaseWrap(nm));
+  return nm + " + لا تلحق";
+}
+const LS_NO_HOT = (D, t, I1) => { if (t.d !== -1) return true; const i = t.e - 1, e2 = I1.ema200[i]; return !(e2 != null && D.c[i]/e2 - 1 > 0.03); };
+const LS_NAMES = [[MACD_LS_NAME + " · وقف 2%", 2, null], [MACD_LS_NAME + " · وقف 2% + بلا شورت فوق EMA200", 2, LS_NO_HOT], [MACD_LS_NAME + " · وقف 2.5% + بلا شورت فوق EMA200", 2.5, LS_NO_HOT]];
+for (const [nm, sl, ex] of LS_NAMES) STRATS_ALL.push(lsMake(nm, macd5Base(1, sl), macd5Base(-1, sl), ex, "شورت لونج ماكد — وقف أوسع/فلتر (خطة الخسارات الأقل 19/11)"));
+// Range: الشورت بس على عملة مش نازلة أكثر من 0.46% بآخر 24 ساعة (272 صفقة 34% (180 خسارة) +40.6$ ← 247 صفقة 36% (157 خسارة) +47.8$، أحسن بالنصّين)
+const RANGE_24_NAME = "Range Sniper 15m + ترند 4h + وقف ≥0.3% + شورت بس إذا مش نازلة 24س";
+STRATS_ALL.push({ name: RANGE_24_NAME, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Range + فلتر 24 ساعة (خطة الخسارات الأقل 19/11)",
+  run: (D, inds, sp, startTs) => { const base = STRATS_ALL.find(x => x.name === "Range Sniper 15m + ترند 4h + وقف ≥0.3%"); if (!base) return [];
+    return evaluate(D, inds, base, startTs).filter(t => { const i = t.e - 1; if (t.d !== -1 || i < 96) return true; return !(100*(D.c[i]/D.c[i-96] - 1) < -0.46); }).map(t => ({ ...t, name: RANGE_24_NAME })); } });
+// 20/11 01:40 (طلب المستخدم): دايفرجنس Squeeze Momentum Oscillator [AlgoAlpha] على 15د (نفس الكود: زخم 10 · سوينغ 20 · بيفوت 15/1)
+//  لونج = السعر قاع أوطى + الخط الأبيض (z-score) قاع أعلى · شورت = العكس · دخول ماركت على فتح الشمعة اللي بعد التأكيد · هدف 1.2% وقف 2.5%
+//  بلا لونج إذا البيتكوين على بُعد ≤0.3% من أوطى سعر إله بآخر 12 ساعة (يوم 18/11: ‎−36$ ← ‎−6.5$)
+//  فحص التصفير: 746 صفقة 79% (158 خسارة) +121.75$ على 48$ · «جماعي 15+» (16 عملة أو أكثر نفس الإشارة بنفس الشمعة) بتنحسب بالصفحة
+const DIV_NAME = "دايفرجنس AlgoAlpha 15د · وقف 2.5% + بلا لونج على قاع BTC", DIV_RAW = "دايفرجنس AlgoAlpha 15د (كل الإشارات — مخفي)", DIV15_NAME = "دايفرجنس AlgoAlpha 15د · جماعي 15+ · وقف 2.5% + بلا لونج على قاع BTC";
+function aaDivSignals(D, startTs) {   // إشارات الدايفرجنس (شموع مسكّرة بس) → [{ i, d, btcLow }]
+  const n0 = D.prov ? D.o.length - 1 : D.o.length, from = Math.max(0, Math.floor((startTs - D.t0)/M15) - 2500); if (n0 - from < 400) return [];
+  const H = D.h.slice(from, n0), L = D.l.slice(from, n0), C = D.c.slice(from, n0), n = C.length;
+  const pe = (x, p) => { const a = 2/(p + 1), o = new Float64Array(x.length).fill(NaN); let v = NaN; for (let i = 0; i < x.length; i++) { const y = x[i]; if (!Number.isFinite(y)) { o[i] = v; continue; } v = Number.isFinite(v) ? a*y + (1 - a)*v : y; o[i] = v; } return o; };
+  const wm = (x, p) => { const o = new Float64Array(x.length).fill(NaN), den = p*(p + 1)/2; for (let i = p - 1; i < x.length; i++) { let s = 0, ok = true; for (let k = 0; k < p; k++) { const y = x[i-k]; if (!Number.isFinite(y)) { ok = false; break; } s += y*(p - k); } if (ok) o[i] = s/den; } return o; };
+  const hm = (x, p) => { const a = wm(x, Math.floor(p/2)), b = wm(x, p), d = new Float64Array(x.length); for (let i = 0; i < x.length; i++) d[i] = 2*a[i] - b[i]; return wm(d, Math.floor(Math.sqrt(p))); };
+  const len = 10, Lg = 20, hl = new Float64Array(n), lo = new Float64Array(n), hi = new Float64Array(n);
+  for (let i = 0; i < n; i++) { hl[i] = H[i] - L[i]; let a = Infinity, b = -Infinity; for (let k = Math.max(0, i - len + 1); k <= i; k++) { a = Math.min(a, L[k]); b = Math.max(b, H[k]); } lo[i] = a; hi[i] = b; }
+  const el = pe(lo, len), eh = pe(hi, len), v1 = new Float64Array(n); let dd = 0;
+  for (let i = 0; i < n; i++) { if (i > 0 && C[i] > eh[i] && C[i-1] <= eh[i-1]) dd = 1; if (i > 0 && C[i] < el[i] && C[i-1] >= el[i-1]) dd = -1; v1[i] = C[i] - (dd === 1 ? el[i] : eh[i]); }
+  const v2 = hm(v1, len), e2 = pe(hl, len*2), vf = new Float64Array(n); for (let i = 0; i < n; i++) vf[i] = (v2[i]/e2[i]*100)/8;
+  const z0 = new Float64Array(n).fill(NaN); for (let i = Lg - 1; i < n; i++) { let s = 0, q = 0, ok = true; for (let k = 0; k < Lg; k++) { const y = vf[i-k]; if (!Number.isFinite(y)) { ok = false; break; } s += y; q += y*y; } if (ok) { const m = s/Lg, sd = Math.sqrt(Math.max(0, q/Lg - m*m)); z0[i] = (vf[i] - m)/sd; } }
+  const x = pe(z0, Lg); for (let i = 0; i < n; i++) x[i] *= 66;
+  const isPL = c => { for (let k = 1; k <= 15; k++) if (!(x[c] < x[c-k])) return false; return x[c] <= x[c+1]; }, isPH = c => { for (let k = 1; k <= 15; k++) if (!(x[c] > x[c-k])) return false; return x[c] >= x[c+1]; };
+  const B = D.btc15, out = []; let pl = -1, ph = -1; const iS = Math.floor((startTs - D.t0)/M15) - from;
+  for (let j = 60; j < n; j++) { const c = j - 1; if (!Number.isFinite(x[c-15]) || !Number.isFinite(x[j])) continue; let d = 0;
+    if (isPL(c)) { if (pl >= 0 && j >= iS && (j - 1) - (pl + 1) <= 80 && x[c] > x[pl] && L[c] < L[pl]) d = 1; pl = c; }
+    if (isPH(c)) { if (ph >= 0 && j >= iS && (j - 1) - (ph + 1) <= 80 && x[c] < x[ph] && H[c] > H[ph]) d = -1; ph = c; }
+    if (!d) continue; const i = j + from;
+    let btcLow = false; if (B) { const bi = Math.floor((D.t0 + (i + 1)*M15 - B.t0)/M15) - 1; if (bi >= 48 && bi < B.c.length) { let m = Infinity; for (let k = bi - 48; k <= bi; k++) m = Math.min(m, B.l[k]); btcLow = B.c[bi] <= m*1.003; } else btcLow = null; }
+    out.push({ i, d, btcLow }); }
+  return out;
+}
+function aaDivRun(D, sigs, startTs, name, busyOn) {   // ماركت على فتح الشمعة اللي بعد · هدف 1.2% وقف 2.5% · الوقف بيربح التعادل بنفس الشمعة
+  const out = []; let busy = -1, N = D.o.length;
+  for (const s of sigs) { if (busyOn && s.i <= busy) continue; const d = s.d, e = s.i + 1; if (e >= N) continue; const eTs = D.t0 + e*M15; if (eTs < startTs) continue;
+    const px = D.o[e], stop = px*(1 - d*0.025), target = px*(1 + d*0.012); let ox = null, xi = null, why = null;
+    for (let k = e; k < N; k++) { if (D.prov && k === N - 1 && k > e) { /* الشمعة الحية: بس لمسة الوقف/الهدف */ }
+      if (k > e && d*(D.o[k] - stop) <= 0) { ox = D.o[k]; xi = k; why = "STOP"; break; }
+      if (k > e && d*(D.o[k] - target) >= 0) { ox = D.o[k]; xi = k; why = "TGT_GAP"; break; }
+      if (d === 1 ? D.l[k] <= stop : D.h[k] >= stop) { ox = stop; xi = k; why = "INIT_STOP"; break; }
+      if (d === 1 ? D.h[k] >= target : D.l[k] <= target) { ox = target; xi = k; why = "TARGET"; break; } }
+    const open = ox === null; busy = open ? Infinity : xi;
+    out.push(open ? { name, d, e, x: N - 1, rawIn: px, rawOut: D.c[N-1], why: "TIME", open: true, stop, target, btcLow: s.btcLow } : { name, d, e, x: xi, rawIn: px, rawOut: ox, why, open: false, stop, target, btcLow: s.btcLow }); }
+  return out;
+}
+STRATS_ALL.push({ name: DIV_NAME, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "Squeeze Momentum Oscillator [AlgoAlpha] — دايفرجنس 15د (طلب المستخدم 20/11)",
+  run: (D, inds, sp, startTs) => { if (!D.btc15) return []; return aaDivRun(D, aaDivSignals(D, startTs).filter(s => !(s.d === 1 && s.btcLow !== false)), startTs, DIV_NAME, true); } });
+STRATS_ALL.push({ name: DIV_RAW, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "دايفرجنس AlgoAlpha — كل الإشارات بدون تزاحم (للجماعي بالصفحة)",
+  run: (D, inds, sp, startTs) => { if (!D.btc15) return []; return aaDivRun(D, aaDivSignals(D, startTs), startTs, DIV_RAW, false); } });
+// 20/11 07:35: نفس الجماعي بس العدّ على العملات الحقيقية (99) والصفقات عليها — 10 عملات أو أكثر بنفس الإشارة على نفس الشمعة (هاي اللي بالحساب الحقيقي)
+//  فحص التصفير: 110 صفقة 95% (6 خسارة) +48.33$ على 48$ · ولا يوم خسران (18/11 و20/11 ما فاتت)
+const DIVR_NAME = "دايفرجنس AlgoAlpha 15د · جماعي 10+ (الحقيقية) · وقف 2.5% + بلا لونج على قاع BTC";
+STRATS_ALL.push({ name: DIVR_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "دايفرجنس جماعي 10+ عملات حقيقية (بتنحسب بالصفحة والعقل)" });
+STRATS_ALL.push({ name: DIV15_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "دايفرجنس جماعي 15+ (بتنحسب بالصفحة)" });
 // 18/11: نسخ أسرع للعائلات النادرة (نفس المنطق، فريم أصغر = إشارات أكتر للتجميع)
 for (const b of ["S16 SMC A 1h", "S16 SMC B 1h (CHoCH)", "IT1226 ساعة لونج+شورت", "IT1226 4h لونج+شورت"]) STRATS_ALL.push(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"));
 const PLATFORM_DATA18 = [...FEAT_WRAPS.map(([b, tag]) => b + " + " + tag), ...["S16 SMC A 1h", "S16 SMC B 1h (CHoCH)", "IT1226 ساعة لونج+شورت", "IT1226 4h لونج+شورت"].map(b => b + " | هدف 1.2% وقف 1.2%"), "Bagheri IG 15m كل العملات (هدف 1.7% وقف 1.2%)"];
@@ -3985,7 +4090,7 @@ const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% �
 // 17/11 18:16 (طلب المستخدم): المنصة كلها على هدف 1.5% ووقف 1.2% — بنبدّل اسم كل نسخة 1.2% بنسختها 1.5% (Range Sniper وLux ليمت 1% بأهدافهم الأصلية)
 const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
 const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المستخدم — 1.5% طلع أسوأ من التصفير). نسخ 1.5% بالمختبر
-PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة
+PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); SR_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); LS_NAMES.forEach(x => PLATFORM_KEEP12.add(x[0])); PLATFORM_KEEP12.add(RANGE_24_NAME); PLATFORM_KEEP12.add(DIV_NAME); PLATFORM_KEEP12.add(DIV_RAW); PLATFORM_KEEP12.add(DIV15_NAME); PLATFORM_KEEP12.add(DIVR_NAME); PLATFORM_KEEP12.add(INV2_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 // 17/11 19:53 (طلب المستخدم): الخسرانين من التصفير انشالوا من المنصة — بالمختبر بس
@@ -4001,7 +4106,7 @@ const PLATFORM_V42OFF = s => s.name.startsWith("V42 4H SHORT b0 |") && s.name !=
 // 18/11 04:58 (طلب المستخدم): عيلة S15 على المنصة بنسختين بس (كانوا ~25 نسخة على نفس الصفقات) — الباقي بالمختبر
 const S15_KEEP = new Set(["⭐ S15 V2 4h R2.5 h40 | 1.2% ليمت 0.8%", "⭐ S15 V2 4h R2.5 h40 | هدف 1.2% وقف 1.2%"]);
 const PLATFORM_S15OFF = s => /S15/.test(s.name) && !S15_KEEP.has(s.name);
-const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name) && !PLATFORM_NOVOL(s) && !PLATFORM_V42OFF(s) && !PLATFORM_DROP.has(s.name) && !PLATFORM_S15OFF(s) && !(s.name.startsWith("IT1226") && s.name !== INV_BASE && s.name !== INV_NAME));   // 19/11 07:31 (طلب المستخدم): كل نسخ IT1226 انمحت من المنصة (خاسرة) — بس «ساعة» الأصلية بتنحسب بالخفا للمعكوسة   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
+const STRATS = typeof self === "undefined" ? STRATS_ALL : STRATS_ALL.filter(s => PLATFORM_KEEP.has(s.name) && !PLATFORM_NOVOL(s) && !PLATFORM_V42OFF(s) && !PLATFORM_DROP.has(s.name) && !PLATFORM_S15OFF(s) && !(s.name.startsWith("IT1226") && s.name !== INV_BASE && s.name !== INV_NAME && s.name !== INV2_NAME));   // 19/11 07:31 (طلب المستخدم): كل نسخ IT1226 انمحت من المنصة (خاسرة) — بس «ساعة» الأصلية بتنحسب بالخفا للمعكوسة   // بالمتصفح: بدون نسخ الفحص وبدون استراتيجيات الـ5 دقايق (كلها ❌ وبدها بيانات 5د)   // self مش موجود = مختبر السيرفر (node)
 
 function v33Entry(D, i, d, hi) {
   const first = (i+1)*16, last = Math.min(first+16, D.o.length);
