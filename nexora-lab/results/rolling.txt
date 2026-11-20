@@ -1,5 +1,5 @@
-NEXORA LAB (GitHub) | rolling | 2026-11-19T12:27:06.352Z | hash=6a214999f5 | engine=4447d0eb | coins 30 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
-## lookback 30d PF>=1.1 | total -4680.36$ n=29213 PF0.95 DD6129$ | active months 26, positive 11
+NEXORA LAB (GitHub) | rolling | 2026-11-20T12:29:19.684Z | hash=4742fedf30 | engine=05efefc8 | coins 30 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
+## lookback 30d PF>=1.1 | total -4745.39$ n=29226 PF0.95 DD6129$ | active months 26, positive 11
 2024-10 on=10 n=1006 -1929.32$ [G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 4/.5, G-V43 Gann 2/.3, G-V44 Gann ADX18, G-V44 Gann ADX20, G-V44 Gann ADX25, COMBO V42 Short + Gann Long, S15 Sweep+MSS V2 1h, S15 Sweep+MSS V2 4h]
 2024-11 on=4 n=1304 +920.93$ [G-V42 Dip, G-V45 1H Dual, G-V46 1H Dual, S15 Sweep+MSS V2 4h]
 2024-12 on=10 n=796 -1342.38$ [G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 4/.5, G-V43 Gann 2/.3, G-V44 Gann ADX18, G-V44 Gann ADX20, G-V44 Gann ADX25, COMBO V42 Short + Gann Long, S16 SMC A 1h, S15 Sweep+MSS V2 4h]
@@ -25,9 +25,9 @@ NEXORA LAB (GitHub) | rolling | 2026-11-19T12:27:06.352Z | hash=6a214999f5 | eng
 2026-08 on=5 n=560 -210.68$ [V42 4H SHORT b.5, G-V42 Dip, S16 SMC A 1h, S15 Sweep+MSS V2 1h, S15 Sweep+MSS V2 4h]
 2026-09 on=7 n=838 +2116.71$ [G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 4/.5, G-V43 Gann 2/.3, G-V44 Gann ADX18, G-V44 Gann ADX20, G-V44 Gann ADX25]
 2026-10 on=15 n=3254 -1178.13$ [V33 B3 TRAIL فوري, V33 B3 TRAIL 15m, V33 B6 STRUCT 15m, G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 4/.5, G-V43 Gann 2/.3, G-V44 Gann ADX18, G-V44 Gann ADX20, G-V44 Gann ADX25, COMBO V42 Short + Gann Long, G-V46 1H Dual, S16 SMC A 1h, S15 Sweep+MSS V2 1h, S15 Sweep+MSS V2 4h]
-2026-11 on=4 n=594 +510.48$ [V42 4H SHORT b0, V43 1H SHORT b0, V43 1H SHORT b.5, S16 SMC A 1h]
+2026-11 on=4 n=607 +445.45$ [V42 4H SHORT b0, V43 1H SHORT b0, V43 1H SHORT b.5, S16 SMC A 1h]
 
-## lookback 30d PF>=1.2 | total -2798.53$ n=15746 PF0.95 DD4577$ | active months 23, positive 10
+## lookback 30d PF>=1.2 | total -2826.65$ n=15748 PF0.95 DD4577$ | active months 23, positive 10
 2024-10 on=10 n=1006 -1929.32$ [G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 4/.5, G-V43 Gann 2/.3, G-V44 Gann ADX18, G-V44 Gann ADX20, G-V44 Gann ADX25, COMBO V42 Short + Gann Long, S15 Sweep+MSS V2 1h, S15 Sweep+MSS V2 4h]
 2024-11 on=2 n=528 +457.43$ [G-V46 1H Dual, S15 Sweep+MSS V2 4h]
 2024-12 on=10 n=796 -1342.38$ [G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 4/.5, G-V43 Gann 2/.3, G-V44 Gann ADX18, G-V44 Gann ADX20, G-V44 Gann ADX25, COMBO V42 Short + Gann Long, S16 SMC A 1h, S15 Sweep+MSS V2 4h]
@@ -53,7 +53,7 @@ NEXORA LAB (GitHub) | rolling | 2026-11-19T12:27:06.352Z | hash=6a214999f5 | eng
 2026-08 on=4 n=523 -182.15$ [V42 4H SHORT b.5, G-V42 Dip, S15 Sweep+MSS V2 1h, S15 Sweep+MSS V2 4h]
 2026-09 on=6 n=732 +1897.50$ [G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 2/.3, G-V44 Gann ADX18, G-V44 Gann ADX20, G-V44 Gann ADX25]
 2026-10 on=11 n=1428 -780.44$ [V33 B3 TRAIL 15m, G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 4/.5, G-V43 Gann 2/.3, G-V44 Gann ADX18, G-V44 Gann ADX20, G-V44 Gann ADX25, S16 SMC A 1h, S15 Sweep+MSS V2 1h, S15 Sweep+MSS V2 4h]
-2026-11 on=1 n=93 +291.64$ [V42 4H SHORT b0]
+2026-11 on=1 n=95 +263.53$ [V42 4H SHORT b0]
 
 ## lookback 30d PF>=1.3 | total -3894.29$ n=8776 PF0.90 DD4897$ | active months 22, positive 6
 2024-10 on=10 n=1006 -1929.32$ [G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 4/.5, G-V43 Gann 2/.3, G-V44 Gann ADX18, G-V44 Gann ADX20, G-V44 Gann ADX25, COMBO V42 Short + Gann Long, S15 Sweep+MSS V2 1h, S15 Sweep+MSS V2 4h]
@@ -83,7 +83,7 @@ NEXORA LAB (GitHub) | rolling | 2026-11-19T12:27:06.352Z | hash=6a214999f5 | eng
 2026-10 on=10 n=1396 -680.24$ [V33 B3 TRAIL 15m, G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 4/.5, G-V43 Gann 2/.3, G-V44 Gann ADX18, G-V44 Gann ADX20, S16 SMC A 1h, S15 Sweep+MSS V2 1h, S15 Sweep+MSS V2 4h]
 2026-11 on=0 n=0 +0.00$ []
 
-## lookback 60d PF>=1.1 | total -4987.60$ n=15615 PF0.91 DD5863$ | active months 22, positive 7
+## lookback 60d PF>=1.1 | total -4998.81$ n=15637 PF0.91 DD5863$ | active months 22, positive 7
 2024-11 on=3 n=619 +823.45$ [G-V42 Dip, G-V46 1H Dual, S15 Sweep+MSS V2 4h]
 2024-12 on=8 n=1538 -966.42$ [G-V42 Dip, G-V43 Gann 3/.4, G-V44 Gann ADX20, G-V44 Gann ADX25, G-V45 1H Dual, G-V46 1H Dual, S16 SMC A 1h, S15 Sweep+MSS V2 4h]
 2025-01 on=9 n=799 -795.86$ [G-V42 Dip, G-V43 Gann 3/.4, G-V44 Gann ADX18, G-V44 Gann ADX20, G-V44 Gann ADX25, COMBO V42 Short + Gann Long, S16 SMC A 1h, S15 Sweep+MSS V2 4h, #13 Ichimoku 15m+1h]
@@ -108,7 +108,7 @@ NEXORA LAB (GitHub) | rolling | 2026-11-19T12:27:06.352Z | hash=6a214999f5 | eng
 2026-08 on=5 n=283 -87.61$ [V42 4H SHORT b0, V42 4H SHORT b.5, G-V42 Dip, S16 SMC A 4h, S15 Sweep+MSS V2 4h]
 2026-09 on=4 n=374 +1167.33$ [G-V42 Dip, G-V43 Gann 2/.3, S16 SMC A 4h, S15 Sweep+MSS V2 4h]
 2026-10 on=9 n=624 -824.70$ [G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 4/.5, G-V43 Gann 2/.3, G-V44 Gann ADX18, G-V44 Gann ADX20, G-V44 Gann ADX25, S16 SMC A 1h, S15 Sweep+MSS V2 4h]
-2026-11 on=9 n=577 -452.10$ [V33 B3 TRAIL 15m, G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 4/.5, G-V43 Gann 2/.3, G-V44 Gann ADX18, S16 SMC A 1h, S15 Sweep+MSS V2 1h, S15 Sweep+MSS V2 4h]
+2026-11 on=9 n=599 -463.31$ [V33 B3 TRAIL 15m, G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 4/.5, G-V43 Gann 2/.3, G-V44 Gann ADX18, S16 SMC A 1h, S15 Sweep+MSS V2 1h, S15 Sweep+MSS V2 4h]
 
 ## lookback 60d PF>=1.2 | total -2823.54$ n=6230 PF0.89 DD3598$ | active months 19, positive 7
 2024-11 on=2 n=138 +774.13$ [G-V42 Dip, S15 Sweep+MSS V2 4h]
@@ -164,7 +164,7 @@ NEXORA LAB (GitHub) | rolling | 2026-11-19T12:27:06.352Z | hash=6a214999f5 | eng
 2026-10 on=8 n=549 -874.80$ [G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 4/.5, G-V43 Gann 2/.3, G-V44 Gann ADX18, G-V44 Gann ADX20, G-V44 Gann ADX25, S16 SMC A 1h]
 2026-11 on=1 n=20 -25.98$ [S16 SMC A 1h]
 
-## lookback 90d PF>=1.1 | total -6385.17$ n=10079 PF0.83 DD6385$ | active months 24, positive 7
+## lookback 90d PF>=1.1 | total -6390.63$ n=10080 PF0.83 DD6391$ | active months 24, positive 7
 2024-12 on=6 n=513 -940.70$ [G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 2/.3, G-V44 Gann ADX18, G-V44 Gann ADX20, S15 Sweep+MSS V2 4h]
 2025-01 on=3 n=129 -358.68$ [G-V42 Dip, S16 SMC A 4h, S15 Sweep+MSS V2 4h]
 2025-02 on=4 n=84 +170.27$ [G-V44 Gann ADX20, S16 SMC A 1h, S16 SMC A 4h, S15 Sweep+MSS V2 4h]
@@ -188,7 +188,7 @@ NEXORA LAB (GitHub) | rolling | 2026-11-19T12:27:06.352Z | hash=6a214999f5 | eng
 2026-08 on=7 n=709 -305.74$ [V42 4H SHORT b0, V42 4H SHORT b.5, G-V42 Dip, COMBO V42 Short + Gann Long, S16 SMC A 4h, S15 Sweep+MSS V2 1h, S15 Sweep+MSS V2 4h]
 2026-09 on=3 n=214 +586.62$ [V42 4H SHORT b.5, G-V42 Dip, S15 Sweep+MSS V2 4h]
 2026-10 on=10 n=853 -757.03$ [G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 4/.5, G-V43 Gann 2/.3, G-V44 Gann ADX18, G-V44 Gann ADX25, S16 SMC A 1h, S16 SMC B 1h (CHoCH), S15 Sweep+MSS V2 1h, S15 Sweep+MSS V2 4h]
-2026-11 on=10 n=143 -58.53$ [G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 4/.5, G-V43 Gann 2/.3, G-V44 Gann ADX18, G-V44 Gann ADX20, G-V44 Gann ADX25, S16 SMC A 1h, S16 SMC B 1h (CHoCH), S15 Sweep+MSS V2 4h]
+2026-11 on=10 n=144 -63.99$ [G-V42 Dip, G-V43 Gann 3/.4, G-V43 Gann 4/.5, G-V43 Gann 2/.3, G-V44 Gann ADX18, G-V44 Gann ADX20, G-V44 Gann ADX25, S16 SMC A 1h, S16 SMC B 1h (CHoCH), S15 Sweep+MSS V2 4h]
 
 ## lookback 90d PF>=1.2 | total -2212.33$ n=3518 PF0.87 DD2254$ | active months 21, positive 6
 2024-12 on=3 n=248 -440.43$ [G-V42 Dip, G-V43 Gann 3/.4, S15 Sweep+MSS V2 4h]
@@ -243,34 +243,34 @@ NEXORA LAB (GitHub) | rolling | 2026-11-19T12:27:06.352Z | hash=6a214999f5 | eng
 2026-11 on=3 n=44 +10.31$ [G-V43 Gann 2/.3, S16 SMC A 1h, S16 SMC B 1h (CHoCH)]
 
 ## reference: each strategy always on (same period)
-S15 Sweep+MSS V2 4h: n=1598 +1785.10$
-V42 4H SHORT b.5: n=2000 +428.06$
-V42 4H SHORT b0: n=2432 +416.13$
+S15 Sweep+MSS V2 4h: n=1599 +1779.63$
+V42 4H SHORT b0: n=2434 +388.02$
+V42 4H SHORT b.5: n=2006 +340.09$
 G-V42 Dip: n=2007 +278.87$
 S16 SMC B 4h (CHoCH): n=69 +68.88$
-S16 SMC A 4h: n=267 +33.72$
+S16 SMC A 4h: n=268 +30.39$
 S16 SMC B 1h (CHoCH): n=225 -28.28$
-COMBO V42 Short + Gann Long: n=3830 -31.02$
+COMBO V42 Short + Gann Long: n=3832 -59.13$
 S16 SMC A 1h: n=887 -175.51$
 G-V43 Gann 2/.3: n=2357 -657.56$
-V43 1H SHORT b0: n=8466 -684.78$
+V43 1H SHORT b0: n=8472 -708.52$
 G-V44 Gann ADX25: n=995 -776.25$
-V43 1H SHORT b.5: n=7311 -823.53$
+V43 1H SHORT b.5: n=7316 -836.71$
 G-V43 Gann 3/.4: n=1808 -963.27$
-G-V46 1H Dual: n=12897 -1060.37$
 G-V43 Gann 4/.5: n=1335 -1067.77$
+G-V46 1H Dual: n=12911 -1086.39$
 G-V44 Gann ADX20: n=1358 -1130.17$
-S15 Sweep+MSS V2 1h: n=6767 -1272.54$
+S15 Sweep+MSS V2 1h: n=6772 -1229.49$
 G-V44 Gann ADX18: n=1476 -1275.61$
-V33 B3 TRAIL فوري: n=13319 -1515.69$
-#13 Ichimoku 15m+1h: n=11152 -1538.21$
-#8 Lux Trendline+TRAMA+Chandelier: n=7871 -1811.15$
-V33 B6 STRUCT فوري: n=13710 -2816.43$
-V33 B3 TRAIL 15m: n=13745 -2833.79$
-V33 B6 STRUCT 15m: n=15524 -3292.60$
-G-V45 1H Dual: n=18872 -3680.56$
-S15 Sweep+MSS V2 15m: n=27241 -5777.06$
-V43 15m SHORT b.5: n=22223 -6852.70$
-V43 15m SHORT b0: n=24719 -7022.33$
-S15 Sweep+MSS V1 15m: n=39445 -10942.91$
-S17 SSL+QQE+WAE 15m: n=123399 -33761.94$
+V33 B3 TRAIL فوري: n=13337 -1550.15$
+#13 Ichimoku 15m+1h: n=11172 -1564.66$
+#8 Lux Trendline+TRAMA+Chandelier: n=7887 -1854.40$
+V33 B6 STRUCT فوري: n=13722 -2832.29$
+V33 B3 TRAIL 15m: n=13761 -2882.57$
+V33 B6 STRUCT 15m: n=15534 -3311.00$
+G-V45 1H Dual: n=18899 -3690.38$
+S15 Sweep+MSS V2 15m: n=27267 -5813.13$
+V43 15m SHORT b.5: n=22248 -6873.74$
+V43 15m SHORT b0: n=24750 -7044.69$
+S15 Sweep+MSS V1 15m: n=39492 -10933.47$
+S17 SSL+QQE+WAE 15m: n=123558 -33882.85$
