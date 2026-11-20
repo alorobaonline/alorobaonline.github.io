@@ -4154,7 +4154,7 @@ for (const [b, tag, f] of FEAT_WRAPS) STRATS_ALL.push(featWrap(b, tag, f));
 const MACD_LS_NAME = "شورت لونج ماكد فريم 5 دقايق";
 // 19/11 06:50 (طلب المستخدم): «طلعة جماعية» — Range بيبيع الطلعة لما تطلع على عملتين أو أكثر من عملات الحقيقي بنفس الربع ساعة (فحص التصفير: 56 صفقة 66% +35.75$ بدل 85 صفقة 53% +37.71$ على 48$)
 //  + «بلا رجوع»: كمان ما بتفوت إذا في صفقة Range على نفس العملة بآخر 8 ساعات (49 صفقة 73% +36.20$) · بتنحسب بالصفحة بعد كل العملات (مش جوّا المحرك — بدها كل العملات مع بعض)
-const GROUP_BASE = "Range Sniper 15m + ترند 4h + وقف ≥0.3%", GROUP_NAMES = [GROUP_BASE + " + طلعة جماعية", GROUP_BASE + " + طلعة جماعية + بلا رجوع"];
+const GROUP_BASE = "Range Sniper 15m + ترند 4h + وقف ≥0.3%", GROUP_NAMES = [GROUP_BASE + " + طلعة جماعية", GROUP_BASE + " + طلعة جماعية + بلا رجوع", GROUP_BASE + " + طلعة جماعية 10+"];   // 20/11 08:10: 10+ = 10 عملات حقيقية أو أكثر بنفس الشمعة (فحص التصفير: 33 صفقة 91% +30.11$ — الحقيقي)
 // 19/11 07:22 (طلب المستخدم): «IT1226 ساعة معكوسة» — لما IT1226 ساعة بتعطي لونج والسوق طالع (أقل من 40% من عملات الحقيقي نازلة بآخر 4 ساعات) ← شورت بنفس السعر، هدف 1.2% وقف 1.2%
 //  (فحص التصفير على شموع 5د: 108 صفقة على عملات الحقيقي، 71% ربح، +21.75$ على 48$) · بتنحسب بالصفحة (بدها كل العملات)
 const INV_BASE = "IT1226 ساعة لونج+شورت | هدف 1.2% وقف 1.2%", INV_NAME = "IT1226 ساعة معكوسة (شورت الطلعة)";
@@ -4735,7 +4735,8 @@ function groupDerive(arr, Q) {
   const bySym = new Map(); for (const t of base) { if (!bySym.has(t.sym)) bySym.set(t.sym, []); bySym.get(t.sym).push(t.eTs); }
   const out = [];
   for (const t of base) { if (cnt.get(t.eTs) < 2) continue; out.push({ ...t, name: GROUP_NAMES[0] });
-    if (!bySym.get(t.sym).some(e => e < t.eTs && t.eTs - e < 8*3600e3)) out.push({ ...t, name: GROUP_NAMES[1] }); }
+    if (!bySym.get(t.sym).some(e => e < t.eTs && t.eTs - e < 8*3600e3)) out.push({ ...t, name: GROUP_NAMES[1] });
+    if (cnt.get(t.eTs) >= 10) out.push({ ...t, name: GROUP_NAMES[2] }); }
   return arr.concat(out);
 }
 // حد أقصى للصفقات المفتوحة بنفس الوقت (0 = بلا حد): الأسبق بالدخول بياخد المكان
@@ -5340,7 +5341,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-20-0740";
+const BUILD = "2026-11-20-0815";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
