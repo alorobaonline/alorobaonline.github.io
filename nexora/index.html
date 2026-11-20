@@ -4233,7 +4233,7 @@ STRATS_ALL.push({ name: RANGE_24_NAME, mult: 1, sig: () => 0, sm: 0, tm: 0, hold
 //  لونج = السعر قاع أوطى + الخط الأبيض (z-score) قاع أعلى · شورت = العكس · دخول ماركت على فتح الشمعة اللي بعد التأكيد · هدف 1.2% وقف 2.5%
 //  بلا لونج إذا البيتكوين على بُعد ≤0.3% من أوطى سعر إله بآخر 12 ساعة (يوم 18/11: ‎−36$ ← ‎−6.5$)
 //  فحص التصفير: 746 صفقة 79% (158 خسارة) +121.75$ على 48$ · «جماعي 15+» (16 عملة أو أكثر نفس الإشارة بنفس الشمعة) بتنحسب بالصفحة
-const DIV_NAME = "دايفرجنس AlgoAlpha 15د · وقف 2.5% + بلا لونج على قاع BTC", DIV_RAW = "دايفرجنس AlgoAlpha 15د (كل الإشارات — مخفي)", DIV15_NAME = "دايفرجنس AlgoAlpha 15د · جماعي 15+ · وقف 2.5% + بلا لونج على قاع BTC";
+const DIV_NAME = "دايفرجنس AlgoAlpha 15د · وقف 2% + بلا لونج على قاع BTC", DIV_RAW = "دايفرجنس AlgoAlpha 15د (كل الإشارات — مخفي)", DIV15_NAME = "دايفرجنس AlgoAlpha 15د · جماعي 15+ · وقف 2% + بلا لونج على قاع BTC";
 function aaDivSignals(D, startTs) {   // إشارات الدايفرجنس (شموع مسكّرة بس) → [{ i, d, btcLow }]
   const n0 = D.prov ? D.o.length - 1 : D.o.length, from = Math.max(0, Math.floor((startTs - D.t0)/M15) - 2500); if (n0 - from < 400) return [];
   const H = D.h.slice(from, n0), L = D.l.slice(from, n0), C = D.c.slice(from, n0), n = C.length;
@@ -4257,10 +4257,10 @@ function aaDivSignals(D, startTs) {   // إشارات الدايفرجنس (شم
     out.push({ i, d, btcLow }); }
   return out;
 }
-function aaDivRun(D, sigs, startTs, name, busyOn) {   // ماركت على فتح الشمعة اللي بعد · هدف 1.2% وقف 2.5% · الوقف بيربح التعادل بنفس الشمعة
+function aaDivRun(D, sigs, startTs, name, busyOn) {   // ماركت على فتح الشمعة اللي بعد · هدف 1.2% وقف 2% (20/11 12:07: كان 2.5% — طلب المستخدم) · الوقف بيربح التعادل بنفس الشمعة
   const out = []; let busy = -1, N = D.o.length;
   for (const s of sigs) { if (busyOn && s.i <= busy) continue; const d = s.d, e = s.i + 1; if (e >= N) continue; const eTs = D.t0 + e*M15; if (eTs < startTs) continue;
-    const px = D.o[e], stop = px*(1 - d*0.025), target = px*(1 + d*0.012); let ox = null, xi = null, why = null;
+    const px = D.o[e], stop = px*(1 - d*0.02), target = px*(1 + d*0.012); let ox = null, xi = null, why = null;
     for (let k = e; k < N; k++) { if (D.prov && k === N - 1 && k > e) { /* الشمعة الحية: بس لمسة الوقف/الهدف */ }
       if (k > e && d*(D.o[k] - stop) <= 0) { ox = D.o[k]; xi = k; why = "STOP"; break; }
       if (k > e && d*(D.o[k] - target) >= 0) { ox = D.o[k]; xi = k; why = "TGT_GAP"; break; }
@@ -4276,7 +4276,7 @@ STRATS_ALL.push({ name: DIV_RAW, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, t
   run: (D, inds, sp, startTs) => { if (!D.btc15) return []; return aaDivRun(D, aaDivSignals(D, startTs), startTs, DIV_RAW, false); } });
 // 20/11 07:35: نفس الجماعي بس العدّ على العملات الحقيقية (99) والصفقات عليها — 10 عملات أو أكثر بنفس الإشارة على نفس الشمعة (هاي اللي بالحساب الحقيقي)
 //  فحص التصفير: 110 صفقة 95% (6 خسارة) +48.33$ على 48$ · ولا يوم خسران (18/11 و20/11 ما فاتت)
-const DIVR_NAME = "دايفرجنس AlgoAlpha 15د · جماعي 10+ (الحقيقية) · وقف 2.5% + بلا لونج على قاع BTC";
+const DIVR_NAME = "دايفرجنس AlgoAlpha 15د · جماعي 10+ (الحقيقية) · وقف 2% + بلا لونج على قاع BTC";
 STRATS_ALL.push({ name: DIVR_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "دايفرجنس جماعي 10+ عملات حقيقية (بتنحسب بالصفحة والعقل)" });
 STRATS_ALL.push({ name: DIV15_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "دايفرجنس جماعي 15+ (بتنحسب بالصفحة)" });
 // 18/11: نسخ أسرع للعائلات النادرة (نفس المنطق، فريم أصغر = إشارات أكتر للتجميع)
@@ -5342,7 +5342,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-20-0815";
+const BUILD = "2026-11-20-1210";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
