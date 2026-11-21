@@ -1,4 +1,4 @@
-NEXORA LAB (GitHub) | bagheri | 2026-11-20T11:52:30.700Z | hash=00ef25e945 | engine=05efefc8 | coins 1 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
+NEXORA LAB (GitHub) | bagheri | 2026-11-21T11:18:54.720Z | hash=b39429b51b | engine=ab1c2136 | coins 1 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
 ## Bagheri IG Ether 15m (كما هي) | ❌ (maker-entry ❌) | coins+all3 0/1
 تدريب: n=95 -33.67$ PF0.67 win38% gross/t-0.15$ t-1.9 DD44$ | اختبار: n=47 +5.97$ PF1.11 win49% gross/t+0.33$ t0.4 DD15$ | جديدة: n=16 -7.87$ PF0.63 win38% gross/t-0.28$ t-0.9 DD9$
 maker-entry: تدريب: n=95 -26.07$ PF0.73 win38% gross/t-0.15$ t-1.5 DD39$ | اختبار: n=47 +9.73$ PF1.19 win49% gross/t+0.33$ t0.6 DD14$ | جديدة: n=16 -6.59$ PF0.68 win38% gross/t-0.28$ t-0.8 DD8$
