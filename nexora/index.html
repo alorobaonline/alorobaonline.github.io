@@ -917,6 +917,8 @@ const S15 = (() => {
       }
       if (h.length && sp.wkd) { const dd = new Date(D.t0 + k*m*900000).getUTCDay(), we = dd === 0 || dd === 6; if (sp.wkd === "skip" ? we : !we) h = []; }   // نهاية الأسبوع (فتح شمعة الإشارة سبت/أحد UTC): "skip" = بلاها، "only" = بس هي
       if (h.length && sp.hrs) { const hr = new Date(D.t0 + k*m*900000).getUTCHours(); if (!sp.hrs.includes(hr)) h = []; }   // جلسة: ساعة فتح شمعة الإشارة UTC لازم تكون بالقائمة (20/11)
+      if (h.length && sp.sq) { const q = sp.sq; h = h.filter(x => { const dp = x.depth || 0, ms = k - x.sweepIndex;   // جودة الإشارة (21/11): عمق السحب بالـATR + كم شمعة لحد كسر الهيكل (1..5)
+        return !(q.minDepth !== undefined && dp < q.minDepth) && !(q.maxDepth !== undefined && dp > q.maxDepth) && !(q.mssMax !== undefined && ms > q.mssMax) && !(q.mssMin !== undefined && ms < q.mssMin); }); }
       if (!h.length) continue;
       const blocked = pos !== null || closedHere || k <= busy || k === n - 1 || D.t0 + (k+1)*m*900000 <= startTs || (k+1)*m >= D.o.length;
       if (!blocked) pend = [h[0], k];
