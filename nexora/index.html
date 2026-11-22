@@ -4295,7 +4295,7 @@ function swpRun(D, startTs) {
     lows = lows.filter(x => !(x.i < i - P && D.l[i] < x.p));   // السيولة انسحبت — ما بتنحسب مرة تانية
     const lvl = sw.reduce((a, b) => b.p < a.p ? b : a).p, depth = (lvl - D.l[i])/lvl, sig = D.t0 + i*M15;
     if (!(D.c[i] > lvl) || depth > 0.015 || sig + M15 < startTs || i + 1 >= N) continue;
-    let btcLow = null; if (B) { const bi = Math.floor((D.t0 + (i + 1)*M15 - B.t0)/M15) - 1; if (bi >= 48 && bi < B.c.length) { let m = Infinity; for (let k = bi - 48; k <= bi; k++) m = Math.min(m, B.l[k]); btcLow = B.c[bi] <= m*1.003; } }
+    let btcLow = null; if (B) { const bi = Math.floor((D.t0 + (i + 1)*M15 - B.t0)/M15) - 1; if (bi >= 48 && bi < B.c.length) { let m = Infinity; for (let k = bi - 48; k < bi; k++) m = Math.min(m, B.l[k]); btcLow = B.c[bi] <= m*1.003; } }   // قاع الـ12س قبل شمعة السحب (زي الفحص)
     const stop = D.l[i]*(1 - 0.0005), zone = lvl*1.0001; let e = -1, E = 0, cancel = false;
     for (let k = i + 1; k <= Math.min(N - 1, i + 8); k++) { if (D.l[k] <= stop) { cancel = true; break; } if (D.l[k] <= zone) { e = k; E = Math.min(D.o[k], zone); break; } }
     const base = { name: SWP_RAW, d: 1, sig, lvl, btcLow, stop, lim: zone };
@@ -5389,7 +5389,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-22-1515";
+const BUILD = "2026-11-22-1525";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
