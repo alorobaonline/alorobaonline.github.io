@@ -1,4 +1,4 @@
-NEXORA LAB (GitHub) | sd | 2026-11-21T11:46:50.810Z | hash=a6bf0161d6 | engine=ab1c2136 | coins 30 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
+NEXORA LAB (GitHub) | sd | 2026-11-22T12:06:51.344Z | hash=a6b73d4dcb | engine=916c1f68 | coins 30 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
 ## SD 1H+5m Supply/Demand | ❌ (maker-entry ❌) | coins+all3 0/30
 تدريب: n=25 -38.59$ PF0.61 win28% gross/t-1.32$ t-1.0 DD58$ | اختبار: n=7 -1.93$ PF0.89 win29% gross/t-0.07$ t-0.1 DD13$ | جديدة: n=2 -5.55$ PF0.00 win0% gross/t-2.53$ t-9.7 DD6$
 maker-entry: تدريب: n=25 -36.59$ PF0.63 win28% gross/t-1.32$ t-1.0 DD57$ | اختبار: n=7 -1.37$ PF0.92 win29% gross/t-0.07$ t-0.1 DD13$ | جديدة: n=2 -5.39$ PF0.00 win0% gross/t-2.53$ t-9.4 DD5$
