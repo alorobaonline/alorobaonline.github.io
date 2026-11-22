@@ -4307,6 +4307,9 @@ const PLATFORM_DROP = new Set(["#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليم�
   "⭐ S15 دخول على إغلاق 15m | هدف 1.2% وقف 1.2%", "⭐ S15 دخول على إغلاق 15m | 1.2% ليمت 0.4%", "⭐ S15 دخول على إغلاق 15m | 1.2% ليمت 0.6%", "⭐ S15 دخول على إغلاق 15m | 1.2% ليمت 0.8%",
   "#8 Lux Trendline+TRAMA+Chandelier | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.4% + فلتر ترند ساعة", "⭐ S15 دخول 15m + بُعد ATR | هدف 1.2% وقف 1.2%",
   "⭐ S15 دخول على إغلاق 15m | هدف 1.2% وقف 1.2% + فلتر ترند ساعة"]);
+// 22/11 08:30 (طلب المستخدم): «محي النسخ المكررة» — بنخلّي أحسن نسخة من كل عائلة على المنصة والباقي انمحى (الأصليات بالمختبر · القواعد المخفية للحقيقي بتضل تنحسب)
+const DROP_DUP_2211 = ["#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.6%", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8% + لا تلحق", "#8 Lux Trendline+TRAMA+Chandelier | ليمت 1% · هدف 1% · وقف 1.5%", "#8 Lux Trendline+TRAMA+Chandelier | ليمت 1% · هدف 1% · وقف 1.5% + قريب من EMA200", "⭐ S15 V2 4h R2.5 h40 | 1.2% ليمت 0.8%", "🎯 كسر أرضية/سقف مكررة + ريتست 15m (BTC)", "Bagheri IG Ether 15m (كما هي) | 1.2% ليمت 0.4%", "Bagheri IG Ether 15m (كما هي) | 1.2% ليمت 0.6%", "Bagheri IG Ether 15m (كما هي) | 1.2% هادئة", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق + تقلب هادي", "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق + عكس ترند الساعة", "Range Sniper 15m (كما هي)", "Range Sniper 15m (كما هي) + OI مش نازل", "Range Sniper 15m (كما هي) + وقف ≥0.3%", "Range Sniper 15m + ترند 4h", "Range Sniper 15m + ترند 4h + فلتر BTC", "Range Sniper 15m + ترند 4h + وقف ≥0.3% + طلعة جماعية", "Range Sniper 15m + ترند 4h + وقف ≥0.3% + طلعة جماعية + بلا رجوع", "S16 SMC A 4h | 1.2% ليمت 0.4%", "S16 SMC A 4h | 1.2% ليمت 0.4% + فلتر ترند ساعة", "S16 SMC A 4h | 1.2% ليمت 0.8%", "S16 SMC A 4h | هدف 1.2% وقف 1.2%", "S16 SMC A 4h | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", "دايفرجنس AlgoAlpha 15د · جماعي 15+ · وقف 2% + بلا لونج على قاع BTC", "دايفرجنس AlgoAlpha 15د · وقف 2% + بلا لونج على قاع BTC", "شورت لونج ماكد فريم 5 دقايق", "شورت لونج ماكد فريم 5 دقايق · وقف 2.5% + بلا شورت فوق EMA200", "شورت لونج ماكد فريم 5 دقايق · وقف 2%", "شورت لونج ماكد فريم 5 دقايق · وقف 2% + بلا شورت فوق EMA200", "شورت لونج ماكد فريم 5 دقايق + قنوات ① بلا شورت مفتوح"];
+DROP_DUP_2211.forEach(n => PLATFORM_DROP.add(n));
 const PLATFORM_NOVOL = s => s.name.startsWith("WAVE ") || s.name.startsWith("⭐ S15 دخول 15m + فوليوم");
 // 17/11 10:45: V42 على المنصة بنسخة وحدة بس — ليمت 0.8% · هدف 1.2% · وقف 1.2% (طلب المستخدم، الأحسن من التصفير) — باقي نسخ V42 بالمختبر بس
 const V42_KEEP = PLAT_TP15 ? "V42 4H SHORT b0 | 1.5% ليمت 0.8%" : "V42 4H SHORT b0 | 1.2% ليمت 0.8%";   // 17/11 18:16: هدف 1.5%
@@ -4719,7 +4722,8 @@ function invDerive(arr, Q) {   // 19/11: IT1226 ساعة معكوسة · 23:00: 
 }
 // 19/11 07:26 (طلب المستخدم): IT1226 ساعة الأصلية انمحت من المنصة (كلها خاسرة) — بتنحسب بالخفا بس عشان المعكوسة تطلع منها
 const UI_HIDE = new Set([typeof INV_BASE === "undefined" ? "" : INV_BASE, typeof DIV_RAW === "undefined" ? "" : DIV_RAW]);
-const STRATS_UI = STRATS.filter(s => !UI_HIDE.has(s.name));
+const UI_HIDE_LATE = new Set([typeof GROUP_BASE === "undefined" ? "" : GROUP_BASE]);   // 22/11: قاعدة الرينج 10+ (الحقيقي) بتنحسب بس ما بتنعرض
+const STRATS_UI = STRATS.filter(s => !UI_HIDE.has(s.name) && !UI_HIDE_LATE.has(s.name));
 function divDerive(arr) {   // 20/11: دايفرجنس جماعي — 15+ = 16 عملة أو أكثر من كل العملات · 10+ (الحقيقية) = 10 عملات حقيقية أو أكثر والصفقة على عملة حقيقية · + بلا لونج على قاع BTC · صفقة وحدة بالمرة لكل عملة
   if (typeof DIV_RAW === "undefined") return [];
   const raw = arr.filter(t => t.name === DIV_RAW); if (!raw.length) return [];
@@ -4733,14 +4737,14 @@ function divDerive(arr) {   // 20/11: دايفرجنس جماعي — 15+ = 16 �
 function groupDerive(arr, Q) {
   if (typeof GROUP_BASE === "undefined") return arr;
   arr = arr.concat(invDerive(arr, Q), divDerive(arr)).filter(t => !UI_HIDE.has(t.name));
-  const base = arr.filter(t => t.name === GROUP_BASE && !EXTRA_COINS.has(t.sym)); if (!base.length) return arr;
+  const base = arr.filter(t => t.name === GROUP_BASE && !EXTRA_COINS.has(t.sym)); if (!base.length) return arr.filter(t => !PLATFORM_DROP.has(t.name) && !UI_HIDE_LATE.has(t.name));
   const cnt = new Map(); for (const t of base) cnt.set(t.eTs, (cnt.get(t.eTs) || 0) + 1);
   const bySym = new Map(); for (const t of base) { if (!bySym.has(t.sym)) bySym.set(t.sym, []); bySym.get(t.sym).push(t.eTs); }
   const out = [];
   for (const t of base) { if (cnt.get(t.eTs) < 2) continue; out.push({ ...t, name: GROUP_NAMES[0] });
     if (!bySym.get(t.sym).some(e => e < t.eTs && t.eTs - e < 8*3600e3)) out.push({ ...t, name: GROUP_NAMES[1] });
     if (cnt.get(t.eTs) >= 10) out.push({ ...t, name: GROUP_NAMES[2] }); }
-  return arr.concat(out);
+  return arr.concat(out).filter(t => !PLATFORM_DROP.has(t.name) && !UI_HIDE_LATE.has(t.name));   // 22/11: النسخ الممحية ما بتنعرض · قاعدة الرينج الجماعي بتنحسب بالخفا
 }
 // حد أقصى للصفقات المفتوحة بنفس الوقت (0 = بلا حد): الأسبق بالدخول بياخد المكان
 function capTrades(raw) {
@@ -5344,7 +5348,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-20-1210";
+const BUILD = "2026-11-22-0835";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
