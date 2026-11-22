@@ -875,7 +875,9 @@ const S15 = (() => {
       }
       if (pos) {
         const s = pos.d, o = I.O[k]; let raw = null, why = null;
-        if (s*(o - pos.stop) <= 0) { raw = o; why = "INIT_STOP"; }
+        if (sp.stall) { const fv = s === 1 ? I.H[k] : I.L[k]; pos.bst = pos.bst === undefined ? fv : (s === 1 ? Math.max(pos.bst, fv) : Math.min(pos.bst, fv)); }
+        if (pos.oppNext) { raw = o; why = "TIME"; }
+        else if (s*(o - pos.stop) <= 0) { raw = o; why = "INIT_STOP"; }
         else if (s === 1 ? I.L[k] <= pos.stop : I.H[k] >= pos.stop) { raw = pos.stop; why = "INIT_STOP"; }
         if (raw === null && (sp.partial || sp.partialPct) && !pos.half) {   // جني نص الصفقة على partial×R أو partialPct% (أمر ليمت = Maker)
           const p1 = sp.partialPct ? pos.entry*(1 + s*sp.partialPct) : pos.entry + s*sp.partial*Math.abs(pos.entry - pos.stop0);
@@ -887,6 +889,7 @@ const S15 = (() => {
           if (s*(o - pos.target) >= 0) { raw = o; why = "TARGET"; }
           else if (s === 1 ? I.H[k] >= pos.target : I.L[k] <= pos.target) { raw = pos.target; why = "TARGET"; }
           else if (k - pos.e + 1 >= (sp.hold || 20)) { raw = I.C[k]; why = "TIME"; }
+          else if (sp.stall && k - pos.e + 1 === sp.stall.bars && s*(pos.bst - pos.entry) < sp.stall.minR*Math.abs(pos.entry - pos.stop0)) { raw = I.C[k]; why = "TIME"; }   // 22/11 (مختبر): ما وصلت minR خلال bars شمعة → خروج
         }
         if (raw !== null) { if (why === "INIT_STOP" && pos.moved) why = "TRAIL";
           const wq = pos.half ? (pos.w || 1)/2 : pos.w;
@@ -903,6 +906,7 @@ const S15 = (() => {
           if (ns !== pos.stop) { pos.stop = ns; pos.moved = true; }
         }
       }
+      if (pos && sp.oppExit) { const ev = sp.oppExit === "v2" ? hitsAt(P, I, k, true, sp.emaF) : (P.events.get(k) || []); if (ev.some(x => x.side === -pos.d)) pos.oppNext = true; }   // 22/11 (مختبر): إشارة سحب+كسر هيكل بالعكس وهي مفتوحة → خروج على افتتاح الشمعة الجاية
       let h = hitsAt(P, I, k, sp.v2, sp.emaF);
       if (h.length && sp.btcF) h = h.filter(x => btcTrend(D.t0 + (k+1)*m*900000, sp.btcF) === x.side);
       if (h.length && sp.coinEma) { const e = emaOf(I, sp.coinEma)[k]; if (e !== null) h = h.filter(x => (I.C[k] - e)*x.side > 0); }   // اتجاه العملة نفسها (لما المتوسط لسا مش جاهز = بدون فلتر)

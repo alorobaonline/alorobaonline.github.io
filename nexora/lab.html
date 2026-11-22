@@ -669,7 +669,9 @@ const S15 = (() => {
       }
       if (pos) {
         const s = pos.d, o = I.O[k]; let raw = null, why = null;
-        if (s*(o - pos.stop) <= 0) { raw = o; why = "INIT_STOP"; }
+        if (sp.stall) { const fv = s === 1 ? I.H[k] : I.L[k]; pos.bst = pos.bst === undefined ? fv : (s === 1 ? Math.max(pos.bst, fv) : Math.min(pos.bst, fv)); }
+        if (pos.oppNext) { raw = o; why = "TIME"; }
+        else if (s*(o - pos.stop) <= 0) { raw = o; why = "INIT_STOP"; }
         else if (s === 1 ? I.L[k] <= pos.stop : I.H[k] >= pos.stop) { raw = pos.stop; why = "INIT_STOP"; }
         if (raw === null && (sp.partial || sp.partialPct) && !pos.half) {   // جني نص الصفقة على partial×R أو partialPct% (أمر ليمت = Maker)
           const p1 = sp.partialPct ? pos.entry*(1 + s*sp.partialPct) : pos.entry + s*sp.partial*Math.abs(pos.entry - pos.stop0);
@@ -681,6 +683,7 @@ const S15 = (() => {
           if (s*(o - pos.target) >= 0) { raw = o; why = "TARGET"; }
           else if (s === 1 ? I.H[k] >= pos.target : I.L[k] <= pos.target) { raw = pos.target; why = "TARGET"; }
           else if (k - pos.e + 1 >= (sp.hold || 20)) { raw = I.C[k]; why = "TIME"; }
+          else if (sp.stall && k - pos.e + 1 === sp.stall.bars && s*(pos.bst - pos.entry) < sp.stall.minR*Math.abs(pos.entry - pos.stop0)) { raw = I.C[k]; why = "TIME"; }   // 22/11 (مختبر): ما وصلت minR خلال bars شمعة → خروج
         }
         if (raw !== null) { if (why === "INIT_STOP" && pos.moved) why = "TRAIL";
           const wq = pos.half ? (pos.w || 1)/2 : pos.w;
@@ -697,6 +700,7 @@ const S15 = (() => {
           if (ns !== pos.stop) { pos.stop = ns; pos.moved = true; }
         }
       }
+      if (pos && sp.oppExit) { const ev = sp.oppExit === "v2" ? hitsAt(P, I, k, true, sp.emaF) : (P.events.get(k) || []); if (ev.some(x => x.side === -pos.d)) pos.oppNext = true; }   // 22/11 (مختبر): إشارة سحب+كسر هيكل بالعكس وهي مفتوحة → خروج على افتتاح الشمعة الجاية
       let h = hitsAt(P, I, k, sp.v2, sp.emaF);
       if (h.length && sp.btcF) h = h.filter(x => btcTrend(D.t0 + (k+1)*m*900000, sp.btcF) === x.side);
       if (h.length && sp.coinEma) { const e = emaOf(I, sp.coinEma)[k]; if (e !== null) h = h.filter(x => (I.C[k] - e)*x.side > 0); }   // اتجاه العملة نفسها (لما المتوسط لسا مش جاهز = بدون فلتر)
@@ -4101,6 +4105,9 @@ const PLATFORM_DROP = new Set(["#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليم�
   "⭐ S15 دخول على إغلاق 15m | هدف 1.2% وقف 1.2%", "⭐ S15 دخول على إغلاق 15m | 1.2% ليمت 0.4%", "⭐ S15 دخول على إغلاق 15m | 1.2% ليمت 0.6%", "⭐ S15 دخول على إغلاق 15m | 1.2% ليمت 0.8%",
   "#8 Lux Trendline+TRAMA+Chandelier | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.4% + فلتر ترند ساعة", "⭐ S15 دخول 15m + بُعد ATR | هدف 1.2% وقف 1.2%",
   "⭐ S15 دخول على إغلاق 15m | هدف 1.2% وقف 1.2% + فلتر ترند ساعة"]);
+// 22/11 08:30 (طلب المستخدم): «محي النسخ المكررة» — بنخلّي أحسن نسخة من كل عائلة على المنصة والباقي انمحى (الأصليات بالمختبر · القواعد المخفية للحقيقي بتضل تنحسب)
+const DROP_DUP_2211 = ["#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.6%", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8% + لا تلحق", "#8 Lux Trendline+TRAMA+Chandelier | ليمت 1% · هدف 1% · وقف 1.5%", "#8 Lux Trendline+TRAMA+Chandelier | ليمت 1% · هدف 1% · وقف 1.5% + قريب من EMA200", "⭐ S15 V2 4h R2.5 h40 | 1.2% ليمت 0.8%", "🎯 كسر أرضية/سقف مكررة + ريتست 15m (BTC)", "Bagheri IG Ether 15m (كما هي) | 1.2% ليمت 0.4%", "Bagheri IG Ether 15m (كما هي) | 1.2% ليمت 0.6%", "Bagheri IG Ether 15m (كما هي) | 1.2% هادئة", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق + تقلب هادي", "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق + عكس ترند الساعة", "Range Sniper 15m (كما هي)", "Range Sniper 15m (كما هي) + OI مش نازل", "Range Sniper 15m (كما هي) + وقف ≥0.3%", "Range Sniper 15m + ترند 4h", "Range Sniper 15m + ترند 4h + فلتر BTC", "Range Sniper 15m + ترند 4h + وقف ≥0.3% + طلعة جماعية", "Range Sniper 15m + ترند 4h + وقف ≥0.3% + طلعة جماعية + بلا رجوع", "S16 SMC A 4h | 1.2% ليمت 0.4%", "S16 SMC A 4h | 1.2% ليمت 0.4% + فلتر ترند ساعة", "S16 SMC A 4h | 1.2% ليمت 0.8%", "S16 SMC A 4h | هدف 1.2% وقف 1.2%", "S16 SMC A 4h | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", "دايفرجنس AlgoAlpha 15د · جماعي 15+ · وقف 2% + بلا لونج على قاع BTC", "دايفرجنس AlgoAlpha 15د · وقف 2% + بلا لونج على قاع BTC", "شورت لونج ماكد فريم 5 دقايق", "شورت لونج ماكد فريم 5 دقايق · وقف 2.5% + بلا شورت فوق EMA200", "شورت لونج ماكد فريم 5 دقايق · وقف 2%", "شورت لونج ماكد فريم 5 دقايق · وقف 2% + بلا شورت فوق EMA200", "شورت لونج ماكد فريم 5 دقايق + قنوات ① بلا شورت مفتوح"];
+DROP_DUP_2211.forEach(n => PLATFORM_DROP.add(n));
 const PLATFORM_NOVOL = s => s.name.startsWith("WAVE ") || s.name.startsWith("⭐ S15 دخول 15m + فوليوم");
 // 17/11 10:45: V42 على المنصة بنسخة وحدة بس — ليمت 0.8% · هدف 1.2% · وقف 1.2% (طلب المستخدم، الأحسن من التصفير) — باقي نسخ V42 بالمختبر بس
 const V42_KEEP = PLAT_TP15 ? "V42 4H SHORT b0 | 1.5% ليمت 0.8%" : "V42 4H SHORT b0 | 1.2% ليمت 0.8%";   // 17/11 18:16: هدف 1.5%
