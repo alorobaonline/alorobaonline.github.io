@@ -4315,13 +4315,48 @@ STRATS_ALL.push({ name: SWP_RAW, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, t
   run: (D, inds, sp, startTs) => { if (!D.btc15) return []; return swpRun(D, startTs); } });
 STRATS_ALL.push({ name: SWPB_RAW, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة 15د · وقف المربع — كل الإشارات (للجماعي بالصفحة)",
   run: (D, inds, sp, startTs) => { if (!D.btc15) return []; return swpRun(D, startTs, true); } });
+// 23/11 05:55 (طلب المستخدم): سحب سيولة شورت 15د — سحب قمة (ذيل فوق قمة 24س وإغلاق تحتها) ← CISD هابط (إغلاق تحت افتتاح أول شمعة خضرا بسلسلة الطلعة، خلال 8 شموع) ← ليمت بيع على خط الـCISD (ريتست، خلال 12 شمعة) · وقف فوق ذيل السحب (0.05%) · هدف 1%
+//  الجماعي: 5 عملات حقيقية أو أكثر سحبوا قمة بنفس الشمعة · بلا شورت على قمة BTC (12س) — فحص التصفير: 150 صفقة 111/39 +58.8% PF 2.33 (2.31 / 2.34)
+const SWPS_RAW = "سحب سيولة شورت 15د + CISD (كل الإشارات — مخفي)", SWPS_NAME = "سحب سيولة شورت 15د · CISD ريتست · جماعي 5+ (الحقيقية) · هدف 1% + بلا شورت على قمة BTC";
+function swpsRun(D, startTs) {
+  const N = D.o.length, n0 = D.prov ? N - 1 : N, P = 5, LOOK = 96, out = [], B = D.btc15;
+  let highs = [];
+  for (let i = 0; i < n0; i++) {
+    const j = i - P;
+    if (j >= P) { let hi = true; for (let q = j - P; q <= j + P; q++) if (D.h[q] > D.h[j]) { hi = false; break; } if (hi) highs.push({ i: j, p: D.h[j] }); }
+    highs = highs.filter(x => i - x.i <= LOOK);
+    const sw = highs.filter(x => x.i < i - P && D.h[i] > x.p); if (!sw.length) continue;
+    highs = highs.filter(x => !(x.i < i - P && D.h[i] > x.p));
+    const lvl = sw.reduce((a, b) => b.p > a.p ? b : a).p, depth = (D.h[i] - lvl)/lvl, sig = D.t0 + i*M15;
+    if (!(D.c[i] < lvl) || depth > 0.015 || sig + M15 < startTs || i + 1 >= N) continue;
+    let btcLow = null; if (B && B.h) { const bi = Math.floor((D.t0 + (i + 1)*M15 - B.t0)/M15) - 1; if (bi >= 48 && bi < B.c.length) { let m = -Infinity; for (let k = bi - 48; k < bi; k++) m = Math.max(m, B.h[k]); btcLow = B.c[bi] >= m*0.997; } }   // btcLow هون = BTC على قمة 12س (نفس اسم الحقل للجماعي)
+    const stop = D.h[i]*(1 + 0.0005), base = { name: SWPS_RAW, d: -1, sig, lvl, btcLow, stop };
+    const grn = k => D.c[k] > D.o[k]; let s = i; if (!grn(s)) s = i - 1;
+    if (s < 0 || !grn(s)) { out.push({ ...base, e: i + 1, x: i + 1, rawIn: lvl, rawOut: lvl, why: "NOFILL", open: false, nofill: true, pend: false, lim: lvl, target: lvl*0.99 }); continue; }
+    let s0 = s; while (s0 - 1 >= 0 && grn(s0 - 1)) s0--; const cl = D.o[s0];
+    let ck = -1, dead = false;
+    for (let k = i; k <= Math.min(N - 1, i + 8); k++) { if (k > i && D.h[k] >= stop) { dead = true; break; } if (D.c[k] < cl) { ck = k; break; } }
+    if (ck < 0) { const pend = false; out.push({ ...base, e: i + 1, x: i + 1, rawIn: cl, rawOut: cl, why: "NOFILL", open: false, nofill: true, pend, lim: cl, target: cl*0.99 }); continue; }
+    let e = -1, E = 0, cancel = false;
+    for (let k = ck + 1; k <= Math.min(N - 1, ck + 12); k++) { if (D.h[k] >= stop) { cancel = true; break; } if (D.h[k] >= cl) { e = k; E = Math.max(D.o[k], cl); break; } }
+    if (e < 0) { const pend = !cancel && ck + 12 > N - 1; out.push({ ...base, e: ck + 1, x: ck + 1, rawIn: cl, rawOut: cl, why: pend ? "PEND" : "NOFILL", open: false, nofill: true, pend, lim: cl, target: cl*0.99 }); continue; }
+    if (!(stop > E)) continue;
+    const T = E*0.99; let ox = null, xi = null, why = null;
+    for (let k = e; k < N && k <= e + 192; k++) { if (D.h[k] >= stop) { ox = stop; xi = k; why = "INIT_STOP"; break; } if (k > e && D.l[k] <= T) { ox = T; xi = k; why = "TARGET"; break; } }
+    if (ox === null && e + 192 < N) { xi = e + 192; ox = D.c[xi]; why = "TIME"; }
+    out.push(ox === null ? { ...base, e, x: N - 1, rawIn: E, rawOut: D.c[N-1], why: "TIME", open: true, target: T, lim: E } : { ...base, e, x: xi, rawIn: E, rawOut: ox, why, open: false, target: T, lim: E });
+  }
+  return out;
+}
+STRATS_ALL.push({ name: SWPS_RAW, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة شورت + CISD — كل الإشارات (للجماعي بالصفحة)",
+  run: (D, inds, sp, startTs) => { if (!D.btc15) return []; return swpsRun(D, startTs); } });
 function swpDerive(arr) {   // 22/11: 10 عملات حقيقية أو أكثر سحبوا قاع بنفس الشمعة · بلا لونج على قاع BTC · صفقة وحدة بالمرة لكل عملة
   if (typeof SWP_RAW === "undefined") return [];
   const out = [];
-  for (const [RAWN, NM, FL] of [[SWP_RAW, SWP_NAME, null], [SWPB_RAW, SWPB_NAME, null], [SWP_RAW, SWPF_NAME, t => t.b4 !== null && t.b4 !== undefined && t.b4 < 0.001]]) {
+  for (const [RAWN, NM, FL, MIN] of [[SWP_RAW, SWP_NAME, null, 10], [SWPB_RAW, SWPB_NAME, null, 10], [SWP_RAW, SWPF_NAME, t => t.b4 !== null && t.b4 !== undefined && t.b4 < 0.001, 10], [SWPS_RAW, SWPS_NAME, null, 5]]) {
   const raw = arr.filter(t => t.name === RAWN && !EXTRA_COINS.has(t.sym)); if (!raw.length) continue;
   const cnt = new Map(); for (const t of raw) cnt.set(t.sig, (cnt.get(t.sig) || 0) + 1);
-  const by = new Map(); for (const t of raw) { if (t.nofill || (cnt.get(t.sig) || 0) < 10 || t.btcLow !== false || (FL && !FL(t))) continue; if (!by.has(t.sym)) by.set(t.sym, []); by.get(t.sym).push(t); }
+  const by = new Map(); for (const t of raw) { if (t.nofill || (cnt.get(t.sig) || 0) < MIN || t.btcLow !== false || (FL && !FL(t))) continue; if (!by.has(t.sym)) by.set(t.sym, []); by.get(t.sym).push(t); }
   for (const a of by.values()) { let busy = -Infinity; for (const t of a.sort((x, y) => x.sig - y.sig)) { if (t.sig < busy) continue; out.push({ ...t, name: NM }); busy = t.open ? Infinity : t.xTs - M15; } }
   }
   return out;
@@ -4330,6 +4365,7 @@ function swpDerive(arr) {   // 22/11: 10 عملات حقيقية أو أكثر �
 //  فحص التصفير: 110 صفقة 95% (6 خسارة) +48.33$ على 48$ · ولا يوم خسران (18/11 و20/11 ما فاتت)
 const DIVR_NAME = "دايفرجنس AlgoAlpha 15د · جماعي 10+ (الحقيقية) · وقف 2% + بلا لونج على قاع BTC";
 STRATS_ALL.push({ name: DIVR_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "دايفرجنس جماعي 10+ عملات حقيقية (بتنحسب بالصفحة والعقل)" });
+STRATS_ALL.push({ name: SWPS_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة شورت + CISD ريتست جماعي 5+ (بتنحسب بالصفحة والعقل)" });
 STRATS_ALL.push({ name: SWPF_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة جماعي 10+ · BTC مش طالع 4س (بتنحسب بالصفحة والعقل)" });
 STRATS_ALL.push({ name: SWPB_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة جماعي 10+ · وقف المربع (بتنحسب بالصفحة)" });
 STRATS_ALL.push({ name: SWP_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة جماعي 10+ عملات حقيقية (بتنحسب بالصفحة والعقل)" });   // 22/11: عشان العقل يلاقي الاسم
@@ -4368,7 +4404,7 @@ const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% �
 const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
 const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المستخدم — 1.5% طلع أسوأ من التصفير). نسخ 1.5% بالمختبر
 PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); SR_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); LS_NAMES.forEach(x => PLATFORM_KEEP12.add(x[0])); PLATFORM_KEEP12.add(RANGE_24_NAME); PLATFORM_KEEP12.add(DIV_NAME); PLATFORM_KEEP12.add(DIV_RAW); PLATFORM_KEEP12.add(DIV15_NAME); PLATFORM_KEEP12.add(DIVR_NAME); PLATFORM_KEEP12.add(INV2_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME); MACDF_BASES.forEach(b => { PLATFORM_KEEP12.add(MACDF_NAME(b)); STRATS_ALL.push({ name: MACDF_NAME(b), mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD v1.1 لونج — لحالها + فوق EMA50 4h (بتنحسب بالصفحة)" }); });
-PLATFORM_KEEP12.add(SWP_RAW); PLATFORM_KEEP12.add(SWPB_RAW); PLATFORM_KEEP12.add(SWPB_NAME); PLATFORM_KEEP12.add(SWPF_NAME); PLATFORM_KEEP12.add(SWP_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة · 22/11: سحب السيولة (قاعدة مخفية — الجماعي بالصفحة)
+PLATFORM_KEEP12.add(SWP_RAW); PLATFORM_KEEP12.add(SWPB_RAW); PLATFORM_KEEP12.add(SWPB_NAME); PLATFORM_KEEP12.add(SWPF_NAME); PLATFORM_KEEP12.add(SWPS_RAW); PLATFORM_KEEP12.add(SWPS_NAME); PLATFORM_KEEP12.add(SWP_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة · 22/11: سحب السيولة (قاعدة مخفية — الجماعي بالصفحة)
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 // 17/11 19:53 (طلب المستخدم): الخسرانين من التصفير انشالوا من المنصة — بالمختبر بس
@@ -4796,7 +4832,7 @@ function invDerive(arr, Q) {   // 19/11: IT1226 ساعة معكوسة · 23:00: 
   return out;
 }
 // 19/11 07:26 (طلب المستخدم): IT1226 ساعة الأصلية انمحت من المنصة (كلها خاسرة) — بتنحسب بالخفا بس عشان المعكوسة تطلع منها
-const UI_HIDE = new Set([typeof INV_BASE === "undefined" ? "" : INV_BASE, typeof DIV_RAW === "undefined" ? "" : DIV_RAW, typeof SWP_RAW === "undefined" ? "" : SWP_RAW, typeof SWPB_RAW === "undefined" ? "" : SWPB_RAW]);
+const UI_HIDE = new Set([typeof INV_BASE === "undefined" ? "" : INV_BASE, typeof DIV_RAW === "undefined" ? "" : DIV_RAW, typeof SWP_RAW === "undefined" ? "" : SWP_RAW, typeof SWPB_RAW === "undefined" ? "" : SWPB_RAW, typeof SWPS_RAW === "undefined" ? "" : SWPS_RAW]);
 const UI_HIDE_LATE = new Set([typeof GROUP_BASE === "undefined" ? "" : GROUP_BASE]);   // 22/11: قاعدة الرينج 10+ (الحقيقي) بتنحسب بس ما بتنعرض
 const STRATS_UI = STRATS.filter(s => !UI_HIDE.has(s.name) && !UI_HIDE_LATE.has(s.name));
 function divDerive(arr) {   // 20/11: دايفرجنس جماعي — 15+ = 16 عملة أو أكثر من كل العملات · 10+ (الحقيقية) = 10 عملات حقيقية أو أكثر والصفقة على عملة حقيقية · + بلا لونج على قاع BTC · صفقة وحدة بالمرة لكل عملة
@@ -4951,7 +4987,7 @@ async function computeAll0(coins, startTs, prevOf, st) {
   const P = pool(); let done = 0;
   { const q = coins.filter(c => c.D && !c.D.stub); await Promise.all(Array.from({ length: 4 }, async () => { while (q.length) { const c = q.shift(); c.D.oi = await loadOI(c.sym); } })); }   // 18/11: OI لنسخ «لا تلحق»
   { const b = coins.find(x => x.sym === "BTCUSDT"); BTC_S = b && b.D && !b.D.stub && b.D.o.length > 400 ? btcStateOf(b.D) : null; }
-  { const b = coins.find(x => x.sym === "BTCUSDT"); BTC15 = null; if (b && b.D && !b.D.stub) { const k0 = Math.max(0, Math.floor((startTs - 2*864e5 - b.D.t0)/M15)); BTC15 = { t0: b.D.t0 + k0*M15, l: b.D.l.slice(k0), c: b.D.c.slice(k0) }; } }
+  { const b = coins.find(x => x.sym === "BTCUSDT"); BTC15 = null; if (b && b.D && !b.D.stub) { const k0 = Math.max(0, Math.floor((startTs - 2*864e5 - b.D.t0)/M15)); BTC15 = { t0: b.D.t0 + k0*M15, l: b.D.l.slice(k0), h: b.D.h.slice(k0), c: b.D.c.slice(k0) }; } }
   { const b = coins.find(x => x.sym === "BTCUSDT"); BTC4 = null; if (b && b.D && !b.D.stub) { const B = OLDB.bars4(b.D); BTC4 = { C: B.C, T: B.C.map((_, i) => b.D.t0 + (i + 1)*16*M15) }; } }   // 17/11: بيتكوين 4h لبوتات التلغرام القديمة
   const tick = () => st(`⚙️ بحسب الاستراتيجيات… ${done}/${coins.length}${P.length ? ` (${P.length} معالجات مع بعض)` : ""}`);
   tick();
@@ -5423,7 +5459,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-23-0450";
+const BUILD = "2026-11-23-0600";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
