@@ -4350,10 +4350,45 @@ function swpsRun(D, startTs) {
 }
 STRATS_ALL.push({ name: SWPS_RAW, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة شورت + CISD — كل الإشارات (للجماعي بالصفحة)",
   run: (D, inds, sp, startTs) => { if (!D.btc15) return []; return swpsRun(D, startTs); } });
+// 23/11 06:15 (طلب المستخدم): نفسها على فريم 30د — 10 عملات أو أكثر · فحص التصفير: 35 صفقة 32/3 +24.5% PF 5.69 (5+: 45 صفقة 40/5 PF 4.31)
+const SWPS30_RAW = "سحب سيولة شورت 30د + CISD (كل الإشارات — مخفي)", SWPS30_NAME = "سحب سيولة شورت 30د · CISD ريتست · جماعي 10+ (الحقيقية) · هدف 1% + بلا شورت على قمة BTC";
+function swps30Run(D, startTs) {
+  const M30 = 2*M15, n15 = D.prov ? D.o.length - 1 : D.o.length, N = Math.floor(n15/2), out = [], P = 5, LOOK = 48, Bq = D.btc15;
+  const o = [], h = [], l = [], c = []; for (let k = 0; k < N; k++) { o.push(D.o[2*k]); h.push(Math.max(D.h[2*k], D.h[2*k+1])); l.push(Math.min(D.l[2*k], D.l[2*k+1])); c.push(D.c[2*k+1]); }
+  let BH = null, BC = null, Bt0 = 0; if (Bq && Bq.h) { let a = 0; while (a < Bq.c.length && (Bq.t0 + a*M15) % M30 !== 0) a++; Bt0 = Bq.t0 + a*M15; BH = []; BC = []; for (let k = a; k + 1 < Bq.c.length; k += 2) { BH.push(Math.max(Bq.h[k], Bq.h[k+1])); BC.push(Bq.c[k+1]); } }
+  let highs = [];
+  for (let i = 0; i < N; i++) {
+    const j = i - P;
+    if (j >= P) { let hi = true; for (let q = j - P; q <= j + P; q++) if (h[q] > h[j]) { hi = false; break; } if (hi) highs.push({ i: j, p: h[j] }); }
+    highs = highs.filter(x => i - x.i <= LOOK);
+    const sw = highs.filter(x => x.i < i - P && h[i] > x.p); if (!sw.length) continue;
+    highs = highs.filter(x => !(x.i < i - P && h[i] > x.p));
+    const lvl = sw.reduce((a, b) => b.p > a.p ? b : a).p, depth = (h[i] - lvl)/lvl, sig = D.t0 + i*M30;
+    if (!(c[i] < lvl) || depth > 0.015 || sig + M30 < startTs || i + 1 >= N) continue;
+    let btcLow = null; if (BH) { const bi = Math.floor((D.t0 + (i + 1)*M30 - Bt0)/M30) - 1; if (bi >= 24 && bi < BC.length) { let m = -Infinity; for (let k = bi - 24; k < bi; k++) m = Math.max(m, BH[k]); btcLow = BC[bi] >= m*0.997; } }
+    const stop = h[i]*(1 + 0.0005), base = { name: SWPS30_RAW, d: -1, sig, lvl, btcLow, stop };
+    const grn = k => c[k] > o[k]; let s = i; if (!grn(s)) s = i - 1;
+    if (s < 0 || !grn(s)) { out.push({ ...base, e: 2*(i + 1), x: 2*(i + 1), rawIn: lvl, rawOut: lvl, why: "NOFILL", open: false, nofill: true, pend: false, lim: lvl, target: lvl*0.99 }); continue; }
+    let s0 = s; while (s0 - 1 >= 0 && grn(s0 - 1)) s0--; const cl = o[s0];
+    let ck = -1; for (let k = i; k <= Math.min(N - 1, i + 8); k++) { if (k > i && h[k] >= stop) break; if (c[k] < cl) { ck = k; break; } }
+    if (ck < 0) { out.push({ ...base, e: 2*(i + 1), x: 2*(i + 1), rawIn: cl, rawOut: cl, why: "NOFILL", open: false, nofill: true, pend: false, lim: cl, target: cl*0.99 }); continue; }
+    let e = -1, E = 0, cancel = false;
+    for (let k = ck + 1; k <= Math.min(N - 1, ck + 12); k++) { if (h[k] >= stop) { cancel = true; break; } if (h[k] >= cl) { e = k; E = Math.max(o[k], cl); break; } }
+    if (e < 0) { const pend = !cancel && ck + 12 > N - 1; out.push({ ...base, e: 2*(ck + 1), x: 2*(ck + 1), rawIn: cl, rawOut: cl, why: pend ? "PEND" : "NOFILL", open: false, nofill: true, pend, lim: cl, target: cl*0.99 }); continue; }
+    if (!(stop > E)) continue;
+    const T = E*0.99; let ox = null, xi = null, why = null;
+    for (let k = e; k < N && k <= e + 96; k++) { if (h[k] >= stop) { ox = stop; xi = k; why = "INIT_STOP"; break; } if (k > e && l[k] <= T) { ox = T; xi = k; why = "TARGET"; break; } }
+    if (ox === null && e + 96 < N) { xi = e + 96; ox = c[xi]; why = "TIME"; }
+    out.push(ox === null ? { ...base, e: 2*e, x: D.o.length - 1, rawIn: E, rawOut: D.c[D.c.length-1], why: "TIME", open: true, target: T, lim: E } : { ...base, e: 2*e, x: 2*xi + 1, rawIn: E, rawOut: ox, why, open: false, target: T, lim: E });
+  }
+  return out;
+}
+STRATS_ALL.push({ name: SWPS30_RAW, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة شورت 30د + CISD — كل الإشارات (للجماعي بالصفحة)",
+  run: (D, inds, sp, startTs) => { if (!D.btc15) return []; return swps30Run(D, startTs); } });
 function swpDerive(arr) {   // 22/11: 10 عملات حقيقية أو أكثر سحبوا قاع بنفس الشمعة · بلا لونج على قاع BTC · صفقة وحدة بالمرة لكل عملة
   if (typeof SWP_RAW === "undefined") return [];
   const out = [];
-  for (const [RAWN, NM, FL, MIN] of [[SWP_RAW, SWP_NAME, null, 10], [SWPB_RAW, SWPB_NAME, null, 10], [SWP_RAW, SWPF_NAME, t => t.b4 !== null && t.b4 !== undefined && t.b4 < 0.001, 10], [SWPS_RAW, SWPS_NAME, null, 5]]) {
+  for (const [RAWN, NM, FL, MIN] of [[SWP_RAW, SWP_NAME, null, 10], [SWPB_RAW, SWPB_NAME, null, 10], [SWP_RAW, SWPF_NAME, t => t.b4 !== null && t.b4 !== undefined && t.b4 < 0.001, 10], [SWPS_RAW, SWPS_NAME, null, 5], [SWPS30_RAW, SWPS30_NAME, null, 10]]) {
   const raw = arr.filter(t => t.name === RAWN && !EXTRA_COINS.has(t.sym)); if (!raw.length) continue;
   const cnt = new Map(); for (const t of raw) cnt.set(t.sig, (cnt.get(t.sig) || 0) + 1);
   const by = new Map(); for (const t of raw) { if (t.nofill || (cnt.get(t.sig) || 0) < MIN || t.btcLow !== false || (FL && !FL(t))) continue; if (!by.has(t.sym)) by.set(t.sym, []); by.get(t.sym).push(t); }
@@ -4365,6 +4400,7 @@ function swpDerive(arr) {   // 22/11: 10 عملات حقيقية أو أكثر �
 //  فحص التصفير: 110 صفقة 95% (6 خسارة) +48.33$ على 48$ · ولا يوم خسران (18/11 و20/11 ما فاتت)
 const DIVR_NAME = "دايفرجنس AlgoAlpha 15د · جماعي 10+ (الحقيقية) · وقف 2% + بلا لونج على قاع BTC";
 STRATS_ALL.push({ name: DIVR_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "دايفرجنس جماعي 10+ عملات حقيقية (بتنحسب بالصفحة والعقل)" });
+STRATS_ALL.push({ name: SWPS30_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة شورت 30د + CISD ريتست جماعي 10+ (بتنحسب بالصفحة والعقل)" });
 STRATS_ALL.push({ name: SWPS_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة شورت + CISD ريتست جماعي 5+ (بتنحسب بالصفحة والعقل)" });
 STRATS_ALL.push({ name: SWPF_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة جماعي 10+ · BTC مش طالع 4س (بتنحسب بالصفحة والعقل)" });
 STRATS_ALL.push({ name: SWPB_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة جماعي 10+ · وقف المربع (بتنحسب بالصفحة)" });
@@ -4404,7 +4440,7 @@ const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% �
 const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
 const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المستخدم — 1.5% طلع أسوأ من التصفير). نسخ 1.5% بالمختبر
 PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); SR_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); LS_NAMES.forEach(x => PLATFORM_KEEP12.add(x[0])); PLATFORM_KEEP12.add(RANGE_24_NAME); PLATFORM_KEEP12.add(DIV_NAME); PLATFORM_KEEP12.add(DIV_RAW); PLATFORM_KEEP12.add(DIV15_NAME); PLATFORM_KEEP12.add(DIVR_NAME); PLATFORM_KEEP12.add(INV2_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME); MACDF_BASES.forEach(b => { PLATFORM_KEEP12.add(MACDF_NAME(b)); STRATS_ALL.push({ name: MACDF_NAME(b), mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD v1.1 لونج — لحالها + فوق EMA50 4h (بتنحسب بالصفحة)" }); });
-PLATFORM_KEEP12.add(SWP_RAW); PLATFORM_KEEP12.add(SWPB_RAW); PLATFORM_KEEP12.add(SWPB_NAME); PLATFORM_KEEP12.add(SWPF_NAME); PLATFORM_KEEP12.add(SWPS_RAW); PLATFORM_KEEP12.add(SWPS_NAME); PLATFORM_KEEP12.add(SWP_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة · 22/11: سحب السيولة (قاعدة مخفية — الجماعي بالصفحة)
+PLATFORM_KEEP12.add(SWP_RAW); PLATFORM_KEEP12.add(SWPB_RAW); PLATFORM_KEEP12.add(SWPB_NAME); PLATFORM_KEEP12.add(SWPF_NAME); PLATFORM_KEEP12.add(SWPS_RAW); PLATFORM_KEEP12.add(SWPS_NAME); PLATFORM_KEEP12.add(SWPS30_RAW); PLATFORM_KEEP12.add(SWPS30_NAME); PLATFORM_KEEP12.add(SWP_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة · 22/11: سحب السيولة (قاعدة مخفية — الجماعي بالصفحة)
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 // 17/11 19:53 (طلب المستخدم): الخسرانين من التصفير انشالوا من المنصة — بالمختبر بس
@@ -4832,7 +4868,7 @@ function invDerive(arr, Q) {   // 19/11: IT1226 ساعة معكوسة · 23:00: 
   return out;
 }
 // 19/11 07:26 (طلب المستخدم): IT1226 ساعة الأصلية انمحت من المنصة (كلها خاسرة) — بتنحسب بالخفا بس عشان المعكوسة تطلع منها
-const UI_HIDE = new Set([typeof INV_BASE === "undefined" ? "" : INV_BASE, typeof DIV_RAW === "undefined" ? "" : DIV_RAW, typeof SWP_RAW === "undefined" ? "" : SWP_RAW, typeof SWPB_RAW === "undefined" ? "" : SWPB_RAW, typeof SWPS_RAW === "undefined" ? "" : SWPS_RAW]);
+const UI_HIDE = new Set([typeof INV_BASE === "undefined" ? "" : INV_BASE, typeof DIV_RAW === "undefined" ? "" : DIV_RAW, typeof SWP_RAW === "undefined" ? "" : SWP_RAW, typeof SWPB_RAW === "undefined" ? "" : SWPB_RAW, typeof SWPS_RAW === "undefined" ? "" : SWPS_RAW, typeof SWPS30_RAW === "undefined" ? "" : SWPS30_RAW]);
 const UI_HIDE_LATE = new Set([typeof GROUP_BASE === "undefined" ? "" : GROUP_BASE]);   // 22/11: قاعدة الرينج 10+ (الحقيقي) بتنحسب بس ما بتنعرض
 const STRATS_UI = STRATS.filter(s => !UI_HIDE.has(s.name) && !UI_HIDE_LATE.has(s.name));
 function divDerive(arr) {   // 20/11: دايفرجنس جماعي — 15+ = 16 عملة أو أكثر من كل العملات · 10+ (الحقيقية) = 10 عملات حقيقية أو أكثر والصفقة على عملة حقيقية · + بلا لونج على قاع BTC · صفقة وحدة بالمرة لكل عملة
@@ -5459,7 +5495,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-23-0600";
+const BUILD = "2026-11-23-0620";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
