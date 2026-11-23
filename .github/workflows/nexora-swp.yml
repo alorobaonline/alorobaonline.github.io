@@ -1,0 +1,33 @@
+name: nexora-swp
+# 23/11: فحص «سحب السيولة» على سنتين (بيانات بايننس العامة) — بيشتغل لما ملف الفحص يتغيّر. ما بيلمس ملفات المتجر.
+on:
+  push:
+    branches: [main]
+    paths: ["nexora-lab/swp_test.js", ".github/workflows/nexora-swp.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nexora-data
+          key: nexora-data-box-${{ github.run_id }}
+          restore-keys: |
+            nexora-data-box-
+            nexora-data-
+      - name: run box test
+        run: |
+          git config user.name "nexora-lab-bot"
+          git config user.email "nexora-lab-bot@users.noreply.github.com"
+          node --max-old-space-size=12000 nexora-lab/swp_test.js
+          git add nexora-lab/results/swp2y.txt
+          git commit -m "NEXORA lab: sweep 2y results" || exit 0
+          for i in 1 2 3 4 5; do git pull --rebase -q && git push && break; sleep $((i*7)); done
