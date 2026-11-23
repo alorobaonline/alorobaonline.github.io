@@ -1,4 +1,4 @@
-NEXORA LAB (GitHub) | top4 | 2026-11-22T12:13:25.772Z | hash=22e1f33be2 | engine=916c1f68 | coins 30 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
+NEXORA LAB (GitHub) | top4 | 2026-11-23T13:40:27.919Z | hash=cbb074cc76 | engine=14087c4a | coins 30 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
 ## COMBO V42 Short + Gann Long | ❌ (maker-entry ❌) | coins+all3 4/30
 تدريب: n=2121 -511.90$ PF0.95 win50% gross/t+0.00$ t-0.9 DD1388$ | اختبار: n=1208 -37.45$ PF0.99 win50% gross/t+0.21$ t-0.1 DD561$ | جديدة: n=525 +681.14$ PF1.32 win56% gross/t+1.56$ t2.2 DD175$
 maker-entry: تدريب: n=2121 -342.30$ PF0.97 win50% gross/t+0.00$ t-0.6 DD1290$ | اختبار: n=1208 +59.15$ PF1.01 win50% gross/t+0.21$ t0.2 DD532$ | جديدة: n=525 +723.13$ PF1.34 win56% gross/t+1.56$ t2.4 DD173$
