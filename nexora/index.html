@@ -923,6 +923,9 @@ const S15 = (() => {
       if (h.length && sp.hrs) { const hr = new Date(D.t0 + k*m*900000).getUTCHours(); if (!sp.hrs.includes(hr)) h = []; }   // جلسة: ساعة فتح شمعة الإشارة UTC لازم تكون بالقائمة (20/11)
       if (h.length && sp.sq) { const q = sp.sq; h = h.filter(x => { const dp = x.depth || 0, ms = k - x.sweepIndex;   // جودة الإشارة (21/11): عمق السحب بالـATR + كم شمعة لحد كسر الهيكل (1..5)
         return !(q.minDepth !== undefined && dp < q.minDepth) && !(q.maxDepth !== undefined && dp > q.maxDepth) && !(q.mssMax !== undefined && ms > q.mssMax) && !(q.mssMin !== undefined && ms < q.mssMin); }); }
+      if (h.length && sp.majN) h = h.filter(x => { const s = x.sweepIndex; if (s - sp.majN < 0) return false;   // 23/11 (مختبر): سيولة كبيرة — شمعة السحب كسرت أدنى قاع (لونج) / أعلى قمة (شورت) لآخر majN شمعة
+        for (let j = s - sp.majN; j < s; j++) if (x.side === 1 ? I.L[j] <= I.L[s] : I.H[j] >= I.H[s]) return false; return true; });
+      if (h.length && sp.disp) h = h.filter(x => P.atr[k] !== null && (I.C[k] - I.O[k])*x.side >= sp.disp*P.atr[k]);   // 23/11 (مختبر): اندفاع — جسم شمعة كسر الهيكل باتجاه الصفقة ≥ disp×ATR
       if (!h.length) continue;
       const blocked = pos !== null || closedHere || k <= busy || k === n - 1 || D.t0 + (k+1)*m*900000 <= startTs || (k+1)*m >= D.o.length;
       if (!blocked) pend = [h[0], k];

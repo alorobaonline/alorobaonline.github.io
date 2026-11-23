@@ -717,6 +717,9 @@ const S15 = (() => {
       if (h.length && sp.hrs) { const hr = new Date(D.t0 + k*m*900000).getUTCHours(); if (!sp.hrs.includes(hr)) h = []; }   // جلسة: ساعة فتح شمعة الإشارة UTC لازم تكون بالقائمة (20/11)
       if (h.length && sp.sq) { const q = sp.sq; h = h.filter(x => { const dp = x.depth || 0, ms = k - x.sweepIndex;   // جودة الإشارة (21/11): عمق السحب بالـATR + كم شمعة لحد كسر الهيكل (1..5)
         return !(q.minDepth !== undefined && dp < q.minDepth) && !(q.maxDepth !== undefined && dp > q.maxDepth) && !(q.mssMax !== undefined && ms > q.mssMax) && !(q.mssMin !== undefined && ms < q.mssMin); }); }
+      if (h.length && sp.majN) h = h.filter(x => { const s = x.sweepIndex; if (s - sp.majN < 0) return false;   // 23/11 (مختبر): سيولة كبيرة — شمعة السحب كسرت أدنى قاع (لونج) / أعلى قمة (شورت) لآخر majN شمعة
+        for (let j = s - sp.majN; j < s; j++) if (x.side === 1 ? I.L[j] <= I.L[s] : I.H[j] >= I.H[s]) return false; return true; });
+      if (h.length && sp.disp) h = h.filter(x => P.atr[k] !== null && (I.C[k] - I.O[k])*x.side >= sp.disp*P.atr[k]);   // 23/11 (مختبر): اندفاع — جسم شمعة كسر الهيكل باتجاه الصفقة ≥ disp×ATR
       if (!h.length) continue;
       const blocked = pos !== null || closedHere || k <= busy || k === n - 1 || D.t0 + (k+1)*m*900000 <= startTs || (k+1)*m >= D.o.length;
       if (!blocked) pend = [h[0], k];
@@ -4074,10 +4077,131 @@ STRATS_ALL.push({ name: DIV_NAME, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, 
   run: (D, inds, sp, startTs) => { if (!D.btc15) return []; return aaDivRun(D, aaDivSignals(D, startTs).filter(s => !(s.d === 1 && s.btcLow !== false)), startTs, DIV_NAME, true); } });
 STRATS_ALL.push({ name: DIV_RAW, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "دايفرجنس AlgoAlpha — كل الإشارات بدون تزاحم (للجماعي بالصفحة)",
   run: (D, inds, sp, startTs) => { if (!D.btc15) return []; return aaDivRun(D, aaDivSignals(D, startTs), startTs, DIV_RAW, false); } });
+// 22/11 15:10 (طلب المستخدم): سحب سيولة لونج 15د — شمعة بتنزل بذيلها تحت قاع واضح (5/5) من آخر 24س (لحد 1.5%) وبتسكّر فوقه
+//  الدخول: ليمت على مستوى القاع المسحوب (ريتست) خلال 8 شموع · إذا انكسر ذيل السحب قبل ← انلغت · وقف تحت الذيل (0.05%) · هدف 1%
+//  الجماعي بالصفحة: 10 عملات حقيقية أو أكثر سحبوا بنفس الشمعة + بلا لونج على قاع BTC (12س) — فحص التصفير: 178 صفقة 60% +35.48$ PF 4.06
+const SWP_RAW = "سحب سيولة 15د (كل الإشارات — مخفي)", SWP_NAME = "سحب سيولة لونج 15د · جماعي 10+ (الحقيقية) · ريتست ليمت · هدف 1% + بلا لونج على قاع BTC";
+// 23/11 (طلب المستخدم): نفسها بس الوقف = حد «المربع» السفلي لشمعة السحب: L − √((H−O)² + (C−L)²) — فحص التصفير: 281 صفقة 199/82 +128.43$ PF 3.19 (الأصلية 192 +88.93$ PF 4.88)
+// 23/11 04:45 (طلب المستخدم): + فلتر «BTC مش طالع آخر 4 ساعات» (تغيّر BTC من إغلاق شمعة السحب لـ 16 شمعة قبلها < +0.1%) — فحص التصفير: 160 صفقة 112/48 +87.7% PF 6.32 (الأصلية 219 119/100 +77.8% PF 3.36) · كل الدفعات الكبيرة الخاسرة كانت وBTC طالع
+const SWPF_NAME = "سحب سيولة لونج 15د · جماعي 10+ (الحقيقية) · ريتست ليمت · هدف 1% + بلا لونج على قاع BTC + BTC مش طالع 4س";
+const SWPB_RAW = "سحب سيولة 15د · وقف المربع (كل الإشارات — مخفي)", SWPB_NAME = "سحب سيولة لونج 15د · جماعي 10+ (الحقيقية) · ريتست ليمت · هدف 1% · وقف حد المربع + بلا لونج على قاع BTC";
+function swpRun(D, startTs, box = false) {
+  const N = D.o.length, n0 = D.prov ? N - 1 : N, P = 5, LOOK = 96, out = [], B = D.btc15;
+  let lows = [];
+  for (let i = 0; i < n0; i++) {
+    const j = i - P;
+    if (j >= P) { let lo = true; for (let q = j - P; q <= j + P; q++) if (D.l[q] < D.l[j]) { lo = false; break; } if (lo) lows.push({ i: j, p: D.l[j] }); }
+    lows = lows.filter(x => i - x.i <= LOOK);
+    const sw = lows.filter(x => x.i < i - P && D.l[i] < x.p); if (!sw.length) continue;
+    lows = lows.filter(x => !(x.i < i - P && D.l[i] < x.p));   // السيولة انسحبت — ما بتنحسب مرة تانية
+    const lvl = sw.reduce((a, b) => b.p < a.p ? b : a).p, depth = (lvl - D.l[i])/lvl, sig = D.t0 + i*M15;
+    if (!(D.c[i] > lvl) || depth > 0.015 || sig + M15 < startTs || i + 1 >= N) continue;
+    let btcLow = null, b4 = null; if (B) { const bi = Math.floor((D.t0 + (i + 1)*M15 - B.t0)/M15) - 1; if (bi >= 48 && bi < B.c.length) { let m = Infinity; for (let k = bi - 48; k < bi; k++) m = Math.min(m, B.l[k]); btcLow = B.c[bi] <= m*1.003; b4 = B.c[bi]/B.c[bi - 16] - 1; } }   // قاع الـ12س قبل شمعة السحب (زي الفحص)
+    const stop = box ? D.l[i] - Math.sqrt((D.h[i] - D.o[i])**2 + (D.c[i] - D.l[i])**2) : D.l[i]*(1 - 0.0005), zone = lvl*1.0001; let e = -1, E = 0, cancel = false;
+    for (let k = i + 1; k <= Math.min(N - 1, i + 8); k++) { if (D.l[k] <= stop) { cancel = true; break; } if (D.l[k] <= zone) { e = k; E = Math.min(D.o[k], zone); break; } }
+    const base = { name: box ? SWPB_RAW : SWP_RAW, d: 1, sig, lvl, btcLow, b4, stop, lim: zone };
+    if (e < 0) { const pend = !cancel && i + 8 > N - 1; out.push({ ...base, e: i + 1, x: i + 1, rawIn: lvl, rawOut: lvl, why: pend ? "PEND" : "NOFILL", open: false, nofill: true, pend, target: zone*1.01 }); continue; }
+    if (!(stop < E)) continue;
+    const T = E*1.01; let ox = null, xi = null, why = null;
+    for (let k = e; k < N; k++) { if (D.l[k] <= stop) { ox = stop; xi = k; why = "INIT_STOP"; break; } if (D.h[k] >= T) { ox = T; xi = k; why = "TARGET"; break; } }
+    out.push(ox === null ? { ...base, e, x: N - 1, rawIn: E, rawOut: D.c[N-1], why: "TIME", open: true, target: T, lim: E } : { ...base, e, x: xi, rawIn: E, rawOut: ox, why, open: false, target: T, lim: E });
+  }
+  return out;
+}
+STRATS_ALL.push({ name: SWP_RAW, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة 15د — كل الإشارات (للجماعي بالصفحة)",
+  run: (D, inds, sp, startTs) => { if (!D.btc15) return []; return swpRun(D, startTs); } });
+STRATS_ALL.push({ name: SWPB_RAW, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة 15د · وقف المربع — كل الإشارات (للجماعي بالصفحة)",
+  run: (D, inds, sp, startTs) => { if (!D.btc15) return []; return swpRun(D, startTs, true); } });
+// 23/11 05:55 (طلب المستخدم): سحب سيولة شورت 15د — سحب قمة (ذيل فوق قمة 24س وإغلاق تحتها) ← CISD هابط (إغلاق تحت افتتاح أول شمعة خضرا بسلسلة الطلعة، خلال 8 شموع) ← ليمت بيع على خط الـCISD (ريتست، خلال 12 شمعة) · وقف فوق ذيل السحب (0.05%) · هدف 1%
+//  الجماعي: 5 عملات حقيقية أو أكثر سحبوا قمة بنفس الشمعة · بلا شورت على قمة BTC (12س) — فحص التصفير: 150 صفقة 111/39 +58.8% PF 2.33 (2.31 / 2.34)
+const SWPS_RAW = "سحب سيولة شورت 15د + CISD (كل الإشارات — مخفي)", SWPS_NAME = "سحب سيولة شورت 15د · CISD ريتست · جماعي 5+ (الحقيقية) · هدف 1% + بلا شورت على قمة BTC";
+function swpsRun(D, startTs) {
+  const N = D.o.length, n0 = D.prov ? N - 1 : N, P = 5, LOOK = 96, out = [], B = D.btc15;
+  let highs = [];
+  for (let i = 0; i < n0; i++) {
+    const j = i - P;
+    if (j >= P) { let hi = true; for (let q = j - P; q <= j + P; q++) if (D.h[q] > D.h[j]) { hi = false; break; } if (hi) highs.push({ i: j, p: D.h[j] }); }
+    highs = highs.filter(x => i - x.i <= LOOK);
+    const sw = highs.filter(x => x.i < i - P && D.h[i] > x.p); if (!sw.length) continue;
+    highs = highs.filter(x => !(x.i < i - P && D.h[i] > x.p));
+    const lvl = sw.reduce((a, b) => b.p > a.p ? b : a).p, depth = (D.h[i] - lvl)/lvl, sig = D.t0 + i*M15;
+    if (!(D.c[i] < lvl) || depth > 0.015 || sig + M15 < startTs || i + 1 >= N) continue;
+    let btcLow = null; if (B && B.h) { const bi = Math.floor((D.t0 + (i + 1)*M15 - B.t0)/M15) - 1; if (bi >= 48 && bi < B.c.length) { let m = -Infinity; for (let k = bi - 48; k < bi; k++) m = Math.max(m, B.h[k]); btcLow = B.c[bi] >= m*0.997; } }   // btcLow هون = BTC على قمة 12س (نفس اسم الحقل للجماعي)
+    const stop = D.h[i]*(1 + 0.0005), base = { name: SWPS_RAW, d: -1, sig, lvl, btcLow, stop };
+    const grn = k => D.c[k] > D.o[k]; let s = i; if (!grn(s)) s = i - 1;
+    if (s < 0 || !grn(s)) { out.push({ ...base, e: i + 1, x: i + 1, rawIn: lvl, rawOut: lvl, why: "NOFILL", open: false, nofill: true, pend: false, lim: lvl, target: lvl*0.99 }); continue; }
+    let s0 = s; while (s0 - 1 >= 0 && grn(s0 - 1)) s0--; const cl = D.o[s0];
+    let ck = -1, dead = false;
+    for (let k = i; k <= Math.min(N - 1, i + 8); k++) { if (k > i && D.h[k] >= stop) { dead = true; break; } if (D.c[k] < cl) { ck = k; break; } }
+    if (ck < 0) { const pend = false; out.push({ ...base, e: i + 1, x: i + 1, rawIn: cl, rawOut: cl, why: "NOFILL", open: false, nofill: true, pend, lim: cl, target: cl*0.99 }); continue; }
+    let e = -1, E = 0, cancel = false;
+    for (let k = ck + 1; k <= Math.min(N - 1, ck + 12); k++) { if (D.h[k] >= stop) { cancel = true; break; } if (D.h[k] >= cl) { e = k; E = Math.max(D.o[k], cl); break; } }
+    if (e < 0) { const pend = !cancel && ck + 12 > N - 1; out.push({ ...base, e: ck + 1, x: ck + 1, rawIn: cl, rawOut: cl, why: pend ? "PEND" : "NOFILL", open: false, nofill: true, pend, lim: cl, target: cl*0.99 }); continue; }
+    if (!(stop > E)) continue;
+    const T = E*0.99; let ox = null, xi = null, why = null;
+    for (let k = e; k < N && k <= e + 192; k++) { if (D.h[k] >= stop) { ox = stop; xi = k; why = "INIT_STOP"; break; } if (k > e && D.l[k] <= T) { ox = T; xi = k; why = "TARGET"; break; } }
+    if (ox === null && e + 192 < N) { xi = e + 192; ox = D.c[xi]; why = "TIME"; }
+    out.push(ox === null ? { ...base, e, x: N - 1, rawIn: E, rawOut: D.c[N-1], why: "TIME", open: true, target: T, lim: E } : { ...base, e, x: xi, rawIn: E, rawOut: ox, why, open: false, target: T, lim: E });
+  }
+  return out;
+}
+STRATS_ALL.push({ name: SWPS_RAW, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة شورت + CISD — كل الإشارات (للجماعي بالصفحة)",
+  run: (D, inds, sp, startTs) => { if (!D.btc15) return []; return swpsRun(D, startTs); } });
+// 23/11 06:15 (طلب المستخدم): نفسها على فريم 30د — 10 عملات أو أكثر · فحص التصفير: 35 صفقة 32/3 +24.5% PF 5.69 (5+: 45 صفقة 40/5 PF 4.31)
+const SWPS30_RAW = "سحب سيولة شورت 30د + CISD (كل الإشارات — مخفي)", SWPS30_NAME = "سحب سيولة شورت 30د · CISD ريتست · جماعي 10+ (الحقيقية) · هدف 1% + بلا شورت على قمة BTC";
+function swps30Run(D, startTs) {
+  const M30 = 2*M15, n15 = D.prov ? D.o.length - 1 : D.o.length, N = Math.floor(n15/2), out = [], P = 5, LOOK = 48, Bq = D.btc15;
+  const o = [], h = [], l = [], c = []; for (let k = 0; k < N; k++) { o.push(D.o[2*k]); h.push(Math.max(D.h[2*k], D.h[2*k+1])); l.push(Math.min(D.l[2*k], D.l[2*k+1])); c.push(D.c[2*k+1]); }
+  let BH = null, BC = null, Bt0 = 0; if (Bq && Bq.h) { let a = 0; while (a < Bq.c.length && (Bq.t0 + a*M15) % M30 !== 0) a++; Bt0 = Bq.t0 + a*M15; BH = []; BC = []; for (let k = a; k + 1 < Bq.c.length; k += 2) { BH.push(Math.max(Bq.h[k], Bq.h[k+1])); BC.push(Bq.c[k+1]); } }
+  let highs = [];
+  for (let i = 0; i < N; i++) {
+    const j = i - P;
+    if (j >= P) { let hi = true; for (let q = j - P; q <= j + P; q++) if (h[q] > h[j]) { hi = false; break; } if (hi) highs.push({ i: j, p: h[j] }); }
+    highs = highs.filter(x => i - x.i <= LOOK);
+    const sw = highs.filter(x => x.i < i - P && h[i] > x.p); if (!sw.length) continue;
+    highs = highs.filter(x => !(x.i < i - P && h[i] > x.p));
+    const lvl = sw.reduce((a, b) => b.p > a.p ? b : a).p, depth = (h[i] - lvl)/lvl, sig = D.t0 + i*M30;
+    if (!(c[i] < lvl) || depth > 0.015 || sig + M30 < startTs || i + 1 >= N) continue;
+    let btcLow = null; if (BH) { const bi = Math.floor((D.t0 + (i + 1)*M30 - Bt0)/M30) - 1; if (bi >= 24 && bi < BC.length) { let m = -Infinity; for (let k = bi - 24; k < bi; k++) m = Math.max(m, BH[k]); btcLow = BC[bi] >= m*0.997; } }
+    const stop = h[i]*(1 + 0.0005), base = { name: SWPS30_RAW, d: -1, sig, lvl, btcLow, stop };
+    const grn = k => c[k] > o[k]; let s = i; if (!grn(s)) s = i - 1;
+    if (s < 0 || !grn(s)) { out.push({ ...base, e: 2*(i + 1), x: 2*(i + 1), rawIn: lvl, rawOut: lvl, why: "NOFILL", open: false, nofill: true, pend: false, lim: lvl, target: lvl*0.99 }); continue; }
+    let s0 = s; while (s0 - 1 >= 0 && grn(s0 - 1)) s0--; const cl = o[s0];
+    let ck = -1; for (let k = i; k <= Math.min(N - 1, i + 8); k++) { if (k > i && h[k] >= stop) break; if (c[k] < cl) { ck = k; break; } }
+    if (ck < 0) { out.push({ ...base, e: 2*(i + 1), x: 2*(i + 1), rawIn: cl, rawOut: cl, why: "NOFILL", open: false, nofill: true, pend: false, lim: cl, target: cl*0.99 }); continue; }
+    let e = -1, E = 0, cancel = false;
+    for (let k = ck + 1; k <= Math.min(N - 1, ck + 12); k++) { if (h[k] >= stop) { cancel = true; break; } if (h[k] >= cl) { e = k; E = Math.max(o[k], cl); break; } }
+    if (e < 0) { const pend = !cancel && ck + 12 > N - 1; out.push({ ...base, e: 2*(ck + 1), x: 2*(ck + 1), rawIn: cl, rawOut: cl, why: pend ? "PEND" : "NOFILL", open: false, nofill: true, pend, lim: cl, target: cl*0.99 }); continue; }
+    if (!(stop > E)) continue;
+    const T = E*0.99; let ox = null, xi = null, why = null;
+    for (let k = e; k < N && k <= e + 96; k++) { if (h[k] >= stop) { ox = stop; xi = k; why = "INIT_STOP"; break; } if (k > e && l[k] <= T) { ox = T; xi = k; why = "TARGET"; break; } }
+    if (ox === null && e + 96 < N) { xi = e + 96; ox = c[xi]; why = "TIME"; }
+    out.push(ox === null ? { ...base, e: 2*e, x: D.o.length - 1, rawIn: E, rawOut: D.c[D.c.length-1], why: "TIME", open: true, target: T, lim: E } : { ...base, e: 2*e, x: 2*xi + 1, rawIn: E, rawOut: ox, why, open: false, target: T, lim: E });
+  }
+  return out;
+}
+STRATS_ALL.push({ name: SWPS30_RAW, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة شورت 30د + CISD — كل الإشارات (للجماعي بالصفحة)",
+  run: (D, inds, sp, startTs) => { if (!D.btc15) return []; return swps30Run(D, startTs); } });
+function swpDerive(arr) {   // 22/11: 10 عملات حقيقية أو أكثر سحبوا قاع بنفس الشمعة · بلا لونج على قاع BTC · صفقة وحدة بالمرة لكل عملة
+  if (typeof SWP_RAW === "undefined") return [];
+  const out = [];
+  for (const [RAWN, NM, FL, MIN] of [[SWP_RAW, SWP_NAME, null, 10], [SWPB_RAW, SWPB_NAME, null, 10], [SWP_RAW, SWPF_NAME, t => t.b4 !== null && t.b4 !== undefined && t.b4 < 0.001, 10], [SWPS_RAW, SWPS_NAME, null, 5], [SWPS30_RAW, SWPS30_NAME, null, 10]]) {
+  const raw = arr.filter(t => t.name === RAWN && !EXTRA_COINS.has(t.sym)); if (!raw.length) continue;
+  const cnt = new Map(); for (const t of raw) cnt.set(t.sig, (cnt.get(t.sig) || 0) + 1);
+  const by = new Map(); for (const t of raw) { if (t.nofill || (cnt.get(t.sig) || 0) < MIN || t.btcLow !== false || (FL && !FL(t))) continue; if (!by.has(t.sym)) by.set(t.sym, []); by.get(t.sym).push(t); }
+  for (const a of by.values()) { let busy = -Infinity; for (const t of a.sort((x, y) => x.sig - y.sig)) { if (t.sig < busy) continue; out.push({ ...t, name: NM }); busy = t.open ? Infinity : t.xTs - M15; } }
+  }
+  return out;
+}
 // 20/11 07:35: نفس الجماعي بس العدّ على العملات الحقيقية (99) والصفقات عليها — 10 عملات أو أكثر بنفس الإشارة على نفس الشمعة (هاي اللي بالحساب الحقيقي)
 //  فحص التصفير: 110 صفقة 95% (6 خسارة) +48.33$ على 48$ · ولا يوم خسران (18/11 و20/11 ما فاتت)
 const DIVR_NAME = "دايفرجنس AlgoAlpha 15د · جماعي 10+ (الحقيقية) · وقف 2% + بلا لونج على قاع BTC";
 STRATS_ALL.push({ name: DIVR_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "دايفرجنس جماعي 10+ عملات حقيقية (بتنحسب بالصفحة والعقل)" });
+STRATS_ALL.push({ name: SWPS30_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة شورت 30د + CISD ريتست جماعي 10+ (بتنحسب بالصفحة والعقل)" });
+STRATS_ALL.push({ name: SWPS_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة شورت + CISD ريتست جماعي 5+ (بتنحسب بالصفحة والعقل)" });
+STRATS_ALL.push({ name: SWPF_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة جماعي 10+ · BTC مش طالع 4س (بتنحسب بالصفحة والعقل)" });
+STRATS_ALL.push({ name: SWPB_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة جماعي 10+ · وقف المربع (بتنحسب بالصفحة)" });
+STRATS_ALL.push({ name: SWP_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة جماعي 10+ عملات حقيقية (بتنحسب بالصفحة والعقل)" });   // 22/11: عشان العقل يلاقي الاسم
 STRATS_ALL.push({ name: DIV15_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "دايفرجنس جماعي 15+ (بتنحسب بالصفحة)" });
 // 18/11: نسخ أسرع للعائلات النادرة (نفس المنطق، فريم أصغر = إشارات أكتر للتجميع)
 for (const b of ["S16 SMC A 1h", "S16 SMC B 1h (CHoCH)", "IT1226 ساعة لونج+شورت", "IT1226 4h لونج+شورت"]) STRATS_ALL.push(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"));
@@ -4089,6 +4213,22 @@ const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جا�
   "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)", "London Breakout", "12/26-IT (AbdulRahimShama)", "Wave Rider v1"]);
 // المنصة (المتصفح): بس الـ8 اللي إلهم فرصة حسب المختبر (⭐ + 🧪) — الباقي انشال من المنصة (طلب المستخدم 16/11)
 // 16/11 16:40: المنصة بتشغّل بس نسخ "هدف 1.2% / وقف 1.2%" من كل الاستراتيجيات (طلب المستخدم) — الأصلية بالمختبر بس
+// 23/11 (طلب المستخدم): MACD v1.1 لونج — نسخ «لحالها (≤2 عملات بنفس الشمعة) + العملة فوق EMA50 على 4 ساعات» — فحص التصفير: 5m +203.9$ PF 1.34 (الأصلية −512$) · 15m +116.8$ PF 1.28 (الأصلية −211$)
+const MACDF_BASES = ["MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + خروج ATR", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + خروج ATR"];
+const MACDF_NAME = n => n + " · لحالها (≤2 عملات) + العملة فوق EMA50 4h";
+const C4_MEMO = new WeakMap();
+function c4Of(D, e) {   // ترند العملة على 4 ساعات (EMA50) — آخر شمعة 4س مسكّرة قبل شمعة الدخول
+  let a = C4_MEMO.get(D);
+  if (!a) { const n4 = Math.floor(D.c.length/16), k = 2/51; a = new Int8Array(n4); let x = null; for (let j = 0; j < n4; j++) { const c = D.c[j*16 + 15]; x = x === null ? c : x + k*(c - x); a[j] = j >= 50 ? (c > x ? 1 : -1) : 0; } C4_MEMO.set(D, a); }
+  const j = Math.floor(e/16) - 1; return j >= 0 && j < a.length ? a[j] : 0;
+}
+function macdfDerive(arr) {
+  const out = [];
+  for (const B of MACDF_BASES) { const raw = arr.filter(t => t.name === B); if (!raw.length) continue;
+    const cnt = new Map(); for (const t of raw) cnt.set(t.eTs, (cnt.get(t.eTs) || 0) + 1);
+    for (const t of raw) if ((cnt.get(t.eTs) || 0) <= 2 && t.c4 === 1) out.push({ ...t, name: MACDF_NAME(B) }); }
+  return out;
+}
 const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% ليمت 0.6%", b + " | 1.2% ليمت 0.8%"]),   // 17/11 03:55: «تأكيد 15m» انلغت من المنصة (طلب المستخدم — دخول متأخر على أسوأ سعر)
   ...["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"].map(b => b + " | هدف 1.2% وقف 1.2%"),
   ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"]), "Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", "Range Sniper 15m (كما هي) + فلتر BTC", "Range Sniper 15m + ترند 4h + فلتر BTC", "🎯 كسر أرضية/سقف مكررة + ريتست 15m (BTC)", "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + خروج ATR", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + خروج ATR", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8% + لا تلحق", "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", ...MACDP.strats.slice(0, 3).map(s => s.name), LUX_L10, ...OLD_KEEP,   // MACD v1.1 (17/11 12:19) · 17/11: كسر+فوليوم+ريتست انشالت من المنصة (خسرت من التصفير وعلى السنتين) — بالمختبر بس
@@ -4096,7 +4236,8 @@ const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% �
 // 17/11 18:16 (طلب المستخدم): المنصة كلها على هدف 1.5% ووقف 1.2% — بنبدّل اسم كل نسخة 1.2% بنسختها 1.5% (Range Sniper وLux ليمت 1% بأهدافهم الأصلية)
 const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
 const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المستخدم — 1.5% طلع أسوأ من التصفير). نسخ 1.5% بالمختبر
-PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); SR_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); LS_NAMES.forEach(x => PLATFORM_KEEP12.add(x[0])); PLATFORM_KEEP12.add(RANGE_24_NAME); PLATFORM_KEEP12.add(DIV_NAME); PLATFORM_KEEP12.add(DIV_RAW); PLATFORM_KEEP12.add(DIV15_NAME); PLATFORM_KEEP12.add(DIVR_NAME); PLATFORM_KEEP12.add(INV2_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة
+PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); SR_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); LS_NAMES.forEach(x => PLATFORM_KEEP12.add(x[0])); PLATFORM_KEEP12.add(RANGE_24_NAME); PLATFORM_KEEP12.add(DIV_NAME); PLATFORM_KEEP12.add(DIV_RAW); PLATFORM_KEEP12.add(DIV15_NAME); PLATFORM_KEEP12.add(DIVR_NAME); PLATFORM_KEEP12.add(INV2_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME); MACDF_BASES.forEach(b => { PLATFORM_KEEP12.add(MACDF_NAME(b)); STRATS_ALL.push({ name: MACDF_NAME(b), mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD v1.1 لونج — لحالها + فوق EMA50 4h (بتنحسب بالصفحة)" }); });
+PLATFORM_KEEP12.add(SWP_RAW); PLATFORM_KEEP12.add(SWPB_RAW); PLATFORM_KEEP12.add(SWPB_NAME); PLATFORM_KEEP12.add(SWPF_NAME); PLATFORM_KEEP12.add(SWPS_RAW); PLATFORM_KEEP12.add(SWPS_NAME); PLATFORM_KEEP12.add(SWPS30_RAW); PLATFORM_KEEP12.add(SWPS30_NAME); PLATFORM_KEEP12.add(SWP_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة · 22/11: سحب السيولة (قاعدة مخفية — الجماعي بالصفحة)
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 // 17/11 19:53 (طلب المستخدم): الخسرانين من التصفير انشالوا من المنصة — بالمختبر بس
@@ -4167,6 +4308,11 @@ function evaluate(D, inds, sp, startTs) {
   return evaluate0(D, inds, sp, startTs);
 }
 function evaluate0(D, inds, sp, startTs) {
+  const r = evaluate00(D, inds, sp, startTs);
+  if (MACDF_BASES.includes(sp.name)) for (const t of r) if (t.c4 === undefined) t.c4 = c4Of(D, t.e);
+  return r;
+}
+function evaluate00(D, inds, sp, startTs) {
   if (sp.run) return sp.run(D, inds, sp, startTs);
   const m = sp.mult, I = inds[m], I16 = inds[16];
   let lo = 0; while (lo < I.n && D.t0 + (lo+1)*m*M15 <= startTs) lo++;
