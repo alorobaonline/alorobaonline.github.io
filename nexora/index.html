@@ -4341,6 +4341,22 @@ const LAB_ONLY_SRC = new Set(["ICT Turtle Soup (Flux Charts)", "مروحة جا�
   "فواصل جان الزمنية (طريقة المستخدم)", "خطوط جان البطيئة بعد حركة قوية", "خطوط جان كمناطق قرار (طريقة المستخدم)", "سحب سيولة عند خطوط جان البطيئة + كسر هيكل", "ترند دونشيان (مستقلة عن S15)", "EMA Pullback (Zeal Terminal)", "London Breakout", "12/26-IT (AbdulRahimShama)", "Wave Rider v1"]);
 // المنصة (المتصفح): بس الـ8 اللي إلهم فرصة حسب المختبر (⭐ + 🧪) — الباقي انشال من المنصة (طلب المستخدم 16/11)
 // 16/11 16:40: المنصة بتشغّل بس نسخ "هدف 1.2% / وقف 1.2%" من كل الاستراتيجيات (طلب المستخدم) — الأصلية بالمختبر بس
+// 23/11 (طلب المستخدم): MACD v1.1 لونج — نسخ «لحالها (≤2 عملات بنفس الشمعة) + العملة فوق EMA50 على 4 ساعات» — فحص التصفير: 5m +203.9$ PF 1.34 (الأصلية −512$) · 15m +116.8$ PF 1.28 (الأصلية −211$)
+const MACDF_BASES = ["MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + خروج ATR", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + خروج ATR"];
+const MACDF_NAME = n => n + " · لحالها (≤2 عملات) + العملة فوق EMA50 4h";
+const C4_MEMO = new WeakMap();
+function c4Of(D, e) {   // ترند العملة على 4 ساعات (EMA50) — آخر شمعة 4س مسكّرة قبل شمعة الدخول
+  let a = C4_MEMO.get(D);
+  if (!a) { const n4 = Math.floor(D.c.length/16), k = 2/51; a = new Int8Array(n4); let x = null; for (let j = 0; j < n4; j++) { const c = D.c[j*16 + 15]; x = x === null ? c : x + k*(c - x); a[j] = j >= 50 ? (c > x ? 1 : -1) : 0; } C4_MEMO.set(D, a); }
+  const j = Math.floor(e/16) - 1; return j >= 0 && j < a.length ? a[j] : 0;
+}
+function macdfDerive(arr) {
+  const out = [];
+  for (const B of MACDF_BASES) { const raw = arr.filter(t => t.name === B); if (!raw.length) continue;
+    const cnt = new Map(); for (const t of raw) cnt.set(t.eTs, (cnt.get(t.eTs) || 0) + 1);
+    for (const t of raw) if ((cnt.get(t.eTs) || 0) <= 2 && t.c4 === 1) out.push({ ...t, name: MACDF_NAME(B) }); }
+  return out;
+}
 const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2%", b + " | 1.2% هادئة", b + " | 1.2% ليمت 0.4%", b + " | 1.2% ليمت 0.6%", b + " | 1.2% ليمت 0.8%"]),   // 17/11 03:55: «تأكيد 15m» انلغت من المنصة (طلب المستخدم — دخول متأخر على أسوأ سعر)
   ...["⭐ S15 دخول 15m + شمعتين", "⭐ S15 دخول 15m + فوليوم", "⭐ S15 دخول 15m + بُعد ATR"].map(b => b + " | هدف 1.2% وقف 1.2%"),
   ...TP_BASES.flatMap(b => [b + " | هدف 1.2% وقف 1.2% + فلتر ترند ساعة", b + " | 1.2% ليمت 0.4% + فلتر ترند ساعة"]), "Range Sniper 15m (كما هي)", "Range Sniper 15m + ترند 4h", "Range Sniper 15m (كما هي) + فلتر BTC", "Range Sniper 15m + ترند 4h + فلتر BTC", "🎯 كسر أرضية/سقف مكررة + ريتست 15m (BTC)", "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + خروج ATR", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + خروج ATR", "#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8% + لا تلحق", "MACD v1.1 5m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", "MACD v1.1 15m · ليمت 0.8% · لونج · هدف 1.2% وقف 1.2% + لا تلحق", ...MACDP.strats.slice(0, 3).map(s => s.name), LUX_L10, ...OLD_KEEP,   // MACD v1.1 (17/11 12:19) · 17/11: كسر+فوليوم+ريتست انشالت من المنصة (خسرت من التصفير وعلى السنتين) — بالمختبر بس
@@ -4348,7 +4364,8 @@ const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% �
 // 17/11 18:16 (طلب المستخدم): المنصة كلها على هدف 1.5% ووقف 1.2% — بنبدّل اسم كل نسخة 1.2% بنسختها 1.5% (Range Sniper وLux ليمت 1% بأهدافهم الأصلية)
 const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
 const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المستخدم — 1.5% طلع أسوأ من التصفير). نسخ 1.5% بالمختبر
-PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); SR_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); LS_NAMES.forEach(x => PLATFORM_KEEP12.add(x[0])); PLATFORM_KEEP12.add(RANGE_24_NAME); PLATFORM_KEEP12.add(DIV_NAME); PLATFORM_KEEP12.add(DIV_RAW); PLATFORM_KEEP12.add(DIV15_NAME); PLATFORM_KEEP12.add(DIVR_NAME); PLATFORM_KEEP12.add(INV2_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME); PLATFORM_KEEP12.add(SWP_RAW); PLATFORM_KEEP12.add(SWPB_RAW); PLATFORM_KEEP12.add(SWPB_NAME); PLATFORM_KEEP12.add(SWP_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة · 22/11: سحب السيولة (قاعدة مخفية — الجماعي بالصفحة)
+PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); SR_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); LS_NAMES.forEach(x => PLATFORM_KEEP12.add(x[0])); PLATFORM_KEEP12.add(RANGE_24_NAME); PLATFORM_KEEP12.add(DIV_NAME); PLATFORM_KEEP12.add(DIV_RAW); PLATFORM_KEEP12.add(DIV15_NAME); PLATFORM_KEEP12.add(DIVR_NAME); PLATFORM_KEEP12.add(INV2_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME); MACDF_BASES.forEach(b => { PLATFORM_KEEP12.add(MACDF_NAME(b)); STRATS_ALL.push({ name: MACDF_NAME(b), mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD v1.1 لونج — لحالها + فوق EMA50 4h (بتنحسب بالصفحة)" }); });
+PLATFORM_KEEP12.add(SWP_RAW); PLATFORM_KEEP12.add(SWPB_RAW); PLATFORM_KEEP12.add(SWPB_NAME); PLATFORM_KEEP12.add(SWP_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة · 22/11: سحب السيولة (قاعدة مخفية — الجماعي بالصفحة)
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 // 17/11 19:53 (طلب المستخدم): الخسرانين من التصفير انشالوا من المنصة — بالمختبر بس
@@ -4419,6 +4436,11 @@ function evaluate(D, inds, sp, startTs) {
   return evaluate0(D, inds, sp, startTs);
 }
 function evaluate0(D, inds, sp, startTs) {
+  const r = evaluate00(D, inds, sp, startTs);
+  if (MACDF_BASES.includes(sp.name)) for (const t of r) if (t.c4 === undefined) t.c4 = c4Of(D, t.e);
+  return r;
+}
+function evaluate00(D, inds, sp, startTs) {
   if (sp.run) return sp.run(D, inds, sp, startTs);
   const m = sp.mult, I = inds[m], I16 = inds[16];
   let lo = 0; while (lo < I.n && D.t0 + (lo+1)*m*M15 <= startTs) lo++;
@@ -4786,7 +4808,7 @@ function divDerive(arr) {   // 20/11: دايفرجنس جماعي — 15+ = 16 �
 }
 function groupDerive(arr, Q) {
   if (typeof GROUP_BASE === "undefined") return arr;
-  arr = arr.concat(invDerive(arr, Q), divDerive(arr), typeof swpDerive === "function" ? swpDerive(arr) : []).filter(t => !UI_HIDE.has(t.name));
+  arr = arr.concat(invDerive(arr, Q), divDerive(arr), typeof swpDerive === "function" ? swpDerive(arr) : [], typeof macdfDerive === "function" ? macdfDerive(arr) : []).filter(t => !UI_HIDE.has(t.name));
   const base = arr.filter(t => t.name === GROUP_BASE && !EXTRA_COINS.has(t.sym)); if (!base.length) return arr.filter(t => !PLATFORM_DROP.has(t.name) && !UI_HIDE_LATE.has(t.name));
   const cnt = new Map(); for (const t of base) cnt.set(t.eTs, (cnt.get(t.eTs) || 0) + 1);
   const bySym = new Map(); for (const t of base) { if (!bySym.has(t.sym)) bySym.set(t.sym, []); bySym.get(t.sym).push(t.eTs); }
@@ -5398,7 +5420,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-23-0320";
+const BUILD = "2026-11-23-0340";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
