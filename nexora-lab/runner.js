@@ -92,7 +92,7 @@ async function universe(coins, strats, withM5) {
   const per = {};
   { const q = [...coins]; await Promise.all(Array.from({ length: 8 }, async () => { while (q.length) { const sym = q.shift();   // تنزيل مسبق 8 عملات مع بعض (الكاش على القرص)
       try { await klines(sym, "15m"); if (withM5) await klines(sym, "5m"); await funding(sym); } catch (e) { console.log("prefetch fail", sym, e.message); } } })); }
-  if (strats.some(s => s.btcF)) { E.setBtcRef(buildD(await klines("BTCUSDT", "15m"))); console.log("BTC filter ref loaded"); }
+  if (strats.some(s => s.btcF || s.rsF)) { E.setBtcRef(buildD(await klines("BTCUSDT", "15m"))); console.log("BTC filter ref loaded"); }
   for (const sym of coins) {
     const rows = await klines(sym, "15m"), D = buildD(rows); if (!D) { console.log("skip", sym); continue; }
     if (withM5) D.m5 = buildM5(await klines(sym, "5m"), D);

@@ -547,6 +547,13 @@ function btcTrend(ts, p) {   // ts = وقت إغلاق شمعة الإشارة
   if (j < 0 || B.ema[p][j] === null) return 0;
   return B.C[j] > B.ema[p][j] ? 1 : -1;
 }
+// 24/11 (مختبر): عائد BTC على آخر n شمعة 4 ساعات لحد وقت ts (إغلاق شمعة الإشارة) — لفلتر القوة النسبية rsF على S15
+function btcRet(ts, n) {
+  const B = BTC_REF; if (!B) return null;
+  let lo = 0, hi = B.T.length - 1, j = -1; while (lo <= hi) { const md = (lo + hi) >> 1; if (B.T[md] <= ts) { j = md; lo = md + 1; } else hi = md - 1; }
+  if (j < n || j < 0) return null;
+  return B.C[j]/B.C[j - n] - 1;
+}
 // نوافذ فيبو الزمنية (4 ساعات): من آخر قمتين وآخر قاعين ورا بعض (Pivots 10/10 مؤكدة لحد k)،
 // النافذة = آخر نقطة + round(r × المسافة بينهم) ± 2 شمعة. set "A" = 0.618/1/1.618/2.618، "B" = 1/2/3/5/8
 const FIBT_MEMO = new WeakMap();
@@ -703,6 +710,8 @@ const S15 = (() => {
       if (pos && sp.oppExit) { const ev = sp.oppExit === "v2" ? hitsAt(P, I, k, true, sp.emaF) : (P.events.get(k) || []); if (ev.some(x => x.side === -pos.d)) pos.oppNext = true; }   // 22/11 (مختبر): إشارة سحب+كسر هيكل بالعكس وهي مفتوحة → خروج على افتتاح الشمعة الجاية
       let h = hitsAt(P, I, k, sp.v2, sp.emaF);
       if (h.length && sp.btcF) h = h.filter(x => btcTrend(D.t0 + (k+1)*m*900000, sp.btcF) === x.side);
+      if (h.length && sp.rsF && m === 16) { const n = sp.rsF.n, b = btcRet(D.t0 + (k+1)*m*900000, n);   // 24/11 (مختبر): قوة نسبية مقابل BTC على آخر n شمعة 4س — "with": لونج بس إذا العملة أقوى من BTC، شورت بس إذا أضعف · "against" = العكس (مقارنة)
+        if (b === null || k < n) h = []; else { const rs = I.C[k]/I.C[k - n] - 1 - b; h = h.filter(x => sp.rsF.mode === "against" ? rs*x.side < 0 : rs*x.side > 0); } }
       if (h.length && sp.coinEma) { const e = emaOf(I, sp.coinEma)[k]; if (e !== null) h = h.filter(x => (I.C[k] - e)*x.side > 0); }   // اتجاه العملة نفسها (لما المتوسط لسا مش جاهز = بدون فلتر)
       if (h.length && sp.fundF) { const r = fundAt(D, D.t0 + (k+1)*m*900000); h = h.filter(x => fundOk(sp, r, x.side)); }
       if (h.length && sp.gannF && m === 16) h = h.filter(x => GDEC.near(I, k, x.side, sp.gannF));
@@ -4085,6 +4094,7 @@ const SWP_RAW = "سحب سيولة 15د (كل الإشارات — مخفي)", S
 // 23/11 04:45 (طلب المستخدم): + فلتر «BTC مش طالع آخر 4 ساعات» (تغيّر BTC من إغلاق شمعة السحب لـ 16 شمعة قبلها < +0.1%) — فحص التصفير: 160 صفقة 112/48 +87.7% PF 6.32 (الأصلية 219 119/100 +77.8% PF 3.36) · كل الدفعات الكبيرة الخاسرة كانت وBTC طالع
 const SWPF_NAME = "سحب سيولة لونج 15د · جماعي 10+ (الحقيقية) · ريتست ليمت · هدف 1% + بلا لونج على قاع BTC + BTC مش طالع 4س";
 const SWPB_RAW = "سحب سيولة 15د · وقف المربع (كل الإشارات — مخفي)", SWPB_NAME = "سحب سيولة لونج 15د · جماعي 10+ (الحقيقية) · ريتست ليمت · هدف 1% · وقف حد المربع + بلا لونج على قاع BTC";
+// 24/11: تعبئة واقعية — الليمت بيتعبّى قبل الوقف (السعر جاي من فوق)، ونفس الشمعة ممكن تكمل للوقف. قبل كانت هالحالات بتنحسب «انلغى» = نتيجة أحلى من الحقيقة (فحص سنتين واقعي: PF 0.65)
 function swpRun(D, startTs, box = false) {
   const N = D.o.length, n0 = D.prov ? N - 1 : N, P = 5, LOOK = 96, out = [], B = D.btc15;
   let lows = [];
@@ -4098,7 +4108,7 @@ function swpRun(D, startTs, box = false) {
     if (!(D.c[i] > lvl) || depth > 0.015 || sig + M15 < startTs || i + 1 >= N) continue;
     let btcLow = null, b4 = null; if (B) { const bi = Math.floor((D.t0 + (i + 1)*M15 - B.t0)/M15) - 1; if (bi >= 48 && bi < B.c.length) { let m = Infinity; for (let k = bi - 48; k < bi; k++) m = Math.min(m, B.l[k]); btcLow = B.c[bi] <= m*1.003; b4 = B.c[bi]/B.c[bi - 16] - 1; } }   // قاع الـ12س قبل شمعة السحب (زي الفحص)
     const stop = box ? D.l[i] - Math.sqrt((D.h[i] - D.o[i])**2 + (D.c[i] - D.l[i])**2) : D.l[i]*(1 - 0.0005), zone = lvl*1.0001; let e = -1, E = 0, cancel = false;
-    for (let k = i + 1; k <= Math.min(N - 1, i + 8); k++) { if (D.l[k] <= stop) { cancel = true; break; } if (D.l[k] <= zone) { e = k; E = Math.min(D.o[k], zone); break; } }
+    for (let k = i + 1; k <= Math.min(N - 1, i + 8); k++) { if (D.l[k] <= zone) { e = k; E = Math.min(D.o[k], zone); break; } if (D.l[k] <= stop) { cancel = true; break; } }
     const base = { name: box ? SWPB_RAW : SWP_RAW, d: 1, sig, lvl, btcLow, b4, stop, lim: zone };
     if (e < 0) { const pend = !cancel && i + 8 > N - 1; out.push({ ...base, e: i + 1, x: i + 1, rawIn: lvl, rawOut: lvl, why: pend ? "PEND" : "NOFILL", open: false, nofill: true, pend, target: zone*1.01 }); continue; }
     if (!(stop < E)) continue;
@@ -4135,7 +4145,7 @@ function swpsRun(D, startTs) {
     for (let k = i; k <= Math.min(N - 1, i + 8); k++) { if (k > i && D.h[k] >= stop) { dead = true; break; } if (D.c[k] < cl) { ck = k; break; } }
     if (ck < 0) { const pend = false; out.push({ ...base, e: i + 1, x: i + 1, rawIn: cl, rawOut: cl, why: "NOFILL", open: false, nofill: true, pend, lim: cl, target: cl*0.99 }); continue; }
     let e = -1, E = 0, cancel = false;
-    for (let k = ck + 1; k <= Math.min(N - 1, ck + 12); k++) { if (D.h[k] >= stop) { cancel = true; break; } if (D.h[k] >= cl) { e = k; E = Math.max(D.o[k], cl); break; } }
+    for (let k = ck + 1; k <= Math.min(N - 1, ck + 12); k++) { if (D.h[k] >= cl) { e = k; E = Math.max(D.o[k], cl); break; } if (D.h[k] >= stop) { cancel = true; break; } }
     if (e < 0) { const pend = !cancel && ck + 12 > N - 1; out.push({ ...base, e: ck + 1, x: ck + 1, rawIn: cl, rawOut: cl, why: pend ? "PEND" : "NOFILL", open: false, nofill: true, pend, lim: cl, target: cl*0.99 }); continue; }
     if (!(stop > E)) continue;
     const T = E*0.99; let ox = null, xi = null, why = null;
@@ -4170,7 +4180,7 @@ function swps30Run(D, startTs) {
     let ck = -1; for (let k = i; k <= Math.min(N - 1, i + 8); k++) { if (k > i && h[k] >= stop) break; if (c[k] < cl) { ck = k; break; } }
     if (ck < 0) { out.push({ ...base, e: 2*(i + 1), x: 2*(i + 1), rawIn: cl, rawOut: cl, why: "NOFILL", open: false, nofill: true, pend: false, lim: cl, target: cl*0.99 }); continue; }
     let e = -1, E = 0, cancel = false;
-    for (let k = ck + 1; k <= Math.min(N - 1, ck + 12); k++) { if (h[k] >= stop) { cancel = true; break; } if (h[k] >= cl) { e = k; E = Math.max(o[k], cl); break; } }
+    for (let k = ck + 1; k <= Math.min(N - 1, ck + 12); k++) { if (h[k] >= cl) { e = k; E = Math.max(o[k], cl); break; } if (h[k] >= stop) { cancel = true; break; } }
     if (e < 0) { const pend = !cancel && ck + 12 > N - 1; out.push({ ...base, e: 2*(ck + 1), x: 2*(ck + 1), rawIn: cl, rawOut: cl, why: pend ? "PEND" : "NOFILL", open: false, nofill: true, pend, lim: cl, target: cl*0.99 }); continue; }
     if (!(stop > E)) continue;
     const T = E*0.99; let ox = null, xi = null, why = null;
@@ -4237,7 +4247,9 @@ const PLATFORM_KEEP12 = new Set([...TP_BASES.flatMap(b => [b + " | هدف 1.2% �
 const P15 = n => n.replace("| هدف 1.2% وقف 1.2%", "| هدف 1.5% وقف 1.2%").replace(/\| 1\.2% (هادئة|ليمت)/, "| 1.5% $1").replace(/^(MACD v1\.1 .*)هدف 1\.2%/, "$1هدف 1.5%");
 const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المستخدم — 1.5% طلع أسوأ من التصفير). نسخ 1.5% بالمختبر
 PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); SR_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); LS_NAMES.forEach(x => PLATFORM_KEEP12.add(x[0])); PLATFORM_KEEP12.add(RANGE_24_NAME); PLATFORM_KEEP12.add(DIV_NAME); PLATFORM_KEEP12.add(DIV_RAW); PLATFORM_KEEP12.add(DIV15_NAME); PLATFORM_KEEP12.add(DIVR_NAME); PLATFORM_KEEP12.add(INV2_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME); MACDF_BASES.forEach(b => { PLATFORM_KEEP12.add(MACDF_NAME(b)); STRATS_ALL.push({ name: MACDF_NAME(b), mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD v1.1 لونج — لحالها + فوق EMA50 4h (بتنحسب بالصفحة)" }); });
-PLATFORM_KEEP12.add(SWP_RAW); PLATFORM_KEEP12.add(SWPB_RAW); PLATFORM_KEEP12.add(SWPB_NAME); PLATFORM_KEEP12.add(SWPF_NAME); PLATFORM_KEEP12.add(SWPS_RAW); PLATFORM_KEEP12.add(SWPS_NAME); PLATFORM_KEEP12.add(SWPS30_RAW); PLATFORM_KEEP12.add(SWPS30_NAME); PLATFORM_KEEP12.add(SWP_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة · 22/11: سحب السيولة (قاعدة مخفية — الجماعي بالصفحة)
+PLATFORM_KEEP12.add(SWP_RAW); PLATFORM_KEEP12.add(SWPB_RAW); PLATFORM_KEEP12.add(SWPB_NAME); PLATFORM_KEEP12.add(SWPF_NAME); PLATFORM_KEEP12.add(SWPS_RAW); PLATFORM_KEEP12.add(SWPS_NAME); PLATFORM_KEEP12.add(SWPS30_RAW); PLATFORM_KEEP12.add(SWPS30_NAME);
+// 23/11 11:45: Lux (كود كما هو) — الوحيدة اللي نجحت بالمختبر سنتين (تدريب PF 1.86 · اختبار 1.63 · جديدة 1.88) + من التصفير على عملات الحقيقي 33 صفقة 26/7 PF 2.26 — استراتيجية ترند (مش عكسية) → على المنصة والحقيقي
+PLATFORM_KEEP12.add("#8 Lux Trendline+TRAMA+Chandelier | ليمت 1% · هدف 1% · وقف 1.5% (كود كما هو)"); PLATFORM_KEEP12.add(SWP_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة · 22/11: سحب السيولة (قاعدة مخفية — الجماعي بالصفحة)
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
 // 17/11 19:53 (طلب المستخدم): الخسرانين من التصفير انشالوا من المنصة — بالمختبر بس

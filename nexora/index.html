@@ -753,6 +753,13 @@ function btcTrend(ts, p) {   // ts = وقت إغلاق شمعة الإشارة
   if (j < 0 || B.ema[p][j] === null) return 0;
   return B.C[j] > B.ema[p][j] ? 1 : -1;
 }
+// 24/11 (مختبر): عائد BTC على آخر n شمعة 4 ساعات لحد وقت ts (إغلاق شمعة الإشارة) — لفلتر القوة النسبية rsF على S15
+function btcRet(ts, n) {
+  const B = BTC_REF; if (!B) return null;
+  let lo = 0, hi = B.T.length - 1, j = -1; while (lo <= hi) { const md = (lo + hi) >> 1; if (B.T[md] <= ts) { j = md; lo = md + 1; } else hi = md - 1; }
+  if (j < n || j < 0) return null;
+  return B.C[j]/B.C[j - n] - 1;
+}
 // نوافذ فيبو الزمنية (4 ساعات): من آخر قمتين وآخر قاعين ورا بعض (Pivots 10/10 مؤكدة لحد k)،
 // النافذة = آخر نقطة + round(r × المسافة بينهم) ± 2 شمعة. set "A" = 0.618/1/1.618/2.618، "B" = 1/2/3/5/8
 const FIBT_MEMO = new WeakMap();
@@ -909,6 +916,8 @@ const S15 = (() => {
       if (pos && sp.oppExit) { const ev = sp.oppExit === "v2" ? hitsAt(P, I, k, true, sp.emaF) : (P.events.get(k) || []); if (ev.some(x => x.side === -pos.d)) pos.oppNext = true; }   // 22/11 (مختبر): إشارة سحب+كسر هيكل بالعكس وهي مفتوحة → خروج على افتتاح الشمعة الجاية
       let h = hitsAt(P, I, k, sp.v2, sp.emaF);
       if (h.length && sp.btcF) h = h.filter(x => btcTrend(D.t0 + (k+1)*m*900000, sp.btcF) === x.side);
+      if (h.length && sp.rsF && m === 16) { const n = sp.rsF.n, b = btcRet(D.t0 + (k+1)*m*900000, n);   // 24/11 (مختبر): قوة نسبية مقابل BTC على آخر n شمعة 4س — "with": لونج بس إذا العملة أقوى من BTC، شورت بس إذا أضعف · "against" = العكس (مقارنة)
+        if (b === null || k < n) h = []; else { const rs = I.C[k]/I.C[k - n] - 1 - b; h = h.filter(x => sp.rsF.mode === "against" ? rs*x.side < 0 : rs*x.side > 0); } }
       if (h.length && sp.coinEma) { const e = emaOf(I, sp.coinEma)[k]; if (e !== null) h = h.filter(x => (I.C[k] - e)*x.side > 0); }   // اتجاه العملة نفسها (لما المتوسط لسا مش جاهز = بدون فلتر)
       if (h.length && sp.fundF) { const r = fundAt(D, D.t0 + (k+1)*m*900000); h = h.filter(x => fundOk(sp, r, x.side)); }
       if (h.length && sp.gannF && m === 16) h = h.filter(x => GDEC.near(I, k, x.side, sp.gannF));
