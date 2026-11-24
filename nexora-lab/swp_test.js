@@ -36,7 +36,7 @@ function build(rows) {
   for (let i = 0; i < n; i++) { const r = rows.get(t0 + i*M15); if (r) { const o = +r[1], c = +r[4]; D.o[i] = o; D.h[i] = Math.max(+r[2], o, c); D.l[i] = Math.min(+r[3], o, c); D.c[i] = c; p = c; } else D.o[i] = D.h[i] = D.l[i] = D.c[i] = p; }
   return D;
 }
-function sweeps(D, B, sym) {
+function sweeps(D, B, sym, REAL = false, MINS = 0) {   // REAL: الليمت بيتعبّى حتى لو نفس الشمعة ضربت الوقف (زي الحقيقي) + انزلاق وقف 0.05% · MINS: أقل بعد للوقف
   const N = D.c.length, P = 5, LOOK = 96, out = []; let lows = [];
   for (let i = 0; i < N - 1; i++) {
     const j = i - P;
@@ -49,11 +49,11 @@ function sweeps(D, B, sym) {
     const bi = Math.floor((sig + M15 - B.t0)/M15) - 1; if (bi < 48 || bi >= B.c.length) continue;
     let m = Infinity; for (let k = bi - 48; k < bi; k++) m = Math.min(m, B.l[k]);
     const btcLow = B.c[bi] <= m*1.003, b4 = B.c[bi]/B.c[bi - 16] - 1;
-    const stop = D.l[i]*(1 - 0.0005), zone = lvl*1.0001; let e = -1, E = 0;
-    for (let k = i + 1; k <= Math.min(N - 1, i + 8); k++) { if (D.l[k] <= stop) break; if (D.l[k] <= zone) { e = k; E = Math.min(D.o[k], zone); break; } }
+    const zone = lvl*1.0001; let stop = D.l[i]*(1 - 0.0005); if (MINS) stop = Math.min(stop, zone*(1 - MINS)); let e = -1, E = 0, same = false;
+    for (let k = i + 1; k <= Math.min(N - 1, i + 8); k++) { if (!REAL && D.l[k] <= stop) break; if (D.l[k] <= zone) { e = k; E = Math.min(D.o[k], zone); same = REAL && D.l[k] <= stop; break; } }
     if (e < 0 || !(stop < E)) { out.push({ sym, sig, btcLow, b4, nofill: true }); continue; }
-    const T = E*1.01; let ox = null, xi = null;
-    for (let k = e; k < N && k <= e + 192; k++) { if (D.l[k] <= stop) { ox = stop; xi = k; break; } if (D.h[k] >= T) { ox = T; xi = k; break; } }
+    const T = E*1.01, SL = REAL ? stop*(1 - 0.0005) : stop; let ox = null, xi = null;
+    if (same) { ox = SL; xi = e; } else for (let k = e; k < N && k <= e + 192; k++) { if (D.l[k] <= stop) { ox = SL; xi = k; break; } if (D.h[k] >= T) { ox = T; xi = k; break; } }
     if (ox === null) { if (e + 192 >= N) continue; xi = e + 192; ox = D.c[xi]; }
     const fee = FEE.maker + FEE.taker + 2*FEE.slip;
     out.push({ sym, sig, btcLow, b4, pct: (ox/E - 1 - fee)*100, xTs: D.t0 + xi*M15, b24: B.c[bi]/B.c[Math.max(0, bi - 96)] - 1 });
@@ -76,13 +76,15 @@ const line = (lab, a) => { const s = stats(a), p = [0, 1, 2].map(i => stats(a.fi
   const html = fs.readFileSync(path.join(ROOT, "nexora/index.html"), "utf8");
   const COINS = JSON.parse(html.match(/const DEFAULT_TOP = (\[[^\]]*\])/)[1]);
   const B = build(await klines("BTCUSDT"));
-  const raw = []; const q = [...COINS]; let done = 0;
+  const raw = [], rawR = [], rawR5 = [], rawR8 = []; const q = [...COINS]; let done = 0;
   await Promise.all(Array.from({ length: 8 }, async () => { while (q.length) { const sym = q.shift();
-    try { const D = build(await klines(sym)); if (!D) continue; raw.push(...sweeps(D, B, sym)); console.log(++done, sym); } catch (e) { console.log("fail", sym, e.message); } } }));
+    try { const D = build(await klines(sym)); if (!D) continue; raw.push(...sweeps(D, B, sym)); rawR.push(...sweeps(D, B, sym, true)); rawR5.push(...sweeps(D, B, sym, true, 0.005)); rawR8.push(...sweeps(D, B, sym, true, 0.008)); console.log(++done, sym); } catch (e) { console.log("fail", sym, e.message); } } }));
   const out = [`# سحب السيولة لونج — سنتين (${new Date(START).toISOString().slice(0, 10)} → الحين) · ${COINS.length} عملة · تدريب→${new Date(SPLIT).toISOString().slice(0, 10)} · اختبار→2026-08-16 · جديدة→الحين`,
     `# النسبة = مجموع الصفقات بعد الرسوم (1% = 1$ على 100$) · ✅ = ربح بالتدريب والاختبار + PF>1.1`, ""];
   const b4 = t => t.b4 < 0.001;
   for (const N of [1, 5, 10, 15, 20]) { out.push(line(`دفعة ${N}+`, derive(raw, N)), line(`دفعة ${N}+ + BTC مش طالع 4س`, derive(raw, N, b4)), line(`دفعة ${N}+ + BTC طالع 4س`, derive(raw, N, t => !b4(t)))); }
+  out.push("", "## تعبئة واقعية (الليمت بيتعبّى حتى لو نفس الشمعة كملت للوقف + انزلاق 0.05%)");
+  for (const N of [10, 20]) out.push(line(`واقعي دفعة ${N}+`, derive(rawR, N)), line(`واقعي ${N}+ وقف ≥0.5%`, derive(rawR5, N)), line(`واقعي ${N}+ وقف ≥0.8%`, derive(rawR8, N)));
   out.push(""); const A = derive(raw, 10, b4), Q = new Map();
   for (const t of A) { const d = new Date(t.sig), k = `${d.getUTCFullYear()}Q${Math.floor(d.getUTCMonth()/3) + 1}`; (Q.get(k) || Q.set(k, []).get(k)).push(t); }
   out.push("دفعة 10+ + BTC مش طالع، كل ربع: " + [...Q.entries()].sort().map(([k, a]) => { const s = stats(a); return `${k} n${s.n} ${f(s.net)}% PF${pf(s.pf)}`; }).join(" · "));
