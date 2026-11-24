@@ -1,4 +1,4 @@
-NEXORA LAB (GitHub) | lbo-btceth | 2026-11-23T13:12:43.651Z | hash=0fca0c3b3b | engine=14087c4a | coins 2 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
+NEXORA LAB (GitHub) | lbo-btceth | 2026-11-24T14:05:42.628Z | hash=bca42cfd9a | engine=0a982d85 | coins 2 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
 # SELECTION (chosen on TRAIN only)
 best-train taker: LBO 09-12 إغلاق 20 وقف الطرف التاني 1R | تدريب: n=574 -0.40$ PF1.00 win50% gross/t+0.22$ t-0.0 DD113$ | اختبار: n=262 -56.12$ PF0.84 win45% gross/t+0.00$ t-1.1 DD105$ | جديدة: n=121 +4.11$ PF1.03 win46% gross/t+0.25$ t0.1 DD38$
 best-train maker: LBO 09-12 إغلاق 20 وقف الطرف التاني 1R | تدريب: n=574 +45.52$ PF1.06 win51% gross/t+0.22$ t0.5 DD95$ | اختبار: n=262 -35.17$ PF0.89 win47% gross/t+0.00$ t-0.7 DD92$ | جديدة: n=121 +13.79$ PF1.11 win46% gross/t+0.25$ t0.5 DD34$
