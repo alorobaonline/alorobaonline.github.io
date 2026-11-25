@@ -4415,7 +4415,7 @@ const DIVR_NAME = "دايفرجنس AlgoAlpha 15د · جماعي 10+ (الحقي
 STRATS_ALL.push({ name: DIVR_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "دايفرجنس جماعي 10+ عملات حقيقية (بتنحسب بالصفحة والعقل)" });
 STRATS_ALL.push({ name: SWPS30_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة شورت 30د + CISD ريتست جماعي 10+ (بتنحسب بالصفحة والعقل)" });
 // 25/11: غريد الزخم (فكرة المستخدم «الحق السعر واعمل غريد») — درجات 1% من سعر أول شمعة بعد التصفير · السعر يطلع درجة = لونج (لو ترند 4س صاعد) · ينزل درجة = شورت (لو 4س هابط) · أقصى 5 بكل اتجاه · كل صفقة وقف متحرك درجتين ورا أفضل درجة
-const MG_NAME = "غريد الزخم 1% · 5 درجات · وقف متحرك درجتين + ترند 4س";
+const MG_NAME = "غريد الزخم 1% · 5 درجات · وقف متحرك درجتين + ترند 4س", MG2_NAME = "غريد الزخم 1% · 5 درجات · وقف متحرك درجتين (الاتجاهين بدون فلتر)";
 function mgTrend4(D) {   // ترند 4س (نفس مؤشر الترند v3): EMA50/200 + مسافة ≥ ATR + ميل الـ200 على 10 شموع — لكل شمعة 15د: آخر شمعة 4س مسكّرة
   const n = D.o.length, N = Math.floor(n/16), O = [], H = [], L = [], C = [];
   for (let b = 0; b < N; b++) { let h = -Infinity, l = Infinity; for (let j = b*16; j < b*16 + 16; j++) { if (D.h[j] > h) h = D.h[j]; if (D.l[j] < l) l = D.l[j]; } O.push(D.o[b*16]); H.push(h); L.push(l); C.push(D.c[b*16 + 15]); }
@@ -4428,14 +4428,14 @@ function mgTrend4(D) {   // ترند 4س (نفس مؤشر الترند v3): EMA5
     T[i] = wide && C[i] > s[i] && f[i] > s[i] && s[i] > s[i-10] ? 1 : wide && C[i] < s[i] && f[i] < s[i] && s[i] < s[i-10] ? -1 : 0; }
   return k => { const b = Math.floor(k/16) - 1; return b >= 0 && b < N ? T[b] : 0; };
 }
-function mgRun(D, startTs, step = 0.01, maxN = 5, trail = 2) {
+function mgRun(D, startTs, step = 0.01, maxN = 5, trail = 2, useT = true, NAME = MG_NAME) {
   const n = D.o.length, out = []; let k0 = Math.max(0, Math.ceil((startTs - D.t0)/M15)); if (k0 >= n) return out;
   const tr = mgTrend4(D), A = D.o[k0], g = Math.log(1 + step), K = p => Math.log(p/A)/g, LV = k => A*Math.pow(1 + step, k);
   const longs = new Map(), shorts = new Map();   // درجة → {e, px, best}
-  const close = (m, j, d, px, x) => { const p = m.get(j); m.delete(j); out.push({ name: MG_NAME, d, e: p.e, x, rawIn: p.px, rawOut: px, why: "TRAIL_STOP", open: false, stop: NaN, target: NaN }); };
+  const close = (m, j, d, px, x) => { const p = m.get(j); m.delete(j); out.push({ name: NAME, d, e: p.e, x, rawIn: p.px, rawOut: px, why: "TRAIL_STOP", open: false, stop: NaN, target: NaN }); };
   let prev = D.o[k0];
   for (let k = k0; k < n; k++) {
-    const t4 = tr(k), aL = t4 === 1, aS = t4 === -1;
+    const t4 = useT ? tr(k) : 0, aL = !useT || t4 === 1, aS = !useT || t4 === -1;
     const path = D.c[k] >= D.o[k] ? [D.o[k], D.l[k], D.h[k], D.c[k]] : [D.o[k], D.h[k], D.l[k], D.c[k]];
     for (const p of path) {
       if (p === prev) continue;
@@ -4457,10 +4457,11 @@ function mgRun(D, startTs, step = 0.01, maxN = 5, trail = 2) {
       prev = p;
     }
   }
-  for (const [m, d] of [[longs, 1], [shorts, -1]]) for (const q of m.values()) out.push({ name: MG_NAME, d, e: q.e, x: n - 1, rawIn: q.px, rawOut: D.c[n-1], why: "TIME", open: true, stop: q.px*(1 - d*trail*step), target: NaN });
+  for (const [m, d] of [[longs, 1], [shorts, -1]]) for (const q of m.values()) out.push({ name: NAME, d, e: q.e, x: n - 1, rawIn: q.px, rawOut: D.c[n-1], why: "TIME", open: true, stop: q.px*(1 - d*trail*step), target: NaN });
   return out;
 }
 STRATS_ALL.push({ name: MG_NAME, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "غريد الزخم (فكرة المستخدم 25/11)", run: (D, inds, sp, startTs) => mgRun(D, startTs) });
+STRATS_ALL.push({ name: MG2_NAME, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "غريد الزخم بدون فلتر (فكرة المستخدم 25/11)", run: (D, inds, sp, startTs) => mgRun(D, startTs, 0.01, 5, 2, false, MG2_NAME) });
 STRATS_ALL.push({ name: SWPS_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة شورت + CISD ريتست جماعي 5+ (بتنحسب بالصفحة والعقل)" });
 STRATS_ALL.push({ name: SWPF_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة جماعي 10+ · BTC مش طالع 4س (بتنحسب بالصفحة والعقل)" });
 STRATS_ALL.push({ name: SWPB_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة جماعي 10+ · وقف المربع (بتنحسب بالصفحة)" });
@@ -4502,7 +4503,7 @@ const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المس�
 PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); SR_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); LS_NAMES.forEach(x => PLATFORM_KEEP12.add(x[0])); PLATFORM_KEEP12.add(RANGE_24_NAME); PLATFORM_KEEP12.add(DIV_NAME); PLATFORM_KEEP12.add(DIV_RAW); PLATFORM_KEEP12.add(DIV15_NAME); PLATFORM_KEEP12.add(DIVR_NAME); PLATFORM_KEEP12.add(INV2_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME); MACDF_BASES.forEach(b => { PLATFORM_KEEP12.add(MACDF_NAME(b)); STRATS_ALL.push({ name: MACDF_NAME(b), mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD v1.1 لونج — لحالها + فوق EMA50 4h (بتنحسب بالصفحة)" }); });
 PLATFORM_KEEP12.add(SWP_RAW); PLATFORM_KEEP12.add(SWPB_RAW); PLATFORM_KEEP12.add(SWPB_NAME); PLATFORM_KEEP12.add(SWPF_NAME); PLATFORM_KEEP12.add(SWPS_RAW); PLATFORM_KEEP12.add(SWPS_NAME); PLATFORM_KEEP12.add(SWPS30_RAW); PLATFORM_KEEP12.add(SWPS30_NAME);
 // 23/11 11:45: Lux (كود كما هو) — الوحيدة اللي نجحت بالمختبر سنتين (تدريب PF 1.86 · اختبار 1.63 · جديدة 1.88) + من التصفير على عملات الحقيقي 33 صفقة 26/7 PF 2.26 — استراتيجية ترند (مش عكسية) → على المنصة والحقيقي
-PLATFORM_KEEP12.add(MG_NAME);   // 25/11: غريد الزخم — تجميع بيانات (ورقي بس)
+PLATFORM_KEEP12.add(MG_NAME); PLATFORM_KEEP12.add(MG2_NAME);   // 25/11: غريد الزخم — تجميع بيانات (ورقي بس)
 PLATFORM_KEEP12.add("#8 Lux Trendline+TRAMA+Chandelier | ليمت 1% · هدف 1% · وقف 1.5% (كود كما هو)"); PLATFORM_KEEP12.add(SWP_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة · 22/11: سحب السيولة (قاعدة مخفية — الجماعي بالصفحة)
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
@@ -5558,7 +5559,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-25-1320";
+const BUILD = "2026-11-25-1325";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
