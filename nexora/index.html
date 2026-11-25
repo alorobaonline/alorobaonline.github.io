@@ -4123,8 +4123,8 @@ function luxL10Wrap(baseName, name, depth, tp, sl, asis = false, m5 = false) {  
         if (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt) { px = tgt; why = "TARGET"; xi = j; break; }
       }
       const w = t.w || 1;
-      if (px !== null) { out.push({ name, d, e: ei, x: xi, rawIn: e, rawOut: px, why, open: false, stop, target: tgt, lim: true, ...(w !== 1 ? { w } : {}) }); busy = xi; }
-      else { out.push({ name, d, e: ei, x: n - 1, rawIn: e, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt, lim: true, ...(w !== 1 ? { w } : {}) }); busy = n - 1; }
+      if (px !== null) { out.push({ name, d, e: ei, x: xi, rawIn: e, rawOut: px, why, open: false, stop, target: tgt, lim: depth > 0, ...(w !== 1 ? { w } : {}) }); busy = xi; }
+      else { out.push({ name, d, e: ei, x: n - 1, rawIn: e, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt, lim: depth > 0, ...(w !== 1 ? { w } : {}) }); busy = n - 1; }
     }
     return out;
   };
@@ -4133,6 +4133,7 @@ function luxL10Wrap(baseName, name, depth, tp, sl, asis = false, m5 = false) {  
 STRATS_ALL.push(luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", LUX_L10, 0.010, 0.010, 0.015),
   luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", LUX_L10 + " (دقة 5د)", 0.010, 0.010, 0.015, true, true),   // مختبر بس (بيحتاج D.m5)
   luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", LUX_L10 + " (كود كما هو)", 0.010, 0.010, 0.015, true));   // الثانية مختبر بس
+STRATS_ALL.push(luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", "#8 Lux Trendline+TRAMA+Chandelier | دخول ماركت · هدف 1% · وقف 1.5% (كود كما هو)", 0, 0.010, 0.015, true));   // 25/11: مختبر بس — نفس الإشارة بدون ليمت (مقارنة طلب المستخدم)
 STRATS_ALL.push(dirOnlyWrap("#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8%", -1), dirOnlyWrap("#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.6%", -1));   // مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(quietWrap(timingWrap(b, "limit6")));   // مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(posWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), 0.4), posWrap(timingWrap(b, "limit6"), 0.4));   // مختبر بس
