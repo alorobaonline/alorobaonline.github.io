@@ -1,0 +1,33 @@
+name: nexora-smc
+# 25/11: فحص SMC (سحب سيولة + فجوة) على سنتين (بيانات بايننس العامة). ما بيلمس ملفات المتجر.
+on:
+  push:
+    branches: [main]
+    paths: ["nexora-lab/smc_test.js", ".github/workflows/nexora-smc.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nexora-data
+          key: nexora-data-box-${{ github.run_id }}
+          restore-keys: |
+            nexora-data-box-
+            nexora-data-
+      - name: run smc test
+        run: |
+          git config user.name "nexora-lab-bot"
+          git config user.email "nexora-lab-bot@users.noreply.github.com"
+          node --max-old-space-size=12000 nexora-lab/smc_test.js
+          git add nexora-lab/results/smc2y.txt
+          git commit -m "NEXORA lab: SMC 2y results" || exit 0
+          for i in 1 2 3 4 5; do git pull --rebase -q && git push && break; sleep $((i*7)); done
