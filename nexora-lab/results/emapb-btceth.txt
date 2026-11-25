@@ -1,4 +1,4 @@
-NEXORA LAB (GitHub) | emapb-btceth | 2026-11-24T14:07:40.127Z | hash=fbfb751128 | engine=0a982d85 | coins 2 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
+NEXORA LAB (GitHub) | emapb-btceth | 2026-11-25T13:25:30.582Z | hash=7dc33175ee | engine=b7b892d9 | coins 2 | slots 10 | taker 0.05% maker 0.02% slip 0.01% | $200/trade | periods: train<2025-12-15, test<2026-08-16, fresh after
 # SELECTION (chosen on TRAIN only)
 best-train taker: EMAPB ساعة لونج | تدريب: n=360 -6.95$ PF0.99 win37% gross/t+0.21$ t-0.1 DD97$ | اختبار: n=139 -30.39$ PF0.88 win34% gross/t+0.01$ t-0.6 DD68$ | جديدة: n=56 +3.06$ PF1.04 win34% gross/t+0.28$ t0.1 DD32$
 best-train maker: EMAPB ساعة لونج | تدريب: n=360 +21.85$ PF1.04 win37% gross/t+0.21$ t0.3 DD84$ | اختبار: n=139 -19.27$ PF0.92 win34% gross/t+0.01$ t-0.4 DD60$ | جديدة: n=56 +7.54$ PF1.11 win34% gross/t+0.28$ t0.3 DD28$
