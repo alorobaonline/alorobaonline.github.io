@@ -90,11 +90,11 @@ if (require.main === module) (async () => {
   const COINS = JSON.parse(html.match(/const DEFAULT_TOP = (\[[^\]]*\])/)[1]);
   const all = [], all1h = [], fx = [], fx1h = []; const q = [...COINS]; let done = 0;
   await Promise.all(Array.from({ length: 8 }, async () => { while (q.length) { const sym = q.shift();
-    try { const D = build(await klines(sym)); if (!D) continue; for (const t of lez(D, START)) all.push({ ...t, sym }); for (const t of lez(agg(D, 4), START)) all1h.push({ ...t, sym }); for (const t of lez(D, START, 0.005, 0.015)) fx.push({ ...t, sym }); for (const t of lez(agg(D, 4), START, 0.005, 0.015)) fx1h.push({ ...t, sym }); console.log(++done, sym); } catch (e) { console.log("ERR", sym, e.message); } } }));
+    try { const D = build(await klines(sym)); if (!D) continue; for (const t of lez(D, START)) all.push({ ...t, sym }); for (const t of lez(agg(D, 4), START)) all1h.push({ ...t, sym }); for (const t of lez(D, START, 0.015, 0.025)) fx.push({ ...t, sym }); for (const t of lez(agg(D, 4), START, 0.015, 0.025)) fx1h.push({ ...t, sym }); console.log(++done, sym); } catch (e) { console.log("ERR", sym, e.message); } } }));
   const out = [`# Liquidity Entry Zones [trade_w_samet] كما هي (الإعدادات الافتراضية) — سنتين ${new Date(START).toISOString().slice(0, 10)} → الحين · ${COINS.length} عملة · 15د`,
     `# تدريب→${new Date(SPLIT).toISOString().slice(0, 10)} · اختبار→2026-08-16 · جديدة→الحين · النسبة = مجموع الصفقات بعد الرسوم 0.12% · ✅ = ربح بالتدريب والاختبار + PF>1.1`, ""];
   out.push(line("الكل", all), line("لونج", all.filter(t => t.d === 1)), line("شورت", all.filter(t => t.d === -1)));
-  for (const [nm, a] of [["وقف 0.5% هدف 1.5% · 15د", fx], ["وقف 0.5% هدف 1.5% · 1س", fx1h]]) {
+  for (const [nm, a] of [["وقف 1.5% هدف 2.5% · 15د", fx], ["وقف 1.5% هدف 2.5% · 1س", fx1h]]) {
     out.push("", "## " + nm, line("الكل", a), line("لونج", a.filter(t => t.d === 1)), line("شورت", a.filter(t => t.d === -1)));
     const tg = a.filter(t => t.why === "target"), st = a.filter(t => t.why === "stop");
     out.push(`✅ هدف: ${tg.length} صفقة ${f(tg.reduce((s, t) => s + t.pct, 0))}% · ❌ وقف: ${st.length} صفقة ${f(st.reduce((s, t) => s + t.pct, 0))}%`);
