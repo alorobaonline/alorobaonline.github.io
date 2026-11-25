@@ -45,7 +45,7 @@ function bars(D, k, alignDay) {   // تجميع 15د → فريم أكبر
   for (let b = 0; b < N; b++) { const a = s + b*k; let hh = -Infinity, ll = Infinity; for (let j = a; j < a + k; j++) { if (D.h[j] > hh) hh = D.h[j]; if (D.l[j] < ll) ll = D.l[j]; } o.push(D.o[a]); h.push(hh); l.push(ll); c.push(D.c[a + k - 1]); t.push(t0 + b*k*M15); }
   return { o, h, l, c, t };
 }
-function zl(B, fromTs, mode, len = 70, mult = 1.2) {
+function zlTrend(B, len = 70, mult = 1.2) {
   const n = B.c.length, c = B.c, lag = Math.floor((len - 1)/2), out = [];
   const z = new Array(n).fill(NaN), a = 2/(len + 1); let e = NaN;
   for (let i = 0; i < n; i++) { if (i < lag) continue; const x = c[i] + (c[i] - c[i - lag]); e = isNaN(e) ? x : a*x + (1 - a)*e; z[i] = e; }
@@ -57,6 +57,10 @@ function zl(B, fromTs, mode, len = 70, mult = 1.2) {
   for (let i = 1; i < n; i++) { if (!isNaN(z[i]) && !isNaN(vol[i]) && !isNaN(z[i-1]) && !isNaN(vol[i-1])) {
       if (c[i] > z[i] + vol[i] && c[i-1] <= z[i-1] + vol[i-1]) T = 1;
       if (c[i] < z[i] - vol[i] && c[i-1] >= z[i-1] - vol[i-1]) T = -1; } tr[i] = T; }
+  return { tr, z };
+}
+function zl(B, fromTs, mode, len = 70, mult = 1.2) {
+  const n = B.c.length, c = B.c, out = [], { tr, z } = zlTrend(B, len, mult);
   let pos = null; const RT = 2*FEE.taker + 2*FEE.slip;
   const close = (i, x) => { out.push({ sig: B.t[pos.i], d: pos.d, why: "flip", pct: 100*(pos.d*(x/pos.e - 1) - RT), bars: i - pos.i }); pos = null; };
   for (let i = 300; i < n - 1; i++) {
@@ -69,7 +73,24 @@ function zl(B, fromTs, mode, len = 70, mult = 1.2) {
   }
   return out;
 }
-if (require.main !== module) module.exports = { zl, bars };
+
+// اتفاق الفريمات: ترند Zero Lag على كل فريم (آخر شمعة مسكّرة لحظة إغلاق شمعة الـ15د) — دخول لما كلهم يتفقوا، افتتاح الشمعة الجاية
+function zlAgree(D, fromTs, tfs, exitTf) {
+  const n = D.c.length, B15 = { ...D, t: Array.from({ length: n }, (_, i) => D.t0 + i*M15) }, out = [];
+  const M = tfs.map(([k, ad]) => { const B = k === 1 ? B15 : bars(D, k, ad); return { B, tr: zlTrend(B).tr, P: k*M15 }; });
+  const at = (m, te) => { if (m.P === M15) return null; const b = Math.floor((te - m.B.t[0])/m.P) - 1; return b >= 0 && b < m.tr.length ? m.tr[b] : 0; };
+  const A = new Int8Array(n), EX = new Int8Array(n);
+  for (let i = 0; i < n; i++) { const te = D.t0 + (i + 1)*M15; let s = null, ok = true;
+    M.forEach((m, j) => { const v = m.P === M15 ? m.tr[i] : at(m, te); if (j === exitTf) EX[i] = v; if (!v) ok = false; else if (s === null) s = v; else if (v !== s) ok = false; });
+    A[i] = ok ? s : 0; }
+  let pos = null; const RT = 2*FEE.taker + 2*FEE.slip;
+  for (let i = 400; i < n - 1; i++) {
+    if (pos && (exitTf < 0 ? A[i] !== pos.d : EX[i] !== pos.d)) { const x = D.o[i + 1]; out.push({ sig: B15.t[pos.i], d: pos.d, why: "exit", pct: 100*(pos.d*(x/pos.e - 1) - RT), bars: i + 1 - pos.i }); pos = null; }
+    if (!pos && A[i] && A[i] !== A[i-1] && B15.t[i + 1] >= fromTs) pos = { d: A[i], e: D.o[i + 1], i: i + 1 };
+  }
+  return out;
+}
+if (require.main !== module) module.exports = { zl, bars, zlAgree };
 const per = ts => ts < SPLIT ? 0 : ts < END ? 1 : 2;
 function stats(a) { let G = 0, L = 0, w = 0; for (const t of a) { if (t.pct > 0) { G += t.pct; w++; } else L -= t.pct; } return { n: a.length, w, l: a.length - w, net: G - L, pf: L ? G/L : (G ? 99 : 0), aw: w ? G/w : 0, al: a.length - w ? L/(a.length - w) : 0 }; }
 const f = x => (x >= 0 ? "+" : "") + x.toFixed(1), pf = x => x >= 99 ? "inf" : x.toFixed(2);
@@ -82,21 +103,22 @@ const line = (lab, a) => { const s = stats(a), p = [0, 1, 2].map(i => stats(a.fi
 if (require.main === module) (async () => {
   const html = fs.readFileSync(path.join(ROOT, "nexora/index.html"), "utf8");
   const COINS = JSON.parse(html.match(/const DEFAULT_TOP = (\[[^\]]*\])/)[1]);
-  const TF = [["15د", 1, false], ["ساعة", 4, false], ["4 ساعات", 16, false], ["يوم", 96, true]], MODES = [["انقلاب الترند (السهم الكبير)", "flip"], ["سهم الدخول الصغير ← خروج عند الانقلاب", "arrow"]];
-  const R = {}; const q = [...COINS]; let done = 0;
+  const V = [["4 فريمات (15د+1س+4س+يوم) · خروج لما ينكسر الاتفاق", [[1, false], [4, false], [16, false], [96, true]], -1],
+             ["4 فريمات · خروج لما 4س ينقلب", [[1, false], [4, false], [16, false], [96, true]], 2],
+             ["4 فريمات · خروج لما اليوم ينقلب", [[1, false], [4, false], [16, false], [96, true]], 3],
+             ["3 فريمات (15د+1س+4س) · خروج لما ينكسر الاتفاق", [[1, false], [4, false], [16, false]], -1],
+             ["3 فريمات · خروج لما 4س ينقلب", [[1, false], [4, false], [16, false]], 2]];
+  const R = V.map(() => []); const q = [...COINS]; let done = 0;
   await Promise.all(Array.from({ length: 8 }, async () => { while (q.length) { const sym = q.shift();
-    try { const D = build(await klines(sym)); if (!D) continue;
-      for (const [tn, k, ad] of TF) { const B = k === 1 ? { ...D, t: Array.from({ length: D.c.length }, (_, i) => D.t0 + i*M15) } : bars(D, k, ad);
-        for (const [mn, m] of MODES) { const key = tn + " · " + mn; for (const t of zl(B, START, m)) (R[key] || (R[key] = [])).push({ ...t, sym }); } }
-      console.log(++done, sym); } catch (e) { console.log("ERR", sym, e.message); } } }));
-  const out = [`# Zero Lag Trend Signals (MTF) [AlgoAlpha] — كما هو (70 · 1.2) · سنتين ${new Date(START).toISOString().slice(0, 10)} → الحين · ${COINS.length} عملة`,
-    `# المؤشر ما فيه خروج: الصفقة بتطلع لما الترند ينقلب (افتتاح الشمعة الجاية) · رسوم 0.12% · التمويل مش محسوب · ✅ = ربح بالتدريب والاختبار + PF>1.1`, ""];
-  for (const [tn] of TF) for (const [mn] of MODES) { const key = tn + " · " + mn, a = R[key] || [], w = a.filter(t => t.pct > 0).length;
-    out.push(line(key, a) + ` | نجاح ${(100*w/Math.max(1, a.length)).toFixed(0)}% · مدة ${(a.reduce((s, t) => s + t.bars, 0)/Math.max(1, a.length)).toFixed(0)} شمعة`,
+    try { const D = build(await klines(sym)); if (!D) continue; V.forEach(([, tfs, ex], k) => { for (const t of zlAgree(D, START, tfs, ex)) R[k].push({ ...t, sym }); }); console.log(++done, sym); } catch (e) { console.log("ERR", sym, e.message); } } }));
+  const out = [`# Zero Lag Trend Signals [AlgoAlpha] — اتفاق الفريمات (70 · 1.2) · سنتين ${new Date(START).toISOString().slice(0, 10)} → الحين · ${COINS.length} عملة`,
+    `# دخول لما كل الفريمات تصير بنفس الاتجاه (إغلاق 15د → افتتاح الجاية) · رسوم 0.12% · التمويل مش محسوب · ✅ = ربح بالتدريب والاختبار + PF>1.1`, ""];
+  V.forEach(([nm], k) => { const a = R[k], w = a.filter(t => t.pct > 0).length;
+    out.push(line(nm, a) + ` | نجاح ${(100*w/Math.max(1, a.length)).toFixed(0)}% · مدة ${(a.reduce((s, t) => s + t.bars, 0)/Math.max(1, a.length)/4).toFixed(1)} ساعة`,
       line("   لونج", a.filter(t => t.d === 1)), line("   شورت", a.filter(t => t.d === -1)));
     const Q = new Map(); for (const t of a) { const d = new Date(t.sig), kk = `${d.getUTCFullYear()}Q${Math.floor(d.getUTCMonth()/3) + 1}`; (Q.get(kk) || Q.set(kk, []).get(kk)).push(t); }
-    out.push("   كل ربع: " + [...Q.entries()].sort().map(([kk, b]) => { const s = stats(b); return `${kk} ${f(s.net)}% PF${pf(s.pf)}`; }).join(" · "), ""); }
+    out.push("   كل ربع: " + [...Q.entries()].sort().map(([kk, b]) => { const s = stats(b); return `${kk} ${f(s.net)}% PF${pf(s.pf)}`; }).join(" · "), ""); });
   fs.mkdirSync(path.join(__dirname, "results"), { recursive: true });
-  fs.writeFileSync(path.join(__dirname, "results/zerolag2y.txt"), out.join("\n") + "\n");
+  fs.writeFileSync(path.join(__dirname, "results/zerolag_mtf2y.txt"), out.join("\n") + "\n");
   console.log(out.join("\n"));
 })();
