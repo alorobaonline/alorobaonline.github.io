@@ -38,7 +38,7 @@ function build(rows) {
 // Liquidity Entry Zones [trade_w_samet] — نقل حرفي للكود بالإعدادات الافتراضية (15د)
 const P = 5, NST = 20, SWD = 0.10, MINW = 0.35, MAXB = 0.65, MINR = 0.20, WIN = 2, COOL = 10, SLM = 1.5, RR = 3.0;
 const RT = 2*FEE.taker + 2*FEE.slip;   // 0.12% دخول وخروج ماركت + انزلاق
-function lez(D, fromTs) {
+function lez(D, fromTs, slPct = 0, tpPct = 0) {   // slPct/tpPct > 0 = وقف وهدف نسبة ثابتة من الدخول بدل ATR
   const n = D.c.length, o = D.o, h = D.h, l = D.l, c = D.c, out = [];
   const E = new Float64Array(n), A = new Float64Array(n).fill(NaN); E[0] = c[0]; const a50 = 2/51;
   for (let i = 1; i < n; i++) E[i] = a50*c[i] + (1 - a50)*E[i-1];
@@ -66,7 +66,7 @@ function lez(D, fromTs) {
     if (buy || sell) last = i;
     if (buy || (pBull && i - pBull[0] > WIN)) pBull = null; if (sell || (pBear && i - pBear[0] > WIN)) pBear = null;
     const ts = D.t0 + i*(D.M || M15);
-    if (!pos) { if ((buy || sell) && ts >= fromTs) { const d = buy ? 1 : -1, sl = SLM*a; pos = { d, e: c[i], sp: c[i] - d*sl, tg: c[i] + d*sl*RR, i, ts }; } }
+    if (!pos) { if ((buy || sell) && ts >= fromTs) { const d = buy ? 1 : -1, sl = slPct ? c[i]*slPct : SLM*a, tp = tpPct ? c[i]*tpPct : sl*RR; pos = { d, e: c[i], sp: c[i] - d*sl, tg: c[i] + d*tp, i, ts }; } }
     else if (i > pos.i) { const d = pos.d, hs = d === 1 ? l[i] <= pos.sp : h[i] >= pos.sp, ht = d === 1 ? h[i] >= pos.tg : l[i] <= pos.tg;
       if (hs || ht) { const x = hs ? pos.sp : pos.tg; out.push({ sig: pos.ts, d, why: hs ? "stop" : "target", pct: 100*(d*(x/pos.e - 1) - RT) }); pos = null; } }
   }
@@ -88,12 +88,18 @@ const line = (lab, a) => { const s = stats(a), p = [0, 1, 2].map(i => stats(a.fi
 if (require.main === module) (async () => {
   const html = fs.readFileSync(path.join(ROOT, "nexora/index.html"), "utf8");
   const COINS = JSON.parse(html.match(/const DEFAULT_TOP = (\[[^\]]*\])/)[1]);
-  const all = [], all1h = []; const q = [...COINS]; let done = 0;
+  const all = [], all1h = [], fx = [], fx1h = []; const q = [...COINS]; let done = 0;
   await Promise.all(Array.from({ length: 8 }, async () => { while (q.length) { const sym = q.shift();
-    try { const D = build(await klines(sym)); if (!D) continue; for (const t of lez(D, START)) all.push({ ...t, sym }); for (const t of lez(agg(D, 4), START)) all1h.push({ ...t, sym }); console.log(++done, sym); } catch (e) { console.log("ERR", sym, e.message); } } }));
+    try { const D = build(await klines(sym)); if (!D) continue; for (const t of lez(D, START)) all.push({ ...t, sym }); for (const t of lez(agg(D, 4), START)) all1h.push({ ...t, sym }); for (const t of lez(D, START, 0.005, 0.015)) fx.push({ ...t, sym }); for (const t of lez(agg(D, 4), START, 0.005, 0.015)) fx1h.push({ ...t, sym }); console.log(++done, sym); } catch (e) { console.log("ERR", sym, e.message); } } }));
   const out = [`# Liquidity Entry Zones [trade_w_samet] كما هي (الإعدادات الافتراضية) — سنتين ${new Date(START).toISOString().slice(0, 10)} → الحين · ${COINS.length} عملة · 15د`,
     `# تدريب→${new Date(SPLIT).toISOString().slice(0, 10)} · اختبار→2026-08-16 · جديدة→الحين · النسبة = مجموع الصفقات بعد الرسوم 0.12% · ✅ = ربح بالتدريب والاختبار + PF>1.1`, ""];
   out.push(line("الكل", all), line("لونج", all.filter(t => t.d === 1)), line("شورت", all.filter(t => t.d === -1)));
+  for (const [nm, a] of [["وقف 0.5% هدف 1.5% · 15د", fx], ["وقف 0.5% هدف 1.5% · 1س", fx1h]]) {
+    out.push("", "## " + nm, line("الكل", a), line("لونج", a.filter(t => t.d === 1)), line("شورت", a.filter(t => t.d === -1)));
+    const tg = a.filter(t => t.why === "target"), st = a.filter(t => t.why === "stop");
+    out.push(`✅ هدف: ${tg.length} صفقة ${f(tg.reduce((s, t) => s + t.pct, 0))}% · ❌ وقف: ${st.length} صفقة ${f(st.reduce((s, t) => s + t.pct, 0))}%`);
+    const Q = new Map(); for (const t of a) { const d = new Date(t.sig), k = `${d.getUTCFullYear()}Q${Math.floor(d.getUTCMonth()/3) + 1}`; (Q.get(k) || Q.set(k, []).get(k)).push(t); }
+    out.push("كل ربع: " + [...Q.entries()].sort().map(([k, b]) => { const s = stats(b); return `${k} n${s.n} ${f(s.net)}% PF${pf(s.pf)}`; }).join(" · ")); }
   out.push("", "## فريم الساعة (نفس الكود والإعدادات)", line("الكل 1س", all1h), line("لونج 1س", all1h.filter(t => t.d === 1)), line("شورت 1س", all1h.filter(t => t.d === -1)));
   { const tg = all1h.filter(t => t.why === "target"), st = all1h.filter(t => t.why === "stop");
     out.push(`1س ✅ هدف: ${tg.length} صفقة ${f(tg.reduce((s, t) => s + t.pct, 0))}% · ❌ وقف: ${st.length} صفقة ${f(st.reduce((s, t) => s + t.pct, 0))}%`);
