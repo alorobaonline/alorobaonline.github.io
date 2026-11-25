@@ -242,6 +242,28 @@ function applyBreadth(job, per) {
   return names;
 }
 
+
+// ---------- 25/11: فلاتر بعد التقييم (على مستوى السوق/العملة) — بدون تغيير بالمحرك ----------
+// job.postF = [{ from, name, cluster: { ge, mode: "skip"|"only" } } | { from, name, lossCool: N }]
+// cluster = عدد العملات (مع العملة نفسها) اللي عندها صفقة خام من نفس الاستراتيجية بنفس الاتجاه ونفس شمعة الدخول (معروف لحظة الدخول: كلهم سكّروا بنفس الشمعة)
+// lossCool = تخطّى إشارة العملة إذا صفقتها السابقة طلعت بالوقف الأصلي (INIT_STOP) خلال آخر N شمعة 4 ساعات قبل الدخول
+// ملاحظة: الصفقة المتخطّاة ما بتحرّر العملة لإشارة ثانية خلال مدتها (تقريب محافظ — عدد صفقات أقل شوي من الحقيقي)
+function applyPostF(job, per) {
+  const syms = Object.keys(per), names = [];
+  for (const f of job.postF) {
+    const cnt = new Map();
+    if (f.cluster) for (const s of syms) for (const t of (per[s].raw[f.from] || [])) { const k = (per[s].D.t0 + t.e*M15) + "|" + t.d; cnt.set(k, (cnt.get(k) || 0) + 1); }
+    for (const s of syms) { const D = per[s].D, raw = per[s].raw[f.from] || [];
+      per[s].raw[f.name] = raw.filter((t, j) => {
+        if (f.cluster) { const c = cnt.get((D.t0 + t.e*M15) + "|" + t.d) || 1; return f.cluster.mode === "only" ? c >= f.cluster.ge : c < f.cluster.ge; }
+        if (f.lossCool) { const p = j > 0 ? raw[j-1] : null; return !(p && p.why === "INIT_STOP" && t.e - (p.x + 1) < f.lossCool*16); }
+        return true; }); }
+    names.push(f.name);
+    if (f.cluster) { const h = {}; for (const c of cnt.values()) h[Math.min(c, 6)] = (h[Math.min(c, 6)] || 0) + c; console.log("postF cluster sizes (trades by cluster size, 6=6+):", f.name, JSON.stringify(h)); }
+  }
+  return names;
+}
+
 // ---------- نوع 2: اختيار متحرك (شغّل اللي شغال) ----------
 function jobRolling(job, per, coins) {
   const P = Pmain(job), rank = Object.fromEntries(coins.map((c, i) => [c, i])), now = Math.max(...Object.values(per).map(x => x.D.t0 + x.D.c.length*M15));
@@ -328,6 +350,7 @@ if (require.main === module) (async () => {
     const sub = await universe(job.coins, strats.filter(s => job.strategies.includes(s.name)), !!job.m5);
     let body;
     if (job.breadth) { const nm = applyBreadth(job, sub); job = { ...job, strategies: nm, slots: job.slots }; }
+    if (job.postF) { const nm = applyPostF(job, sub); job = { ...job, strategies: [...job.strategies, ...nm] }; }
     if (job.type === "confirm") {   // دمج: صفقة A بتنحسب بس إذا B فاتحة صفقة بنفس الاتجاه على نفس العملة لحظة الدخول
       const names = [];
       for (const [A, B] of job.pairs) { const nm = `${A} ✚ ${B}`; names.push(nm);
@@ -354,4 +377,4 @@ if (require.main === module) (async () => {
   console.log("done in", ((Date.now() - t0)/1000).toFixed(0), "s");
 })().catch(e => { console.error(e); process.exit(1); });
 
-module.exports = { klines, funding, E, applyBreadth };
+module.exports = { klines, funding, E, applyBreadth, applyPostF };
