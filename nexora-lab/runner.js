@@ -88,16 +88,19 @@ function buildM5(rows, D) {   // شموع 5 دقايق (مع الفوليوم) �
     else { m.o[i] = m.h[i] = m.l[i] = m.c[i] = prev; m.v[i] = 0; } }
   return m;
 }
+let BTC15REF = null;
 async function universe(coins, strats, withM5) {
   const per = {};
   { const q = [...coins]; await Promise.all(Array.from({ length: 8 }, async () => { while (q.length) { const sym = q.shift();   // تنزيل مسبق 8 عملات مع بعض (الكاش على القرص)
       try { await klines(sym, "15m"); if (withM5) await klines(sym, "5m"); await funding(sym); } catch (e) { console.log("prefetch fail", sym, e.message); } } })); }
   if (strats.some(s => s.btcF || s.rsF)) { E.setBtcRef(buildD(await klines("BTCUSDT", "15m"))); console.log("BTC filter ref loaded"); }
+  BTC15REF = null; if (strats.some(s => /دايفرجنس|سحب سيولة/.test(s.name))) { const B = buildD(await klines("BTCUSDT", "15m")); BTC15REF = { t0: B.t0, l: B.l, h: B.h, c: B.c, o: B.o }; console.log("BTC15 ref loaded"); }
   for (const sym of coins) {
     const rows = await klines(sym, "15m"), D = buildD(rows); if (!D) { console.log("skip", sym); continue; }
     if (withM5) D.m5 = buildM5(await klines(sym, "5m"), D);
     const F = fixF(await funding(sym), D), inds = { 1: E.makeInd(D, 1), 4: E.makeInd(D, 4), 16: E.makeInd(D, 16) };
     for (const sp of strats) if (sp.mult && !inds[sp.mult]) inds[sp.mult] = E.makeInd(D, sp.mult);
+    if (BTC15REF) D.btc15 = BTC15REF;   // 26/11: شموع BTC 15د (فلتر قاع/قمة BTC للدايفرجنس وسحب السيولة)
     D.sym = sym;   // لاستراتيجيات محصورة بعملات معينة
     D.fund = F;   // للاستراتيجيات اللي بتستعمل التمويل كفلتر (بس التمويل اللي صار قبل وقت الإشارة)   // فريمات تانية (6 ساعات = 24، 8 ساعات = 32)
     const raw = {}; for (const sp of strats) raw[sp.name] = E.evaluate(D, inds, sp, D.t0).filter(t => !t.open);
@@ -203,6 +206,27 @@ function jobMulti(job, per, coins) {
 // ---------- 19/11: «السوق كله نازل» (breadth) — نسبة العملات النازلة بآخر X ساعة قبل الدخول (شموع مسكّرة بس) ----------
 // job.breadth = { lookbacks: [8, 16], thr: [0.7, 0.8] } · بيعمل لكل استراتيجية: «| ترند» (قوانين المرآة) و «| ترند + سوق»
 // قوانين المرآة (18/11): لونج والعملة طالعة على الساعة ← لا · شورت والعملة طالعة على 4 ساعات ← لا · Range لازم مع ترند 4 ساعات
+
+// 26/11: الاستراتيجيات الجماعية (زي المنصة): دايفرجنس 10+ و سحب سيولة شورت CISD 5+ — العدّ على كل عملات الفحص بنفس الشمعة
+function applyDerive(job, per) {
+  const g = n => vm.runInContext(`typeof ${n} === "undefined" ? null : ${n}`, ctx), names = [];
+  const syms = Object.keys(per), all = [];
+  const R = [[g("DIV_RAW"), g("DIVR_NAME"), 10, "div"], [g("SWPS_RAW"), g("SWPS_NAME"), 5, "swp"], [g("SWPS30_RAW"), g("SWPS30_NAME"), 10, "swp"]];
+  for (const [RAWN, NM, MIN, kind] of R) { if (!RAWN || !NM || !(job.derive || []).includes(NM)) continue; names.push(NM);
+    const raw = []; for (const s of syms) for (const t of (per[s].raw[RAWN] || [])) raw.push({ t, s, eTs: per[s].D.t0 + t.e*M15, xTs: per[s].D.t0 + t.x*M15 });
+    const key = r => kind === "div" ? r.eTs + "|" + r.t.d : String(r.t.sig);
+    const cnt = new Map(); for (const r of raw) { if (kind === "swp" && r.t.nofill) continue; cnt.set(key(r), (cnt.get(key(r)) || 0) + 1); }
+    const by = new Map(); for (const r of raw) { const t = r.t;
+      if (kind === "swp" && (t.nofill || t.btcLow !== false)) continue;
+      if (kind === "div" && t.d === 1 && t.btcLow !== false) continue;
+      if ((cnt.get(key(r)) || 0) < MIN) continue; (by.get(r.s) || by.set(r.s, []).get(r.s)).push(r); }
+    for (const s of syms) per[s].raw[NM] = [];
+    for (const [s, a] of by) { let busy = -Infinity;
+      for (const r of a.sort((x, y) => kind === "div" ? x.eTs - y.eTs : x.t.sig - y.t.sig)) {
+        if (kind === "div" ? r.eTs <= busy : r.t.sig < busy) continue;
+        per[s].raw[NM].push({ ...r.t, name: NM }); busy = kind === "div" ? r.xTs : r.xTs - M15; } } }
+  return names;
+}
 function applyBreadth(job, per) {
   const syms = Object.keys(per), cfg = job.breadth, BR = {};
   const t0 = Math.min(...syms.map(s => per[s].D.t0)), t1 = Math.max(...syms.map(s => per[s].D.t0 + per[s].D.c.length*M15)), N = Math.round((t1 - t0)/M15) + 1;
@@ -351,6 +375,7 @@ if (require.main === module) (async () => {
     let body;
     if (job.breadth) { const nm = applyBreadth(job, sub); job = { ...job, strategies: nm, slots: job.slots }; }
     if (job.postF) { const nm = applyPostF(job, sub); job = { ...job, strategies: [...job.strategies, ...nm] }; }
+    if (job.derive) { const nm = applyDerive(job, sub); job = { ...job, strategies: [...job.strategies.filter(n => !/كل الإشارات/.test(n)), ...nm] }; }
     if (job.type === "confirm") {   // دمج: صفقة A بتنحسب بس إذا B فاتحة صفقة بنفس الاتجاه على نفس العملة لحظة الدخول
       const names = [];
       for (const [A, B] of job.pairs) { const nm = `${A} ✚ ${B}`; names.push(nm);
