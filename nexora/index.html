@@ -4429,7 +4429,7 @@ function mgTrend4(D) {   // ترند 4س (نفس مؤشر الترند v3): EMA5
     T[i] = wide && C[i] > s[i] && f[i] > s[i] && s[i] > s[i-10] ? 1 : wide && C[i] < s[i] && f[i] < s[i] && s[i] < s[i-10] ? -1 : 0; }
   return k => { const b = Math.floor(k/16) - 1; return b >= 0 && b < N ? T[b] : 0; };
 }
-function mgRun(D, startTs, step = 0.01, maxN = 5, trail = 2, useT = true, NAME = MG_NAME) {
+function mgRun(D, startTs, step = 0.01, maxN = 5, trail = 2, useT = true, NAME = MG_NAME, be = false) {   // be = وقف تعادل: بعد ما الصفقة تربح درجة، الوقف بينقل لدرجة الدخول
   const n = D.o.length, out = []; let k0 = Math.max(0, Math.ceil((startTs - D.t0)/M15)); if (k0 >= n) return out;
   const tr = mgTrend4(D), A = D.o[k0], g = Math.log(1 + step), K = p => Math.log(p/A)/g, LV = k => A*Math.pow(1 + step, k);
   const longs = new Map(), shorts = new Map();   // درجة → {e, px, best}
@@ -4444,14 +4444,14 @@ function mgRun(D, startTs, step = 0.01, maxN = 5, trail = 2, useT = true, NAME =
         for (let lv = Math.floor(K(prev) + 1e-12) + 1, top = Math.floor(K(p) + 1e-12); lv <= top; lv++) {
           const px = LV(lv);
           for (const q of longs.values()) if (lv > q.best) q.best = lv;
-          for (const [j, q] of [...shorts]) if (lv >= q.best + trail) close(shorts, j, -1, px, k);
+          for (const [j, q] of [...shorts]) if (lv >= q.best + trail || (be && q.best <= j - 1 && lv >= j)) close(shorts, j, -1, px, k);
           if (aL && !longs.has(lv) && longs.size < maxN) longs.set(lv, { e: k, px, best: lv });
         }
       } else {
         for (let lv = Math.ceil(K(prev) - 1e-12) - 1, bot = Math.ceil(K(p) - 1e-12); lv >= bot; lv--) {
           const px = LV(lv);
           for (const q of shorts.values()) if (lv < q.best) q.best = lv;
-          for (const [j, q] of [...longs]) if (lv <= q.best - trail) close(longs, j, 1, px, k);
+          for (const [j, q] of [...longs]) if (lv <= q.best - trail || (be && q.best >= j + 1 && lv <= j)) close(longs, j, 1, px, k);
           if (aS && !shorts.has(lv) && shorts.size < maxN) shorts.set(lv, { e: k, px, best: lv });
         }
       }
@@ -4463,6 +4463,9 @@ function mgRun(D, startTs, step = 0.01, maxN = 5, trail = 2, useT = true, NAME =
 }
 STRATS_ALL.push({ name: MG_NAME, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "غريد الزخم (فكرة المستخدم 25/11)", run: (D, inds, sp, startTs) => mgRun(D, startTs) });
 STRATS_ALL.push({ name: MG2_NAME, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "غريد الزخم بدون فلتر (فكرة المستخدم 25/11)", run: (D, inds, sp, startTs) => mgRun(D, startTs, 0.01, 5, 2, false, MG2_NAME) });
+const MG3_NAME = "غريد الزخم 1.5% · 5 درجات · وقف متحرك درجتين + تعادل + ترند 4س · 10 عملات", MG3_COINS = ["AKEUSDT", "EVAAUSDT", "SOPHUSDT", "BLURUSDT", "STRKUSDT", "TRUMPUSDT", "GALAUSDT", "DOTUSDT", "TIAUSDT", "WLDUSDT"];
+// 26/11 (طلب المستخدم): الاختيار بقاعدة ثابتة على الأشهر قبل نوفمبر — سنة تاريخ · ≥8/12 أشهر رابحة · PF>1.15 · حجم >8M$ (+ AKE و EVAA)
+STRATS_ALL.push({ name: MG3_NAME, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", coins: MG3_COINS, src: "غريد الزخم 10 عملات (طلب المستخدم 26/11)", run: (D, inds, sp, startTs) => (D.sym && !MG3_COINS.includes(D.sym)) ? [] : mgRun(D, startTs, 0.015, 5, 2, true, MG3_NAME, true) });
 STRATS_ALL.push({ name: SWPS_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة شورت + CISD ريتست جماعي 5+ (بتنحسب بالصفحة والعقل)" });
 STRATS_ALL.push({ name: SWPF_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة جماعي 10+ · BTC مش طالع 4س (بتنحسب بالصفحة والعقل)" });
 STRATS_ALL.push({ name: SWPB_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة جماعي 10+ · وقف المربع (بتنحسب بالصفحة)" });
@@ -4504,7 +4507,7 @@ const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المس�
 PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); SR_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); LS_NAMES.forEach(x => PLATFORM_KEEP12.add(x[0])); PLATFORM_KEEP12.add(RANGE_24_NAME); PLATFORM_KEEP12.add(DIV_NAME); PLATFORM_KEEP12.add(DIV_RAW); PLATFORM_KEEP12.add(DIV15_NAME); PLATFORM_KEEP12.add(DIVR_NAME); PLATFORM_KEEP12.add(INV2_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME); MACDF_BASES.forEach(b => { PLATFORM_KEEP12.add(MACDF_NAME(b)); STRATS_ALL.push({ name: MACDF_NAME(b), mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD v1.1 لونج — لحالها + فوق EMA50 4h (بتنحسب بالصفحة)" }); });
 PLATFORM_KEEP12.add(SWP_RAW); PLATFORM_KEEP12.add(SWPB_RAW); PLATFORM_KEEP12.add(SWPB_NAME); PLATFORM_KEEP12.add(SWPF_NAME); PLATFORM_KEEP12.add(SWPS_RAW); PLATFORM_KEEP12.add(SWPS_NAME); PLATFORM_KEEP12.add(SWPS30_RAW); PLATFORM_KEEP12.add(SWPS30_NAME);
 // 23/11 11:45: Lux (كود كما هو) — الوحيدة اللي نجحت بالمختبر سنتين (تدريب PF 1.86 · اختبار 1.63 · جديدة 1.88) + من التصفير على عملات الحقيقي 33 صفقة 26/7 PF 2.26 — استراتيجية ترند (مش عكسية) → على المنصة والحقيقي
-PLATFORM_KEEP12.add(MG_NAME); PLATFORM_KEEP12.add(MG2_NAME);   // 25/11: غريد الزخم — تجميع بيانات (ورقي بس)
+PLATFORM_KEEP12.add(MG_NAME); PLATFORM_KEEP12.add(MG2_NAME); PLATFORM_KEEP12.add(MG3_NAME);   // 25/11: غريد الزخم — تجميع بيانات (ورقي بس)
 PLATFORM_KEEP12.add("#8 Lux Trendline+TRAMA+Chandelier | ليمت 1% · هدف 1% · وقف 1.5% (كود كما هو)"); PLATFORM_KEEP12.add(SWP_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة · 22/11: سحب السيولة (قاعدة مخفية — الجماعي بالصفحة)
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
@@ -5560,7 +5563,7 @@ async function bridgeSend() {
 }
 setInterval(bridgeSend, 30000);
 // 17/11 21:00: المنصة بتحدّث حالها إذا نزلت نسخة جديدة (عشان ما تضل نسخة قديمة مفتوحة وتبعت صفقات استراتيجيات انشالت)
-const BUILD = "2026-11-25-1325";
+const BUILD = "2026-11-26-0710";
 setInterval(async () => { try { const t = await (await fetch(location.pathname + "?b=" + Date.now(), { cache: "no-store" })).text(); const m = t.match(/const BUILD = "([^"]+)"/); if (m && m[1] !== BUILD) { console.log("نسخة جديدة", m[1]); location.reload(); } } catch (e) {} }, 10*60000);
 document.addEventListener("click", e => { if (e.target && e.target.id === "brBtn") { BR_ON = !BR_ON; try { localStorage.setItem("nexora_bridge", BR_ON ? "1" : "0"); } catch (er) {} brRender(); bridgeSend(); } });
 setTimeout(brRender, 500);
