@@ -5,7 +5,7 @@ const ROOT = path.resolve(__dirname, ".."), DATA = process.env.NEXORA_DATA || pa
 const M1 = 60000, H4 = 4*3600e3, DAY = 864e5;
 const START = Date.UTC(2026, 8, 1), SPLIT = Date.UTC(2026, 10, 1), RESET = Date.UTC(2026, 10, 16, 13, 45);
 const FEE = 0.0005, SLIP_IN = 0.0015, SLIP_OUT = 0.001;   // تيكر 0.05% · دخول ماركت أسوأ 0.15% (الحقيقي اليوم 0.14%) · وقف ماركت 0.1%
-const COINS = ["AKEUSDT", "EVAAUSDT", "SOPHUSDT", "BLURUSDT", "STRKUSDT", "TRUMPUSDT", "GALAUSDT", "DOTUSDT", "TIAUSDT", "WLDUSDT"];
+const COINS = process.env.GRID_COINS ? process.env.GRID_COINS.split(",") : ["AKEUSDT", "EVAAUSDT", "SOPHUSDT", "BLURUSDT", "STRKUSDT", "TRUMPUSDT", "GALAUSDT", "DOTUSDT", "TIAUSDT", "WLDUSDT"];
 async function dl(url, file, mark404) {
   if (fs.existsSync(file)) return true; if (fs.existsSync(file + ".404")) return false;
   for (let k = 0; k < 4; k++) { try { const r = await fetch(url); if (r.status === 404) { if (mark404) fs.writeFileSync(file + ".404", ""); return false; }
@@ -74,14 +74,17 @@ const f$ = x => (x >= 0 ? "+" : "") + x.toFixed(0) + "$";
 if (require.main !== module) module.exports = { grid, zl, emaT, st };
 else (async () => {
   const D = {}, B4 = {};
-  await Promise.all(COINS.map(async s => { D[s] = await klines(s, "1m", START); const k4 = await klines(s, "4h", START - 200*DAY);
+  await Promise.all(COINS.map(async s => { D[s] = await klines(s, "1m", START); if (!D[s].t.length) { console.log("no data", s); return; } const k4 = await klines(s, "4h", START - 200*DAY);
     B4[s] = { ...k4, idx: new Map(k4.t.map((t, j) => [t, j])) }; B4[s].zl12 = zl(k4, 70, 1.2); B4[s].zl2 = zl(k4, 70, 2); B4[s].ema = emaT(k4); B4[s].none = new Int8Array(k4.t.length); }));
+  for (const s of [...COINS]) if (!D[s] || !D[s].t.length) COINS.splice(COINS.indexOf(s), 1);
   const END = Math.min(...COINS.map(s => D[s].t[D[s].t.length - 1] + M1));
   const V = [{ f: "zl12", step: 0.03, trail: 3, lock: 0.25, pct: null, nm: "الحالي: وقف 3 درجات + قفل ربع" }, ...[[0.012, 0.005], [0.01, 0.005], [0.015, 0.007], [0.02, 0.01], [0.03, 0.015], [0.012, 0.003]].map(x => ({ f: "zl12", step: 0.03, trail: 3, lock: 0.25, pct: x, nm: `بعد +${x[0]*100}% بيلحق ${x[1]*100}%` })), { f: "zl12", step: 0.015, trail: 2, lock: 0.25, pct: [0.012, 0.005], nm: "درجة 1.5% + بعد +1.2% بيلحق 0.5%" }];
   const P = [["أيلول+تشرين1", START, SPLIT], ["تشرين2 (فحص)", SPLIT, END], ["من التصفير", RESET, END]];
   const out = [`# غريد الزخم على شموع الدقيقة · تنفيذ واقعي: دخول ماركت +0.15% · وقف +0.1% · عمولة 0.05%×2 · درجة وحدة لكل حركة · حتى 5 درجات`,
     `# من ${new Date(START).toISOString().slice(0, 10)} لـ ${new Date(END).toISOString().slice(0, 16)} · كل الأرقام لكل صفقة 100$`, ""];
-  for (const [set, coins] of [["AKE+EVAA", COINS.slice(0, 2)], ["10 عملات", COINS]]) {
+  if (process.env.GRID_COINS) { out.push("## كل عملة لحالها (الإعداد الحالي: 3% · وقف 9% · بعد +1.2% بيلحق 0.5%)", "عملة | من | " + P.map(p => p[0]).join(" | "));
+    for (const s of COINS) out.push(`${s.replace("USDT", "")} | ${new Date(D[s].t[0]).toISOString().slice(0, 10)} | ` + P.map(([, a, b]) => { const c = st(grid(D[s], B4[s], B4[s].zl12, a, b, 0.03, 3, 5, 0.25, H4, [0.012, 0.005])); return `${c.n} · ${c.w}/${c.l} · ${f$(c.net)} · PF ${c.pf.toFixed(2)}`; }).join(" | ")); out.push(""); }
+  for (const [set, coins] of [["AKE+EVAA", COINS.slice(0, 2)], ["كل العملات", COINS]]) {
     out.push(`## ${set}`, "فلتر | درجة | وقف | " + P.map(p => p[0] + " (صفقات · ربح · خسارة · صافي · PF)").join(" | "));
     const rows = [];
     for (const v of V) { const cells = P.map(([, a, b]) => st(coins.flatMap(s => grid(D[s], B4[s], B4[s][v.f], a, b, v.step, v.trail, 5, v.lock || 0, H4, v.pct)))); rows.push({ v, cells }); }
@@ -90,5 +93,5 @@ else (async () => {
     out.push("");
   }
   fs.mkdirSync(path.join(__dirname, "results"), { recursive: true });
-  fs.writeFileSync(path.join(__dirname, "results", "grid1m_pct.txt"), out.join("\n") + "\n"); console.log(out.join("\n"));
+  fs.writeFileSync(path.join(__dirname, "results", process.env.GRID_COINS ? "grid1m_scan.txt" : "grid1m_pct.txt"), out.join("\n") + "\n"); console.log(out.join("\n"));
 })().catch(e => { console.error(e); process.exit(1); });
