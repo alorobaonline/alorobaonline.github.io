@@ -28,6 +28,6 @@ jobs:
           git config user.name "nexora-lab-bot"
           git config user.email "nexora-lab-bot@users.noreply.github.com"
           node --max-old-space-size=12000 nexora-lab/grid1m_test.js
-          git add nexora-lab/results/grid1m.txt
+          git add nexora-lab/results/grid1m_pct.txt
           git commit -m "NEXORA lab: grid 1m results" || exit 0
           for i in 1 2 3 4 5; do git pull --rebase -q && git push && break; sleep $((i*7)); done

@@ -45,10 +45,10 @@ function emaT(B) {
   return T;
 }
 // ---- الغريد بتنفيذ الحقيقي: درجة وحدة لكل قطعة مسار (الأقرب للسعر) · دخول أسوأ · وقف ماركت أسوأ ----
-function grid(D, B4, T4, from, to, step, trail, maxN = 5) {
+function grid(D, B4, T4, from, to, step, trail, maxN = 5, lock = 0, TF = H4, pct = null) {   // pct = [تفعيل, مسافة]: بعد ما الربح يوصل تفعيل، الوقف بيلحق أعلى ربح بمسافة (زي TRAILING_STOP_MARKET تبع بايننس)   // lock = بعد ما تربح درجة: الوقف بيصير فوق الدخول بجزء من درجة (0 = على الدخول · 0.5 = نص درجة)
   const out = [], g = Math.log(1 + step); let i0 = D.t.findIndex(t => t >= from); if (i0 < 0) return out;
   const A = D.o[i0], K = p => Math.log(p/A)/g, LV = k => A*Math.pow(1 + step, k), legs = [];
-  const tAt = t => { const b = Math.floor(t/H4)*H4 - H4, j = B4.idx.get(b); return j === undefined ? 0 : T4[j]; };
+  const tAt = t => { const b = Math.floor(t/TF)*TF - TF, j = B4.idx.get(b); return j === undefined ? 0 : T4[j]; };
   const stopK = q => q.d === 1 ? (q.best >= q.k + 1 ? Math.max(q.best - trail, q.k) : q.k - trail) : (q.best <= q.k - 1 ? Math.min(q.best + trail, q.k) : q.k + trail);
   const exit = (q, px, t) => { legs.splice(legs.indexOf(q), 1); const x = px*(1 - q.d*SLIP_OUT); out.push({ t, d: q.d, r: q.d*(x/q.fill - 1) - 2*FEE }); };
   let prev = D.o[i0];
@@ -56,7 +56,8 @@ function grid(D, B4, T4, from, to, step, trail, maxN = 5) {
     const tr = tAt(D.t[i]), path = D.c[i] >= D.o[i] ? [D.o[i], D.l[i], D.h[i], D.c[i]] : [D.o[i], D.h[i], D.l[i], D.c[i]];
     for (const p of path) { if (p === prev) continue; const up = p > prev;
       // الوقوف أول (بايننس بتنفّذها لحالها)
-      for (const q of [...legs]) { const sp = LV(stopK(q)); if (q.d === 1 ? p <= sp : p >= sp) exit(q, sp, D.t[i]); }
+      if (pct) for (const q of legs) { const f = q.d*(p/q.fill - 1); if (!(q.mfe >= f)) q.mfe = f; }
+      for (const q of [...legs]) { let sp = LV(stopK(q)); if (pct && q.mfe >= pct[0]) { const pp = q.fill*(1 + q.d*(q.mfe - pct[1])); sp = q.d === 1 ? Math.max(sp, pp) : Math.min(sp, pp); } if (lock && q.d*(q.best - q.k) >= 1) { const lp = LV(q.k + q.d*lock); sp = q.d === 1 ? Math.max(sp, lp) : Math.min(sp, lp); } if (q.d === 1 ? p <= sp : p >= sp) exit(q, sp, D.t[i]); }
       const lv = up ? Math.floor(K(p) + 1e-12) : Math.ceil(K(p) - 1e-12), crossed = up ? lv > Math.floor(K(prev) + 1e-12) : lv < Math.ceil(K(prev) - 1e-12);
       if (crossed) { const d = up ? 1 : -1;
         for (const q of legs) if (q.d === d && (up ? lv > q.best : lv < q.best)) q.best = lv;
@@ -76,18 +77,18 @@ else (async () => {
   await Promise.all(COINS.map(async s => { D[s] = await klines(s, "1m", START); const k4 = await klines(s, "4h", START - 200*DAY);
     B4[s] = { ...k4, idx: new Map(k4.t.map((t, j) => [t, j])) }; B4[s].zl12 = zl(k4, 70, 1.2); B4[s].zl2 = zl(k4, 70, 2); B4[s].ema = emaT(k4); B4[s].none = new Int8Array(k4.t.length); }));
   const END = Math.min(...COINS.map(s => D[s].t[D[s].t.length - 1] + M1));
-  const V = []; for (const f of ["zl12", "zl2", "ema"]) for (const step of [0.015, 0.02, 0.03, 0.04, 0.05, 0.06]) for (const trail of [1, 2, 3]) V.push({ f, step, trail });
+  const V = [{ f: "zl12", step: 0.03, trail: 3, lock: 0.25, pct: null, nm: "الحالي: وقف 3 درجات + قفل ربع" }, ...[[0.012, 0.005], [0.01, 0.005], [0.015, 0.007], [0.02, 0.01], [0.03, 0.015], [0.012, 0.003]].map(x => ({ f: "zl12", step: 0.03, trail: 3, lock: 0.25, pct: x, nm: `بعد +${x[0]*100}% بيلحق ${x[1]*100}%` })), { f: "zl12", step: 0.015, trail: 2, lock: 0.25, pct: [0.012, 0.005], nm: "درجة 1.5% + بعد +1.2% بيلحق 0.5%" }];
   const P = [["أيلول+تشرين1", START, SPLIT], ["تشرين2 (فحص)", SPLIT, END], ["من التصفير", RESET, END]];
   const out = [`# غريد الزخم على شموع الدقيقة · تنفيذ واقعي: دخول ماركت +0.15% · وقف +0.1% · عمولة 0.05%×2 · درجة وحدة لكل حركة · حتى 5 درجات`,
     `# من ${new Date(START).toISOString().slice(0, 10)} لـ ${new Date(END).toISOString().slice(0, 16)} · كل الأرقام لكل صفقة 100$`, ""];
   for (const [set, coins] of [["AKE+EVAA", COINS.slice(0, 2)], ["10 عملات", COINS]]) {
     out.push(`## ${set}`, "فلتر | درجة | وقف | " + P.map(p => p[0] + " (صفقات · ربح · خسارة · صافي · PF)").join(" | "));
     const rows = [];
-    for (const v of V) { const cells = P.map(([, a, b]) => st(coins.flatMap(s => grid(D[s], B4[s], B4[s][v.f], a, b, v.step, v.trail)))); rows.push({ v, cells }); }
+    for (const v of V) { const cells = P.map(([, a, b]) => st(coins.flatMap(s => grid(D[s], B4[s], B4[s][v.f], a, b, v.step, v.trail, 5, v.lock || 0, H4, v.pct)))); rows.push({ v, cells }); }
     rows.sort((x, y) => y.cells[0].net + y.cells[1].net - x.cells[0].net - x.cells[1].net);
-    for (const { v, cells } of rows) out.push(`${v.f} | ${(v.step*100).toFixed(1)}% | ${v.trail} | ` + cells.map(c => `${c.n} · ${c.w} (${f$(c.W)}) · ${c.l} (${f$(c.L)}) · ${f$(c.net)} · ${c.pf.toFixed(2)}${c.net > 0 && c.pf > 1.1 ? " ✅" : c.net > 0 ? " 🟡" : " ❌"}`).join(" | "));
+    for (const { v, cells } of rows) out.push(`${v.nm || v.f} | ${(v.step*100).toFixed(1)}% | ${v.trail} | ` + cells.map(c => `${c.n} · ${c.w} (${f$(c.W)}) · ${c.l} (${f$(c.L)}) · ${f$(c.net)} · ${c.pf.toFixed(2)}${c.net > 0 && c.pf > 1.1 ? " ✅" : c.net > 0 ? " 🟡" : " ❌"}`).join(" | "));
     out.push("");
   }
   fs.mkdirSync(path.join(__dirname, "results"), { recursive: true });
-  fs.writeFileSync(path.join(__dirname, "results", "grid1m.txt"), out.join("\n") + "\n"); console.log(out.join("\n"));
+  fs.writeFileSync(path.join(__dirname, "results", "grid1m_pct.txt"), out.join("\n") + "\n"); console.log(out.join("\n"));
 })().catch(e => { console.error(e); process.exit(1); });
