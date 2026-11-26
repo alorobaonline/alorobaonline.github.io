@@ -3434,13 +3434,13 @@ const OLDB = (() => {
   // محرك البوت (engine.process_bar لعملة وحدة)
   function sim(D, sp, startTs, decide, prep, pre) {   // pre = خروج قبل منطق المحرك (فيبو/جان: 18 شمعة وهي خسرانة · حماية ربح)
     const B = bars4(D); if (B.K < 120) return [];
-    const S = prep(B, D), out = [], nD = D.o.length;
+    const S = prep(B, D, sp), out = [], nD = D.o.length;   // 26/11: sp للبريب (إعدادات فيبو بالمختبر — الافتراضي نفسه)
     let spos = 0, pos = null, blocked = 0;
     for (let i = 0; i < B.K; i++) {
       const eD = (i + 1)*16;
       if (pre && pos) {
         const g = (B.C[i]/pos.ref - 1)*pos.d; pos.best = Math.max(pos.best || 0, g);
-        const why = pre(i - pos.si, g, pos.best);
+        const why = pre(i - pos.si, g, pos.best, sp);
         if (why) {
           if (pos.e*M15 + D.t0 >= startTs) out.push(eD < nD
             ? { name: sp.name, d: pos.d, e: pos.e, x: eD, rawIn: D.o[pos.e], rawOut: D.o[eD], why, open: false, stop: pos.ref*(1 - pos.d*0.08), target: NaN }
@@ -3538,9 +3538,9 @@ const OLDB = (() => {
   const pivots = (H, L, n) => { const N = H.length, ph = new Array(N).fill(null), pl = new Array(N).fill(null);
     for (let i = 2*n; i < N; i++) { const k = i - n; let mh = -Infinity, ml = Infinity; for (let j = i - 2*n; j <= i; j++) { if (H[j] > mh) mh = H[j]; if (L[j] < ml) ml = L[j]; }
       if (H[k] === mh) ph[i] = H[k]; if (L[k] === ml) pl[i] = L[k]; } return { ph, pl }; };
-  const levelSig = (B, lineF) => { const { H, L, C } = B, N = C.length, { ph, pl } = pivots(H, L, 7), raw = new Array(N).fill(0), used = new Set();
+  const levelSig = (B, lineF, sw = 7) => { const { H, L, C } = B, N = C.length, { ph, pl } = pivots(H, L, sw), raw = new Array(N).fill(0), used = new Set();
     let hP = null, lP = null, hB = -1, lB = -1;
-    for (let i = 1; i < N; i++) { if (ph[i] !== null) { hP = ph[i]; hB = i - 7; } if (pl[i] !== null) { lP = pl[i]; lB = i - 7; }
+    for (let i = 1; i < N; i++) { if (ph[i] !== null) { hP = ph[i]; hB = i - sw; } if (pl[i] !== null) { lP = pl[i]; lB = i - sw; }
       if (hP === null || lP === null || hB === lB || i < 2) continue;
       const up = hB > lB, ln = lineF(up, hP, lP, hB, lB), key = hB + "," + lB; if (used.has(key)) continue;
       if (up && C[i-2] >= ln(i-2) && C[i-1] < ln(i-1) && C[i] < ln(i)) raw[i] = -1;
@@ -3548,10 +3548,11 @@ const OLDB = (() => {
       if (raw[i]) used.add(key); }
     return raw; };
   const fibDec = filt => (S, B, i, spos, D, ts) => { const s = S.raw[i]; if (!s || s === spos) return null;
-    const f = filt(B, i, D, ts); return { exit: spos === -s, entry: (f === 0 || f === s) ? s : 0 }; };
-  const fib = mk("📐 بوت فيبو 0.618 4h (fibbot)", fibDec((B, i, D, ts) => btcAt(D, ts, 600)),
-    B => ({ raw: levelSig(B, (up, hP, lP) => { const x = up ? lP + (hP - lP)*0.618 : hP + (lP - hP)*0.618; return () => x; }) }),
-    { pre: (held, g, best) => held >= 18 && g <= 0 ? "TIME18" : (best >= 0.06 && g <= best - 0.02 ? "TRAIL" : null) });
+    const f = filt(B, i, D, ts, S); return { exit: spos === -s, entry: (f === 0 || f === s) ? s : 0 }; };
+  // 26/11 (مختبر): إعدادات اختيارية بالـ sp للفحص (fibLv مستوى · fibSw سوينغ · fibBtc متوسط BTC، 0 = بلا فلتر · fibTime · fibTrA/fibTrB حماية الربح) — بدونها = البوت الأصلي حرفياً
+  const fib = mk("📐 بوت فيبو 0.618 4h (fibbot)", fibDec((B, i, D, ts, S) => S.bn ? btcAt(D, ts, S.bn) : 0),
+    (B, D, sp = {}) => { const lv = sp.fibLv ?? 0.618; return { bn: sp.fibBtc ?? 600, raw: levelSig(B, (up, hP, lP) => { const x = up ? lP + (hP - lP)*lv : hP + (lP - hP)*lv; return () => x; }, sp.fibSw ?? 7) }; },
+    { pre: (held, g, best, sp = {}) => { const tN = sp.fibTime ?? 18, tA = sp.fibTrA ?? 0.06, tB = sp.fibTrB ?? 0.02; return held >= tN && g <= 0 ? "TIME18" : (best >= tA && g <= best - tB ? "TRAIL" : null); } });
   const gann = mk("📐 بوت جان 1×8 4h (gannbot)", fibDec((B, i) => smaAbove(B.C, i, 600)),
     B => ({ raw: levelSig(B, (up, hP, lP, hB, lB) => { const a0 = up ? lB : hB, p0 = up ? lP : hP, sc = Math.abs(hP - lP)/Math.abs(hB - lB);
       return j => up ? p0 + sc*(j - a0)/8 : p0 - sc*(j - a0)/8; }) }),

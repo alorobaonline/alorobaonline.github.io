@@ -3228,13 +3228,13 @@ const OLDB = (() => {
   // محرك البوت (engine.process_bar لعملة وحدة)
   function sim(D, sp, startTs, decide, prep, pre) {   // pre = خروج قبل منطق المحرك (فيبو/جان: 18 شمعة وهي خسرانة · حماية ربح)
     const B = bars4(D); if (B.K < 120) return [];
-    const S = prep(B, D), out = [], nD = D.o.length;
+    const S = prep(B, D, sp), out = [], nD = D.o.length;   // 26/11: sp للبريب (إعدادات فيبو بالمختبر — الافتراضي نفسه)
     let spos = 0, pos = null, blocked = 0;
     for (let i = 0; i < B.K; i++) {
       const eD = (i + 1)*16;
       if (pre && pos) {
         const g = (B.C[i]/pos.ref - 1)*pos.d; pos.best = Math.max(pos.best || 0, g);
-        const why = pre(i - pos.si, g, pos.best);
+        const why = pre(i - pos.si, g, pos.best, sp);
         if (why) {
           if (pos.e*M15 + D.t0 >= startTs) out.push(eD < nD
             ? { name: sp.name, d: pos.d, e: pos.e, x: eD, rawIn: D.o[pos.e], rawOut: D.o[eD], why, open: false, stop: pos.ref*(1 - pos.d*0.08), target: NaN }
@@ -3332,9 +3332,9 @@ const OLDB = (() => {
   const pivots = (H, L, n) => { const N = H.length, ph = new Array(N).fill(null), pl = new Array(N).fill(null);
     for (let i = 2*n; i < N; i++) { const k = i - n; let mh = -Infinity, ml = Infinity; for (let j = i - 2*n; j <= i; j++) { if (H[j] > mh) mh = H[j]; if (L[j] < ml) ml = L[j]; }
       if (H[k] === mh) ph[i] = H[k]; if (L[k] === ml) pl[i] = L[k]; } return { ph, pl }; };
-  const levelSig = (B, lineF) => { const { H, L, C } = B, N = C.length, { ph, pl } = pivots(H, L, 7), raw = new Array(N).fill(0), used = new Set();
+  const levelSig = (B, lineF, sw = 7) => { const { H, L, C } = B, N = C.length, { ph, pl } = pivots(H, L, sw), raw = new Array(N).fill(0), used = new Set();
     let hP = null, lP = null, hB = -1, lB = -1;
-    for (let i = 1; i < N; i++) { if (ph[i] !== null) { hP = ph[i]; hB = i - 7; } if (pl[i] !== null) { lP = pl[i]; lB = i - 7; }
+    for (let i = 1; i < N; i++) { if (ph[i] !== null) { hP = ph[i]; hB = i - sw; } if (pl[i] !== null) { lP = pl[i]; lB = i - sw; }
       if (hP === null || lP === null || hB === lB || i < 2) continue;
       const up = hB > lB, ln = lineF(up, hP, lP, hB, lB), key = hB + "," + lB; if (used.has(key)) continue;
       if (up && C[i-2] >= ln(i-2) && C[i-1] < ln(i-1) && C[i] < ln(i)) raw[i] = -1;
@@ -3342,10 +3342,11 @@ const OLDB = (() => {
       if (raw[i]) used.add(key); }
     return raw; };
   const fibDec = filt => (S, B, i, spos, D, ts) => { const s = S.raw[i]; if (!s || s === spos) return null;
-    const f = filt(B, i, D, ts); return { exit: spos === -s, entry: (f === 0 || f === s) ? s : 0 }; };
-  const fib = mk("📐 بوت فيبو 0.618 4h (fibbot)", fibDec((B, i, D, ts) => btcAt(D, ts, 600)),
-    B => ({ raw: levelSig(B, (up, hP, lP) => { const x = up ? lP + (hP - lP)*0.618 : hP + (lP - hP)*0.618; return () => x; }) }),
-    { pre: (held, g, best) => held >= 18 && g <= 0 ? "TIME18" : (best >= 0.06 && g <= best - 0.02 ? "TRAIL" : null) });
+    const f = filt(B, i, D, ts, S); return { exit: spos === -s, entry: (f === 0 || f === s) ? s : 0 }; };
+  // 26/11 (مختبر): إعدادات اختيارية بالـ sp للفحص (fibLv مستوى · fibSw سوينغ · fibBtc متوسط BTC، 0 = بلا فلتر · fibTime · fibTrA/fibTrB حماية الربح) — بدونها = البوت الأصلي حرفياً
+  const fib = mk("📐 بوت فيبو 0.618 4h (fibbot)", fibDec((B, i, D, ts, S) => S.bn ? btcAt(D, ts, S.bn) : 0),
+    (B, D, sp = {}) => { const lv = sp.fibLv ?? 0.618; return { bn: sp.fibBtc ?? 600, raw: levelSig(B, (up, hP, lP) => { const x = up ? lP + (hP - lP)*lv : hP + (lP - hP)*lv; return () => x; }, sp.fibSw ?? 7) }; },
+    { pre: (held, g, best, sp = {}) => { const tN = sp.fibTime ?? 18, tA = sp.fibTrA ?? 0.06, tB = sp.fibTrB ?? 0.02; return held >= tN && g <= 0 ? "TIME18" : (best >= tA && g <= best - tB ? "TRAIL" : null); } });
   const gann = mk("📐 بوت جان 1×8 4h (gannbot)", fibDec((B, i) => smaAbove(B.C, i, 600)),
     B => ({ raw: levelSig(B, (up, hP, lP, hB, lB) => { const a0 = up ? lB : hB, p0 = up ? lP : hP, sc = Math.abs(hP - lP)/Math.abs(hB - lB);
       return j => up ? p0 + sc*(j - a0)/8 : p0 - sc*(j - a0)/8; }) }),
@@ -3917,8 +3918,8 @@ function luxL10Wrap(baseName, name, depth, tp, sl, asis = false, m5 = false) {  
         if (d === 1 ? D.h[j] >= tgt : D.l[j] <= tgt) { px = tgt; why = "TARGET"; xi = j; break; }
       }
       const w = t.w || 1;
-      if (px !== null) { out.push({ name, d, e: ei, x: xi, rawIn: e, rawOut: px, why, open: false, stop, target: tgt, lim: true, ...(w !== 1 ? { w } : {}) }); busy = xi; }
-      else { out.push({ name, d, e: ei, x: n - 1, rawIn: e, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt, lim: true, ...(w !== 1 ? { w } : {}) }); busy = n - 1; }
+      if (px !== null) { out.push({ name, d, e: ei, x: xi, rawIn: e, rawOut: px, why, open: false, stop, target: tgt, lim: depth > 0, ...(w !== 1 ? { w } : {}) }); busy = xi; }
+      else { out.push({ name, d, e: ei, x: n - 1, rawIn: e, rawOut: D.c[n-1], why: "TIME", open: true, stop, target: tgt, lim: depth > 0, ...(w !== 1 ? { w } : {}) }); busy = n - 1; }
     }
     return out;
   };
@@ -3927,6 +3928,7 @@ function luxL10Wrap(baseName, name, depth, tp, sl, asis = false, m5 = false) {  
 STRATS_ALL.push(luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", LUX_L10, 0.010, 0.010, 0.015),
   luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", LUX_L10 + " (دقة 5د)", 0.010, 0.010, 0.015, true, true),   // مختبر بس (بيحتاج D.m5)
   luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", LUX_L10 + " (كود كما هو)", 0.010, 0.010, 0.015, true));   // الثانية مختبر بس
+STRATS_ALL.push(luxL10Wrap("#8 Lux Trendline+TRAMA+Chandelier", "#8 Lux Trendline+TRAMA+Chandelier | دخول ماركت · هدف 1% · وقف 1.5% (كود كما هو)", 0, 0.010, 0.015, true));   // 25/11: مختبر بس — نفس الإشارة بدون ليمت (مقارنة طلب المستخدم)
 STRATS_ALL.push(dirOnlyWrap("#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.8%", -1), dirOnlyWrap("#8 Lux Trendline+TRAMA+Chandelier | 1.2% ليمت 0.6%", -1));   // مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(quietWrap(timingWrap(b, "limit6")));   // مختبر بس
 for (const b of ["V42 4H SHORT b0", "#8 Lux Trendline+TRAMA+Chandelier"]) STRATS_ALL.push(posWrap(tpWrap(b, 0.012, 0.012, "هدف 1.2% وقف 1.2%"), 0.4), posWrap(timingWrap(b, "limit6"), 0.4));   // مختبر بس
@@ -4208,6 +4210,57 @@ function swpDerive(arr) {   // 22/11: 10 عملات حقيقية أو أكثر �
 const DIVR_NAME = "دايفرجنس AlgoAlpha 15د · جماعي 10+ (الحقيقية) · وقف 2% + بلا لونج على قاع BTC";
 STRATS_ALL.push({ name: DIVR_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "دايفرجنس جماعي 10+ عملات حقيقية (بتنحسب بالصفحة والعقل)" });
 STRATS_ALL.push({ name: SWPS30_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة شورت 30د + CISD ريتست جماعي 10+ (بتنحسب بالصفحة والعقل)" });
+// 25/11: غريد الزخم (فكرة المستخدم «الحق السعر واعمل غريد») — درجات 1% من سعر أول شمعة بعد التصفير · السعر يطلع درجة = لونج (لو ترند 4س صاعد) · ينزل درجة = شورت (لو 4س هابط) · أقصى 5 بكل اتجاه · كل صفقة وقف متحرك درجتين ورا أفضل درجة
+const MG_NAME = "غريد الزخم 1% · 5 درجات · وقف متحرك درجتين + ترند 4س", MG2_NAME = "غريد الزخم 1% · 5 درجات · وقف متحرك درجتين (الاتجاهين بدون فلتر)";
+function mgTrend4(D) {   // ترند 4س (نفس مؤشر الترند v3): EMA50/200 + مسافة ≥ ATR + ميل الـ200 على 10 شموع — لكل شمعة 15د: آخر شمعة 4س مسكّرة
+  const n = D.o.length, N = Math.floor(n/16), O = [], H = [], L = [], C = [];
+  for (let b = 0; b < N; b++) { let h = -Infinity, l = Infinity; for (let j = b*16; j < b*16 + 16; j++) { if (D.h[j] > h) h = D.h[j]; if (D.l[j] < l) l = D.l[j]; } O.push(D.o[b*16]); H.push(h); L.push(l); C.push(D.c[b*16 + 15]); }
+  const ema = (x, p) => { const a = 2/(p + 1), o = [x[0]]; for (let i = 1; i < x.length; i++) o.push(a*x[i] + (1 - a)*o[i-1]); return o; };
+  const f = ema(C, 50), s = ema(C, 200), at = new Array(N).fill(NaN);
+  if (N >= 14) { let sum = 0; for (let i = 0; i < 14; i++) sum += i ? Math.max(H[i] - L[i], Math.abs(H[i] - C[i-1]), Math.abs(L[i] - C[i-1])) : H[0] - L[0]; at[13] = sum/14;
+    for (let i = 14; i < N; i++) at[i] = (at[i-1]*13 + Math.max(H[i] - L[i], Math.abs(H[i] - C[i-1]), Math.abs(L[i] - C[i-1])))/14; }
+  const T = new Array(N).fill(0);
+  for (let i = 10; i < N; i++) { const wide = Math.abs(f[i] - s[i]) >= at[i];
+    T[i] = wide && C[i] > s[i] && f[i] > s[i] && s[i] > s[i-10] ? 1 : wide && C[i] < s[i] && f[i] < s[i] && s[i] < s[i-10] ? -1 : 0; }
+  return k => { const b = Math.floor(k/16) - 1; return b >= 0 && b < N ? T[b] : 0; };
+}
+function mgRun(D, startTs, step = 0.01, maxN = 5, trail = 2, useT = true, NAME = MG_NAME, be = false) {   // be = وقف تعادل: بعد ما الصفقة تربح درجة، الوقف بينقل لدرجة الدخول
+  const n = D.o.length, out = []; let k0 = Math.max(0, Math.ceil((startTs - D.t0)/M15)); if (k0 >= n) return out;
+  const tr = mgTrend4(D), A = D.o[k0], g = Math.log(1 + step), K = p => Math.log(p/A)/g, LV = k => A*Math.pow(1 + step, k);
+  const longs = new Map(), shorts = new Map();   // درجة → {e, px, best}
+  const close = (m, j, d, px, x) => { const p = m.get(j); m.delete(j); out.push({ name: NAME, d, e: p.e, x, rawIn: p.px, rawOut: px, why: "TRAIL_STOP", open: false, stop: NaN, target: NaN }); };
+  let prev = D.o[k0];
+  for (let k = k0; k < n; k++) {
+    const t4 = useT ? tr(k) : 0, aL = !useT || t4 === 1, aS = !useT || t4 === -1;
+    const path = D.c[k] >= D.o[k] ? [D.o[k], D.l[k], D.h[k], D.c[k]] : [D.o[k], D.h[k], D.l[k], D.c[k]];
+    for (const p of path) {
+      if (p === prev) continue;
+      if (p > prev) {
+        for (let lv = Math.floor(K(prev) + 1e-12) + 1, top = Math.floor(K(p) + 1e-12); lv <= top; lv++) {
+          const px = LV(lv);
+          for (const q of longs.values()) if (lv > q.best) q.best = lv;
+          for (const [j, q] of [...shorts]) if (lv >= q.best + trail || (be && q.best <= j - 1 && lv >= j)) close(shorts, j, -1, px, k);
+          if (aL && !longs.has(lv) && longs.size < maxN) longs.set(lv, { e: k, px, best: lv });
+        }
+      } else {
+        for (let lv = Math.ceil(K(prev) - 1e-12) - 1, bot = Math.ceil(K(p) - 1e-12); lv >= bot; lv--) {
+          const px = LV(lv);
+          for (const q of shorts.values()) if (lv < q.best) q.best = lv;
+          for (const [j, q] of [...longs]) if (lv <= q.best - trail || (be && q.best >= j + 1 && lv <= j)) close(longs, j, 1, px, k);
+          if (aS && !shorts.has(lv) && shorts.size < maxN) shorts.set(lv, { e: k, px, best: lv });
+        }
+      }
+      prev = p;
+    }
+  }
+  for (const [m, d] of [[longs, 1], [shorts, -1]]) for (const q of m.values()) out.push({ name: NAME, d, e: q.e, x: n - 1, rawIn: q.px, rawOut: D.c[n-1], why: "TIME", open: true, stop: q.px*(1 - d*trail*step), target: NaN });
+  return out;
+}
+STRATS_ALL.push({ name: MG_NAME, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "غريد الزخم (فكرة المستخدم 25/11)", run: (D, inds, sp, startTs) => mgRun(D, startTs) });
+STRATS_ALL.push({ name: MG2_NAME, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "غريد الزخم بدون فلتر (فكرة المستخدم 25/11)", run: (D, inds, sp, startTs) => mgRun(D, startTs, 0.01, 5, 2, false, MG2_NAME) });
+const MG3_NAME = "غريد الزخم 1.5% · 5 درجات · وقف متحرك درجتين + تعادل + ترند 4س · 10 عملات", MG3_COINS = ["AKEUSDT", "EVAAUSDT", "SOPHUSDT", "BLURUSDT", "STRKUSDT", "TRUMPUSDT", "GALAUSDT", "DOTUSDT", "TIAUSDT", "WLDUSDT"];
+// 26/11 (طلب المستخدم): الاختيار بقاعدة ثابتة على الأشهر قبل نوفمبر — سنة تاريخ · ≥8/12 أشهر رابحة · PF>1.15 · حجم >8M$ (+ AKE و EVAA)
+STRATS_ALL.push({ name: MG3_NAME, mult: 1, sig: () => 0, sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", coins: MG3_COINS, src: "غريد الزخم 10 عملات (طلب المستخدم 26/11)", run: (D, inds, sp, startTs) => (D.sym && !MG3_COINS.includes(D.sym)) ? [] : mgRun(D, startTs, 0.015, 5, 2, true, MG3_NAME, true) });
 STRATS_ALL.push({ name: SWPS_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة شورت + CISD ريتست جماعي 5+ (بتنحسب بالصفحة والعقل)" });
 STRATS_ALL.push({ name: SWPF_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة جماعي 10+ · BTC مش طالع 4س (بتنحسب بالصفحة والعقل)" });
 STRATS_ALL.push({ name: SWPB_NAME, mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "سحب سيولة جماعي 10+ · وقف المربع (بتنحسب بالصفحة)" });
@@ -4249,6 +4302,7 @@ const PLAT_TP15 = false;   // 17/11 18:54: رجعنا لـ1.2% (طلب المس�
 PLATFORM_DATA18.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(MACD_LS_NAME); SR_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); LS_NAMES.forEach(x => PLATFORM_KEEP12.add(x[0])); PLATFORM_KEEP12.add(RANGE_24_NAME); PLATFORM_KEEP12.add(DIV_NAME); PLATFORM_KEEP12.add(DIV_RAW); PLATFORM_KEEP12.add(DIV15_NAME); PLATFORM_KEEP12.add(DIVR_NAME); PLATFORM_KEEP12.add(INV2_NAME); GROUP_NAMES.forEach(n => PLATFORM_KEEP12.add(n)); PLATFORM_KEEP12.add(INV_NAME); MACDF_BASES.forEach(b => { PLATFORM_KEEP12.add(MACDF_NAME(b)); STRATS_ALL.push({ name: MACDF_NAME(b), mult: 1, sig: () => 0, run: () => [], sm: 0, tm: 0, hold: 0, trail: null, cd: null, entry: "imm", src: "MACD v1.1 لونج — لحالها + فوق EMA50 4h (بتنحسب بالصفحة)" }); });
 PLATFORM_KEEP12.add(SWP_RAW); PLATFORM_KEEP12.add(SWPB_RAW); PLATFORM_KEEP12.add(SWPB_NAME); PLATFORM_KEEP12.add(SWPF_NAME); PLATFORM_KEEP12.add(SWPS_RAW); PLATFORM_KEEP12.add(SWPS_NAME); PLATFORM_KEEP12.add(SWPS30_RAW); PLATFORM_KEEP12.add(SWPS30_NAME);
 // 23/11 11:45: Lux (كود كما هو) — الوحيدة اللي نجحت بالمختبر سنتين (تدريب PF 1.86 · اختبار 1.63 · جديدة 1.88) + من التصفير على عملات الحقيقي 33 صفقة 26/7 PF 2.26 — استراتيجية ترند (مش عكسية) → على المنصة والحقيقي
+PLATFORM_KEEP12.add(MG_NAME); PLATFORM_KEEP12.add(MG2_NAME); PLATFORM_KEEP12.add(MG3_NAME);   // 25/11: غريد الزخم — تجميع بيانات (ورقي بس)
 PLATFORM_KEEP12.add("#8 Lux Trendline+TRAMA+Chandelier | ليمت 1% · هدف 1% · وقف 1.5% (كود كما هو)"); PLATFORM_KEEP12.add(SWP_NAME);   // 18/11: نسخ تجميع المعلومات على المنصة · 22/11: سحب السيولة (قاعدة مخفية — الجماعي بالصفحة)
 const PLATFORM_KEEP = PLAT_TP15 ? new Set([...PLATFORM_KEEP12].map(P15)) : PLATFORM_KEEP12;
 // 17/11 07:49: ما في فوليوم كشرط على المنصة (طلب المستخدم — بفحص السنتين ما ساعد): Wave ونسخة S15 مع الفوليوم بالمختبر بس
