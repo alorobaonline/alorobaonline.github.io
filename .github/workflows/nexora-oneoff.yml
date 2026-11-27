@@ -1,0 +1,25 @@
+name: nexora-oneoff
+# فحوصات سريعة لمرة وحدة (بيانات بايننس العامة). ما بيلمس ملفات المتجر.
+on:
+  push:
+    branches: [main]
+    paths: ["nexora-lab/bulla_tp2.js", ".github/workflows/nexora-oneoff.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: |
+          git config user.name "nexora-lab-bot"
+          git config user.email "nexora-lab-bot@users.noreply.github.com"
+          node nexora-lab/bulla_tp2.js
+          git add nexora-lab/results/bulla_tp2.txt
+          git commit -m "NEXORA lab: bulla tp2 results" || exit 0
+          for i in 1 2 3 4 5; do git pull --rebase -q && git push && break; sleep $((i*7)); done
