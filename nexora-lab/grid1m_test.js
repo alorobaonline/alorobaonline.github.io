@@ -23,7 +23,7 @@ async function klines(sym, iv, from) {
     for (let dd = 1; dd <= days; dd++) { const t = Date.UTC(y, mo - 1, dd); if (t > Date.now() - DAY) break; const ds = new Date(t).toISOString().slice(0, 10), fd = path.join(dir, `${ds}.zip`);
       if (await dl(`https://data.binance.vision/data/futures/um/daily/klines/${sym}/${iv}/${sym}-${iv}-${ds}.zip`, fd)) for (const r of csv(fd)) rows.set(+r[0], r); } }
   const ks = [...rows.keys()].sort((a, b) => a - b);
-  return { t: ks, o: ks.map(k => +rows.get(k)[1]), h: ks.map(k => +rows.get(k)[2]), l: ks.map(k => +rows.get(k)[3]), c: ks.map(k => +rows.get(k)[4]) };
+  return { t: ks, o: ks.map(k => +rows.get(k)[1]), h: ks.map(k => +rows.get(k)[2]), l: ks.map(k => +rows.get(k)[3]), c: ks.map(k => +rows.get(k)[4]), v: ks.map(k => +rows.get(k)[5]) };
 }
 // ---- ترند 4س من شموع 4س جاهزة (آخر شمعة مسكّرة) ----
 function zl(B, len = 70, mult = 1.2) {
@@ -44,6 +44,19 @@ function emaT(B) {
     if (i >= 10) { const w = Math.abs(f[i] - s[i]) >= at; T[i] = w && C[i] > s[i] && f[i] > s[i] && s[i] > s[i-10] ? 1 : w && C[i] < s[i] && f[i] < s[i] && s[i] < s[i-10] ? -1 : 0; } }
   return T;
 }
+// 27/11: SuperTrend (Kivanc 10/3) + Ultimate MA (ChrisMoody SMA20 ميل [2]) + AlphaTrend (Kivanc 14/1 MFI) — قيمة لكل شمعة مسكّرة
+function tri(B) { const n = B.c.length, h = B.h, l = B.l, c = B.c, v = B.v;
+  const tr = c.map((_, i) => i ? Math.max(h[i] - l[i], Math.abs(h[i] - c[i-1]), Math.abs(l[i] - c[i-1])) : h[i] - l[i]);
+  const ST = new Int8Array(n), UM = new Int8Array(n), AL = new Int8Array(n), T = new Int8Array(n);
+  let a = 0, up = 0, dn = 0, d = 1; for (let i = 0; i < n; i++) { a = i < 10 ? (a*i + tr[i])/(i + 1) : (a*9 + tr[i])/10; const s = (h[i] + l[i])/2; let u = s - 3*a, w = s + 3*a;
+    if (i) { u = c[i-1] > up ? Math.max(u, up) : u; w = c[i-1] < dn ? Math.min(w, dn) : w; d = d === -1 && c[i] > dn ? 1 : d === 1 && c[i] < up ? -1 : d; } up = u; dn = w; ST[i] = d; }
+  const ma = []; let s = 0; for (let i = 0; i < n; i++) { s += c[i]; if (i >= 20) s -= c[i-20]; ma.push(s/20); if (i >= 21) UM[i] = ma[i] >= ma[i-2] ? 1 : -1; }
+  const as = []; s = 0; for (let i = 0; i < n; i++) { s += tr[i]; if (i >= 14) s -= tr[i-14]; as.push(s/Math.min(i + 1, 14)); }
+  const tp = c.map((x, i) => (h[i] + l[i] + x)/3), AT = [];
+  for (let i = 0; i < n; i++) { let m = 50; if (i >= 15) { let P = 0, N = 0; for (let j = i - 13; j <= i; j++) { const f = tp[j]*v[j]; if (tp[j] > tp[j-1]) P += f; else if (tp[j] < tp[j-1]) N += f; } m = N ? 100 - 100/(1 + P/N) : 100; }
+    const p = i ? AT[i-1] : c[0], uT = l[i] - as[i], dT = h[i] + as[i]; AT.push(m >= 50 ? (uT < p ? p : uT) : (dT > p ? p : dT)); if (i >= 2) AL[i] = AT[i] > AT[i-2] ? 1 : AT[i] < AT[i-2] ? -1 : AL[i-1]; }
+  for (let i = 0; i < n; i++) T[i] = ST[i] === UM[i] && UM[i] === AL[i] ? ST[i] : 0;
+  return { ST, UM, AL, T }; }
 // ---- الغريد بتنفيذ الحقيقي: درجة وحدة لكل قطعة مسار (الأقرب للسعر) · دخول أسوأ · وقف ماركت أسوأ ----
 function grid(D, B4, T4, from, to, step, trail, maxN = 5, lock = 0, TF = H4, pct = null, flip = 0, tp = 0) {   // tp: هدف ثابت (ليمت، عمولة ميكر 0.02%)   // flip: 1 = سكّر الصفقة لما الترند ينقلب ضدها · 2 = بس إذا خسرانة   // pct = [تفعيل, مسافة]: بعد ما الربح يوصل تفعيل، الوقف بيلحق أعلى ربح بمسافة (زي TRAILING_STOP_MARKET تبع بايننس)   // lock = بعد ما تربح درجة: الوقف بيصير فوق الدخول بجزء من درجة (0 = على الدخول · 0.5 = نص درجة)
   const out = [], g = Math.log(1 + step); let i0 = D.t.findIndex(t => t >= from); if (i0 < 0) return out;
@@ -75,7 +88,7 @@ function grid(D, B4, T4, from, to, step, trail, maxN = 5, lock = 0, TF = H4, pct
 function st(a) { const w = a.filter(x => x.r > 0), l = a.filter(x => x.r <= 0), W = 100*w.reduce((s, x) => s + x.r, 0), L = 100*l.reduce((s, x) => s + x.r, 0);
   return { n: a.length, w: w.length, l: l.length, W, L, net: W + L, pf: L ? W/-L : 99 }; }
 const f$ = x => (x >= 0 ? "+" : "") + x.toFixed(0) + "$";
-if (require.main !== module) module.exports = { grid, zl, emaT, st };
+if (require.main !== module) module.exports = { grid, zl, emaT, st, tri };
 else (async () => {
   const D = {}, B4 = {};
   await Promise.all(COINS.map(async s => { D[s] = await klines(s, "1m", START); if (!D[s].t.length) { console.log("no data", s); return; } const k4 = await klines(s, "4h", START - 200*DAY);
@@ -86,6 +99,12 @@ else (async () => {
   const P = [["أيلول+تشرين1", START, SPLIT], ["تشرين2 (فحص)", SPLIT, END], ["من التصفير", RESET, END]];
   const out = [`# غريد الزخم على شموع الدقيقة · تنفيذ واقعي: دخول ماركت +0.15% · وقف +0.1% · عمولة 0.05%×2 · درجة وحدة لكل حركة · حتى 5 درجات`,
     `# من ${new Date(START).toISOString().slice(0, 10)} لـ ${new Date(END).toISOString().slice(0, 16)} · كل الأرقام لكل صفقة 100$`, ""];
+  if (process.env.GRID_TRI) { const aggV = (X, TF) => { const m = new Map(); for (let i = 0; i < X.t.length; i++) { const b = Math.floor(X.t[i]/TF)*TF; let y = m.get(b); if (!y) { y = { h: -1e18, l: 1e18, c: 0, v: 0 }; m.set(b, y); } if (X.h[i] > y.h) y.h = X.h[i]; if (X.l[i] < y.l) y.l = X.l[i]; y.c = X.c[i]; y.v += X.v[i]; } const ks = [...m.keys()].sort((a, b) => a - b); const B = { t: ks, h: ks.map(k => m.get(k).h), l: ks.map(k => m.get(k).l), c: ks.map(k => m.get(k).c), v: ks.map(k => m.get(k).v) }; B.idx = new Map(ks.map((t, j) => [t, j])); B.Z = zl(B, 70, 1.2); Object.assign(B, tri(B)); B.ZT = B.Z.map((z, j) => z === B.T[j] ? z : 0); return B; };
+    const B30 = {}, B60 = {}; for (const s of COINS) { B30[s] = aggV(D[s], 18e5); B60[s] = aggV(D[s], 36e5); }
+    out.push("## فلتر الاتجاه للغريد: Zero Lag مقابل SuperTrend + Ultimate MA + AlphaTrend · 3% · وقف 6% · +1.0%←0.3% · صفقة 50$", "الفلتر | " + P.map(p => p[0] + " (صفقات · ربح/خسارة · معدل الربح · معدل الخسارة · صافي · PF)").join(" | "));
+    const VV = [["Zero Lag 30د (الحالي)", B30, "Z", 18e5], ["الثلاثة متفقين 30د", B30, "T", 18e5], ["الثلاثة متفقين ساعة", B60, "T", 36e5], ["Zero Lag 30د + الثلاثة متفقين", B30, "ZT", 18e5], ["SuperTrend لحاله 30د", B30, "ST", 18e5], ["AlphaTrend لحاله 30د", B30, "AL", 18e5], ["Ultimate MA لحاله 30د", B30, "UM", 18e5]];
+    for (const [nm, BB, key, TF] of VV) out.push(`${nm} | ` + P.map(([, a, b]) => { const all = COINS.flatMap(s => grid(D[s], BB[s], BB[s][key], a, b, 0.03, 2, 1, 0.25, TF, [0.01, 0.003])); const c = st(all); const ws = all.filter(x => x.r > 0), ls = all.filter(x => x.r <= 0); return `${c.n} · ${c.w}/${c.l} · +${(50*ws.reduce((q, x) => q + x.r, 0)/Math.max(1, ws.length)).toFixed(2)}$ · ${(50*ls.reduce((q, x) => q + x.r, 0)/Math.max(1, ls.length)).toFixed(2)}$ · ${f$(c.net*0.5)} · PF ${c.pf.toFixed(2)}`; }).join(" | "));
+    out.push(""); }
   if (process.env.GRID_TP) { const aggB = (X, TF) => { const m = new Map(); for (let i = 0; i < X.t.length; i++) { const b = Math.floor(X.t[i]/TF)*TF; let y = m.get(b); if (!y) { y = { h: -1e18, l: 1e18, c: 0 }; m.set(b, y); } if (X.h[i] > y.h) y.h = X.h[i]; if (X.l[i] < y.l) y.l = X.l[i]; y.c = X.c[i]; } const ks = [...m.keys()].sort((a, b) => a - b); const B = { t: ks, h: ks.map(k => m.get(k).h), l: ks.map(k => m.get(k).l), c: ks.map(k => m.get(k).c) }; B.idx = new Map(ks.map((t, j) => [t, j])); B.Z = zl(B, 70, 1.2); return B; };
     const BB = {}; for (const s of COINS) BB[s] = aggB(D[s], 18e5);
     out.push("## هدف ثابت مقابل الوقف المتحرك · 30د Zero Lag · 3% · وقف 6% · صفقة 50$ (الهدف ليمت: عمولة ميكر)", "الطريقة | " + P.map(p => p[0] + " (صفقات · ربح/خسارة · معدل الربح · معدل الخسارة · صافي · PF)").join(" | "));
