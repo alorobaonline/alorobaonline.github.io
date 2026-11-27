@@ -58,6 +58,7 @@ function tri(B) { const n = B.c.length, h = B.h, l = B.l, c = B.c, v = B.v;
   for (let i = 0; i < n; i++) T[i] = ST[i] === UM[i] && UM[i] === AL[i] ? ST[i] : 0;
   return { ST, UM, AL, T }; }
 // ---- الغريد بتنفيذ الحقيقي: درجة وحدة لكل قطعة مسار (الأقرب للسعر) · دخول أسوأ · وقف ماركت أسوأ ----
+let WORST = false;   // 27/11 11:48: ترتيب أسوأ جوا شمعة الدقيقة (الحقيقي: الرابحة +0.54$ مقابل المختبر +0.72$)
 function grid(D, B4, T4, from, to, step, trail, maxN = 5, lock = 0, TF = H4, pct = null, flip = 0, tp = 0, cool = null, inv = false) {   // inv: نفس لحظة الدخول بس بالاتجاه المعاكس (27/11 11:18 طلب المستخدم)   // cool: بعد خسارة ← { min: دقايق } أو { mode: "flip" } (لحد ما الترند يتغيّر) أو { mode: "beyond" } (لحد ما السعر يتعدّى دخول الخاسرة بالاتجاه)   // tp: هدف ثابت (ليمت، عمولة ميكر 0.02%)   // flip: 1 = سكّر الصفقة لما الترند ينقلب ضدها · 2 = بس إذا خسرانة   // pct = [تفعيل, مسافة]: بعد ما الربح يوصل تفعيل، الوقف بيلحق أعلى ربح بمسافة (زي TRAILING_STOP_MARKET تبع بايننس)   // lock = بعد ما تربح درجة: الوقف بيصير فوق الدخول بجزء من درجة (0 = على الدخول · 0.5 = نص درجة)
   const out = [], g = Math.log(1 + step); let i0 = D.t.findIndex(t => t >= from); if (i0 < 0) return out;
   const A = D.o[i0], K = p => Math.log(p/A)/g, LV = k => A*Math.pow(1 + step, k), legs = [];
@@ -67,7 +68,7 @@ function grid(D, B4, T4, from, to, step, trail, maxN = 5, lock = 0, TF = H4, pct
   const exit = (q, px, t) => { legs.splice(legs.indexOf(q), 1); const x = px*(1 - q.d*SLIP_OUT), r = q.d*(x/q.fill - 1) - 2*FEE; out.push({ t, t0: q.t0, d: q.d, r }); if (cool && r <= 0) blk[q.d] = { until: cool.min ? t + cool.min*60000 : Infinity, px: q.fill, seenOther: false }; };
   let prev = D.o[i0], lastTr = 0;
   for (let i = i0; i < D.t.length && D.t[i] < to; i++) {
-    const tr = tAt(D.t[i]), path = D.c[i] >= D.o[i] ? [D.o[i], D.l[i], D.h[i], D.c[i]] : [D.o[i], D.h[i], D.l[i], D.c[i]];
+    const tr = tAt(D.t[i]), wd = WORST && legs.length ? legs[0].d : 0, path = wd === 1 ? [D.o[i], D.l[i], D.h[i], D.c[i]] : wd === -1 ? [D.o[i], D.h[i], D.l[i], D.c[i]] : D.c[i] >= D.o[i] ? [D.o[i], D.l[i], D.h[i], D.c[i]] : [D.o[i], D.h[i], D.l[i], D.c[i]];   // WORST: جوا الشمعة دايماً ضد الصفقة المفتوحة أول
     for (const p of path) { if (p === prev) continue; const up = p > prev;
       // الوقوف أول (بايننس بتنفّذها لحالها)
       if (flip && tr !== 0) { for (const q of [...legs]) if (tr === -q.d && (flip !== 2 || q.d*(p/q.fill - 1) < 0)) exit(q, p, D.t[i]);
@@ -109,6 +110,14 @@ else (async () => {
     const VV = [["Zero Lag 30د (الحالي)", B30, "Z", 18e5], ["الثلاثة متفقين 30د", B30, "T", 18e5], ["الثلاثة متفقين ساعة", B60, "T", 36e5], ["Zero Lag 30د + الثلاثة متفقين", B30, "ZT", 18e5], ["SuperTrend لحاله 30د", B30, "ST", 18e5], ["AlphaTrend لحاله 30د", B30, "AL", 18e5], ["Ultimate MA لحاله 30د", B30, "UM", 18e5]];
     for (const [nm, BB, key, TF] of VV) out.push(`${nm} | ` + P.map(([, a, b]) => { const all = COINS.flatMap(s => grid(D[s], BB[s], BB[s][key], a, b, 0.03, 2, 1, 0.25, TF, [0.01, 0.003])); const c = st(all); const ws = all.filter(x => x.r > 0), ls = all.filter(x => x.r <= 0); return `${c.n} · ${c.w}/${c.l} · +${(50*ws.reduce((q, x) => q + x.r, 0)/Math.max(1, ws.length)).toFixed(2)}$ · ${(50*ls.reduce((q, x) => q + x.r, 0)/Math.max(1, ls.length)).toFixed(2)}$ · ${f$(c.net*0.5)} · PF ${c.pf.toFixed(2)}`; }).join(" | "));
     out.push(""); }
+  if (process.env.GRID_REAL) {   // 27/11 11:48 (المستخدم: «الصفقات اللي بتربح ما بتوصل لهالربح»): المختبر العادي مقابل أسوأ ترتيب جوا الشمعة · مسافات تتبع ووقوف
+    const aggB = (X, TF) => { const m = new Map(); for (let i = 0; i < X.t.length; i++) { const b = Math.floor(X.t[i]/TF)*TF; let y = m.get(b); if (!y) { y = { h: -1e18, l: 1e18, c: 0 }; m.set(b, y); } if (X.h[i] > y.h) y.h = X.h[i]; if (X.l[i] < y.l) y.l = X.l[i]; y.c = X.c[i]; } const ks = [...m.keys()].sort((a, b) => a - b); const B = { t: ks, h: ks.map(k => m.get(k).h), l: ks.map(k => m.get(k).l), c: ks.map(k => m.get(k).c) }; B.idx = new Map(ks.map((t, j) => [t, j])); B.Z = zl(B, 70, 1.2); return B; };
+    const BB = {}, C12 = COINS.slice(0, 12); for (const s of C12) BB[s] = aggB(D[s], 18e5);
+    out.push("## المختبر العادي مقابل أسوأ ترتيب جوا الشمعة (الحقيقي من 08:33: رابحة +0.54$ · خاسرة −1.83$ · 74%) · 30د Zero Lag · 12 عملة · صفقة 50$", "الترتيب | الوقف | التتبع | " + P.map(p => p[0] + " (صفقات · نسبة الربح · معدل الرابحة · معدل الخاسرة · لازم فوق · صافي · PF)").join(" | "));
+    const PC = [["+1% ← 0.3% (الحالي)", [0.01, 0.003]], ["+1.5% ← 0.3%", [0.015, 0.003]], ["+1.5% ← 0.5%", [0.015, 0.005]], ["+2% ← 0.5%", [0.02, 0.005]], ["+2% ← 1%", [0.02, 0.01]], ["+3% ← 1%", [0.03, 0.01]], ["بدون تتبع نسبة", null]];
+    for (const w of [false, true]) for (const tr of [1, 2]) for (const [nm, pc] of PC) { WORST = w;
+      out.push(`${w ? "أسوأ" : "عادي"} | ${tr*3}% | ${nm} | ` + P.map(([, a, b]) => { const all = C12.flatMap(s => grid(D[s], BB[s], BB[s].Z, a, b, 0.03, tr, 1, 0.25, 18e5, pc)); const c = st(all); const ws = all.filter(x => x.r > 0), ls = all.filter(x => x.r <= 0), aw = 50*ws.reduce((q, x) => q + x.r, 0)/Math.max(1, ws.length), al = -50*ls.reduce((q, x) => q + x.r, 0)/Math.max(1, ls.length); return `${c.n} · ${(100*c.w/Math.max(1, c.n)).toFixed(1)}% · +${aw.toFixed(2)}$ · -${al.toFixed(2)}$ · ${(100*al/(aw + al)).toFixed(1)}% · ${f$(c.net*0.5)} · PF ${c.pf.toFixed(2)}`; }).join(" | ")); }
+    WORST = false; out.push(""); }
   if (process.env.GRID_MORE) {   // 27/11 11:34 (فكرة المستخدم): فلتر ATR بيقلل الصفقات ← نزيد عدد العملات؟
     const aggB = (X, TF) => { const m = new Map(); for (let i = 0; i < X.t.length; i++) { const b = Math.floor(X.t[i]/TF)*TF; let y = m.get(b); if (!y) { y = { h: -1e18, l: 1e18, c: 0 }; m.set(b, y); } if (X.h[i] > y.h) y.h = X.h[i]; if (X.l[i] < y.l) y.l = X.l[i]; y.c = X.c[i]; } const ks = [...m.keys()].sort((a, b) => a - b); const B = { t: ks, h: ks.map(k => m.get(k).h), l: ks.map(k => m.get(k).l), c: ks.map(k => m.get(k).c) }; B.idx = new Map(ks.map((t, j) => [t, j])); B.Z = zl(B, 70, 1.2); return B; };
     const rma = (x, p) => { const o = new Array(x.length).fill(NaN); let s = 0, k = 0; for (let i = 0; i < x.length; i++) { if (k < p) { s += x[i]; k++; if (k === p) o[i] = s/p; } else o[i] = (o[i-1]*(p - 1) + x[i])/p; } return o; };
