@@ -151,7 +151,7 @@ else (async () => {
     for (const [nm, BB, key, TF] of VV) out.push(`${nm} | ` + P.map(([, a, b]) => { const all = COINS.flatMap(s => grid(D[s], BB[s], BB[s][key], a, b, 0.03, 2, 1, 0.25, TF, [0.01, 0.003])); const c = st(all); const ws = all.filter(x => x.r > 0), ls = all.filter(x => x.r <= 0); return `${c.n} · ${c.w}/${c.l} · +${(50*ws.reduce((q, x) => q + x.r, 0)/Math.max(1, ws.length)).toFixed(2)}$ · ${(50*ls.reduce((q, x) => q + x.r, 0)/Math.max(1, ls.length)).toFixed(2)}$ · ${f$(c.net*0.5)} · PF ${c.pf.toFixed(2)}`; }).join(" | "));
     out.push(""); }
   if (process.env.GRID_NEU) {
-    const aggB = (X, TF) => { const m = new Map(); for (let i = 0; i < X.t.length; i++) { const b = Math.floor(X.t[i]/TF)*TF; let y = m.get(b); if (!y) { y = { h: -1e18, l: 1e18, c: 0 }; m.set(b, y); } if (X.h[i] > y.h) y.h = X.h[i]; if (X.l[i] < y.l) y.l = X.l[i]; y.c = X.c[i]; } const ks = [...m.keys()].sort((a, b) => a - b); const B = { t: ks, h: ks.map(k => m.get(k).h), l: ks.map(k => m.get(k).l), c: ks.map(k => m.get(k).c) }; B.idx = new Map(ks.map((t, j) => [t, j])); B.Z = zl(B, 70, 1.2); B.ADX = adxA(B); B.ATR = atrPctA(B); B.ZT = B.Z.map((z, j) => B.ADX[j] >= 20 ? z : 0); return B; };
+    const aggB = (X, TF) => { const m = new Map(); for (let i = 0; i < X.t.length; i++) { const b = Math.floor(X.t[i]/TF)*TF; let y = m.get(b); if (!y) { y = { h: -1e18, l: 1e18, c: 0, v: 0 }; m.set(b, y); } if (X.h[i] > y.h) y.h = X.h[i]; if (X.l[i] < y.l) y.l = X.l[i]; y.c = X.c[i]; y.v += X.v[i]; } const ks = [...m.keys()].sort((a, b) => a - b); const B = { t: ks, h: ks.map(k => m.get(k).h), l: ks.map(k => m.get(k).l), c: ks.map(k => m.get(k).c), v: ks.map(k => m.get(k).v) }; B.idx = new Map(ks.map((t, j) => [t, j])); B.Z = zl(B, 70, 1.2); B.ADX = adxA(B); B.ATR = atrPctA(B); B.ZT = B.Z.map((z, j) => B.ADX[j] >= 20 ? z : 0); return B; };
     const BIG = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT"], BB = {}; for (const s of COINS) BB[s] = aggB(D[s], 18e5);
     const G = [["عملاتك", COINS.filter(s => !BIG.includes(s))], ["الكبار (BTC ETH SOL XRP DOGE)", COINS.filter(s => BIG.includes(s))]];
     const rng = (s, t) => { const B = BB[s], j = B.idx.get(Math.floor(t/18e5)*18e5 - 18e5); return j !== undefined && B.ADX[j] < 20; };
@@ -159,6 +159,25 @@ else (async () => {
     const mom = (s, a, b, step, k, fl = 0) => { SLF = step*10/3; WORST = true; const r = grid(D[s], BB[s], k ? BB[s][k] : BB[s].Z, a, b, step, 100, 1, 0, 18e5, null, fl, step*2.3/3, null); WORST = false; SLF = 0; return r; };
     TPC = 0.001;
     const A3 = (s, a) => Math.min(0.10, Math.max(0.006, 3*atrOf(s, a)));
+    // 28/11 00:15 (طلب المستخدم «بلش برقم 2»): فلاتر دخول — بتمنع الدخول الجديد بس (المفتوحة بتكمّل) · كلها على شموع 30د مسكّرة
+    if (process.env.GRID_NEU === "filt") { const H4 = 4*3600e3, BT = BB.BTCUSDT;
+      for (const s of COINS) { const B = BB[s], n = B.c.length, R = new Float64Array(n).fill(50), E = new Float64Array(n), V20 = new Float64Array(n), A50 = atrPctA(B, 50);
+        let ag = 0, al = 0; for (let j = 1; j < n; j++) { const d = B.c[j] - B.c[j-1], G = Math.max(d, 0), L = Math.max(-d, 0); if (j <= 14) { ag += G/14; al += L/14; } else { ag = (ag*13 + G)/14; al = (al*13 + L)/14; } if (j >= 14) R[j] = al ? 100 - 100/(1 + ag/al) : 100; }
+        E[0] = B.c[0]; for (let j = 1; j < n; j++) E[j] = E[j-1] + (2/51)*(B.c[j] - E[j-1]);
+        let sv = 0; for (let j = 0; j < n; j++) { sv += B.v[j]; if (j >= 20) sv -= B.v[j-20]; V20[j] = j >= 20 ? (sv - B.v[j])/19 : Infinity; }
+        const f4 = j => { const b4 = Math.floor((B.t[j] + 18e5)/H4)*H4 - H4, k = B4[s].idx.get(b4); return k === undefined ? 0 : B4[s].zl12[k]; };
+        const fb = j => { if (!BT || s === "BTCUSDT") return B.Z[j]; const k = BT.idx.get(B.t[j]); return k === undefined ? 0 : BT.Z[k]; };
+        const mk = ok => B.Z.map((z, j) => z && ok(z, j) ? z : 0);
+        B.F = { adx: mk((z, j) => B.ADX[j] >= 25), h4: mk((z, j) => f4(j) === z), btc: mk((z, j) => fb(j) === z), rsi: mk((z, j) => z === 1 ? R[j] < 70 : R[j] > 30),
+          ema: mk((z, j) => Math.abs(B.c[j] - E[j]) < 2*B.ATR[j]*B.c[j]), vol: mk((z, j) => B.v[j] > 1.5*V20[j]), atr: mk((z, j) => B.ATR[j] > A50[j]),
+          h4btc: mk((z, j) => f4(j) === z && fb(j) === z) }; }
+      const C = COINS.filter(s => !BIG.includes(s)), FN = [["بلا فلتر", null], ["ADX ≥ 25 (ترند قوي بس)", "adx"], ["ترند 4 ساعات موافق", "h4"], ["ترند BTC موافق", "btc"], ["4 ساعات + BTC موافقين", "h4btc"], ["RSI مش متطرف (لونج <70 · شورت >30)", "rsi"], ["مش بعيد عن EMA50 (أقل من 2×ATR)", "ema"], ["حجم أعلى من المعدل ×1.5", "vol"], ["تذبذب صاعد ATR14 > ATR50", "atr"]];
+      out.push(`## فلاتر الدخول · ${C.length} عملة (عملاتك) · ترتيب أسوأ · تكلفة حقيقية · 44$ · بيمنع الدخول الجديد بس`, "الطلعة | الفلتر | " + P.map(p => p[0] + " (صفقات · نسبة الربح · معدل الخاسرة · صافي · PF)").join(" | "));
+      for (const [en, stp] of [["الحالي 3%/هدف 2.3/وقف 10", () => 0.03], ["درجة 3×ATR", A3]]) for (const [fn, k] of FN) {
+        out.push(`${en} | ${fn} | ` + P.map(([, a, b]) => { const all = C.flatMap(s => { const st0 = stp(s, a); SLF = st0*10/3; WORST = true; const r = grid(D[s], BB[s], k ? BB[s].F[k] : BB[s].Z, a, b, st0, 100, 1, 0, 18e5, null, 0, st0*2.3/3, null); WORST = false; SLF = 0; return r; });
+          const c = st(all), ls = all.filter(x => x.r <= 0); return `${c.n} · ${(100*c.w/Math.max(1, c.n)).toFixed(0)}% · ${(44*ls.reduce((q, x) => q + x.r, 0)/Math.max(1, ls.length)).toFixed(2)}$ · ${f$(c.net*0.44)} · PF ${c.pf.toFixed(2)}`; }).join(" | ")); }
+      TPC = 0.0002; out.push(""); }
+    else {
     const VV = process.env.GRID_NEU === "flip" ? [
       ["زخم الحالي: درجة 3% · هدف 2.3% · وقف 10%", (s, a, b) => mom(s, a, b, 0.03)],
       ["الحالي + سكّر لما الترند يقلب", (s, a, b) => mom(s, a, b, 0.03, null, 1)],
@@ -181,7 +200,7 @@ else (async () => {
       out.push(`${nm} | ${gn} (${C.length}) | ` + P.map(([, a, b]) => { const all = C.flatMap(s => fn(s, a, b)); const c = st(all); return `${c.n} · ${(100*c.w/Math.max(1, c.n)).toFixed(0)}% · ${f$(c.net*0.44)} · PF ${c.pf.toFixed(2)} · -${(44*maxDD(all)).toFixed(0)}$`; }).join(" | ")); }
     if (process.env.GRID_NEU !== "flip") { out.push("", "## لكل عملة · من التصفير · صافي $ (زخم الحالي | محايد ATR | هجين)");
     const [, a0, b0] = P[2]; for (const s of COINS) { const v = [VV[0], VV[5], VV[7]].map(([, fn]) => f$(st(fn(s, a0, b0)).net*0.44)); out.push(`${s.replace("USDT", "")} · ATR ${(100*atrOf(s, a0)).toFixed(2)}% | ${v.join(" | ")}`); } }
-    TPC = 0.0002; out.push(""); }
+    TPC = 0.0002; out.push(""); } }
   if (process.env.GRID_ADD) {   // 27/11 17:44 (طلب المستخدم): التعزيز على الخسارة (DCA) مقابل التعزيز على الربح — بإعداد الحقيقي هلأ
     const aggB = (X, TF) => { const m = new Map(); for (let i = 0; i < X.t.length; i++) { const b = Math.floor(X.t[i]/TF)*TF; let y = m.get(b); if (!y) { y = { h: -1e18, l: 1e18, c: 0 }; m.set(b, y); } if (X.h[i] > y.h) y.h = X.h[i]; if (X.l[i] < y.l) y.l = X.l[i]; y.c = X.c[i]; } const ks = [...m.keys()].sort((a, b) => a - b); const B = { t: ks, h: ks.map(k => m.get(k).h), l: ks.map(k => m.get(k).l), c: ks.map(k => m.get(k).c) }; B.idx = new Map(ks.map((t, j) => [t, j])); B.Z = zl(B, 70, 1.2); return B; };
     const BB = {}, C = COINS.slice(0, 15); for (const s of C) BB[s] = aggB(D[s], 18e5);
