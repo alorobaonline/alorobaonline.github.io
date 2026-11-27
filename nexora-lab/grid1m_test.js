@@ -82,6 +82,9 @@ else (async () => {
   const P = [["أيلول+تشرين1", START, SPLIT], ["تشرين2 (فحص)", SPLIT, END], ["من التصفير", RESET, END]];
   const out = [`# غريد الزخم على شموع الدقيقة · تنفيذ واقعي: دخول ماركت +0.15% · وقف +0.1% · عمولة 0.05%×2 · درجة وحدة لكل حركة · حتى 5 درجات`,
     `# من ${new Date(START).toISOString().slice(0, 10)} لـ ${new Date(END).toISOString().slice(0, 16)} · كل الأرقام لكل صفقة 100$`, ""];
+  if (process.env.GRID_STOPS) { out.push("## الوقف الأول (درجة 3% · صفقة وحدة لكل عملة · بعد +1.2% بيلحق 0.5%) · كل الأرقام لصفقة 75$", "الوقف | " + P.map(p => p[0] + " (صفقات · ربح/خسارة · معدل الخسارة · صافي · PF)").join(" | "));
+    for (const tr of [1, 1.5, 2, 2.5, 3]) out.push(`${(tr*3).toFixed(1)}% | ` + P.map(([, a, b]) => { const all = COINS.flatMap(s => grid(D[s], B4[s], B4[s].zl12, a, b, 0.03, tr, 1, 0.25, H4, [0.012, 0.005])); const c = st(all); const ls = all.filter(x => x.r <= 0); return `${c.n} · ${c.w}/${c.l} · ${(75*ls.reduce((q, x) => q + x.r, 0)/Math.max(1, ls.length)).toFixed(2)}$ · ${f$(c.net*0.75)} · PF ${c.pf.toFixed(2)}`; }).join(" | "));
+    out.push(""); }
   if (process.env.GRID_COINS) { out.push("## كل عملة لحالها (الإعداد الحالي: 3% · وقف 9% · بعد +1.2% بيلحق 0.5%)", "عملة | من | " + P.map(p => p[0]).join(" | "));
     for (const s of COINS) out.push(`${s.replace("USDT", "")} | ${new Date(D[s].t[0]).toISOString().slice(0, 10)} | ` + P.map(([, a, b]) => { const c = st(grid(D[s], B4[s], B4[s].zl12, a, b, 0.03, 3, 5, 0.25, H4, [0.012, 0.005])); return `${c.n} · ${c.w}/${c.l} · ${f$(c.net)} · PF ${c.pf.toFixed(2)}`; }).join(" | ")); out.push(""); }
   for (const [set, coins] of [["AKE+EVAA", COINS.slice(0, 2)], ["كل العملات", COINS]]) {
