@@ -65,14 +65,20 @@ function onM1(D, B, tf, arr) { const ms = tf*60000, out = new Float64Array(D.t.l
 const nyMin = t => { const off = t < Date.UTC(2026, 10, 1, 6) ? 4 : 5; const d = new Date(t - off*3600e3); return d.getUTCHours()*60 + d.getUTCMinutes(); };
 const inWin = (t, a, b) => { const m = nyMin(t); return m >= a && m < b; };
 
-function run(D, I, hours) {
-  const n = D.t.length, trades = []; let pos = 0, setup = 0, ent = 0, et = 0, stop = NaN;
+function run(D, I, hours, lim = null) {   // lim: { x: نسبة الرجعة تحت سعر الإشارة (أو "low" = قاع شمعة الإشارة) , ttl: دقايق }
+  const n = D.t.length, trades = []; let pos = 0, setup = 0, ent = 0, et = 0, stop = NaN, fin = FEE, pend = null, sig = 0, fills = 0;
   const flip = (a, i, d) => a[i] === d && a[i-1] === -d;
-  const close = (i, px, why) => { const r = pos*(px/ent - 1) - 2*FEE; trades.push({ t: et, setup, side: pos, r, why }); pos = 0; setup = 0; };
+  const close = (i, px, why) => { const r = pos*(px/ent - 1) - fin - FEE; trades.push({ t: et, setup, side: pos, r, why }); pos = 0; setup = 0; };
+  const exitSig = (s, d, i, t) => (s === 1 && flip(I.st5, i, -1)) || (s === 2 && flip(I.ce4, i, -1)) || (s === 3 && flip(I.at2, i, -d)) || (s === 4 && flip(I.at60, i, -d)) || (hours && s !== 2 && inWin(t, 960, 1080));
   for (let i = 1; i < n - 1; i++) {
-    const t = D.t[i] + 60000;   // وقت القرار = إغلاق شمعة الدقيقة
+    const t = D.t[i] + 60000;
     if (t < START) continue;
-    if (pos) {   // الوقف جوا الشمعة
+    if (pend) {   // أمر ليمت معلّق: بيتنفّذ إذا السعر لمسه بهالشمعة
+      const hit = pend.d === 1 ? D.l[i] <= pend.px : D.h[i] >= pend.px;
+      if (hit) { fills++; pos = pend.d; setup = pend.s; et = t; ent = pend.d === 1 ? Math.min(pend.px, D.o[i]) : Math.max(pend.px, D.o[i]); fin = 0.0002;
+        stop = pend.s === 1 ? ent - 2*pend.atr : pend.s === 4 ? ent - pend.d*2*pend.atr : NaN; pend = null; continue; }
+      if (t >= pend.exp || exitSig(pend.s, pend.d, i, t)) pend = null; else continue; }
+    if (pos) {
       if (!isNaN(stop) && (pos === 1 ? D.l[i] <= stop : D.h[i] >= stop)) { const px = (pos === 1 ? Math.min(stop, D.o[i]) : Math.max(stop, D.o[i]))*(1 - pos*SLIP_OUT); close(i, px, "stop"); continue; }
       let why = "";
       if (setup === 1 && flip(I.st5, i, -1)) why = "st5";
@@ -89,8 +95,13 @@ function run(D, I, hours) {
     else if ((flip(I.at2, i, 1) || flip(I.at2, i, -1)) && I.adx2[i] >= 20 && W(570, 690)) { s = 3; d = I.at2[i]; }
     else if ((flip(I.at60, i, 1) || flip(I.at60, i, -1)) && I.e60[i] === I.at60[i] && W(600, 900)) { s = 4; d = I.at60[i]; }
     if (!s) continue;
-    pos = d; setup = s; et = t; ent = D.c[i]*(1 + d*SLIP_IN);
-    stop = s === 1 ? ent - 2*I.atr5[i] : s === 4 ? ent - d*2*I.atr60[i] : NaN; }
+    sig++;
+    const atr = s === 1 ? I.atr5[i] : I.atr60[i];
+    if (lim) { const px = lim.x === "low" ? (d === 1 ? D.l[i] : D.h[i]) : lim.x === "mid" ? (D.h[i] + D.l[i])/2 : D.c[i]*(1 - d*lim.x);
+      pend = { s, d, px, atr, exp: t + lim.ttl*60000 }; continue; }
+    pos = d; setup = s; et = t; ent = D.c[i]*(1 + d*SLIP_IN); fin = FEE;
+    stop = s === 1 ? ent - 2*atr : s === 4 ? ent - d*2*atr : NaN; }
+  trades.sig = sig; trades.fills = fills;
   return trades;
 }
 function syn(sym) { let seed = sym.length*7919, x = 100; const r = () => (seed = (seed*16807) % 2147483647)/2147483647; const D = { t: [], o: [], h: [], l: [], c: [], v: [] };
@@ -99,7 +110,8 @@ function syn(sym) { let seed = sym.length*7919, x = 100; const r = () => (seed =
   const out = [`# NEXORA 3-Trend PRO (فيديو 3 Free Trend Indicators) — شموع الدقيقة · ${new Date().toISOString().slice(0, 16)}`,
     `# $${NOTIONAL}/صفقة · عمولة ${FEE*100}% بكل جهة · انزلاق دخول ${SLIP_IN*100}% طلوع ${SLIP_OUT*100}% · فترات: سبت-أكت | 1نوف-الريسيت | بعد الريسيت (16/11 13:45)`];
   const P = t => t >= RESET ? 2 : t >= SPLIT ? 1 : 0, PN = ["سبت-أكت", "نوف-ريسيت", "بعد الريسيت"];
-  const ALL = { 1: [], 0: [] };
+  const ALL = {}, SIG = {}, FIL = {};
+  const VAR = [["ماركت على فتحة الشمعة الجاية (الفيديو)", null], ["ليمت −0.3% · 30د", { x: 0.003, ttl: 30 }], ["ليمت −0.5% · 30د", { x: 0.005, ttl: 30 }], ["ليمت −1% · 30د", { x: 0.01, ttl: 30 }], ["ليمت −2% · 60د", { x: 0.02, ttl: 60 }], ["ليمت نص شمعة الإشارة · 30د", { x: "mid", ttl: 30 }], ["ليمت قاع شمعة الإشارة · 30د", { x: "low", ttl: 30 }]];
   for (const sym of COINS) {
     const D = process.env.TRI_SYN ? syn(sym) : await klines(sym, "1m", START - 15*DAY); if (!D.t.length) { out.push(sym + ": ما في داتا"); continue; }
     const B = {}; for (const tf of [2, 4, 5, 15, 60]) B[tf] = agg(D, tf);
@@ -108,18 +120,14 @@ function syn(sym) { let seed = sym.length*7919, x = 100; const r = () => (seed =
       sl15: e(15, (() => { const f = ema(B[15].c, 38), g = ema(B[15].c, 62); return f.map((x, i) => i < 62 ? 0 : (x > g[i] ? 1 : -1)); })()), ce4: e(4, ceDir(B[4])),
       at2: e(2, atDir(B[2])), adx2: e(2, adx(B[2])), at60: e(60, atDir(B[60])), atr60: e(60, rma(trA(B[60]), 14)) };
     const e200 = ema(B[60].c, 200); I.e60 = e(60, B[60].c.map((c, i) => i < 200 ? 0 : (c > e200[i] ? 1 : -1)));
-    for (const h of [1, 0]) { const T = run(D, I, h); T.forEach(x => x.sym = sym); ALL[h].push(...T); }
-    console.log(sym, "done", ALL[1].length, ALL[0].length); }
+    for (const [k, lim] of VAR) { const T = run(D, I, 1, lim); T.forEach(x => x.sym = sym); ALL[k] = ALL[k] || []; ALL[k].push(...T); SIG[k] = (SIG[k] || 0) + T.sig; FIL[k] = (FIL[k] || 0) + (lim ? T.fills : T.length); }
+    console.log(sym, "done"); }
   const st = a => { if (!a.length) return "—"; const w = a.filter(x => x.r > 0), l = a.filter(x => x.r <= 0), W = w.reduce((s, x) => s + x.r, 0), L = l.reduce((s, x) => s + x.r, 0);
-    const gross = (W + L)/a.length + 2*FEE + SLIP_IN + SLIP_OUT;
+    const gross = (W + L)/a.length + 2*FEE + SLIP_IN + SLIP_OUT;   // تقريبي
     return `${a.length} صفقة · ${w.length}✅ ${(NOTIONAL*W).toFixed(0)}$ / ${l.length}❌ ${(NOTIONAL*L).toFixed(0)}$ · صافي ${(NOTIONAL*(W + L)).toFixed(1)}$ · PF ${(W/(-L || 1e-9)).toFixed(2)} · قبل التكاليف/صفقة ${(100*gross).toFixed(2)}%`; };
-  for (const h of [1, 0]) {
-    out.push("", h ? "## بساعات الفيديو (نيويورك) + طلوع 4pm — بالحرف" : "## 24 ساعة (بدون ساعات وبدون 4pm) — للمقارنة");
-    for (let p = 0; p < 3; p++) { out.push(`### ${PN[p]}`); const A = ALL[h].filter(x => P(x.t) === p);
-      out.push("الكل: " + st(A));
-      for (const s of [1, 2, 3, 4]) out.push(`  setup ${s} ${["", "ST 5m", "UMA 4m", "AT 2m", "AT 1h"][s]}: ` + st(A.filter(x => x.setup === s)));
-      out.push("  BTC+ETH: " + st(A.filter(x => /^(BTC|ETH)USDT$/.test(x.sym))) + " | الـ12 عملة: " + st(A.filter(x => !/^(BTC|ETH)USDT$/.test(x.sym))));
-      const why = {}; A.forEach(x => why[x.why] = (why[x.why] || 0) + 1); out.push("  الطلوع: " + JSON.stringify(why)); } }
+  out.push("", "## وين نحط الدخول؟ ماركت مقابل ليمت على رجعة · بساعات الفيديو + 4pm · الليمت عمولة ميكر 0.02% بلا انزلاق · بينلغى إذا ما تنفّذ أو إذا إشارة الطلوع إجت قبله");
+  for (const [k] of VAR) { out.push("", `### ${k} · تنفّذ ${FIL[k]} من ${SIG[k]} إشارة (${(100*FIL[k]/Math.max(1, SIG[k])).toFixed(0)}%)`);
+    for (let p = 0; p < 3; p++) { const A = ALL[k].filter(x => P(x.t) === p); out.push(`${PN[p]}: الكل ${st(A)}`); out.push(`   UMA 4m: ${st(A.filter(x => x.setup === 2))} | الباقي: ${st(A.filter(x => x.setup !== 2))}`); } }
   fs.mkdirSync(path.join(__dirname, "results"), { recursive: true });
   fs.writeFileSync(path.join(__dirname, "results", "tri1m.txt"), out.join("\n") + "\n"); console.log(out.join("\n"));
 })();
