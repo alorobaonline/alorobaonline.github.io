@@ -59,13 +59,13 @@ function tri(B) { const n = B.c.length, h = B.h, l = B.l, c = B.c, v = B.v;
   return { ST, UM, AL, T }; }
 // ---- الغريد بتنفيذ الحقيقي: درجة وحدة لكل قطعة مسار (الأقرب للسعر) · دخول أسوأ · وقف ماركت أسوأ ----
 let WORST = false;   // 27/11 11:48: ترتيب أسوأ جوا شمعة الدقيقة (الحقيقي: الرابحة +0.54$ مقابل المختبر +0.72$)
-function grid(D, B4, T4, from, to, step, trail, maxN = 5, lock = 0, TF = H4, pct = null, flip = 0, tp = 0, cool = null, inv = false) {   // inv: نفس لحظة الدخول بس بالاتجاه المعاكس (27/11 11:18 طلب المستخدم)   // cool: بعد خسارة ← { min: دقايق } أو { mode: "flip" } (لحد ما الترند يتغيّر) أو { mode: "beyond" } (لحد ما السعر يتعدّى دخول الخاسرة بالاتجاه)   // tp: هدف ثابت (ليمت، عمولة ميكر 0.02%)   // flip: 1 = سكّر الصفقة لما الترند ينقلب ضدها · 2 = بس إذا خسرانة   // pct = [تفعيل, مسافة]: بعد ما الربح يوصل تفعيل، الوقف بيلحق أعلى ربح بمسافة (زي TRAILING_STOP_MARKET تبع بايننس)   // lock = بعد ما تربح درجة: الوقف بيصير فوق الدخول بجزء من درجة (0 = على الدخول · 0.5 = نص درجة)
+function grid(D, B4, T4, from, to, step, trail, maxN = 5, lock = 0, TF = H4, pct = null, flip = 0, tp = 0, cool = null, inv = false, relim = null) {   // relim: بعد خسارة ← ليمت بنفس الاتجاه بسعر أحسن { x: المسافة عن سعر الطلوع, ttl: دقايق, only: بس الليمت (بلا دخول كسر) } — 27/11 12:53 فكرة المستخدم   // inv: نفس لحظة الدخول بس بالاتجاه المعاكس (27/11 11:18 طلب المستخدم)   // cool: بعد خسارة ← { min: دقايق } أو { mode: "flip" } (لحد ما الترند يتغيّر) أو { mode: "beyond" } (لحد ما السعر يتعدّى دخول الخاسرة بالاتجاه)   // tp: هدف ثابت (ليمت، عمولة ميكر 0.02%)   // flip: 1 = سكّر الصفقة لما الترند ينقلب ضدها · 2 = بس إذا خسرانة   // pct = [تفعيل, مسافة]: بعد ما الربح يوصل تفعيل، الوقف بيلحق أعلى ربح بمسافة (زي TRAILING_STOP_MARKET تبع بايننس)   // lock = بعد ما تربح درجة: الوقف بيصير فوق الدخول بجزء من درجة (0 = على الدخول · 0.5 = نص درجة)
   const out = [], g = Math.log(1 + step); let i0 = D.t.findIndex(t => t >= from); if (i0 < 0) return out;
   const A = D.o[i0], K = p => Math.log(p/A)/g, LV = k => A*Math.pow(1 + step, k), legs = [];
   const tAt = t => { const b = Math.floor(t/TF)*TF - TF, j = B4.idx.get(b); return j === undefined ? 0 : T4[j]; };
   const stopK = q => q.d === 1 ? (q.best >= q.k + 1 ? Math.max(q.best - trail, q.k) : q.k - trail) : (q.best <= q.k - 1 ? Math.min(q.best + trail, q.k) : q.k + trail);
-  const blk = { 1: null, '-1': null };
-  const exit = (q, px, t) => { legs.splice(legs.indexOf(q), 1); const x = px*(1 - q.d*SLIP_OUT), r = q.d*(x/q.fill - 1) - 2*FEE; out.push({ t, t0: q.t0, d: q.d, r }); if (cool && r <= 0) blk[q.d] = { until: cool.min ? t + cool.min*60000 : Infinity, px: q.fill, seenOther: false }; };
+  const blk = { 1: null, '-1': null }; let RL = null;
+  const exit = (q, px, t) => { legs.splice(legs.indexOf(q), 1); const x = px*(1 - q.d*SLIP_OUT), r = q.d*(x/q.fill - 1) - (q.fin ?? FEE) - FEE; out.push({ t, t0: q.t0, d: q.d, r, rl: q.rl }); if (relim && r <= 0) RL = { d: q.d, px: x*(1 - q.d*relim.x), until: t + relim.ttl*60000 }; if (cool && r <= 0) blk[q.d] = { until: cool.min ? t + cool.min*60000 : Infinity, px: q.fill, seenOther: false }; };
   let prev = D.o[i0], lastTr = 0;
   for (let i = i0; i < D.t.length && D.t[i] < to; i++) {
     const tr = tAt(D.t[i]), wd = WORST && legs.length ? legs[0].d : 0, path = wd === 1 ? [D.o[i], D.l[i], D.h[i], D.c[i]] : wd === -1 ? [D.o[i], D.h[i], D.l[i], D.c[i]] : D.c[i] >= D.o[i] ? [D.o[i], D.l[i], D.h[i], D.c[i]] : [D.o[i], D.h[i], D.l[i], D.c[i]];   // WORST: جوا الشمعة دايماً ضد الصفقة المفتوحة أول
@@ -74,6 +74,8 @@ function grid(D, B4, T4, from, to, step, trail, maxN = 5, lock = 0, TF = H4, pct
       if (flip && tr !== 0) { for (const q of [...legs]) if (tr === -q.d && (flip !== 2 || q.d*(p/q.fill - 1) < 0)) exit(q, p, D.t[i]);
         if (flip === 3 && !legs.length && lastTr !== tr) { const kk = tr === 1 ? Math.floor(K(p) + 1e-12) : Math.ceil(K(p) - 1e-12); legs.push({ k: kk, d: tr, best: kk, fill: p*(1 + tr*SLIP_IN) }); } }   // 3 = سكّر واقلب فوراً ماركت مع الترند
       lastTr = tr;
+      if (RL) { if (tr !== RL.d || D.t[i] > RL.until || legs.length) RL = null;
+        else if (RL.d === 1 ? p <= RL.px : p >= RL.px) { const kk = K(RL.px); legs.push({ k: kk, d: RL.d, best: kk, fill: RL.px, fin: 0.0002, rl: 1, t0: D.t[i] }); RL = null; } }
       if (cool && cool.mode === "flip") for (const k of [1, -1]) if (blk[k] && tr !== k) blk[k].seenOther = true;
       if (pct) for (const q of legs) { const f = q.d*(p/q.fill - 1); if (!(q.mfe >= f)) q.mfe = f; }
       if (tp) for (const q of [...legs]) { const tpx = q.fill*(1 + q.d*tp); if (q.d === 1 ? p >= tpx : p <= tpx) { legs.splice(legs.indexOf(q), 1); out.push({ t: D.t[i], d: q.d, r: tp - FEE - 0.0002 }); } }
@@ -83,7 +85,7 @@ function grid(D, B4, T4, from, to, step, trail, maxN = 5, lock = 0, TF = H4, pct
         for (const q of legs) if (q.d === d && (up ? lv > q.best : lv < q.best)) q.best = lv;
         const B = blk[d]; if (B) { if (cool.mode === "flip" && tr !== d) B.seenOther = true; if ((cool.min && D.t[i] >= B.until) || (cool.mode === "flip" && B.seenOther && tr === d) || (cool.mode === "beyond" && d*(p - B.px) > 0)) blk[d] = null; }
         if (inv) { if (tr === d && !legs.length) legs.push({ k: lv, d: -d, best: lv, fill: LV(lv)*(1 - d*SLIP_IN) }); }
-        else if (!blk[d] && tr === d && !legs.some(q => q.d === -d) && !legs.some(q => q.k === lv && q.d === d) && legs.filter(q => q.d === d).length < maxN) legs.push({ k: lv, d, best: lv, fill: LV(lv)*(1 + d*SLIP_IN), t0: D.t[i] }); }
+        else if (!(RL && relim.only && RL.d === d) && !blk[d] && tr === d && !legs.some(q => q.d === -d) && !legs.some(q => q.k === lv && q.d === d) && legs.filter(q => q.d === d).length < maxN) legs.push({ k: lv, d, best: lv, fill: LV(lv)*(1 + d*SLIP_IN), t0: D.t[i] }); }
       prev = p; }
   }
   let j = D.t.length - 1; while (j > 0 && D.t[j] >= to) j--;
@@ -110,6 +112,13 @@ else (async () => {
     const VV = [["Zero Lag 30د (الحالي)", B30, "Z", 18e5], ["الثلاثة متفقين 30د", B30, "T", 18e5], ["الثلاثة متفقين ساعة", B60, "T", 36e5], ["Zero Lag 30د + الثلاثة متفقين", B30, "ZT", 18e5], ["SuperTrend لحاله 30د", B30, "ST", 18e5], ["AlphaTrend لحاله 30د", B30, "AL", 18e5], ["Ultimate MA لحاله 30د", B30, "UM", 18e5]];
     for (const [nm, BB, key, TF] of VV) out.push(`${nm} | ` + P.map(([, a, b]) => { const all = COINS.flatMap(s => grid(D[s], BB[s], BB[s][key], a, b, 0.03, 2, 1, 0.25, TF, [0.01, 0.003])); const c = st(all); const ws = all.filter(x => x.r > 0), ls = all.filter(x => x.r <= 0); return `${c.n} · ${c.w}/${c.l} · +${(50*ws.reduce((q, x) => q + x.r, 0)/Math.max(1, ws.length)).toFixed(2)}$ · ${(50*ls.reduce((q, x) => q + x.r, 0)/Math.max(1, ls.length)).toFixed(2)}$ · ${f$(c.net*0.5)} · PF ${c.pf.toFixed(2)}`; }).join(" | "));
     out.push(""); }
+  if (process.env.GRID_RELIM) {   // 27/11 12:53 (فكرة المستخدم): بعد ما الوقف يضرب ← ليمت بنفس الاتجاه بسعر أحسن (بالشورت بيع فوق الوقف)
+    const aggB = (X, TF) => { const m = new Map(); for (let i = 0; i < X.t.length; i++) { const b = Math.floor(X.t[i]/TF)*TF; let y = m.get(b); if (!y) { y = { h: -1e18, l: 1e18, c: 0 }; m.set(b, y); } if (X.h[i] > y.h) y.h = X.h[i]; if (X.l[i] < y.l) y.l = X.l[i]; y.c = X.c[i]; } const ks = [...m.keys()].sort((a, b) => a - b); const B = { t: ks, h: ks.map(k => m.get(k).h), l: ks.map(k => m.get(k).l), c: ks.map(k => m.get(k).c) }; B.idx = new Map(ks.map((t, j) => [t, j])); B.Z = zl(B, 70, 1.2); return B; };
+    const BB = {}, C = COINS.slice(0, 15); for (const s of C) BB[s] = aggB(D[s], 18e5);
+    out.push("## بعد الخسارة: ليمت بسعر أحسن؟ · 30د Zero Lag · درجة 3% · وقف 3% · +1.8%←0.3% (الحالي) · 15 عملة · صفقة 50$ · الليمت ميكر 0.02% · بينلغى إذا الترند تغيّر أو انفتحت صفقة أو خلص الوقت", "الطريقة | ترتيب الشمعة | " + P.map(p => p[0] + " (صفقات · ربح/خسارة · صافي · PF · صفقات الليمت: عدد/صافي)").join(" | "));
+    const VV = [["الحالي (بلا ليمت)", null], ["ليمت 0.5% أحسن · ساعة · + الدخول العادي", { x: 0.005, ttl: 60 }], ["ليمت 1% أحسن · ساعة · + الدخول العادي", { x: 0.01, ttl: 60 }], ["ليمت 1.5% أحسن · ساعتين · + الدخول العادي", { x: 0.015, ttl: 120 }], ["ليمت 1% أحسن · ساعة · بس ليمت", { x: 0.01, ttl: 60, only: true }], ["ليمت 2% أحسن · ساعتين · بس ليمت", { x: 0.02, ttl: 120, only: true }]];
+    for (const w of [false, true]) for (const [nm, rl] of VV) { WORST = w; out.push(`${nm} | ${w ? "أسوأ" : "عادي"} | ` + P.map(([, a, b]) => { const all = C.flatMap(s => grid(D[s], BB[s], BB[s].Z, a, b, 0.03, 1, 1, 0.25, 18e5, [0.018, 0.003], 0, 0, null, false, rl)); const c = st(all), R = all.filter(x => x.rl); return `${c.n} · ${c.w}/${c.l} · ${f$(c.net*0.5)} · PF ${c.pf.toFixed(2)} · ${R.length}/${f$(50*R.reduce((q, x) => q + x.r, 0))}`; }).join(" | ")); }
+    WORST = false; out.push(""); }
   if (process.env.GRID_REAL) {   // 27/11 11:48 (المستخدم: «الصفقات اللي بتربح ما بتوصل لهالربح»): المختبر العادي مقابل أسوأ ترتيب جوا الشمعة · مسافات تتبع ووقوف
     const aggB = (X, TF) => { const m = new Map(); for (let i = 0; i < X.t.length; i++) { const b = Math.floor(X.t[i]/TF)*TF; let y = m.get(b); if (!y) { y = { h: -1e18, l: 1e18, c: 0 }; m.set(b, y); } if (X.h[i] > y.h) y.h = X.h[i]; if (X.l[i] < y.l) y.l = X.l[i]; y.c = X.c[i]; } const ks = [...m.keys()].sort((a, b) => a - b); const B = { t: ks, h: ks.map(k => m.get(k).h), l: ks.map(k => m.get(k).l), c: ks.map(k => m.get(k).c) }; B.idx = new Map(ks.map((t, j) => [t, j])); B.Z = zl(B, 70, 1.2); return B; };
     const BB = {}, C12 = COINS.slice(0, 12); for (const s of C12) BB[s] = aggB(D[s], 18e5);
