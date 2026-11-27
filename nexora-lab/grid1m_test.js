@@ -156,9 +156,17 @@ else (async () => {
     const G = [["عملاتك", COINS.filter(s => !BIG.includes(s))], ["الكبار (BTC ETH SOL XRP DOGE)", COINS.filter(s => BIG.includes(s))]];
     const rng = (s, t) => { const B = BB[s], j = B.idx.get(Math.floor(t/18e5)*18e5 - 18e5); return j !== undefined && B.ADX[j] < 20; };
     const atrOf = (s, from) => { const B = BB[s], v = []; let a = from - 7*DAY, b = from; if (a < B.t[0]) { a = B.t[0]; b = a + 7*DAY; } for (let j = 0; j < B.t.length; j++) if (B.t[j] >= a && B.t[j] < b && B.ATR[j] > 0) v.push(B.ATR[j]); v.sort((x, y) => x - y); return v.length ? v[v.length >> 1] : 0.01; };   // تذبذب الأسبوع قبل الفترة (بلا نظر للمستقبل)
-    const mom = (s, a, b, step, k) => { SLF = step*10/3; WORST = true; const r = grid(D[s], BB[s], k ? BB[s][k] : BB[s].Z, a, b, step, 100, 1, 0, 18e5, null, 0, step*2.3/3, null); WORST = false; SLF = 0; return r; };
+    const mom = (s, a, b, step, k, fl = 0) => { SLF = step*10/3; WORST = true; const r = grid(D[s], BB[s], k ? BB[s][k] : BB[s].Z, a, b, step, 100, 1, 0, 18e5, null, fl, step*2.3/3, null); WORST = false; SLF = 0; return r; };
     TPC = 0.001;
-    const VV = [
+    const A3 = (s, a) => Math.min(0.10, Math.max(0.006, 3*atrOf(s, a)));
+    const VV = process.env.GRID_NEU === "flip" ? [
+      ["زخم الحالي: درجة 3% · هدف 2.3% · وقف 10%", (s, a, b) => mom(s, a, b, 0.03)],
+      ["الحالي + سكّر لما الترند يقلب", (s, a, b) => mom(s, a, b, 0.03, null, 1)],
+      ["الحالي + سكّر لما يقلب بس إذا خسرانة", (s, a, b) => mom(s, a, b, 0.03, null, 2)],
+      ["درجة 3×ATR", (s, a, b) => mom(s, a, b, A3(s, a))],
+      ["درجة 3×ATR + سكّر لما الترند يقلب", (s, a, b) => mom(s, a, b, A3(s, a), null, 1)],
+      ["درجة 3×ATR + سكّر لما يقلب بس إذا خسرانة", (s, a, b) => mom(s, a, b, A3(s, a), null, 2)],
+    ] : [
       ["زخم الحالي: درجة 3% · هدف 2.3% · وقف 10%", (s, a, b) => mom(s, a, b, 0.03)],
       ["زخم درجة 2×ATR (هدف ووقف بنفس النسبة)", (s, a, b) => mom(s, a, b, Math.min(0.08, Math.max(0.005, 2*atrOf(s, a))))],
       ["زخم درجة 3×ATR", (s, a, b) => mom(s, a, b, Math.min(0.10, Math.max(0.006, 3*atrOf(s, a))))],
@@ -171,8 +179,8 @@ else (async () => {
     out.push("## أنواع غريد · شموع دقيقة · الزخم بترتيب أسوأ وتكلفة حقيقية (دخول ستوب +0.15% · هدف ماركت) · المحايد ليمت ميكر 0.02% (تعبئة بس إذا السعر عدّى 0.05%) · 44$ لكل عملة", "النوع | المجموعة | " + P.map(p => p[0] + " (صفقات · نسبة الربح · صافي · PF · أسوأ نزول)").join(" | "));
     for (const [nm, fn] of VV) for (const [gn, C] of G) { if (!C.length) continue;
       out.push(`${nm} | ${gn} (${C.length}) | ` + P.map(([, a, b]) => { const all = C.flatMap(s => fn(s, a, b)); const c = st(all); return `${c.n} · ${(100*c.w/Math.max(1, c.n)).toFixed(0)}% · ${f$(c.net*0.44)} · PF ${c.pf.toFixed(2)} · -${(44*maxDD(all)).toFixed(0)}$`; }).join(" | ")); }
-    out.push("", "## لكل عملة · من التصفير · صافي $ (زخم الحالي | محايد ATR | هجين)");
-    const [, a0, b0] = P[2]; for (const s of COINS) { const v = [VV[0], VV[5], VV[7]].map(([, fn]) => f$(st(fn(s, a0, b0)).net*0.44)); out.push(`${s.replace("USDT", "")} · ATR ${(100*atrOf(s, a0)).toFixed(2)}% | ${v.join(" | ")}`); }
+    if (process.env.GRID_NEU !== "flip") { out.push("", "## لكل عملة · من التصفير · صافي $ (زخم الحالي | محايد ATR | هجين)");
+    const [, a0, b0] = P[2]; for (const s of COINS) { const v = [VV[0], VV[5], VV[7]].map(([, fn]) => f$(st(fn(s, a0, b0)).net*0.44)); out.push(`${s.replace("USDT", "")} · ATR ${(100*atrOf(s, a0)).toFixed(2)}% | ${v.join(" | ")}`); } }
     TPC = 0.0002; out.push(""); }
   if (process.env.GRID_ADD) {   // 27/11 17:44 (طلب المستخدم): التعزيز على الخسارة (DCA) مقابل التعزيز على الربح — بإعداد الحقيقي هلأ
     const aggB = (X, TF) => { const m = new Map(); for (let i = 0; i < X.t.length; i++) { const b = Math.floor(X.t[i]/TF)*TF; let y = m.get(b); if (!y) { y = { h: -1e18, l: 1e18, c: 0 }; m.set(b, y); } if (X.h[i] > y.h) y.h = X.h[i]; if (X.l[i] < y.l) y.l = X.l[i]; y.c = X.c[i]; } const ks = [...m.keys()].sort((a, b) => a - b); const B = { t: ks, h: ks.map(k => m.get(k).h), l: ks.map(k => m.get(k).l), c: ks.map(k => m.get(k).c) }; B.idx = new Map(ks.map((t, j) => [t, j])); B.Z = zl(B, 70, 1.2); return B; };
