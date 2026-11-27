@@ -64,7 +64,7 @@ function grid(D, B4, T4, from, to, step, trail, maxN = 5, lock = 0, TF = H4, pct
   const tAt = t => { const b = Math.floor(t/TF)*TF - TF, j = B4.idx.get(b); return j === undefined ? 0 : T4[j]; };
   const stopK = q => q.d === 1 ? (q.best >= q.k + 1 ? Math.max(q.best - trail, q.k) : q.k - trail) : (q.best <= q.k - 1 ? Math.min(q.best + trail, q.k) : q.k + trail);
   const blk = { 1: null, '-1': null };
-  const exit = (q, px, t) => { legs.splice(legs.indexOf(q), 1); const x = px*(1 - q.d*SLIP_OUT), r = q.d*(x/q.fill - 1) - 2*FEE; out.push({ t, d: q.d, r }); if (cool && r <= 0) blk[q.d] = { until: cool.min ? t + cool.min*60000 : Infinity, px: q.fill, seenOther: false }; };
+  const exit = (q, px, t) => { legs.splice(legs.indexOf(q), 1); const x = px*(1 - q.d*SLIP_OUT), r = q.d*(x/q.fill - 1) - 2*FEE; out.push({ t, t0: q.t0, d: q.d, r }); if (cool && r <= 0) blk[q.d] = { until: cool.min ? t + cool.min*60000 : Infinity, px: q.fill, seenOther: false }; };
   let prev = D.o[i0], lastTr = 0;
   for (let i = i0; i < D.t.length && D.t[i] < to; i++) {
     const tr = tAt(D.t[i]), path = D.c[i] >= D.o[i] ? [D.o[i], D.l[i], D.h[i], D.c[i]] : [D.o[i], D.h[i], D.l[i], D.c[i]];
@@ -82,7 +82,7 @@ function grid(D, B4, T4, from, to, step, trail, maxN = 5, lock = 0, TF = H4, pct
         for (const q of legs) if (q.d === d && (up ? lv > q.best : lv < q.best)) q.best = lv;
         const B = blk[d]; if (B) { if (cool.mode === "flip" && tr !== d) B.seenOther = true; if ((cool.min && D.t[i] >= B.until) || (cool.mode === "flip" && B.seenOther && tr === d) || (cool.mode === "beyond" && d*(p - B.px) > 0)) blk[d] = null; }
         if (inv) { if (tr === d && !legs.length) legs.push({ k: lv, d: -d, best: lv, fill: LV(lv)*(1 - d*SLIP_IN) }); }
-        else if (!blk[d] && tr === d && !legs.some(q => q.d === -d) && !legs.some(q => q.k === lv && q.d === d) && legs.filter(q => q.d === d).length < maxN) legs.push({ k: lv, d, best: lv, fill: LV(lv)*(1 + d*SLIP_IN) }); }
+        else if (!blk[d] && tr === d && !legs.some(q => q.d === -d) && !legs.some(q => q.k === lv && q.d === d) && legs.filter(q => q.d === d).length < maxN) legs.push({ k: lv, d, best: lv, fill: LV(lv)*(1 + d*SLIP_IN), t0: D.t[i] }); }
       prev = p; }
   }
   let j = D.t.length - 1; while (j > 0 && D.t[j] >= to) j--;
@@ -108,6 +108,16 @@ else (async () => {
     out.push("## فلتر الاتجاه للغريد: Zero Lag مقابل SuperTrend + Ultimate MA + AlphaTrend · 3% · وقف 6% · +1.0%←0.3% · صفقة 50$", "الفلتر | " + P.map(p => p[0] + " (صفقات · ربح/خسارة · معدل الربح · معدل الخسارة · صافي · PF)").join(" | "));
     const VV = [["Zero Lag 30د (الحالي)", B30, "Z", 18e5], ["الثلاثة متفقين 30د", B30, "T", 18e5], ["الثلاثة متفقين ساعة", B60, "T", 36e5], ["Zero Lag 30د + الثلاثة متفقين", B30, "ZT", 18e5], ["SuperTrend لحاله 30د", B30, "ST", 18e5], ["AlphaTrend لحاله 30د", B30, "AL", 18e5], ["Ultimate MA لحاله 30د", B30, "UM", 18e5]];
     for (const [nm, BB, key, TF] of VV) out.push(`${nm} | ` + P.map(([, a, b]) => { const all = COINS.flatMap(s => grid(D[s], BB[s], BB[s][key], a, b, 0.03, 2, 1, 0.25, TF, [0.01, 0.003])); const c = st(all); const ws = all.filter(x => x.r > 0), ls = all.filter(x => x.r <= 0); return `${c.n} · ${c.w}/${c.l} · +${(50*ws.reduce((q, x) => q + x.r, 0)/Math.max(1, ws.length)).toFixed(2)}$ · ${(50*ls.reduce((q, x) => q + x.r, 0)/Math.max(1, ls.length)).toFixed(2)}$ · ${f$(c.net*0.5)} · PF ${c.pf.toFixed(2)}`; }).join(" | "));
+    out.push(""); }
+  if (process.env.GRID_MORE) {   // 27/11 11:34 (فكرة المستخدم): فلتر ATR بيقلل الصفقات ← نزيد عدد العملات؟
+    const aggB = (X, TF) => { const m = new Map(); for (let i = 0; i < X.t.length; i++) { const b = Math.floor(X.t[i]/TF)*TF; let y = m.get(b); if (!y) { y = { h: -1e18, l: 1e18, c: 0 }; m.set(b, y); } if (X.h[i] > y.h) y.h = X.h[i]; if (X.l[i] < y.l) y.l = X.l[i]; y.c = X.c[i]; } const ks = [...m.keys()].sort((a, b) => a - b); const B = { t: ks, h: ks.map(k => m.get(k).h), l: ks.map(k => m.get(k).l), c: ks.map(k => m.get(k).c) }; B.idx = new Map(ks.map((t, j) => [t, j])); B.Z = zl(B, 70, 1.2); return B; };
+    const rma = (x, p) => { const o = new Array(x.length).fill(NaN); let s = 0, k = 0; for (let i = 0; i < x.length; i++) { if (k < p) { s += x[i]; k++; if (k === p) o[i] = s/p; } else o[i] = (o[i-1]*(p - 1) + x[i])/p; } return o; };
+    const BB = {}; for (const s of COINS) { const B = aggB(D[s], 18e5), c = B.c, tr = c.map((_, i) => i ? Math.max(B.h[i] - B.l[i], Math.abs(B.h[i] - c[i-1]), Math.abs(B.l[i] - c[i-1])) : B.h[i] - B.l[i]), a14 = rma(tr, 14), a50 = rma(tr, 50); B.ZA = B.Z.map((z, j) => a14[j] > a50[j] ? z : 0); BB[s] = B; }
+    const peak = all => { const ev = []; for (const x of all) if (x.t0) { ev.push([x.t0, 1]); ev.push([x.t, -1]); } ev.sort((a, b) => a[0] - b[0] || a[1] - b[1]); let c = 0, m = 0, sum = 0, last = 0, T0 = ev.length ? ev[0][0] : 0; for (const [t, d] of ev) { sum += c*(t - last); last = t; c += d; if (c > m) m = c; } return [m, ev.length ? sum/Math.max(1, last - T0) : 0]; };
+    const G12 = COINS.slice(0, 12), G15 = COINS.slice(0, 15), G20 = COINS.slice(0, 20);
+    out.push(`## عدد العملات × فلتر ATR · 30د Zero Lag · 3% · وقف 3% · +1%←0.3% · صفقة 50$ (هامش 10$) · العملات 13-15: ${COINS.slice(12, 15).map(x => x.replace("USDT", "")).join(" ")} · 16-20: ${COINS.slice(15, 20).map(x => x.replace("USDT", "")).join(" ")}`, "الإعداد | " + P.map(p => p[0] + " (صفقات · ربح/خسارة · صافي · PF · أعلى صفقات مفتوحة سوا · معدل المفتوح)").join(" | "));
+    const VV = [["12 عملة بدون فلتر (الحالي)", G12, "Z"], ["12 عملة + ATR", G12, "ZA"], ["15 عملة + ATR", G15, "ZA"], ["20 عملة + ATR", G20, "ZA"], ["20 عملة بدون فلتر", G20, "Z"], ["العملات 13-20 لحالها + ATR", COINS.slice(12, 20), "ZA"]];
+    for (const [nm, cs, key] of VV) out.push(`${nm} | ` + P.map(([, a, b]) => { const all = cs.flatMap(s => grid(D[s], BB[s], BB[s][key], a, b, 0.03, 1, 1, 0.25, 18e5, [0.01, 0.003])); const c = st(all), [pk, av] = peak(all); return `${c.n} · ${c.w}/${c.l} · ${f$(c.net*0.5)} · PF ${c.pf.toFixed(2)} · ${pk} · ${av.toFixed(1)}`; }).join(" | "));
     out.push(""); }
   if (process.env.GRID_INV) {   // 27/11 11:18 (طلب المستخدم): الغريد بالعكس — لما يعطي لونج يفتح شورت والعكس
     const aggB = (X, TF) => { const m = new Map(); for (let i = 0; i < X.t.length; i++) { const b = Math.floor(X.t[i]/TF)*TF; let y = m.get(b); if (!y) { y = { h: -1e18, l: 1e18, c: 0 }; m.set(b, y); } if (X.h[i] > y.h) y.h = X.h[i]; if (X.l[i] < y.l) y.l = X.l[i]; y.c = X.c[i]; } const ks = [...m.keys()].sort((a, b) => a - b); const B = { t: ks, h: ks.map(k => m.get(k).h), l: ks.map(k => m.get(k).l), c: ks.map(k => m.get(k).c) }; B.idx = new Map(ks.map((t, j) => [t, j])); B.Z = zl(B, 70, 1.2); return B; };
