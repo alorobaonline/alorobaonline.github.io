@@ -58,12 +58,13 @@ function tri(B) { const n = B.c.length, h = B.h, l = B.l, c = B.c, v = B.v;
   for (let i = 0; i < n; i++) T[i] = ST[i] === UM[i] && UM[i] === AL[i] ? ST[i] : 0;
   return { ST, UM, AL, T }; }
 // ---- الغريد بتنفيذ الحقيقي: درجة وحدة لكل قطعة مسار (الأقرب للسعر) · دخول أسوأ · وقف ماركت أسوأ ----
-function grid(D, B4, T4, from, to, step, trail, maxN = 5, lock = 0, TF = H4, pct = null, flip = 0, tp = 0) {   // tp: هدف ثابت (ليمت، عمولة ميكر 0.02%)   // flip: 1 = سكّر الصفقة لما الترند ينقلب ضدها · 2 = بس إذا خسرانة   // pct = [تفعيل, مسافة]: بعد ما الربح يوصل تفعيل، الوقف بيلحق أعلى ربح بمسافة (زي TRAILING_STOP_MARKET تبع بايننس)   // lock = بعد ما تربح درجة: الوقف بيصير فوق الدخول بجزء من درجة (0 = على الدخول · 0.5 = نص درجة)
+function grid(D, B4, T4, from, to, step, trail, maxN = 5, lock = 0, TF = H4, pct = null, flip = 0, tp = 0, cool = null) {   // cool: بعد خسارة ← { min: دقايق } أو { mode: "flip" } (لحد ما الترند يتغيّر) أو { mode: "beyond" } (لحد ما السعر يتعدّى دخول الخاسرة بالاتجاه)   // tp: هدف ثابت (ليمت، عمولة ميكر 0.02%)   // flip: 1 = سكّر الصفقة لما الترند ينقلب ضدها · 2 = بس إذا خسرانة   // pct = [تفعيل, مسافة]: بعد ما الربح يوصل تفعيل، الوقف بيلحق أعلى ربح بمسافة (زي TRAILING_STOP_MARKET تبع بايننس)   // lock = بعد ما تربح درجة: الوقف بيصير فوق الدخول بجزء من درجة (0 = على الدخول · 0.5 = نص درجة)
   const out = [], g = Math.log(1 + step); let i0 = D.t.findIndex(t => t >= from); if (i0 < 0) return out;
   const A = D.o[i0], K = p => Math.log(p/A)/g, LV = k => A*Math.pow(1 + step, k), legs = [];
   const tAt = t => { const b = Math.floor(t/TF)*TF - TF, j = B4.idx.get(b); return j === undefined ? 0 : T4[j]; };
   const stopK = q => q.d === 1 ? (q.best >= q.k + 1 ? Math.max(q.best - trail, q.k) : q.k - trail) : (q.best <= q.k - 1 ? Math.min(q.best + trail, q.k) : q.k + trail);
-  const exit = (q, px, t) => { legs.splice(legs.indexOf(q), 1); const x = px*(1 - q.d*SLIP_OUT); out.push({ t, d: q.d, r: q.d*(x/q.fill - 1) - 2*FEE }); };
+  const blk = { 1: null, '-1': null };
+  const exit = (q, px, t) => { legs.splice(legs.indexOf(q), 1); const x = px*(1 - q.d*SLIP_OUT), r = q.d*(x/q.fill - 1) - 2*FEE; out.push({ t, d: q.d, r }); if (cool && r <= 0) blk[q.d] = { until: cool.min ? t + cool.min*60000 : Infinity, px: q.fill, seenOther: false }; };
   let prev = D.o[i0], lastTr = 0;
   for (let i = i0; i < D.t.length && D.t[i] < to; i++) {
     const tr = tAt(D.t[i]), path = D.c[i] >= D.o[i] ? [D.o[i], D.l[i], D.h[i], D.c[i]] : [D.o[i], D.h[i], D.l[i], D.c[i]];
@@ -72,13 +73,15 @@ function grid(D, B4, T4, from, to, step, trail, maxN = 5, lock = 0, TF = H4, pct
       if (flip && tr !== 0) { for (const q of [...legs]) if (tr === -q.d && (flip !== 2 || q.d*(p/q.fill - 1) < 0)) exit(q, p, D.t[i]);
         if (flip === 3 && !legs.length && lastTr !== tr) { const kk = tr === 1 ? Math.floor(K(p) + 1e-12) : Math.ceil(K(p) - 1e-12); legs.push({ k: kk, d: tr, best: kk, fill: p*(1 + tr*SLIP_IN) }); } }   // 3 = سكّر واقلب فوراً ماركت مع الترند
       lastTr = tr;
+      if (cool && cool.mode === "flip") for (const k of [1, -1]) if (blk[k] && tr !== k) blk[k].seenOther = true;
       if (pct) for (const q of legs) { const f = q.d*(p/q.fill - 1); if (!(q.mfe >= f)) q.mfe = f; }
       if (tp) for (const q of [...legs]) { const tpx = q.fill*(1 + q.d*tp); if (q.d === 1 ? p >= tpx : p <= tpx) { legs.splice(legs.indexOf(q), 1); out.push({ t: D.t[i], d: q.d, r: tp - FEE - 0.0002 }); } }
       for (const q of [...legs]) { let sp = LV(stopK(q)); if (pct && q.mfe >= pct[0]) { const pp = q.fill*(1 + q.d*(q.mfe - pct[1])); sp = q.d === 1 ? Math.max(sp, pp) : Math.min(sp, pp); } if (lock && q.d*(q.best - q.k) >= 1) { const lp = LV(q.k + q.d*lock); sp = q.d === 1 ? Math.max(sp, lp) : Math.min(sp, lp); } if (q.d === 1 ? p <= sp : p >= sp) exit(q, sp, D.t[i]); }
       const lv = up ? Math.floor(K(p) + 1e-12) : Math.ceil(K(p) - 1e-12), crossed = up ? lv > Math.floor(K(prev) + 1e-12) : lv < Math.ceil(K(prev) - 1e-12);
       if (crossed) { const d = up ? 1 : -1;
         for (const q of legs) if (q.d === d && (up ? lv > q.best : lv < q.best)) q.best = lv;
-        if (tr === d && !legs.some(q => q.d === -d) && !legs.some(q => q.k === lv && q.d === d) && legs.filter(q => q.d === d).length < maxN) legs.push({ k: lv, d, best: lv, fill: LV(lv)*(1 + d*SLIP_IN) }); }
+        const B = blk[d]; if (B) { if (cool.mode === "flip" && tr !== d) B.seenOther = true; if ((cool.min && D.t[i] >= B.until) || (cool.mode === "flip" && B.seenOther && tr === d) || (cool.mode === "beyond" && d*(p - B.px) > 0)) blk[d] = null; }
+        if (!blk[d] && tr === d && !legs.some(q => q.d === -d) && !legs.some(q => q.k === lv && q.d === d) && legs.filter(q => q.d === d).length < maxN) legs.push({ k: lv, d, best: lv, fill: LV(lv)*(1 + d*SLIP_IN) }); }
       prev = p; }
   }
   let j = D.t.length - 1; while (j > 0 && D.t[j] >= to) j--;
@@ -104,6 +107,14 @@ else (async () => {
     out.push("## فلتر الاتجاه للغريد: Zero Lag مقابل SuperTrend + Ultimate MA + AlphaTrend · 3% · وقف 6% · +1.0%←0.3% · صفقة 50$", "الفلتر | " + P.map(p => p[0] + " (صفقات · ربح/خسارة · معدل الربح · معدل الخسارة · صافي · PF)").join(" | "));
     const VV = [["Zero Lag 30د (الحالي)", B30, "Z", 18e5], ["الثلاثة متفقين 30د", B30, "T", 18e5], ["الثلاثة متفقين ساعة", B60, "T", 36e5], ["Zero Lag 30د + الثلاثة متفقين", B30, "ZT", 18e5], ["SuperTrend لحاله 30د", B30, "ST", 18e5], ["AlphaTrend لحاله 30د", B30, "AL", 18e5], ["Ultimate MA لحاله 30د", B30, "UM", 18e5]];
     for (const [nm, BB, key, TF] of VV) out.push(`${nm} | ` + P.map(([, a, b]) => { const all = COINS.flatMap(s => grid(D[s], BB[s], BB[s][key], a, b, 0.03, 2, 1, 0.25, TF, [0.01, 0.003])); const c = st(all); const ws = all.filter(x => x.r > 0), ls = all.filter(x => x.r <= 0); return `${c.n} · ${c.w}/${c.l} · +${(50*ws.reduce((q, x) => q + x.r, 0)/Math.max(1, ws.length)).toFixed(2)}$ · ${(50*ls.reduce((q, x) => q + x.r, 0)/Math.max(1, ls.length)).toFixed(2)}$ · ${f$(c.net*0.5)} · PF ${c.pf.toFixed(2)}`; }).join(" | "));
+    out.push(""); }
+  if (process.env.GRID_COOL) {   // 27/11 11:14 (المستخدم: MMT شورت خسر ورجع فات شورت وخسر كمان): بعد خسارة ← ما نرجع نفوت بنفس الاتجاه فوراً
+    const aggB = (X, TF) => { const m = new Map(); for (let i = 0; i < X.t.length; i++) { const b = Math.floor(X.t[i]/TF)*TF; let y = m.get(b); if (!y) { y = { h: -1e18, l: 1e18, c: 0 }; m.set(b, y); } if (X.h[i] > y.h) y.h = X.h[i]; if (X.l[i] < y.l) y.l = X.l[i]; y.c = X.c[i]; } const ks = [...m.keys()].sort((a, b) => a - b); const B = { t: ks, h: ks.map(k => m.get(k).h), l: ks.map(k => m.get(k).l), c: ks.map(k => m.get(k).c) }; B.idx = new Map(ks.map((t, j) => [t, j])); B.Z = zl(B, 70, 1.2); return B; };
+    const BB = {}; for (const s of COINS) BB[s] = aggB(D[s], 18e5);
+    // الترند بيتقيّم على كل نقطة سعر: flip بيحتاج نشوف الترند تغيّر — منمرّره عبر tAt جوا grid
+    out.push("## بعد ما الوقف يضرب: نستنى قبل ما نرجع نفوت بنفس الاتجاه؟ · 30د Zero Lag · درجة 3% · وقف 3% · +1%←0.3% · صفقة 50$", "الطريقة | " + P.map(p => p[0] + " (صفقات · ربح/خسارة · معدل الخسارة · صافي · PF)").join(" | "));
+    const VV = [["الحالي: بيرجع يفوت فوراً", null], ["استنى 30 دقيقة", { min: 30 }], ["استنى ساعة", { min: 60 }], ["استنى ساعتين", { min: 120 }], ["استنى 4 ساعات", { min: 240 }], ["لحد ما الترند 30د يتغيّر ويرجع", { mode: "flip" }], ["لحد ما السعر يتعدّى سعر دخول الخاسرة (قاع/قمة جديدة)", { mode: "beyond" }]];
+    for (const [nm, cl] of VV) out.push(`${nm} | ` + P.map(([, a, b]) => { const all = COINS.flatMap(s => grid(D[s], BB[s], BB[s].Z, a, b, 0.03, 1, 1, 0.25, 18e5, [0.01, 0.003], 0, 0, cl)); const c = st(all); const ls = all.filter(x => x.r <= 0); return `${c.n} · ${c.w}/${c.l} · ${(50*ls.reduce((q, x) => q + x.r, 0)/Math.max(1, ls.length)).toFixed(2)}$ · ${f$(c.net*0.5)} · PF ${c.pf.toFixed(2)}`; }).join(" | "));
     out.push(""); }
   if (process.env.GRID_FILT) {   // 27/11 11:05 (طلب المستخدم: «لازم نقوي الغريد بفلاتر/مؤشرات تفهم حركة السوق»): فلاتر حالة السوق فوق Zero Lag 30د — بتمنع الدخول بس، الطلوع متل ما هو
     const aggV = (X, TF) => { const m = new Map(); for (let i = 0; i < X.t.length; i++) { const b = Math.floor(X.t[i]/TF)*TF; let y = m.get(b); if (!y) { y = { h: -1e18, l: 1e18, c: 0, v: 0 }; m.set(b, y); } if (X.h[i] > y.h) y.h = X.h[i]; if (X.l[i] < y.l) y.l = X.l[i]; y.c = X.c[i]; y.v += X.v[i]; } const ks = [...m.keys()].sort((a, b) => a - b); const B = { t: ks, h: ks.map(k => m.get(k).h), l: ks.map(k => m.get(k).l), c: ks.map(k => m.get(k).c), v: ks.map(k => m.get(k).v) }; B.idx = new Map(ks.map((t, j) => [t, j])); B.Z = zl(B, 70, 1.2); return B; };
