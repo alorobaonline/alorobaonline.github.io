@@ -3,7 +3,7 @@ name: nexora-oneoff
 on:
   push:
     branches: [main]
-    paths: ["nexora-lab/bulla_tp2.js", ".github/workflows/nexora-oneoff.yml"]
+    paths: ["nexora-lab/crowd_probe.js", ".github/workflows/nexora-oneoff.yml"]
   workflow_dispatch:
 permissions:
   contents: write
@@ -19,7 +19,7 @@ jobs:
       - run: |
           git config user.name "nexora-lab-bot"
           git config user.email "nexora-lab-bot@users.noreply.github.com"
-          node nexora-lab/bulla_tp2.js
-          git add nexora-lab/results/bulla_tp2.txt
-          git commit -m "NEXORA lab: bulla tp2 results" || exit 0
+          node nexora-lab/crowd_probe.js
+          git add nexora-lab/results/crowd_probe.txt
+          git commit -m "NEXORA lab: crowd probe" || exit 0
           for i in 1 2 3 4 5; do git pull --rebase -q && git push && break; sleep $((i*7)); done
