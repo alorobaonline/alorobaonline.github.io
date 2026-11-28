@@ -70,6 +70,16 @@ const st = a => { const W = a.filter(x => x.r > 0), L = a.filter(x => x.r <= 0),
 const fmt = s => `${s.n} · ${(100*s.wr).toFixed(0)}% · ${(s.net >= 0 ? "+" : "") + s.net.toFixed(0)}$ · PF ${s.pf.toFixed(2)}`;
 (async () => {
   const X = {}, F = {};
+  if (process.env.CONFIRM) {   // 28/11 11:03 (طلب المستخدم): تأكيد على 5 عملات جداد · نفس الإشارة بالزبط بلا ولا تغيير
+    const C = process.env.CONFIRM.split(","), o = [`# تأكيد: العقود المفتوحة طلعت كتير + السعر تحرك ≥2% · مع الحركة · ${C.map(s => s.replace("USDT", "")).join(" ")} · من ${new Date(START).toISOString().slice(0, 10)} لـ ${new Date(END).toISOString().slice(0, 10)} · نفس الإعداد بالزبط`, "",
+      "الخروج | أيلول+تشرين1 (صفقات · نسبة · صافي · PF) | تشرين2 | كل الفترة"];
+    for (const sym of C) { X[sym] = await load(sym); if (!X[sym].t.length) { o.push(`(ما في بيانات ${sym})`); continue; } F[sym] = feats(X[sym]); console.log(sym, X[sym].t.length); }
+    const EN = { E4: "تسكير بعد 4 س", E8: "تسكير بعد 8 س", ATR: "وقف/هدف 2×ATR" };
+    for (const ex of ["E4", "E8", "ATR"]) { const run = (a, b) => C.filter(s => F[s]).flatMap(s => sim(X[s], F[s], "oi", "follow", ex, a, b));
+      o.push(`${EN[ex]} | ${fmt(st(run(START, SPLIT)))} | ${fmt(st(run(SPLIT, END + DAY)))} | ${fmt(st(run(START, END + DAY)))}`); }
+    o.push("", "## لكل عملة · كل الفترة · صافي (4 س | 8 س | ATR)");
+    for (const s of C) if (F[s]) o.push(`${s.replace("USDT", "")} | ${["E4", "E8", "ATR"].map(ex => fmt(st(sim(X[s], F[s], "oi", "follow", ex, START, END + DAY)))).join(" | ")}`);
+    fs.writeFileSync(path.join(__dirname, "results", "crowd_confirm.txt"), o.join("\n") + "\n"); console.log(o.join("\n")); return; }
   for (const sym of [...A, ...B]) { X[sym] = await load(sym); if (!X[sym].t.length) { console.log("ما في بيانات", sym); continue; } F[sym] = feats(X[sym]);
     const f = F[sym], n = k => f.filter(x => x[k] !== null && x[k] !== undefined).length; console.log(sym, X[sym].t.length, "دقيقة ·", f.length, "ساعة · OI", n("oi"), "· بريميوم", n("prem")); }
   const SN = { prem: "البريميوم (أساس التمويل) متطرف", lsr: "نسبة لونج/شورت الحسابات متطرفة", top: "نسبة كبار المتداولين متطرفة", taker: "الشاري/البايع آخر ساعة متطرف", oi: "العقود المفتوحة طلعت كتير + السعر تحرك ≥2%" };
